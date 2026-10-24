@@ -18,10 +18,11 @@ const TOUCH = [
 const GRAV = 900, JUMP_V = 268, SLIDE_T = 0.55, P_HW = 0.1;
 
 class Game {
-  constructor(cv) {
+  // opts.world / opts.renderer let another front end (the 3D version) reuse this state machine, input and rules
+  constructor(cv, opts = {}) {
     this.cv = cv;
-    this.world = new World(TRACK);
-    this.r = new Renderer(cv);
+    this.world = opts.world || new World(TRACK);
+    this.r = opts.renderer || new Renderer(cv);
     this.keys = {}; this.held = {}; this.tleft = this.tright = false;
     this.touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches); // shows the on-screen controls
     this.time = 0; this.best = 0;
@@ -64,7 +65,7 @@ class Game {
     const loop = now => {
       requestAnimationFrame(loop); // re-arm first so one bad frame can never freeze the game
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
-      this.advance(dt); this.r.draw(this);
+      this.advance(dt); this.draw(dt);
     };
     requestAnimationFrame(loop);
   }
@@ -74,6 +75,8 @@ class Game {
     const n = Math.max(1, Math.ceil(dt * 60 - 1e-6));
     for (let i = 0; i < n; i++) this.update(dt / n);
   }
+
+  draw() { this.r.draw(this); }
 
   fit() {
     // whole-number scaling keeps pixels even; on screens too small for 2x (phones in portrait) use the exact fit instead
@@ -152,7 +155,9 @@ class Game {
     this.updateFx(dt);
     if (this.state === 'play') this.step(dt);
     else if (this.state === 'title') {
+      const z0 = p.z;
       p.z += 110 * dt; w.extend(p.z);
+      if (Math.floor(p.z / 100) !== Math.floor(z0 / 100)) w.prune(p.z);
       const F = w.openFork(); if (F && p.z > F.z0 - 300) this.resetRun();
     } else { this.overT += dt; this.flash = Math.max(0, this.flash - dt); }
 
@@ -199,6 +204,36 @@ class Game {
     const w = this.world, p = this.p, prevZ = p.z;
     p.speed = Math.min(MAX_SPEED, p.speed + ACCEL * dt);
     p.z += p.speed * dt;
+    this.steer(dt);
+    if (this.jumpBuf > 0) { // jump starts on the ground, cancels a slide; a press just before landing is kept briefly
+      this.jumpBuf -= dt;
+      if (p.jy === 0) { p.slide = 0; p.vy = JUMP_V; p.jy = 0.01; this.jumpBuf = 0; }
+    }
+    if (p.jy > 0) { p.vy -= GRAV * dt; p.jy += p.vy * dt; if (p.jy <= 0) { p.jy = 0; p.vy = 0; } }
+    if (p.slide > 0) p.slide -= dt;
+    this.dust(dt);
+    w.extend(p.z);
+    if (Math.floor(p.z / 100) !== Math.floor(prevZ / 100)) w.prune(p.z);
+
+    const top = p.slide > 0 ? 8 : 24;
+    for (const it of w.items) {
+      if (it.taken || it.z < prevZ - 10 || it.z > p.z + 10) continue;
+      const dx = Math.abs(it.x - p.x);
+      if (it.kind === 'coin') {
+        if (dx < 0.2 && it.z > prevZ - 9 && it.z < p.z + 9 && p.jy < it.h + 6 && p.jy + top > it.h - 6) {
+          it.taken = true; this.coins++; this.coinPulse = 0.2;
+          this.onCoin(it);
+        }
+      } else if (it.kind !== 'prop') {
+        const o = OBST[it.kind];
+        if (dx < o.hw + P_HW && it.z > prevZ - 8 && it.z < p.z + 8 && p.jy < o.y1 && p.jy + top > o.y0) { this.die(); return; }
+      }
+    }
+  }
+
+  // free steering across the road, the junction choice, and keeping the runner on its road
+  steer(dt) {
+    const w = this.world, p = this.p;
     const dir = (this.keys.right || this.tright ? 1 : 0) - (this.keys.left || this.tleft ? 1 : 0);
     p.vx += (dir * STEER - p.vx) * Math.min(1, dt * 14);
     p.x += p.vx * dt;
@@ -223,13 +258,11 @@ class Game {
     const cx = w.clampX(p.x, p.z), pc = w.pieceAt(p.z);
     // ease onto the chosen road at the start of the junction, hard clamp everywhere else
     if (pc.type === 'fork' && p.z < pc.z0 + 120) p.x += (cx - p.x) * Math.min(1, dt * 14); else p.x = cx;
-    if (this.jumpBuf > 0) { // jump starts on the ground, cancels a slide; a press just before landing is kept briefly
-      this.jumpBuf -= dt;
-      if (p.jy === 0) { p.slide = 0; p.vy = JUMP_V; p.jy = 0.01; this.jumpBuf = 0; }
-    }
-    if (p.jy > 0) { p.vy -= GRAV * dt; p.jy += p.vy * dt; if (p.jy <= 0) { p.jy = 0; p.vy = 0; } }
-    if (p.slide > 0) p.slide -= dt;
-    // running dust on the road, drifting leaves in the forest (1px specks, a handful per second)
+  }
+
+  // running dust on the road, drifting leaves in the forest (1px specks, a handful per second)
+  dust(dt) {
+    const p = this.p;
     this.dustT -= dt;
     if (this.dustT <= 0 && p.jy === 0) {
       this.dustT = p.slide > 0 ? 0.04 : 0.12;
@@ -237,35 +270,21 @@ class Game {
       this.fx.push({ x: sxp - 3 + (Math.random() * 6 | 0), y: 157, vx: -10 + (Math.random() * 20 | 0), vy: leaf ? -16 : -10, gy: leaf ? 30 : 4, t: leaf ? 0.5 : 0.3,
                      col: leaf ? (Math.random() < 0.5 ? C.moss : C.amberD) : C.sandD, s: 1 });
     }
-    w.extend(p.z);
-    if (Math.floor(p.z / 100) !== Math.floor(prevZ / 100)) w.prune(p.z);
-
-    const top = p.slide > 0 ? 8 : 24;
-    for (const it of w.items) {
-      if (it.taken || it.z < prevZ - 10 || it.z > p.z + 10) continue;
-      const dx = Math.abs(it.x - p.x);
-      if (it.kind === 'coin') {
-        if (dx < 0.2 && it.z > prevZ - 9 && it.z < p.z + 9 && p.jy < it.h + 6 && p.jy + top > it.h - 6) {
-          it.taken = true; this.coins++; this.coinPulse = 0.2;
-          const cxp = 160 + (it.x - this.camX) * LPX * S20;
-          this.burst(cxp, 159 - it.h, [C.amberL, C.amber, C.bone], 6, 55, 0.35);
-          this.fx.push({ x: cxp - 4, y: 150 - it.h, vx: 0, vy: -34, gy: 0, t: 0.55, col: C.amberL, txt: '+1' });
-        }
-      } else if (it.kind !== 'prop') {
-        const o = OBST[it.kind];
-        if (dx < o.hw + P_HW && it.z > prevZ - 8 && it.z < p.z + 8 && p.jy < o.y1 && p.jy + top > o.y0) { this.die(); return; }
-      }
-    }
   }
+  onCoin(it) {
+    const cxp = 160 + (it.x - this.camX) * LPX * S20;
+    this.burst(cxp, 159 - it.h, [C.amberL, C.amber, C.bone], 6, 55, 0.35);
+    this.fx.push({ x: cxp - 4, y: 150 - it.h, vx: 0, vy: -34, gy: 0, t: 0.55, col: C.amberL, txt: '+1' });
+  }
+  onDie() { this.burst(160 + (this.p.x - this.camX) * LPX * S20, 140, [C.earth, C.earthD, C.amberL, C.burgL, C.bone], 12, 90, 0.6); }
 
   die() {
     this.releaseTouch();
     if (this.touch && navigator.vibrate) navigator.vibrate(60);
     this.state = 'over'; this.flash = 0.25; this.shake = 0.35; this.overT = 0; this.jumpBuf = 0;
-    this.burst(160 + (this.p.x - this.camX) * LPX * S20, 140, [C.earth, C.earthD, C.amberL, C.burgL, C.bone], 12, 90, 0.6);
+    this.onDie();
     const s = this.score();
     if (s > this.best) { this.best = s; try { localStorage.setItem('wayfarer.best', s); } catch (e) {} }
   }
 }
 
-window.__wf = new Game(document.getElementById('screen'));

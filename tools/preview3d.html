@@ -1,0 +1,76 @@
+<!doctype html>
+<!-- Dev tool: renders one 3D module in isolation.  tools/preview3d.html?mod=env|runner|items&cam=game|side|high|front
+     Used to review the low-poly kit visually (see tools/shot3d.js usage in the README of tools). -->
+<html><head><meta charset="utf-8"><title>WAYFARER 3D preview</title>
+<style>html,body{margin:0;background:#222}canvas{display:block}</style></head>
+<body>
+<canvas id="c" width="960" height="540"></canvas>
+<script src="../vendor/three.min.js"></script>
+<script src="../src/track.js"></script>
+<script src="../src/world.js"></script>
+<script src="../src3d/kit.js"></script>
+<script>
+window.onerror = (m) => { window.__err = String(m); };
+const q = new URLSearchParams(location.search), mod = q.get('mod') || 'env', cam = q.get('cam') || 'game';
+const files = { env: ['env_city.js'], runner: ['runner3d.js'], items: ['items3d.js'], all: ['env_city.js', 'runner3d.js', 'items3d.js'] }[mod] || [];
+(function next(i) {
+  if (i >= files.length) { try { setup(); } catch (e) { window.__err = String(e && e.stack || e); } return; }
+  const s = document.createElement('script'); s.src = '../src3d/' + files[i];
+  s.onload = () => next(i + 1); s.onerror = () => { window.__err = 'missing ' + files[i]; };
+  document.body.appendChild(s);
+})(0);
+
+function setup() {
+  const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: false, preserveDrawingBuffer: true });
+  renderer.setSize(960, 540, false);
+  const scene = new THREE.Scene();
+  const env = (typeof ENV3D !== 'undefined' && ENV3D.city) || {
+    sky: { top: '#3b2f6b', mid: '#c9704a', horizon: '#f2b862' }, fog: { color: '#e9a86a', near: 40, far: 140 },
+    hemi: { sky: '#ffe2c0', ground: '#5a4458', intensity: 1.6 }, sun: { color: '#ffd8a0', intensity: 2.4, position: [-6, 8, -10] } };
+  scene.background = new THREE.Color(env.sky.horizon);
+  scene.fog = new THREE.Fog(env.fog.color, env.fog.near, env.fog.far);
+  scene.add(new THREE.HemisphereLight(env.hemi.sky, env.hemi.ground, env.hemi.intensity));
+  const sun = new THREE.DirectionalLight(env.sun.color, env.sun.intensity); sun.position.set(...env.sun.position); scene.add(sun);
+  const camera = new THREE.PerspectiveCamera(62, 16 / 9, 0.1, 500);
+  const views = { game: [[0, 4.2, 7.5], [0, 0.8, -10]], side: [[13, 7, -14], [0, 3, -34]], high: [[0, 30, 12], [0, 0, -30]], front: [[2.2, 1.6, -4.5], [0, 1, 0]] };
+  if (mod === 'runner') { views.game = [[0, 2.2, 8.5], [0, 0.9, 0]]; views.side = [[9, 1.6, 0], [0, 1, 0]]; views.front = [[0, 1.8, -8.5], [0, 0.9, 0]]; views.close = [[0.6, 1.2, -3.3], [0, 0.95, 0]]; views.closeback = [[0.6, 1.3, 3.3], [0, 0.95, 0]]; views.closeside = [[3.4, 1.2, -0.4], [0, 0.95, 0]]; }
+  const [cp, ct] = views[cam] || views.game; camera.position.set(...cp); camera.lookAt(...ct);
+  const stats = {};
+
+  if (mod === 'env' || mod === 'all') {
+    const seg = Kit.merge(env.segment()), props = {};
+    for (const k of Object.keys(env.props)) props[k] = env.props[k]();
+    for (let i = -1; i < 12; i++) {
+      const g = Kit.mesh(seg); g.position.z = -i * SEG_LEN; scene.add(g);
+      for (const pl of env.layout(i, rnd)) {
+        const m = Kit.mesh(props[pl.prop]);
+        m.position.set(pl.x, 0, -i * SEG_LEN - pl.dist); m.rotation.y = (pl.x < 0 ? Math.PI : 0) + (pl.rotY || 0); scene.add(m);
+      }
+    }
+    stats.props = Object.keys(props).map(k => k + ':' + ((props[k].lit ? props[k].lit.attributes.position.count / 3 : 0) + (props[k].glow ? props[k].glow.attributes.position.count / 3 : 0)) + 'tri').join(' ');
+  }
+  if (mod === 'runner') {
+    // pose, time, facing the camera? (the menu showcase is judged from the front)
+    const poses = [['run', 0, 0], ['run', 0.1, 0], ['title', 3.0, 1], ['title', 4.7, 1], ['jump', 0, 0], ['slide', 0, 0], ['over', 0, 0]];
+    poses.forEach(([kind, t, front], i) => {
+      if (cam.startsWith('close') && i !== (cam === 'closeback' ? 0 : 3)) return;
+      const r = new Runner3D(); r.group.position.set(cam.startsWith('close') ? 0 : (i - 3) * 1.5, 0, 0); r.group.rotation.y = front ? Math.PI : 0; scene.add(r.group);
+      const s = { time: t, runRate: 3, airborne: kind === 'jump', vy: 1, sliding: kind === 'slide', lean: 0, state: kind === 'over' ? 'over' : kind === 'title' ? 'title' : 'play' };
+      for (let k = 0; k < 40 + i * 4; k++) { s.time = (kind === 'title' ? t : 0) + k / 60 * (kind === 'title' ? 0 : 1); r.update(1 / 60, s); }
+    });
+  }
+  if (mod === 'items') { const road = new THREE.Mesh(new THREE.BoxGeometry(2 * ROAD_HALF, 0.2, 80), new THREE.MeshLambertMaterial({ color: PAL3.asphalt })); road.position.set(0, -0.1, -30); scene.add(road); }
+  if (mod === 'items' || mod === 'all') {
+    const it = new Items3D(scene);
+    it.begin();
+    it.place('crate', -LANE_X, 0, -7); it.place('barrier', 0, 0, -7); it.place('over', LANE_X, 0, -7);
+    for (let k = 0; k < 5; k++) it.place('coin', 0, 0.9, -12 - k * 2.5);
+    it.place('coin', -LANE_X, 0.9 + 1.2, -7); it.place('crate', LANE_X, 0, -18); it.place('over', -LANE_X, 0, -18); it.place('barrier', LANE_X, 0, -26);
+    it.end(0.3);
+  }
+  renderer.render(scene, camera);
+  stats.calls = renderer.info.render.calls; stats.triangles = renderer.info.render.triangles;
+  window.__stats = stats; window.__ready = true;
+}
+</script>
+</body></html>
