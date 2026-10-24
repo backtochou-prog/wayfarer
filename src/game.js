@@ -15,7 +15,6 @@ const TOUCH = [
   { id: 'jump',  x: 278, y: 142, w: 38, h: 32 },
   { id: 'pause', x: 148, y: 3,   w: 24, h: 14 },
 ];
-const GUIDE_DIST = 350;           // design units before the junction line where a picked road starts pulling the runner over
 const GRAV = 900, JUMP_V = 268, SLIDE_T = 0.55, P_HW = 0.12;   // P_HW: runner half-width (0.43 m in the 3D build)
 
 class Game {

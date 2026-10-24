@@ -39,7 +39,7 @@ class Renderer3D {
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.MeshLambertMaterial({ color: base.groundFar }));
     ground.rotation.x = -Math.PI / 2; ground.position.y = -0.03; this.scene.add(ground);
     this._c = [new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color()];   // scratch colours for blending
-    this.atmoKey = ''; this.applyAtmosphere(this.baseId, 0);
+    this.atmoTo = ''; this.atmoQ = -1; this.atmoKey = ''; this.applyAtmosphere(this.baseId, 0);
 
     this.road = new Road3D(this.scene, envs, this.baseId);
 
@@ -56,7 +56,8 @@ class Renderer3D {
       }
     }
     this.droppedBy = {}; this.dropped = 0;                 // props skipped because a pool was full (should stay 0)
-    this.layouts = new Map();                              // "biome:slot" -> cached placements
+    this.layouts = {}; for (const id of Object.keys(envs)) if (envs[id].layout) this.layouts[id] = new Map();   // per biome: slot -> cached placements
+    this.slotCache = []; for (let i = 0; i < 20; i++) this.slotCache.push({ i: -1e9, ver: -1, mid: null, a: null, b: null });   // track bands per scenery slot (middle / start / end), reused until the track changes
     this.items = new Items3D(this.scene);
     this.fx = new Fx3D(this.scene, this.items.merged.coin);
     this.runner = new Runner3D(); this.scene.add(this.runner.group);
@@ -77,9 +78,9 @@ class Renderer3D {
 
   // sky, fog, background and light colours blended from the opening biome toward `toId` (quantised, so only ~16 repaints)
   applyAtmosphere(toId, t) {
-    const q = Math.round(t * 16) / 16, key = toId + q;
-    if (key === this.atmoKey) return;
-    this.atmoKey = key;
+    const q = Math.round(t * 16) / 16;
+    if (toId === this.atmoTo && q === this.atmoQ) return;
+    this.atmoTo = toId; this.atmoQ = q; this.atmoKey = toId + q;
     const a = this.envs[this.baseId], b = this.envs[toId], [c0, c1, top, mid, hor] = this._c;
     const lerpTo = (out, x, y) => out.set(x).lerp(c1.set(y), q);
     lerpTo(this.scene.fog.color, a.fog.color, b.fog.color); this.scene.fog.near = a.fog.near + (b.fog.near - a.fog.near) * q; this.scene.fog.far = a.fog.far + (b.fog.far - a.fog.far) * q;
@@ -97,25 +98,25 @@ class Renderer3D {
     col.needsUpdate = true;
   }
 
+  // absolute lateral centre (metres) of the road on `side` (0 = the single road) in a band list
+  centreOf(bands, side) {
+    let b = bands[0];
+    if (bands.length > 1) for (let k = 0; k < bands.length; k++) if (bands[k].side === side) { b = bands[k]; break; }
+    return ((b.lo + b.hi) / 2 + b.off) * U3.X;
+  }
+
   layoutFor(envId, i) {
-    const key = envId + ':' + i;
-    let lay = this.layouts.get(key);
-    if (!lay) { lay = this.envs[envId].layout(i, rnd); this.layouts.set(key, lay); }
+    const m = this.layouts[envId];
+    let lay = m.get(i);
+    if (!lay) { lay = this.envs[envId].layout(i, rnd); m.set(i, lay); }
     return lay;
   }
 
-  // metres (relative to Lref) of the centre of the road on `side` (0 = the single road) at gameplay z
-  bandCentre(w, z, side, Lref) {
-    const bands = w.bandsAt(z);
-    const b = bands.length === 1 ? bands[0] : bands.find(q => q.side === side) || bands[0];
-    return ((b.lo + b.hi) / 2 + b.off) * U3.X - Lref;
-  }
   // centre line of the route the player follows: the chosen road, or the shared axis before a fork has been chosen
   axisLat(w, z, Lref) {
     const bands = w.bandsAt(z);
     if (bands.length === 1) return ((bands[0].lo + bands[0].hi) / 2 + bands[0].off) * U3.X - Lref;
-    const b = bands.find(q => q.chosen);
-    if (b) return ((b.lo + b.hi) / 2 + b.off) * U3.X - Lref;
+    for (const b of bands) if (b.chosen) return ((b.lo + b.hi) / 2 + b.off) * U3.X - Lref;
     return (((bands[0].lo + bands[1].hi) / 2) + (bands[0].off + bands[1].off) / 2) * U3.X - Lref;
   }
 
@@ -144,7 +145,9 @@ class Renderer3D {
     for (const k in this.propUsed) this.propUsed[k] = 0;
     const i0 = Math.floor(rz / SL) - 2, i1 = i0 + TRACK3D.SLOTS - 1;
     for (let i = i0; i <= i1; i++) {
-      const zs = i * SL, zc = (zs + SL / 2) / U.Z, bands = w.bandsAt(zc), two = bands.length > 1;
+      const zs = i * SL, sc = this.slotCache[((i % 20) + 20) % 20];
+      if (sc.i !== i || sc.ver !== w.ver) { sc.i = i; sc.ver = w.ver; sc.mid = w.bandsAt((zs + SL / 2) / U.Z); sc.a = w.bandsAt(zs / U.Z); sc.b = w.bandsAt((zs + SL) / U.Z); }
+      const bands = sc.mid, two = bands.length > 1;
       for (let bi = 0; bi < bands.length; bi++) {
         const b = bands[bi], hwM = (b.hi - b.lo) / 2 * U.X;
         let c0 = null, c1 = null;
@@ -157,7 +160,7 @@ class Renderer3D {
           }
           const info = sg < 0 ? b.eL : b.eR;
           const envId = rnd(i * 4 + bi * 2 + (sg > 0 ? 1 : 0), 21) < info.t ? info.to : this.baseId, env = this.envs[envId];
-          if (c0 === null) { c0 = this.bandCentre(w, zs / U.Z, b.side, Lref); c1 = this.bandCentre(w, (zs + SL) / U.Z, b.side, Lref); }
+          if (c0 === null) { c0 = this.centreOf(sc.a, b.side) - Lref; c1 = this.centreOf(sc.b, b.side) - Lref; }
           for (const pl of this.layoutFor(envId, i)) {
             if ((pl.x < 0 ? -1 : 1) !== sg) continue;
             if (inner && (!env.innerOk.has(pl.prop) || Math.abs(pl.x) - hwM > avail - 0.8)) continue;
@@ -167,14 +170,15 @@ class Renderer3D {
         }
       }
     }
-    if (this.layouts.size > 120) for (const k of this.layouts.keys()) if (parseInt(k.split(':')[1], 10) < i0 - 4) this.layouts.delete(k);
+    for (const id in this.layouts) { const m = this.layouts[id]; if (m.size > 120) for (const k of m.keys()) if (k < i0 - 4) m.delete(k); }
 
     // ---- items: coins and hazards on whichever road they belong to; signposts and the fork marker
     this.items.begin();
     for (const it of w.items) {
       const dz = it.z - p.z;
       if (it.taken || dz < -150 || dz > 1500) continue;         // design units: 15 m behind .. 150 m ahead
-      const band = w.bandNear(it.z, it.x), x = (it.x + band.off) * U.X - Lref, zr = -dz * U.Z;
+      if (it.offV !== w.ver) { it.off = w.bandNear(it.z, it.x).off; it.offV = w.ver; }   // road curve offset at the item, cached until the track changes
+      const x = (it.x + it.off) * U.X - Lref, zr = -dz * U.Z;
       if (it.kind === 'prop') { this.place(it.spr, x, WALK_Y, zr, 0); continue; }
       if (it.kind === 'coin') this.items.place('coin', x, it.h * U.Y, zr); else this.items.place(it.kind, x, 0, zr);
     }

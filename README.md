@@ -28,16 +28,24 @@ Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **htt
 - Camera: a chase camera behind and above the runner that follows the active route's centre, looks 20 m down it, and blends gradually into the fork's biome. Sky, fog and light colours, road palette and scenery all blend between city, forest and market (scenery per road side is chosen per 12 m slot by the blend at that spot).
 - Biomes are `src3d/env_city.js`, `env_forest.js`, `env_market.js` (colours, road palette, props, layout rule); the market detour reuses the city's buildings and street props with a different layout and a warmer cobbled road. A new biome is a new `ENV3D.<id>` plus a segment in `track.js`.
 
-**Avatar:** the neon egg-bot from the character sheet (`src3d/runner3d.js`), with an animated main-menu showcase.
+**Avatar:** the neon egg-bot from the character sheet (`src3d/runner3d.js`), with an animated main-menu showcase. Its feet stay on the road through the run cycle (ankle joint), it turns to face along curves, and its slide pose fits under the gate.
 
-**Works in 3D:** all of the above, plus jump, slide, coins, hazards (placed on whichever road they belong to), pause, game over, restart (route, choice and atmosphere reset), touch controls, resizing.
+**Gameplay loop (shared rules in `src/game.js`, drawn in 3D)**
+- *Controls:* steer left/right (arrows or A/D, continuous across the three marked lanes), Space/Up jump (0.55 s, ~3 m apex, 0.12 s landing buffer), Down slide (0.55 s; tapping again mid-slide does not chain it; Down in the air fast-falls; a jump cancels a slide). Forward movement is automatic. Auto-repeat key events are ignored; jump/slide always return to running.
+- *Coins:* pooled gold coins that spin and bob, in lines, groups, zig-zags and left/right lane trails, plus a coin trail on each branch of a fork. Pickup box: ~0.7 m sideways, ~0.9 m in depth, and the runner's body height must overlap the coin height (high coins need a jump). The counter updates the frame you pass through; each coin counts once; a collected coin swells and rises for 0.4 s.
+- *Hazards (what you see is what you hit — meshes are built from the collision table `OBST`):* crate (1.2 m, jump), low striped barrier (2.8 m wide, jump), overhead gate (banner 1.05 m above the road, slide; you can only get round it at the very edge of the road). Spacing is >= 19.5 m, the first hazard is ~69 m in, and the last 66 m before every junction is hazard-free (that stretch is where the picked road gently guides the runner).
+- *Game over:* any collision ends the run: debris burst, screen shake, red flash, the avatar tips over. Distance, speed, coins, spawning and track updates all stop and the chosen route is kept; the panel shows distance, coins, score and best. Restart (button, Space, Enter, R) gives a clean run.
+- *Difficulty:* speed starts at 22 m/s and rises 0.16 m/s per second to a 34 m/s cap; distance is the integral of speed and is unaffected by forks or recycling.
+
+**Works in 3D:** all of the above, plus pause, touch controls, resizing, both branches with hazards and coins active.
+
+**Tested** (headless Chromium, software WebGL, simulation stepped frame by frame; suites live outside the repo): 3D gameplay 35 checks, 3D routes/geometry 34, 3D phone touch 9, 2D regression 50; plus extra probes: frame-rate independence (clearing windows match from 20 to 144 fps, no tunnelling at 34 m/s), input state-machine fuzz (6 simulated minutes, 17 restarts), a brute-force survivability search over every distinct hazard pair of the looping track on both branches at 22 and 34 m/s (all 37 pairs clearable), and a 12-minute bot run through 62 junctions with constant memory.
 
 **Limitations**
-- The unchosen road stays visible but its coins/obstacles are removed once you choose (existing game rule); the full coin/obstacle gameplay pass is still to do.
-- Fork props, sky and colours blend smoothly, but the fork zone is only 44 m long, so the first part of each branch still shows some city.
-- Steering is continuous across the road (as in the 2D game), not snapping between three lanes; lane markings and item placement are lane-aligned. The runner may be up to ~10 cm beyond a road edge for one frame while it eases onto the chosen road at the fork's tip.
-- Pickup sparkles, dust and floaters are 2D-only effects; only the 2D build has the original forest/market pixel art.
-- Tested in headless Chromium with software WebGL; real-device frame rate is not measured.
+- Real-device frame rate and touch feel are not measured. Per-frame JavaScript allocation in the 3D draw path is about 12 KB (down from 57 KB), mostly small temporaries.
+- Steering is continuous across the road (as in the 2D game), not snapping between three lanes; collision uses the hit boxes above, and the avatar's frond crown and arms are drawn taller/wider than its 1.8 m hit box (so a close shave is forgiving, never a phantom hit).
+- The unchosen road stays visible but its coins/hazards are removed once you choose. Pickup sparkles and dust are 2D-only; the 3D build has its own coin pop and crash debris.
+- The fork zone is only 44 m long, so the start of each branch still shows some city.
 
 ## Controls (keyboard)
 

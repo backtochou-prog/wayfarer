@@ -3,6 +3,7 @@
 const LPX = 100, K = 90, HY = 64, VW = 320, VH = 180, PLAYER_D = 20, MAXD = 720;
 const S20 = K / (PLAYER_D + K); // projection scale at the player's depth
 const APPROACH = 450;           // scenery starts leaning toward the branch biomes this far before the fork
+const GUIDE_DIST = 350;         // in this last stretch before a junction the runner is eased onto the picked road (Game.steer), so it is kept free of hazards
 const PROMPT_DIST = 760;        // LEFT / RIGHT prompt appears this far before the junction line
 const ease = u => u * u * (3 - 2 * u);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -18,7 +19,7 @@ class World {
   constructor(track) { this.track = track; this.reset(); }
 
   reset() {
-    this.pieces = []; this.items = []; this.cursor = {}; this.seqIdx = 0; this.uid = 0;
+    this.pieces = []; this.items = []; this.cursor = {}; this.seqIdx = 0; this.uid = 0; this.ver = (this.ver || 0) + 1;   // ver only ever increases; it changes whenever bandsAt() results could change (pieces added/dropped, a route chosen)
     this.baseBiome = this.track.segments[this.track.sequence[0].seg].biome;
     this.extend(0);
   }
@@ -26,6 +27,13 @@ class World {
   nextSpec() {
     const T = this.track, n = T.sequence.length;
     let i = this.seqIdx++;
+    if (i >= n) i = T.loopFrom + ((i - n) % (n - T.loopFrom));
+    return T.sequence[i];
+  }
+
+  // the piece after the one being built (the sequence loops), without consuming it
+  peekSpec() {
+    const T = this.track, n = T.sequence.length; let i = this.seqIdx;
     if (i >= n) i = T.loopFrom + ((i - n) % (n - T.loopFrom));
     return T.sequence[i];
   }
@@ -43,19 +51,19 @@ class World {
     const z0 = prev ? prev.z1 : 0, uid = this.uid++;
     let P;
     if (spec.seg) {
-      const seg = T.segments[spec.seg];
+      const seg = T.segments[spec.seg], nx = this.peekSpec();
       P = { type: 'seg', id: spec.seg, seg, uid, z0, z1: z0 + seg.length, prev };
-      this.genSegment(spec.seg, z0, seg.length, 'main', 0);
+      this.genSegment(spec.seg, z0, seg.length, 'main', 0, nx && nx.fork ? GUIDE_DIST + 40 : 0);   // nothing in the stretch before a junction
     } else {
       const f = T.forks[spec.fork], fe = z0 + f.zone, be = fe + f.branchLen;
       P = { type: 'fork', fork: f, uid, z0, fe, be, z1: be + f.merge, choice: null, prev };
       this.genFork(P);
     }
-    this.pieces.push(P);
+    this.pieces.push(P); this.ver++;
   }
 
-  genSegment(id, z0, len, tag, cx) {
-    const seg = this.track.segments[id], end = z0 + len;
+  genSegment(id, z0, len, tag, cx, tail = 0) {
+    const seg = this.track.segments[id], end = z0 + len - tail;
     let n = this.cursor[id] || 0;
     for (let z = z0 + seg.first; z + seg.spacing <= end; z += seg.spacing) {
       const pat = PATTERNS[seg.patterns[n++ % seg.patterns.length]];
@@ -145,7 +153,7 @@ class World {
 
   commit(F, side) {
     const other = F.uid + (side === 'left' ? 'right' : 'left');
-    F.choice = side;
+    F.choice = side; this.ver++;
     this.items = this.items.filter(i => i.tag !== other);
   }
 
@@ -159,7 +167,7 @@ class World {
 
   prune(z) {
     this.items = this.items.filter(i => i.z > z - 60);
-    while (this.pieces.length > 2 && this.pieces[0].z1 < z - 700) this.pieces.shift();
+    while (this.pieces.length > 2 && this.pieces[0].z1 < z - 700) { this.pieces.shift(); this.ver++; }
   }
 
   themeAt(z, x) {
