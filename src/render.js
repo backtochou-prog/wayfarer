@@ -36,6 +36,7 @@ class Renderer {
     ctx.restore();
     if (g.state === 'over' && g.flash > 0) { ctx.globalAlpha = 0.5; ctx.fillStyle = C.burg; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
     if (g.state !== 'title') this.drawHud(g);
+    this.drawTouch(g);
     if (g.state === 'title') this.drawTitle(g);
     else if (g.state === 'pause') this.drawPause(g);
     else if (g.state === 'over' && g.overT > 0.5) this.drawOver(g);
@@ -221,6 +222,27 @@ class Renderer {
     drawText(c, b.label, Math.round(b.x + (b.w - textW(b.label, 2)) / 2), b.y + 3 + (pr ? 1 : 0), C.ink, 2);
   }
 
+  // on-screen controls (touch devices only): same plate language as the HUD, arrows drawn in pixels
+  drawTouch(g) {
+    if (!g.touch || g.state !== 'play') return;
+    const c = this.ctx, on = new Set(Object.values(g.held));
+    for (const t of TOUCH) {
+      const hot = on.has(t.id), cx = t.x + (t.w >> 1), cy = t.y + (t.h >> 1);
+      c.globalAlpha = 0.82;
+      c.fillStyle = C.ink; c.fillRect(t.x - 1, t.y - 1, t.w + 2, t.h + 2);
+      c.fillStyle = hot ? C.burgD : C.plum; c.fillRect(t.x, t.y, t.w, t.h);
+      c.fillStyle = hot ? C.amber : C.amberD; c.fillRect(t.x, t.y, t.w, 1); c.fillRect(t.x, t.y + t.h - 1, t.w, 1);
+      c.globalAlpha = 1; c.fillStyle = hot ? C.amberL : C.bone;
+      if (t.id === 'pause') { c.fillRect(cx - 3, cy - 3, 2, 6); c.fillRect(cx + 1, cy - 3, 2, 6); continue; }
+      for (let i = 0; i < 7; i++) {
+        if (t.id === 'left') c.fillRect(cx - 5 + i, cy - i, 1, 2 * i + 1);
+        else if (t.id === 'right') c.fillRect(cx + 5 - i, cy - i, 1, 2 * i + 1);
+        else if (t.id === 'jump') c.fillRect(cx - i, cy - 5 + i, 2 * i + 1, 1);
+        else c.fillRect(cx - i, cy + 5 - i, 2 * i + 1, 1);
+      }
+    }
+  }
+
   drawHud(g) {
     const w = g.world, p = g.p, T = w.track, pulse = g.coinPulse > 0;
     this.plate(3, 3, 62, 24);
@@ -250,12 +272,18 @@ class Renderer {
     this.panel(60, 30, 200, 124);
     this.ctr('WAYFARER', 41, C.amber, 4, C.burgD);
     this.ctr('PROTOTYPE 01', 68, C.tealL);
-    this.ctr('A D / ARROWS  STEER', 84, C.bone);
-    this.ctr('SPACE / UP  JUMP', 93, C.bone);
-    this.ctr('DOWN  SLIDE   P  PAUSE', 102, C.bone);
+    if (g.touch) {
+      this.ctr('HOLD < > TO STEER', 84, C.bone);
+      this.ctr('UP  JUMP   DOWN  SLIDE', 93, C.bone);
+      this.ctr('II  PAUSE', 102, C.bone);
+    } else {
+      this.ctr('A D / ARROWS  STEER', 84, C.bone);
+      this.ctr('SPACE / UP  JUMP', 93, C.bone);
+      this.ctr('DOWN  SLIDE   P  PAUSE', 102, C.bone);
+    }
     this.ctr('TAKE A FORK. PICK A ROAD.', 112, C.sand);
     this.button(BTN.title, g);
-    this.ctr('OR PRESS ENTER', 145, C.stoneL);
+    if (!g.touch) this.ctr('OR PRESS ENTER', 145, C.stoneL);
   }
 
   drawPause(g) {
@@ -263,7 +291,7 @@ class Renderer {
     this.panel(100, 54, 120, 70);
     this.ctr('PAUSED', 64, C.amber, 3, C.burgD);
     this.button(BTN.pause, g);
-    this.ctr('P  ESC', 110, C.stoneL);
+    if (!g.touch) this.ctr('P  ESC', 110, C.stoneL);
   }
 
   drawOver(g) {
@@ -275,6 +303,6 @@ class Renderer {
     this.ctr('SCORE ' + g.score(), 86, C.bone);
     this.ctr('BEST ' + g.best, 96, C.tealL);
     this.button(BTN.over, g);
-    this.ctr('SPACE  ENTER  R', 133, C.sand);
+    if (!g.touch) this.ctr('SPACE  ENTER  R', 133, C.sand);
   }
 }

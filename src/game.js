@@ -7,6 +7,14 @@ const BTN = {
   pause: { x: 110, y: 88, w: 100, h: 16, label: 'RESUME' },
   over:  { x: 100, y: 114, w: 120, h: 16, label: 'RUN AGAIN' },
 };
+// touch controls (canvas pixels): hold left/right to steer, tap jump/slide/pause; each finger is tracked separately
+const TOUCH = [
+  { id: 'left',  x: 4,   y: 142, w: 38, h: 32 },
+  { id: 'right', x: 46,  y: 142, w: 38, h: 32 },
+  { id: 'slide', x: 234, y: 142, w: 38, h: 32 },
+  { id: 'jump',  x: 278, y: 142, w: 38, h: 32 },
+  { id: 'pause', x: 148, y: 3,   w: 24, h: 14 },
+];
 const GRAV = 900, JUMP_V = 268, SLIDE_T = 0.55, P_HW = 0.1;
 
 class Game {
@@ -14,23 +22,41 @@ class Game {
     this.cv = cv;
     this.world = new World(TRACK);
     this.r = new Renderer(cv);
-    this.keys = {};
+    this.keys = {}; this.held = {}; this.tleft = this.tright = false;
+    this.touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches); // shows the on-screen controls
     this.time = 0; this.best = 0;
     try { this.best = +localStorage.getItem('wayfarer.best') || 0; } catch (e) {}
     this.state = 'title';
     this.resetRun();
     addEventListener('keydown', e => this.onKey(e, true));
     addEventListener('keyup', e => this.onKey(e, false));
-    addEventListener('blur', () => { this.keys = {}; if (this.state === 'play') this.state = 'pause'; });
+    addEventListener('blur', () => { this.keys = {}; this.releaseTouch(); if (this.state === 'play') this.state = 'pause'; });
     this.mouse = { x: -1, y: -1, down: false };
     const at = e => { const r = cv.getBoundingClientRect(); this.mouse.x = (e.clientX - r.left) * VW / r.width; this.mouse.y = (e.clientY - r.top) * VH / r.height; };
     cv.addEventListener('pointermove', at);
     cv.addEventListener('pointerleave', () => { this.mouse.x = this.mouse.y = -1; this.mouse.down = false; });
-    cv.addEventListener('pointerdown', e => { at(e); this.mouse.down = true; });
+    cv.addEventListener('contextmenu', e => e.preventDefault());
+    const zone = () => TOUCH.find(c => this.mouse.x >= c.x && this.mouse.x <= c.x + c.w && this.mouse.y >= c.y && this.mouse.y <= c.y + c.h);
+    cv.addEventListener('pointerdown', e => {
+      at(e); this.mouse.down = true;
+      if (e.pointerType === 'touch') this.touch = true;
+      const c = this.state === 'play' && this.touch && zone();
+      if (c) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} this.hold(e.pointerId, c.id, true); }
+    });
+    cv.addEventListener('pointermove', e => { // sliding a finger between left and right keeps steering
+      if (this.held[e.pointerId] !== 'left' && this.held[e.pointerId] !== 'right') return;
+      const c = zone(); this.hold(e.pointerId, c && (c.id === 'left' || c.id === 'right') ? c.id : null, false);
+    });
+    const lift = e => { delete this.held[e.pointerId]; this.syncTouch(); };
+    addEventListener('pointercancel', lift);
     addEventListener('pointerup', e => { // a click counts when released over the same button it started on
+      lift(e);
       const was = this.mouse.down; this.mouse.down = false; at(e);
       const b = this.activeButton();
-      if (was && b && this.overButton(b)) { if (this.state === 'pause') this.state = 'play'; else this.start(); }
+      if (was && b && this.overButton(b)) {
+        if (this.state === 'pause') this.state = 'play';
+        else { if (this.state === 'title' && this.touch) this.goFullscreen(); this.start(); }
+      }
     });
     addEventListener('resize', () => this.fit());
     this.fit();
@@ -50,7 +76,8 @@ class Game {
   }
 
   fit() {
-    const s = Math.max(1, Math.floor(Math.min(innerWidth / VW, innerHeight / VH)));
+    // whole-number scaling keeps pixels even; on screens too small for 2x (phones in portrait) use the exact fit instead
+    const f = Math.min(innerWidth / VW, innerHeight / VH), s = f >= 2 ? Math.floor(f) : f;
     this.cv.style.width = VW * s + 'px'; this.cv.style.height = VH * s + 'px';
   }
 
@@ -82,6 +109,25 @@ class Game {
   }
   score() { return Math.floor(this.p.z / 10) + this.coins * 10; }
 
+  jump() { this.jumpBuf = 0.12; } // buffered: a press just before landing still jumps
+  slideKey() { const p = this.p; if (p.jy > 0) p.vy = -600; else p.slide = SLIDE_T; }
+
+  // a finger went down on / moved onto a control; jump, slide and pause fire once, steering is held
+  hold(pid, id, fresh) {
+    if (id === null) delete this.held[pid]; else this.held[pid] = id;
+    this.syncTouch();
+    if (!fresh || this.state !== 'play') return;
+    if (id === 'jump') this.jump(); else if (id === 'slide') this.slideKey(); else if (id === 'pause') { this.state = 'pause'; this.releaseTouch(); }
+  }
+  syncTouch() { const h = Object.values(this.held); this.tleft = h.includes('left'); this.tright = h.includes('right'); }
+  releaseTouch() { this.held = {}; this.syncTouch(); }
+  goFullscreen() { // hides the browser bars and asks for landscape (Android Chrome); silently ignored elsewhere
+    try {
+      const de = document.documentElement;
+      if (!document.fullscreenElement && de.requestFullscreen) de.requestFullscreen().then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) {} }).catch(() => {});
+    } catch (e) {}
+  }
+
   onKey(e, down) {
     const c = e.code;
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(c)) e.preventDefault();
@@ -92,9 +138,8 @@ class Game {
     if (s === 'title' && (c === 'Enter' || c === 'Space')) this.start();
     else if (s === 'over' && this.overT > 0.5 && (c === 'Enter' || c === 'Space' || c === 'KeyR')) this.start();
     else if (s === 'play') {
-      const p = this.p;
-      if (c === 'Space' || c === 'ArrowUp' || c === 'KeyW') this.jumpBuf = 0.12; // buffered: lands-then-jumps still works
-      else if (c === 'ArrowDown' || c === 'KeyS') { if (p.jy > 0) p.vy = -600; else p.slide = SLIDE_T; }
+      if (c === 'Space' || c === 'ArrowUp' || c === 'KeyW') this.jump();
+      else if (c === 'ArrowDown' || c === 'KeyS') this.slideKey();
       else if (c === 'KeyP' || c === 'Escape') this.state = 'pause';
     } else if (s === 'pause' && (c === 'KeyP' || c === 'Escape')) this.state = 'play';
   }
@@ -154,7 +199,7 @@ class Game {
     const w = this.world, p = this.p, prevZ = p.z;
     p.speed = Math.min(MAX_SPEED, p.speed + ACCEL * dt);
     p.z += p.speed * dt;
-    const dir = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
+    const dir = (this.keys.right || this.tright ? 1 : 0) - (this.keys.left || this.tleft ? 1 : 0);
     p.vx += (dir * STEER - p.vx) * Math.min(1, dt * 14);
     p.x += p.vx * dt;
     // junction: the choice is only read inside the prompt window, and locks when the junction line is crossed
@@ -214,6 +259,8 @@ class Game {
   }
 
   die() {
+    this.releaseTouch();
+    if (this.touch && navigator.vibrate) navigator.vibrate(60);
     this.state = 'over'; this.flash = 0.25; this.shake = 0.35; this.overT = 0; this.jumpBuf = 0;
     this.burst(160 + (this.p.x - this.camX) * LPX * S20, 140, [C.earth, C.earthD, C.amberL, C.burgL, C.bone], 12, 90, 0.6);
     const s = this.score();

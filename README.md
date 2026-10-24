@@ -11,7 +11,11 @@ python3 -m http.server 8080      # Windows: py -m http.server 8080
 
 Open http://localhost:8080. Opening `index.html` directly in a browser also works.
 
-## Controls
+## Play on a phone
+
+Open the hosted page on an Android phone (Chrome). On-screen buttons appear automatically: hold ◄ / ► to steer, tap ▲ to jump, ▼ to slide, and the pause icon at the top. Landscape works best; the first tap on START asks for fullscreen and landscape. To try it from your own machine, run the server below and open `http://<your-computer-ip>:8080` on a phone on the same Wi-Fi.
+
+## Controls (keyboard)
 
 | Key | Action |
 |---|---|

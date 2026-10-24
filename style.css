@@ -1,3 +1,6 @@
-html, body { margin: 0; height: 100%; background: #1b1420; overflow: hidden; }
-body { display: grid; place-items: center; }
-canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #1b1420; }
+html, body { margin: 0; height: 100%; background: #1b1420; overflow: hidden; overscroll-behavior: none; }
+body { height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+       -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
+canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #1b1420; touch-action: none; }
+#rotate { display: none; margin-top: 10px; font: 11px/1 monospace; letter-spacing: 1px; color: #e8a33d; }
+@media (orientation: portrait) and (pointer: coarse) { #rotate { display: block; } }
