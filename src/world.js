@@ -151,10 +151,10 @@ class World {
   // The junction the player has not yet committed to (null if none is within reach).
   openFork() { return this.pieces.find(p => p.type === 'fork' && !p.choice) || null; }
 
+  // Lock the choice for this junction. The other road keeps its coins and hazards (they stay visible alongside as the road you
+  // did not take); they cannot be touched, since the runner is confined to the chosen road and the two roads are metres apart.
   commit(F, side) {
-    const other = F.uid + (side === 'left' ? 'right' : 'left');
     F.choice = side; this.ver++;
-    this.items = this.items.filter(i => i.tag !== other);
   }
 
   // Keep the player on their road. On a junction only the chosen road counts.

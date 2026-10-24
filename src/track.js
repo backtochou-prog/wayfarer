@@ -46,7 +46,7 @@ const TRACK = {
                  patterns: ['line', 'dodgeR', 'hurdle', 'rowL', 'risky'] },
   },
   forks: {
-    gate: { zone: 440, branchLen: 1300, merge: 360, blend: 450,
+    gate: { zone: 440, branchLen: 1300, merge: 360, blend: 40,    // blend: extra distance after the diverge zone before a branch is fully its own biome
             left:  { route: 'forest', sign: 'signForest' },
             right: { route: 'detour', sign: 'signMarket' } },
   },

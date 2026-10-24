@@ -19,7 +19,7 @@ Open the hosted page on an Android phone (Chrome). On-screen buttons appear auto
 
 Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **http://localhost:8080/3d.html** (same server command as above; `index.html` is still the classic pixel-art 2D version).
 
-**Route:** city start > city running section > visible fork > **LEFT: Greenwood (forest)** / **RIGHT: Market Detour (city)** > both merge into the same city plaza and the track continues (and loops, so the fork comes round again). Both branches are short (130 m).
+**Route:** city start > city running section > visible fork > **LEFT: Greenwood (forest)** / **RIGHT: Market Detour (city)** > both merge into the same city plaza and the track continues (and loops, so the fork comes round again). Both branches are short (130 m) and are fully their own biome within 15 m of the junction.
 
 **How a junction works**
 - The track is data (`src/track.js`): a `sequence` of segments (each with a biome, length, curve, obstacle patterns) and a `fork` (diverge zone, branch length, merge zone, biome blend, which segment each side leads to). `src/world.js` turns it into pieces and answers "where are the road(s) at distance z?" for gameplay and rendering alike.
@@ -43,9 +43,8 @@ Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **htt
 
 **Limitations**
 - Real-device frame rate and touch feel are not measured. Per-frame JavaScript allocation in the 3D draw path is about 12 KB (down from 57 KB), mostly small temporaries.
-- Steering is continuous across the road (as in the 2D game), not snapping between three lanes; collision uses the hit boxes above, and the avatar's frond crown and arms are drawn taller/wider than its 1.8 m hit box (so a close shave is forgiving, never a phantom hit).
-- The unchosen road stays visible but its coins/hazards are removed once you choose. Pickup sparkles and dust are 2D-only; the 3D build has its own coin pop and crash debris.
-- The fork zone is only 44 m long, so the start of each branch still shows some city.
+- Steering is continuous across the road (as in the 2D game), not snapping between three lanes. Collision uses the hit boxes above; the avatar's thin frond crown and arms are drawn taller/wider than its 1.8 m hit box, so a close shave is forgiving, never a phantom hit.
+- The road you did not take stays visible with its coins and hazards (it cannot be touched: you are confined to your road and the two are metres apart). Pickup sparkles and dust are 2D-only; the 3D build has its own coin pop and crash debris.
 
 ## Controls (keyboard)
 

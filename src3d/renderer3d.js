@@ -170,7 +170,7 @@ class Renderer3D {
         }
       }
     }
-    for (const id in this.layouts) { const m = this.layouts[id]; if (m.size > 120) for (const k of m.keys()) if (k < i0 - 4) m.delete(k); }
+    for (const id in this.layouts) { const m = this.layouts[id]; if (m.size > 30) for (const k of m.keys()) if (k < i0 - 4) m.delete(k); }
 
     // ---- items: coins and hazards on whichever road they belong to; signposts and the fork marker
     this.items.begin();
