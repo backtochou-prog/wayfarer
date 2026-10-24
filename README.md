@@ -15,23 +15,29 @@ Open http://localhost:8080. Opening `index.html` directly in a browser also work
 
 Open the hosted page on an Android phone (Chrome). On-screen buttons appear automatically: hold ◄ / ► to steer, tap ▲ to jump, ▼ to slide, and the pause icon at the top. Landscape works best; the first tap on START asks for fullscreen and landscape. To try it from your own machine, run the server above and open `http://<your-computer-ip>:8080` on a phone on the same Wi-Fi.
 
-## 3D build (work in progress)
+## 3D build
 
 Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **http://localhost:8080/3d.html** (same server command as above; `index.html` is still the classic pixel-art 2D version).
 
-- The avatar is the neon egg-bot from the character sheet: glossy black egg head with a visor band and yellow ring eye, magenta/violet torso panels, blue hip bulb, leaf-blade arms, a frond crown and neon sneakers. The main menu shows it doing a looping showcase (idle, wave, spin, dance, run in place) while the camera drifts around it.
-- Old Town is drawn in 3D: a warm sunset street with five townhouse types, lamps, trees, benches, planters; road segments are recycled (15 live segments, 12 m each).
-- Reused unchanged from the 2D game: `world.js` (track, fork/merge, items), `game.js` (rules, input, touch controls, scoring), the HUD / menu renderer (drawn as a pixel-art overlay).
-- New code lives in `src3d/` (`kit.js` shared geometry kit and palette, `env_city.js` biome data, `runner3d.js`, `items3d.js`, `renderer3d.js`, `main3d.js`). Three.js r186 is vendored as one plain script in `vendor/three.min.js` (MIT, no build step).
-- A new biome (e.g. forest) is a new `ENV3D.<name>` object with the same shape as `ENV3D.city` (colours, one road segment, props, layout rule).
+**Route:** city start > city running section > visible fork > **LEFT: Greenwood (forest)** / **RIGHT: Market Detour (city)** > both merge into the same city plaza and the track continues (and loops, so the fork comes round again). Both branches are short (130 m).
 
-**Works in 3D:** automatic running, free steering across the three-lane road, jump, slide, coins, all three hazard types, pause, game over, restart, touch controls, route choice at forks (the chosen road bends away, the camera looks down it, and it merges back), window resizing.
+**How a junction works**
+- The track is data (`src/track.js`): a `sequence` of segments (each with a biome, length, curve, obstacle patterns) and a `fork` (diverge zone, branch length, merge zone, biome blend, which segment each side leads to). `src/world.js` turns it into pieces and answers "where are the road(s) at distance z?" for gameplay and rendering alike.
+- Road geometry (`src3d/road3d.js`): the road, curbs, sidewalks and verges are two *ribbon* meshes rewritten each frame from that data, so a fork is real geometry: one road splits into two that diverge, run apart, and merge back, with the same width, surface height and curve as gameplay. Where roads touch, each takes its half up to the midline (no overlap, no z-fighting); the inner curbs shrink to nothing at the tip. A prebuilt straight segment mesh cannot do this, which is why the road is streamed (64 sections x 3 m, always reused); scenery and items use bounded pools.
+- Choosing: a LEFT / RIGHT prompt appears 76 m before the junction, with two route signposts and the visible fork. Steering is free until then and never picks a road by itself. A left/right input given inside the prompt window is the pick (highlighted in the prompt); with no input the side you are standing on is used. The pick is locked when you cross the junction line (once per junction); in the last 35 m before it the runner is eased onto the picked road, and afterwards the opposite key cannot re-route.
+- Camera: a chase camera behind and above the runner that follows the active route's centre, looks 20 m down it, and blends gradually into the fork's biome. Sky, fog and light colours, road palette and scenery all blend between city, forest and market (scenery per road side is chosen per 12 m slot by the blend at that spot).
+- Biomes are `src3d/env_city.js`, `env_forest.js`, `env_market.js` (colours, road palette, props, layout rule); the market detour reuses the city's buildings and street props with a different layout and a warmer cobbled road. A new biome is a new `ENV3D.<id>` plus a segment in `track.js`.
 
-**Not yet in 3D:**
-- The *second* road of a fork is not drawn, and a branch's own coins/obstacles appear only after the choice is made. True 3D branching needs two road ribbons diverging in the scene, both with their own props, and the prop/item layout evaluated per band.
-- Only the Old Town biome exists in 3D (the 2D forest/market biomes are not ported); fork signposts are not modelled.
-- Pickup sparkles, dust, "+1" floaters and the biome colour transitions are 2D-only effects and are not shown in 3D.
-- Steering is continuous (as in the 2D game) rather than snapping between three discrete lanes; lane markings and item placement are lane-aligned.
+**Avatar:** the neon egg-bot from the character sheet (`src3d/runner3d.js`), with an animated main-menu showcase.
+
+**Works in 3D:** all of the above, plus jump, slide, coins, hazards (placed on whichever road they belong to), pause, game over, restart (route, choice and atmosphere reset), touch controls, resizing.
+
+**Limitations**
+- The unchosen road stays visible but its coins/obstacles are removed once you choose (existing game rule); the full coin/obstacle gameplay pass is still to do.
+- Fork props, sky and colours blend smoothly, but the fork zone is only 44 m long, so the first part of each branch still shows some city.
+- Steering is continuous across the road (as in the 2D game), not snapping between three lanes; lane markings and item placement are lane-aligned. The runner may be up to ~10 cm beyond a road edge for one frame while it eases onto the chosen road at the fork's tip.
+- Pickup sparkles, dust and floaters are 2D-only effects; only the 2D build has the original forest/market pixel art.
+- Tested in headless Chromium with software WebGL; real-device frame rate is not measured.
 
 ## Controls (keyboard)
 
@@ -49,7 +55,7 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 
 ```
 index.html, style.css
-src3d/*         3D front end (see above)
+src3d/*         3D front end: kit, road3d, env_city/forest/market, runner3d, items3d, signs3d, renderer3d, main3d
 vendor/         three.min.js (Three.js r186)
 tools/preview3d.html  dev page that renders one 3D module in isolation
 src/biomes.js   palette + biome definitions (city, forest, market)

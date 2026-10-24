@@ -1,0 +1,32 @@
+// Props shared by every biome: the two route signposts before a fork (forest / market detour) and the striped marker at the
+// tip of the fork. Signs face +Z (toward the oncoming runner) and carry an emblem instead of text: pines for the forest
+// road, a terracotta house for the city detour.
+window.ENV3D = window.ENV3D || {};
+
+(function () {
+  const P = PAL3;
+  const board = (rim, face) => [
+    Kit.box(0.18, 3.6, 0.18, -1.0, 0, 0, P.lampPost), Kit.box(0.18, 3.6, 0.18, 1.0, 0, 0, P.lampPost),
+    Kit.box(2.6, 1.9, 0.16, 0, 2.0, 0, rim), Kit.box(2.3, 1.6, 0.18, 0, 2.15, 0.01, face)];
+  ENV3D.common = {
+    props: {
+      signForest: () => {
+        const p = board('#e8a33d', '#1f4a30');
+        [[-0.55, 0.55], [0.0, 0.8], [0.55, 0.5]].forEach(([x, s]) => { p.push(Kit.cyl(0.05, 0.07, 0.4, x, 2.2, 0.12, '#6a4a36', { seg: 4 }), Kit.cone(0.38 * s + 0.1, 0.95 * s + 0.3, x, 2.5, 0.12, '#58b060', { seg: 6 })); });
+        return Kit.merge(p);
+      },
+      signMarket: () => {
+        const p = board('#e8a33d', '#7e3040');
+        p.push(Kit.box(1.1, 0.8, 0.12, 0, 2.2, 0.12, '#c4623f'), Kit.roof(1.35, 0.55, 0.14, 0, 3.0, 0.12, '#a8483a', { ry: 0 }), Kit.box(0.28, 0.45, 0.14, 0, 2.2, 0.2, '#5a3a2a'),
+               Kit.box(0.22, 0.22, 0.14, -0.38, 2.6, 0.2, '#ffd27a', { glow: true }), Kit.box(0.22, 0.22, 0.14, 0.38, 2.6, 0.2, '#ffd27a', { glow: true }));
+        return Kit.merge(p);
+      },
+      gore: () => {                                                      // striped crash-barrel markers at the tip of the fork
+        const p = [Kit.box(0.9, 0.18, 0.9, 0, 0, 0, '#cdb187')];
+        for (let k = 0; k < 4; k++) p.push(Kit.cyl(0.38, 0.42, 0.34, 0, 0.18 + k * 0.34, 0, k % 2 ? P.stripeCream : P.stripeRed, { seg: 8 }));
+        p.push(Kit.box(0.12, 1.2, 0.12, 0, 1.54, 0, P.lampPost), Kit.box(0.7, 0.4, 0.08, 0, 2.5, 0, '#e8a33d', { glow: true }));
+        return Kit.merge(p);
+      },
+    },
+  };
+})();

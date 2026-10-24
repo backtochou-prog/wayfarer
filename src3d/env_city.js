@@ -1,5 +1,5 @@
 // OLD TOWN: the city environment for the 3D renderer. A biome is pure data + geometry factories:
-// sky/fog/light colours, one road segment, a small prop kit and a layout rule. A forest biome can be added
+// sky/fog/light colours, a road palette, a small prop kit and a layout rule. A forest biome can be added
 // later as ENV3D.forest with the same shape, without touching the renderer or the track.
 window.ENV3D = window.ENV3D || {};
 
@@ -71,21 +71,12 @@ window.ENV3D = window.ENV3D || {};
     sun: { color: '#ffcf96', intensity: 2.7, position: [-7, 9, 4] },   // low, from behind-left: lights the right-hand facades
     groundFar: '#7a6450',
 
-    // one 12 m road segment: asphalt bands, dashed lane lines, curbs, paved sidewalks, a forecourt for the houses
-    segment() {
-      const s = [];
-      s.push(Kit.box(2 * ROAD_HALF, 0.3, 6, 0, -0.3, -3, P.asphalt));
-      s.push(Kit.box(2 * ROAD_HALF, 0.3, 6, 0, -0.3, -9, P.asphaltAlt));
-      for (const x of [-LANE_X / 2, LANE_X / 2]) for (const z of [-1.5, -7.5]) s.push(Kit.box(0.12, 0.02, 3, x, 0, z, P.laneLine));
-      for (const side of [-1, 1]) {
-        s.push(Kit.box(0.1, 0.015, SEG_LEN, side * (ROAD_HALF - 0.2), 0, -SEG_LEN / 2, P.capBand));            // amber edge line
-        s.push(Kit.box(CURB_W, 0.45, SEG_LEN, side * (ROAD_HALF + CURB_W / 2), WALK_Y - 0.45, -SEG_LEN / 2, P.curb));
-        for (let k = 0; k < 4; k++)
-          s.push(Kit.box(WALK_W, 0.45, 3, side * (ROAD_HALF + CURB_W + WALK_W / 2), WALK_Y - 0.45, -1.5 - k * 3, k % 2 ? P.sidewalkAlt : P.sidewalk));
-        s.push(Kit.box(0.9, 0.45, SEG_LEN, side * (FRONT_X - 0.05), WALK_Y - 0.45, -SEG_LEN / 2, STONE));
-      }
-      return s;
+    // colours for the ribbon road (Road3D): asphalt / curb / sidewalk / forecourt / verge, lane + edge markings
+    road: {
+      asphalt: ['#5a4f5c', '#544a56'], mark: '#f1e3c0', edge: '#e8a33d',
+      curb: ['#cdb187', '#c3a77d'], curbFace: '#a8916c', walk: ['#b89f80', '#a88f72'], court: '#8f7d68', verge: ['#7a6450', '#745e4b'],
     },
+    innerOk: new Set(['lamp', 'bench', 'bush', 'planter']),            // props allowed on the side facing the other road of a fork
 
     props: {
       houseA: build({ F: 10, D: 7, H: 9.2, wall: P.terracotta, shop: [P.stripeRed, P.stripeCream], shutters: P.teal, seed: 1 }),

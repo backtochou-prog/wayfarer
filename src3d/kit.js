@@ -10,7 +10,18 @@
 const LANE_X = 2.2, SEG_LEN = 12, ROAD_HALF = 3.3, CURB_W = 0.3, WALK_W = 3.0;  // sidewalk spans ROAD_HALF+CURB_W .. +WALK_W
 const WALK_Y = 0.15;                       // top of curbs/sidewalks; roadside props and buildings stand on this level
 const FRONT_X = ROAD_HALF + CURB_W + WALK_W + 0.4;   // 7.0: building facades line up here (|x|)
-const U3 = { X: LANE_X / LANE_W, Z: 0.1, Y: 0.075 };                            // LANE_W comes from track.js
+const U3 = { X: LANE_X / LANE_W, Z: 0.1, Y: 0.075 };
+
+// Track / road streaming settings, all in one place. The road is a "ribbon": SECTIONS cross-sections, SECTION metres apart,
+// rewritten every frame from World.bandsAt() (so forks, curves and merges all come from the same track data as gameplay).
+// Scenery is placed per SEG_LEN slot (SLOTS of them) from pooled meshes. Junction timing (prompt distance, diverge / merge
+// lengths, biome blend) lives in track.js (TRACK.forks) and world.js (PROMPT_DIST).
+const TRACK3D = {
+  SECTION: 3, SECTIONS: 64, BEHIND: 24,      // ribbon: 64 sections x 3 m = 192 m, starting 24 m behind the runner
+  SLOTS: 15,                                 // scenery slots (SEG_LEN each) kept alive around the runner
+  CURB_W: 0.3, WALK_W: 3.0, COURT_W: 0.9, FAR: 120, CURB_H: 0.15,   // strips beside each road edge, then verge out to FAR metres
+  LOOK_AHEAD: 200,                           // chase camera looks this far down the active route (gameplay units)
+};                            // LANE_W comes from track.js
 
 // Palette: WAYFARER's amber / burgundy / teal / forest green / earth, lit by a warm low sun.
 const PAL3 = {

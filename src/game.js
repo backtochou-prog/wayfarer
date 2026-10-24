@@ -15,6 +15,7 @@ const TOUCH = [
   { id: 'jump',  x: 278, y: 142, w: 38, h: 32 },
   { id: 'pause', x: 148, y: 3,   w: 24, h: 14 },
 ];
+const GUIDE_DIST = 350;           // design units before the junction line where a picked road starts pulling the runner over
 const GRAV = 900, JUMP_V = 268, SLIDE_T = 0.55, P_HW = 0.1;
 
 class Game {
@@ -103,12 +104,13 @@ class Game {
 
   start() { this.resetRun(); this.state = 'play'; }
 
-  // which road the player would take if the junction line were crossed now
+  // which road the player would take if the junction line were crossed now: an explicit left/right input given inside the
+  // prompt window wins (lane steering outside the window never counts); with no input, the side the runner is on, else right
   preview() {
     const p = this.p;
+    if (this.lean) return this.lean < 0 ? 'left' : 'right';
     if (p.x < -0.25) return 'left';
-    if (p.x > 0.25) return 'right';
-    return this.lean < 0 ? 'left' : 'right';
+    return 'right';
   }
   score() { return Math.floor(this.p.z / 10) + this.coins * 10; }
 
@@ -250,6 +252,9 @@ class Game {
         this.lean = 0;
       } else this.prompt = { fork: F.fork, sel: this.preview() };
     }
+    // once a road has been picked, ease the runner onto that road's side for the last stretch before the junction line,
+    // so it never has to cut across the widening gap at the fork's tip (only while no steering key is held)
+    if (F && this.lean && !dir && p.z < F.z0 && p.z > F.z0 - GUIDE_DIST) p.x += ((this.lean < 0 ? -0.45 : 0.45) - p.x) * Math.min(1, dt * 4);
     // carry the runner along with the road's centre line (diverge / merge) so they stay put on screen;
     // a sudden jump in that centre (the moment the choice locks) is eased by the clamp below instead
     const c0 = w.playerBand(p.z, p.x).c;
