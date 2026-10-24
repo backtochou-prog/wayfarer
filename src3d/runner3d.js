@@ -6,7 +6,7 @@
 // Origin = ground between the feet, facing -Z (the chase camera sees its back).
 // States: 'play' run cycle / jump / slide, 'over' trip, 'pause' hold, 'title' a looping showcase for the main menu.
 // slide pose: leaning back and squashed so the whole avatar stays under the ~1.05 m gap of an overhead gate
-const SLIDE_Y = 1.0, SLIDE_RX = 1.6, SLIDE_SQ = 0.8;
+const SLIDE_Y = 1.0, SLIDE_RX = 1.6, SLIDE_SQ = 0.8, SLIDE_CR = 0.45;   // SLIDE_CR: the frond crown folds down so it does not trail into the road
 class Runner3D {
   constructor() {
     const BODY = '#2a2060', GLASS = '#04020c', MAG = '#ff1fd0', MAG_N = '#ff3fe0', VIO = '#5a2cff', BLUE = '#2e5cff', YEL = '#ffd60a', WHITE = '#f4f0ff', CYAN = '#35e0ff', FROND = '#3a1fb0';
@@ -34,6 +34,30 @@ class Runner3D {
     this.root = pivot(this.group, 0, 0, 0);                        // spin (menu showcase)
     this.body = pivot(this.root, 0, this.HIP, 0);                  // bob / tilt, pivot at the hips
 
+    // curved, tapering leaf (a thin lens-section strip along an arc): the frond and arm blade of the sheet.
+    // From `base` it leaves at azimuth `az`, `tilt` rad from vertical, bending by `curl` rad over its length (+ = outward/down),
+    // with an optional sideways S-wave. w = half-width, th = half-thickness at the widest point.
+    const leaf = (base, az, tilt, len, w, th, curl, wave, color, glow) => {
+      const N = 8, sx = Math.sin(az), cz = Math.cos(az), side = new THREE.Vector3(cz, 0, -sx), p = base.clone(), pos = [], ring = [];
+      for (let i = 0; i <= N; i++) {
+        const t = i / N, a = tilt + curl * t, tan = new THREE.Vector3(Math.sin(a) * sx, Math.cos(a), Math.sin(a) * cz);
+        if (i) p.addScaledVector(new THREE.Vector3(Math.sin(a) * sx, Math.cos(a), Math.sin(a) * cz), len / N);
+        const f = Math.pow(Math.sin(Math.PI * Math.min(1, t * 0.85 + 0.15)), 0.8), c = p.clone().addScaledVector(side, wave * Math.sin(t * Math.PI * 3) * t);
+        const n = new THREE.Vector3().crossVectors(tan, side).normalize();
+        ring.push([c.clone().addScaledVector(side, w * f), c.clone().addScaledVector(n, th * f), c.clone().addScaledVector(side, -w * f), c.clone().addScaledVector(n, -th * f)]);
+      }
+      const tri = (a, b, c) => pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+      for (let i = 0; i < N; i++) for (let k = 0; k < 4; k++) {
+        const a = ring[i][k], b = ring[i][(k + 1) % 4], c = ring[i + 1][(k + 1) % 4], d = ring[i + 1][k];
+        tri(a, b, c); tri(a, c, d); tri(a, c, b); tri(a, d, c);                    // both windings: visible from any side
+      }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+      return { geo: g, color, glow: !!glow };
+    };
+    const ring = (R, tube, y, zs, color, x0, z0) => raw(new THREE.TorusGeometry(R, tube, 5, 30), color, new THREE.Vector3(x0 || 0, y, z0 || 0), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2), new THREE.Vector3(1, zs, 1), true);
+    const GLOSS = '#ffe3ff';                                                       // pale specular streaks: the glossy look
+    const spec = (x, y, z, sx, sy, rz) => Kit.ico(0.3, x, y, z, GLOSS, { sx, sy, sz: 0.1, detail: 1, rz: rz || 0, glow: true });
+
     // legs: thin black limbs, hip pivot -> knee pivot -> ankle pivot -> chunky neon sneaker with white cuff.
     // The ankle counter-rotates against the leg so the shoe stays level instead of digging its toe into the road.
     this.hip = []; this.knee = []; this.ankle = [];
@@ -41,60 +65,77 @@ class Runner3D {
       const hip = pivot(this.body, s * 0.4, 0, 0);
       hip.add(mesh([Kit.cyl(0.075, 0.07, 0.38, 0, -0.38, 0, GLASS, { seg: 6 })]));
       const knee = pivot(hip, 0, -0.38, 0);
-      knee.add(mesh([Kit.cyl(0.07, 0.065, 0.5, 0, -0.5, 0, GLASS, { seg: 6 }), Kit.cyl(0.17, 0.16, 0.12, 0, -0.56, 0, WHITE, { seg: 7 })]));   // shin + ankle cuff
+      knee.add(mesh([Kit.cyl(0.07, 0.065, 0.5, 0, -0.5, 0, GLASS, { seg: 6 }), Kit.cyl(0.19, 0.17, 0.14, 0, -0.58, 0, WHITE, { seg: 8 })]));   // shin + sock cuff
       const ankle = pivot(knee, 0, -0.5, 0);
-      ankle.add(mesh([
-        Kit.box(0.6, 0.3, 0.8, 0, -0.37, 0.0, MAG), Kit.ico(0.3, 0, -0.24, -0.45, MAG_N, { sx: 1.0, sy: 0.75, sz: 1.35 }),   // shoe + rounded toe cap
-        Kit.box(0.62, 0.2, 0.3, 0, -0.12, 0.22, VIO),                                                  // heel collar
-        Kit.box(0.66, 0.06, 1.2, 0, -0.4, -0.12, YEL, { glow: true }),                                 // neon sole
-        Kit.box(0.34, 0.04, 0.3, 0, 0.0, -0.3, CYAN, { glow: true })]));                               // laces
+      const shoe = mesh([
+        Kit.ico(0.36, 0, -0.2, -0.08, MAG, { sx: 0.96, sy: 0.72, sz: 1.75, detail: 2 }),                 // sneaker body: a long glossy ellipsoid
+        Kit.ico(0.3, 0, -0.17, -0.5, MAG_N, { sx: 0.95, sy: 0.7, sz: 0.95, detail: 1 }),                 // toe cap
+        Kit.ico(0.3, 0, -0.06, 0.2, VIO, { sx: 1.0, sy: 0.9, sz: 0.8, detail: 1 }),                      // heel collar
+        Kit.box(0.6, 0.07, 1.22, 0, -0.46, -0.1, WHITE),                                                 // white midsole
+        Kit.box(0.64, 0.04, 1.28, 0, -0.5, -0.1, YEL, { glow: true }),                                    // neon yellow outsole outline
+        Kit.box(0.3, 0.04, 0.09, 0, -0.01, -0.3, CYAN, { glow: true }), Kit.box(0.28, 0.04, 0.09, 0, -0.06, -0.46, CYAN, { glow: true }), Kit.box(0.24, 0.04, 0.09, 0, -0.11, -0.62, CYAN, { glow: true }),   // laces
+        Kit.ico(0.12, s * 0.33, -0.2, 0.05, WHITE, { sx: 0.3, sy: 1, sz: 1, detail: 1, glow: true })]);   // round side emblem
+      shoe.position.y = 0.1;                                                                            // outsole bottom at -0.4: the soles touch the road
+      ankle.add(shoe);
       this.hip.push(hip); this.knee.push(knee); this.ankle.push(ankle);
     }
 
-    // torso group: blue hip bulb, magenta side panels around a black chest with mouth slit and trim lines
+    // torso group: glossy blue/pink hip bulb, two tall magenta->blue pill panels around a black chest with a curved mouth slit and trim lines
     this.torso = pivot(this.body, 0, 0, 0);
+    const SIDE = [-1, 1];
     this.torso.add(mesh([
       Kit.ico(0.7, 0, 0.42, 0, BLUE, { sx: 1.0, sy: 0.62, sz: 0.8, detail: 2 }),
-      Kit.ico(0.45, 0, 0.3, -0.26, MAG, { sx: 1.1, sy: 0.5, sz: 0.55, detail: 1 }),
-      Kit.ico(0.28, -0.62, 0.38, -0.1, MAG_N, { sy: 0.8, detail: 1 }), Kit.ico(0.28, 0.62, 0.38, -0.1, MAG_N, { sy: 0.8, detail: 1 }),
-      Kit.cyl(0.74, 0.7, 0.05, 0, 0.74, 0, MAG_N, { seg: 14, glow: true }),                            // waist neon ring
-      Kit.ico(0.8, 0, 1.28, 0, BODY, { sx: 1.0, sy: 0.7, sz: 0.78, detail: 2 }),                      // chest
-      Kit.ico(0.5, -0.74, 1.28, -0.08, MAG, { sx: 0.7, sy: 1.05, sz: 0.82, detail: 2 }), Kit.ico(0.5, 0.74, 1.28, -0.08, MAG, { sx: 0.7, sy: 1.05, sz: 0.82, detail: 2 }),   // big panels
-      Kit.ico(0.3, -0.5, 1.15, -0.4, VIO, { sx: 0.5, sy: 0.9, sz: 0.4, detail: 1 }), Kit.ico(0.3, 0.5, 1.15, -0.4, VIO, { sx: 0.5, sy: 0.9, sz: 0.4, detail: 1 }),
-      Kit.ico(0.3, -0.8, 1.7, -0.05, BLUE, { sx: 0.5, sy: 0.35, detail: 1 }), Kit.ico(0.3, 0.8, 1.7, -0.05, BLUE, { sx: 0.5, sy: 0.35, detail: 1 }),   // shoulder caps
-      Kit.box(0.82, 0.8, 0.06, 0, 0.88, -0.6, GLASS), Kit.box(0.82, 0.9, 0.06, 0, 0.82, 0.6, GLASS),     // front / back glass plates
-      Kit.box(0.46, 0.05, 0.03, 0, 1.4, -0.65, VIO, { glow: true }), Kit.box(0.22, 0.05, 0.03, -0.3, 1.45, -0.65, VIO, { glow: true, rz: -0.4 }), Kit.box(0.22, 0.05, 0.03, 0.3, 1.45, -0.65, VIO, { glow: true, rz: 0.4 }), // mouth
+      Kit.ico(0.5, 0, 0.26, -0.18, MAG, { sx: 1.05, sy: 0.5, sz: 0.62, detail: 2 }),                       // pink front of the hip bulb
+      spec(-0.32, 0.5, -0.5, 0.9, 0.5, 0.5),
+      Kit.cyl(0.74, 0.7, 0.05, 0, 0.74, 0, MAG_N, { seg: 16, glow: true }),                             // waist neon ring
+      Kit.ico(0.8, 0, 1.28, 0, BODY, { sx: 1.0, sy: 0.7, sz: 0.78, detail: 2 }),                         // chest
+      ...SIDE.flatMap(s => [
+        Kit.ico(0.5, s * 0.76, 1.3, -0.04, MAG, { sx: 0.68, sy: 1.3, sz: 0.85, detail: 2 }),             // tall pill panel
+        Kit.ico(0.42, s * 0.76, 0.98, -0.04, BLUE, { sx: 0.68, sy: 0.8, sz: 0.8, detail: 2 }),            // blue lower end of the panel
+        Kit.ico(0.3, s * 0.52, 1.18, -0.42, VIO, { sx: 0.45, sy: 1.0, sz: 0.4, detail: 1 }),              // violet inner glow strip
+        spec(s * 0.68, 1.55, -0.32, 0.4, 1.2, s * -0.1),
+        Kit.ico(0.3, s * 0.82, 1.78, -0.05, BLUE, { sx: 0.55, sy: 0.38, detail: 1 })]),                  // shoulder caps
+      Kit.box(0.82, 0.8, 0.06, 0, 0.88, -0.6, GLASS), Kit.box(0.82, 0.9, 0.06, 0, 0.82, 0.6, GLASS),      // front / back glass plates
+      raw(new THREE.TorusGeometry(0.34, 0.03, 4, 14, Math.PI), VIO, new THREE.Vector3(0, 1.5, -0.63), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI), ONE, true),   // curved mouth slit
       Kit.box(0.76, 0.03, 0.03, 0, 1.0, -0.65, VIO, { glow: true }), Kit.box(0.76, 0.03, 0.03, 0, 0.92, -0.65, BLUE, { glow: true }), Kit.box(0.76, 0.03, 0.03, 0, 0.84, -0.65, MAG_N, { glow: true }),
-      Kit.cyl(0.42, 0.5, 0.2, 0, 1.78, 0, BODY, { seg: 10 })]));                                       // neck
+      Kit.cyl(0.42, 0.5, 0.2, 0, 1.78, 0, BODY, { seg: 10 })]));                                          // neck
 
-    // head pivot (nod / tilt): tall egg, wide visor band with neon rims, yellow ring eye, big frond crown
+    // head pivot (nod / tilt): tall glossy-black egg, a wide visor band hugging its middle with curved neon rims, a yellow ring eye, a wide star crown of fronds
     this.head = pivot(this.torso, 0, 1.7, 0);
     const hd = [
       Kit.ico(0.85, 0, 0.78, 0, BODY, { sx: 1.08, sy: 0.92, sz: 1.0, detail: 2 }),
-      Kit.cyl(0.94, 0.88, 0.76, 0, 0.0, 0, GLASS, { seg: 18 }),                                        // bulging visor band
-      Kit.cyl(0.97, 0.97, 0.07, 0, 0.72, 0, MAG_N, { seg: 18, glow: true }),                           // upper neon rim
-      Kit.cyl(0.9, 0.9, 0.06, 0, -0.02, 0, YEL, { seg: 18, glow: true }),                              // lower rim (the yellow edge line)
-      Kit.cyl(0.955, 0.955, 0.035, 0, 0.5, 0, BLUE, { seg: 18, glow: true })];
-    const base = new THREE.Vector3(0, 1.55, 0);
-    const AZ = [0, 0.7, 1.4, 2.1, 2.8, 3.5, 4.2, 4.9, 5.6], TILT = [0.5, 1.15, 0.75, 1.3, 0.6, 1.2, 0.85, 1.05, 0.7], LEN = [1.55, 1.4, 1.7, 1.45, 1.6, 1.35, 1.65, 1.5, 1.3];
-    AZ.forEach((az, i) => hd.push(blade(base, az, TILT[i], LEN[i], 0.15, i % 2 ? BLUE : VIO, false)));
-    hd.push(blade(base, 0.3, 0.25, 0.9, 0.09, MAG_N, true));                                          // short neon frond in the middle
+      Kit.ico(1.0, 0, 0.46, 0, GLASS, { sx: 0.94, sy: 0.36, sz: 0.94, detail: 2 }),                       // visor band: a flattened shell bulging out of the egg
+      ring(0.8, 0.05, 0.66, 1, MAG_N), ring(0.86, 0.035, 0.6, 1, BLUE),                           // upper rims
+      ring(0.82, 0.055, 0.27, 1, YEL),                                                                  // thin yellow curve along the lower edge
+      Kit.ico(0.3, -0.38, 1.16, -0.45, GLOSS, { sx: 0.5, sy: 0.9, sz: 0.2, detail: 1, rz: 0.5, glow: true })];   // gloss streak on the egg
+    const base = new THREE.Vector3(), cr = [];                                                          // the crown is its own pivot so it can fold in the slide
+    // [azimuth, tilt, length, curl, colour, magenta rim]: outward-fanning, long, curved; a wide star
+    const FR = [[0, 0.45, 1.5, 0.5, VIO, 1], [0.6, 0.95, 1.7, 0.7, BLUE, 0], [1.2, 1.25, 1.65, 0.6, VIO, 1], [1.85, 1.0, 1.55, 0.8, BLUE, 0], [2.45, 1.3, 1.7, 0.55, VIO, 1],
+                [3.1, 0.6, 1.5, 0.6, BLUE, 0], [3.75, 1.25, 1.7, 0.65, VIO, 1], [4.35, 0.95, 1.55, 0.75, BLUE, 0], [4.95, 1.3, 1.65, 0.6, VIO, 1], [5.6, 0.85, 1.6, 0.7, BLUE, 1]];
+    for (const [az, tilt, len, curl, col, rim] of FR) {
+      cr.push(leaf(base, az, tilt, len, 0.26, 0.06, curl, 0, col, false));
+      if (rim) cr.push(leaf(base, az, tilt, len * 0.97, 0.07, 0.11, curl, 0, MAG_N, true));              // glowing magenta spine
+    }
+    cr.push(leaf(base, 0.3, 0.2, 1.0, 0.1, 0.06, 0.3, 0, MAG_N, true));                                  // short neon frond in the middle
     this.head.add(mesh(hd));
+    this.crown = pivot(this.head, 0, 1.45, 0); this.crown.add(mesh(cr));
     this.eye = pivot(this.head, 0, 0.5, -0.95);
-    this.eye.add(mesh([raw(new THREE.TorusGeometry(0.2, 0.05, 6, 16), YEL, new THREE.Vector3(), Q0, ONE, true),
-                       Kit.box(0.14, 0.05, 0.04, 0.2, -0.24, 0, YEL, { glow: true })]));
+    this.eye.add(mesh([raw(new THREE.TorusGeometry(0.22, 0.055, 6, 18), YEL, new THREE.Vector3(), Q0, ONE, true),
+                       Kit.box(0.14, 0.05, 0.04, 0.22, -0.26, 0, YEL, { glow: true })]));
 
-    // leaf-blade arms with a loose "ribbon" forearm (hang from the shoulders, point down)
+    // leaf-blade arms (shoulder blade + loose forearm); the left forearm is a long wavy ribbon, as on the sheet
     this.arm = []; this.fore = [];
+    const AD = new THREE.Vector3(0, 0, 0);
     for (const s of [-1, 1]) {
-      const sh = pivot(this.torso, s * 1.1, 1.55, 0);
-      sh.add(mesh([drop(0.8, 0.12, VIO, false, 0)]));
-      const fo = pivot(sh, 0, -0.78, 0);
-      fo.add(mesh([drop(0.7, 0.09, FROND, false, 0), drop(0.35, 0.06, MAG_N, true, -0.45)]));
+      const sh = pivot(this.torso, s * 1.15, 1.55, 0);
+      sh.add(mesh([leaf(AD, 0, Math.PI - 0.15, 0.85, 0.15, 0.05, s * 0.25, 0, VIO, false), leaf(AD, 0, Math.PI - 0.15, 0.82, 0.04, 0.08, s * 0.25, 0, MAG_N, true)]));
+      const fo = pivot(sh, 0, -0.8, 0);
+      fo.add(s < 0 ? mesh([leaf(AD, 0, Math.PI, 1.15, 0.13, 0.03, 0, 0.14, FROND, false), leaf(AD, 0, Math.PI, 1.1, 0.04, 0.05, 0, 0.14, MAG_N, true)])
+                   : mesh([leaf(AD, 0, Math.PI - 0.1, 0.75, 0.11, 0.04, 0.3, 0, FROND, false), leaf(AD, 0, Math.PI - 0.1, 0.72, 0.035, 0.07, 0.3, 0, MAG_N, true)]));
       this.arm.push(sh); this.fore.push(fo);
     }
     this.phase = 0;
-    this.cur = { y: this.HIP, rx: 0, rz: 0, hl: 0, hr: 0, kl: 0, kr: 0, al: 0, ar: 0, alz: 0, arz: 0, nod: 0, tilt: 0, sq: 1 };   // sq = vertical squash (crouch while sliding)
+    this.cur = { y: this.HIP, rx: 0, rz: 0, hl: 0, hr: 0, kl: 0, kr: 0, al: 0, ar: 0, alz: 0, arz: 0, nod: 0, tilt: 0, sq: 1, cr: 1 };   // sq = vertical squash (crouch while sliding)
     this.tgt = Object.assign({}, this.cur);
   }
 
@@ -103,7 +144,7 @@ class Runner3D {
     const c = this.cur, t = this.tgt, H = this.HIP, F = H / 0.72;       // F scales the old metre-based offsets to these units
     if (s.state !== 'over') this.phase += dt * s.runRate * Math.PI * 2;
     const sn = Math.sin(this.phase), T = s.time;
-    let spin = 0; t.sq = 1;
+    let spin = 0; t.sq = 1; t.cr = 1;
     if (s.state === 'over') {                                          // tripped: tipped forward, limbs splayed
       t.y = 0.5; t.rx = -1.3; t.rz = 0.12; t.hl = 0.3; t.hr = -0.25; t.kl = -0.5; t.kr = -0.2; t.al = 2.6; t.ar = 2.3; t.alz = -0.5; t.arz = 0.5; t.nod = 0.4; t.tilt = 0.2;
     } else if (s.state === 'title') {                                  // showcase loop (10 s): idle, wave, spin, dance, run in place
@@ -123,7 +164,7 @@ class Runner3D {
         t.kl = -(0.15 + 1.1 * Math.max(0, -sn)); t.kr = -(0.15 + 1.1 * Math.max(0, sn)); t.al = -sn * 0.7; t.ar = sn * 0.7; t.alz = -0.2; t.arz = 0.2;
       }
     } else if (s.sliding) {                                            // feet-first slide, leaning back
-      t.y = SLIDE_Y; t.rx = SLIDE_RX; t.sq = SLIDE_SQ; t.rz = 0; t.hl = 0.26; t.hr = 0.3; t.kl = -0.15; t.kr = -0.35; t.al = 1.4; t.ar = 1.2; t.alz = -0.55; t.arz = 0.55; t.nod = -0.2; t.tilt = 0;
+      t.y = SLIDE_Y; t.rx = SLIDE_RX; t.sq = SLIDE_SQ; t.cr = SLIDE_CR; t.rz = 0; t.hl = 0.26; t.hr = 0.3; t.kl = -0.15; t.kr = -0.35; t.al = 1.4; t.ar = 1.2; t.alz = -0.55; t.arz = 0.55; t.nod = -0.2; t.tilt = 0;
     } else if (s.airborne) {                                           // tucked jump, arms up; legs open again on the way down
       const rise = s.vy > 0 ? 1 : 0.4;
       t.y = H; t.rx = -0.1; t.rz = -s.lean * 0.2; t.hl = 0.95 * rise + 0.2; t.hr = 0.55 * rise; t.kl = -1.5 * rise - 0.2; t.kr = -1.2 * rise - 0.3;
@@ -144,7 +185,7 @@ class Runner3D {
     this.arm[0].rotation.x = c.al; this.arm[1].rotation.x = c.ar; this.arm[0].rotation.z = c.alz; this.arm[1].rotation.z = c.arz;
     this.fore[0].rotation.x = Math.sin(T * 9) * 0.3 - 0.15; this.fore[1].rotation.x = Math.sin(T * 9 + 1.7) * 0.3 - 0.15;   // loose forearms flutter
     this.fore[0].rotation.z = Math.sin(T * 7) * 0.25; this.fore[1].rotation.z = -Math.sin(T * 7 + 1) * 0.25;
-    this.head.rotation.x = c.nod; this.head.rotation.z = c.tilt;
+    this.head.rotation.x = c.nod; this.head.rotation.z = c.tilt; this.crown.scale.setScalar(c.cr);
     this.eye.scale.setScalar(1 + Math.sin(T * 4) * 0.07);              // the ring eye pulses
   }
 }
