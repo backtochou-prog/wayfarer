@@ -16,7 +16,7 @@ const TOUCH = [
   { id: 'pause', x: 148, y: 3,   w: 24, h: 14 },
 ];
 const GUIDE_DIST = 350;           // design units before the junction line where a picked road starts pulling the runner over
-const GRAV = 900, JUMP_V = 268, SLIDE_T = 0.55, P_HW = 0.1;
+const GRAV = 900, JUMP_V = 268, SLIDE_T = 0.55, P_HW = 0.12;   // P_HW: runner half-width (0.43 m in the 3D build)
 
 class Game {
   // opts.world / opts.renderer let another front end (the 3D version) reuse this state machine, input and rules
@@ -92,6 +92,7 @@ class Game {
     this.bgT = 0; this.bgTo = this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0;
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
     this.carryC = 0; this.lean = 0; this.kick = null; this.sway = 0; this.prompt = null; this.banner = null;
+    if (this.r.onReset) this.r.onReset(this);
   }
 
   activeButton() {
@@ -115,7 +116,8 @@ class Game {
   score() { return Math.floor(this.p.z / 10) + this.coins * 10; }
 
   jump() { this.jumpBuf = 0.12; } // buffered: a press just before landing still jumps
-  slideKey() { const p = this.p; if (p.jy > 0) p.vy = -600; else p.slide = SLIDE_T; }
+  // down: fast-fall in the air; on the ground start a slide (a slide already under way is not restarted, so taps can't chain)
+  slideKey() { const p = this.p; if (p.jy > 0) p.vy = -600; else if (p.slide <= 0) p.slide = SLIDE_T; }
 
   // a finger went down on / moved onto a control; jump, slide and pause fire once, steering is held
   hold(pid, id, fresh) {
@@ -212,7 +214,7 @@ class Game {
       if (p.jy === 0) { p.slide = 0; p.vy = JUMP_V; p.jy = 0.01; this.jumpBuf = 0; }
     }
     if (p.jy > 0) { p.vy -= GRAV * dt; p.jy += p.vy * dt; if (p.jy <= 0) { p.jy = 0; p.vy = 0; } }
-    if (p.slide > 0) p.slide -= dt;
+    if (p.slide > 0) p.slide = Math.max(0, p.slide - dt);
     this.dust(dt);
     w.extend(p.z);
     if (Math.floor(p.z / 100) !== Math.floor(prevZ / 100)) w.prune(p.z);
@@ -277,11 +279,12 @@ class Game {
     }
   }
   onCoin(it) {
+    if (this.r.onCoin) this.r.onCoin(this, it);                  // 3D front end shows its own pickup effect
     const cxp = 160 + (it.x - this.camX) * LPX * S20;
     this.burst(cxp, 159 - it.h, [C.amberL, C.amber, C.bone], 6, 55, 0.35);
     this.fx.push({ x: cxp - 4, y: 150 - it.h, vx: 0, vy: -34, gy: 0, t: 0.55, col: C.amberL, txt: '+1' });
   }
-  onDie() { this.burst(160 + (this.p.x - this.camX) * LPX * S20, 140, [C.earth, C.earthD, C.amberL, C.burgL, C.bone], 12, 90, 0.6); }
+  onDie() { if (this.r.onDie) this.r.onDie(this); this.burst(160 + (this.p.x - this.camX) * LPX * S20, 140, [C.earth, C.earthD, C.amberL, C.burgL, C.bone], 12, 90, 0.6); }
 
   die() {
     this.releaseTouch();

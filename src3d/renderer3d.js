@@ -58,9 +58,10 @@ class Renderer3D {
     this.droppedBy = {}; this.dropped = 0;                 // props skipped because a pool was full (should stay 0)
     this.layouts = new Map();                              // "biome:slot" -> cached placements
     this.items = new Items3D(this.scene);
+    this.fx = new Fx3D(this.scene, this.items.merged.coin);
     this.runner = new Runner3D(); this.scene.add(this.runner.group);
 
-    this.menu = 1; this.lookX = 0;                         // menu blend (1 = menu camera, 0 = chase) and smoothed look-ahead
+    this.menu = 1; this.lookX = 0; this.heading = 0;                         // menu blend (1 = menu camera, 0 = chase) and smoothed look-ahead
     this.cam = new THREE.Vector3(); this.look = new THREE.Vector3();
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -118,6 +119,11 @@ class Renderer3D {
     return (((bands[0].lo + bands[1].hi) / 2) + (bands[0].off + bands[1].off) / 2) * U3.X - Lref;
   }
 
+  // game events (called by Game): a collected coin pops, a crash throws debris, a restart clears the effects
+  onCoin(g, it) { const band = g.world.bandNear(it.z, it.x); this.fx.coinPop((it.x + band.off) * U3.X, it.h * U3.Y, it.z * U3.Z, g.time); }
+  onDie(g) { const p = g.p, pb = g.world.playerBand(p.z, p.x); this.fx.crash((p.x + pb.off) * U3.X, p.jy * U3.Y + 0.9, p.z * U3.Z + 0.4, g.time); }
+  onReset() { this.fx.clear(); this.heading = 0; this.lastT = 0; }
+
   place(name, x, y, z, rotY) {
     const pool = this.props[name], n = this.propUsed[name];
     if (!pool || n >= pool.length) { this.dropped++; this.droppedBy[name] = (this.droppedBy[name] || 0) + 1; return; }
@@ -174,6 +180,7 @@ class Renderer3D {
     }
     for (const name in this.props) { const pool = this.props[name]; for (let n = this.propUsed[name]; n < pool.length; n++) pool[n].visible = false; }
     this.items.end(g.time);
+    this.fx.update(g.time, rz, Lref);
 
     // ---- runner (absolute lateral on its road, jump height in metres)
     const pb = w.playerBand(p.z, p.x), relX = (p.x + pb.off) * U.X - Lref;
@@ -181,7 +188,11 @@ class Renderer3D {
     const ms = 1 - Math.exp(-3.5 * dt);
     this.menu += ((g.state === 'title' ? 1 : 0) - this.menu) * ms;
     const mm = this.menu * this.menu * (3 - 2 * this.menu);
-    this.runner.group.rotation.y = Math.PI * mm;
+    // heading: the runner faces along the route (the tangent of its road's centre line 5 m either side), so it stays aligned on curves
+    const c1 = w.playerBand(p.z + 50, p.x), c0 = w.playerBand(p.z - 50, p.x);
+    const slope = ((c1.c + c1.off) - (c0.c + c0.off)) * U.X / (100 * U.Z);
+    this.heading += (-Math.atan(slope) - this.heading) * (1 - Math.exp(-10 * dt));
+    this.runner.group.rotation.y = Math.PI * mm + this.heading * (1 - mm);
     this.runner.update(dt, { time: g.time, runRate: 2.3 + p.speed / 340 * 1.1, airborne: p.jy > 0, vy: p.vy, sliding: p.slide > 0,
                              lean: Math.max(-1, Math.min(1, p.vx / STEER)), state: g.state });
 

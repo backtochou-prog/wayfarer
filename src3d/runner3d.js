@@ -5,6 +5,8 @@
 // Built once from Kit parts (units, then the group is scaled to ~2 m tall); animated procedurally by rotating pivots.
 // Origin = ground between the feet, facing -Z (the chase camera sees its back).
 // States: 'play' run cycle / jump / slide, 'over' trip, 'pause' hold, 'title' a looping showcase for the main menu.
+// slide pose: leaning back and squashed so the whole avatar stays under the ~1.05 m gap of an overhead gate
+const SLIDE_Y = 1.0, SLIDE_RX = 1.6, SLIDE_SQ = 0.8;
 class Runner3D {
   constructor() {
     const BODY = '#2a2060', GLASS = '#04020c', MAG = '#ff1fd0', MAG_N = '#ff3fe0', VIO = '#5a2cff', BLUE = '#2e5cff', YEL = '#ffd60a', WHITE = '#f4f0ff', CYAN = '#35e0ff', FROND = '#3a1fb0';
@@ -26,26 +28,27 @@ class Runner3D {
     const DOWN = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
     const drop = (len, w, color, glow, y0) => raw(new THREE.ConeGeometry(w, len, 4), color, new THREE.Vector3(0, y0 - len / 2, 0), DOWN, new THREE.Vector3(1, 1, 0.3), glow);
 
-    this.HIP = 1.25;
+    this.HIP = 1.33;
     this.group = new THREE.Group();
     this.group.scale.setScalar(0.39);                              // 5.1 units -> ~2 m including the fronds, ~1.7 m to the top of the head
     this.root = pivot(this.group, 0, 0, 0);                        // spin (menu showcase)
     this.body = pivot(this.root, 0, this.HIP, 0);                  // bob / tilt, pivot at the hips
 
-    // legs: thin black limbs, hip pivot -> knee pivot -> chunky neon sneaker with white cuff
-    this.hip = []; this.knee = [];
+    // legs: thin black limbs, hip pivot -> knee pivot -> ankle pivot -> chunky neon sneaker with white cuff.
+    // The ankle counter-rotates against the leg so the shoe stays level instead of digging its toe into the road.
+    this.hip = []; this.knee = []; this.ankle = [];
     for (const s of [-1, 1]) {
       const hip = pivot(this.body, s * 0.4, 0, 0);
       hip.add(mesh([Kit.cyl(0.075, 0.07, 0.38, 0, -0.38, 0, GLASS, { seg: 6 })]));
       const knee = pivot(hip, 0, -0.38, 0);
-      knee.add(mesh([
-        Kit.cyl(0.07, 0.065, 0.5, 0, -0.5, 0, GLASS, { seg: 6 }),
-        Kit.cyl(0.17, 0.16, 0.12, 0, -0.56, 0, WHITE, { seg: 7 }),                                     // ankle cuff
-        Kit.box(0.6, 0.3, 0.8, 0, -0.87, 0.0, MAG), Kit.ico(0.3, 0, -0.74, -0.45, MAG_N, { sx: 1.0, sy: 0.75, sz: 1.35 }), // shoe + rounded toe cap
-        Kit.box(0.62, 0.2, 0.3, 0, -0.62, 0.22, VIO),                                                  // heel collar
-        Kit.box(0.66, 0.06, 1.2, 0, -0.9, -0.12, YEL, { glow: true }),                               // neon sole
-        Kit.box(0.34, 0.04, 0.3, 0, -0.5, -0.3, CYAN, { glow: true })]));                              // laces
-      this.hip.push(hip); this.knee.push(knee);
+      knee.add(mesh([Kit.cyl(0.07, 0.065, 0.5, 0, -0.5, 0, GLASS, { seg: 6 }), Kit.cyl(0.17, 0.16, 0.12, 0, -0.56, 0, WHITE, { seg: 7 })]));   // shin + ankle cuff
+      const ankle = pivot(knee, 0, -0.5, 0);
+      ankle.add(mesh([
+        Kit.box(0.6, 0.3, 0.8, 0, -0.37, 0.0, MAG), Kit.ico(0.3, 0, -0.24, -0.45, MAG_N, { sx: 1.0, sy: 0.75, sz: 1.35 }),   // shoe + rounded toe cap
+        Kit.box(0.62, 0.2, 0.3, 0, -0.12, 0.22, VIO),                                                  // heel collar
+        Kit.box(0.66, 0.06, 1.2, 0, -0.4, -0.12, YEL, { glow: true }),                                 // neon sole
+        Kit.box(0.34, 0.04, 0.3, 0, 0.0, -0.3, CYAN, { glow: true })]));                               // laces
+      this.hip.push(hip); this.knee.push(knee); this.ankle.push(ankle);
     }
 
     // torso group: blue hip bulb, magenta side panels around a black chest with mouth slit and trim lines
@@ -91,7 +94,7 @@ class Runner3D {
       this.arm.push(sh); this.fore.push(fo);
     }
     this.phase = 0;
-    this.cur = { y: this.HIP, rx: 0, rz: 0, hl: 0, hr: 0, kl: 0, kr: 0, al: 0, ar: 0, alz: 0, arz: 0, nod: 0, tilt: 0 };
+    this.cur = { y: this.HIP, rx: 0, rz: 0, hl: 0, hr: 0, kl: 0, kr: 0, al: 0, ar: 0, alz: 0, arz: 0, nod: 0, tilt: 0, sq: 1 };   // sq = vertical squash (crouch while sliding)
     this.tgt = Object.assign({}, this.cur);
   }
 
@@ -100,7 +103,7 @@ class Runner3D {
     const c = this.cur, t = this.tgt, H = this.HIP, F = H / 0.72;       // F scales the old metre-based offsets to these units
     if (s.state !== 'over') this.phase += dt * s.runRate * Math.PI * 2;
     const sn = Math.sin(this.phase), T = s.time;
-    let spin = 0;
+    let spin = 0; t.sq = 1;
     if (s.state === 'over') {                                          // tripped: tipped forward, limbs splayed
       t.y = 0.5; t.rx = -1.3; t.rz = 0.12; t.hl = 0.3; t.hr = -0.25; t.kl = -0.5; t.kr = -0.2; t.al = 2.6; t.ar = 2.3; t.alz = -0.5; t.arz = 0.5; t.nod = 0.4; t.tilt = 0.2;
     } else if (s.state === 'title') {                                  // showcase loop (10 s): idle, wave, spin, dance, run in place
@@ -120,7 +123,7 @@ class Runner3D {
         t.kl = -(0.15 + 1.1 * Math.max(0, -sn)); t.kr = -(0.15 + 1.1 * Math.max(0, sn)); t.al = -sn * 0.7; t.ar = sn * 0.7; t.alz = -0.2; t.arz = 0.2;
       }
     } else if (s.sliding) {                                            // feet-first slide, leaning back
-      t.y = 0.62; t.rx = 1.3; t.rz = 0; t.hl = 0.26; t.hr = 0.3; t.kl = -0.15; t.kr = -0.35; t.al = 1.4; t.ar = 1.2; t.alz = -0.55; t.arz = 0.55; t.nod = -0.2; t.tilt = 0;
+      t.y = SLIDE_Y; t.rx = SLIDE_RX; t.sq = SLIDE_SQ; t.rz = 0; t.hl = 0.26; t.hr = 0.3; t.kl = -0.15; t.kr = -0.35; t.al = 1.4; t.ar = 1.2; t.alz = -0.55; t.arz = 0.55; t.nod = -0.2; t.tilt = 0;
     } else if (s.airborne) {                                           // tucked jump, arms up; legs open again on the way down
       const rise = s.vy > 0 ? 1 : 0.4;
       t.y = H; t.rx = -0.1; t.rz = -s.lean * 0.2; t.hl = 0.95 * rise + 0.2; t.hr = 0.55 * rise; t.kl = -1.5 * rise - 0.2; t.kr = -1.2 * rise - 0.3;
@@ -131,12 +134,13 @@ class Runner3D {
       t.kl = -(0.15 + 1.1 * Math.max(0, -sn)); t.kr = -(0.15 + 1.1 * Math.max(0, sn));
       t.al = -sn * 0.7; t.ar = sn * 0.7; t.alz = -0.2; t.arz = 0.2; t.nod = Math.abs(sn) * 0.05; t.tilt = 0;
     }
-    const k = 1 - Math.exp(-15 * dt);
+    const k = 1 - Math.exp(-(s.sliding ? 60 : 15) * dt);   // the crouch is near-instant: the game counts a slide from the first frame
     for (const key in c) c[key] += (t[key] - c[key]) * k;
-    this.root.rotation.y = spin;
+    this.root.rotation.y = spin; this.root.scale.y = c.sq;
     this.body.position.y = c.y; this.body.rotation.x = c.rx; this.body.rotation.z = c.rz;
     this.hip[0].rotation.x = c.hl; this.hip[1].rotation.x = c.hr;
     this.knee[0].rotation.x = c.kl; this.knee[1].rotation.x = c.kr;
+    this.ankle[0].rotation.x = -(c.hl + c.kl) * 0.95; this.ankle[1].rotation.x = -(c.hr + c.kr) * 0.95;   // keep the soles level
     this.arm[0].rotation.x = c.al; this.arm[1].rotation.x = c.ar; this.arm[0].rotation.z = c.alz; this.arm[1].rotation.z = c.arz;
     this.fore[0].rotation.x = Math.sin(T * 9) * 0.3 - 0.15; this.fore[1].rotation.x = Math.sin(T * 9 + 1.7) * 0.3 - 0.15;   // loose forearms flutter
     this.fore[0].rotation.z = Math.sin(T * 7) * 0.25; this.fore[1].rotation.z = -Math.sin(T * 7 + 1) * 0.25;
