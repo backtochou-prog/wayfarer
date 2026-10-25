@@ -163,6 +163,25 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('no JS errors in the sound session', pg2.errs.length === 0, pg2.errs.slice(0, 2).join('|'));
   await pg2.close();
 
+  // ================================================================ 7b. phones: the music must start although the first touch event is not a valid gesture
+  // (Chrome on Android / iOS only accept play() from touchend, click or a key; a touch pointerdown is rejected. This once left the effects working and the music silent.)
+  const pctx = await b.newContext({ viewport: { width: 915, height: 412 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await pctx.addInitScript(() => {
+    window.__kind = ''; window.__plays = [];
+    for (const ev of ['pointerdown', 'touchstart', 'touchend', 'pointerup', 'click', 'keydown']) addEventListener(ev, () => { window.__kind = ev; setTimeout(() => { window.__kind = ''; }, 0); }, true);
+    const real = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () { const ok = ['touchend', 'click', 'keydown'].includes(window.__kind); window.__plays.push((window.__kind || 'none') + ':' + (ok ? 'allowed' : 'REJECTED')); return ok ? real.call(this) : Promise.reject(new DOMException('needs a user gesture', 'NotAllowedError')); };
+  });
+  const pp = await pctx.newPage(); pp.errs = []; pp.on('pageerror', e => pp.errs.push(e.message));
+  await pp.goto(base); await pp.waitForFunction(() => window.__wf && window.__wf.sfx, null, { timeout: 60000 }); await pp.waitForTimeout(800);
+  const ppos = await pp.evaluate(() => { const cv = document.getElementById('screen'), r0 = cv.getBoundingClientRect(), b2 = BTN.title; return { x: r0.left + (b2.x + b2.w / 2) / VW * r0.width, y: r0.top + (b2.y + b2.h / 2) / VH * r0.height }; });
+  await pp.touchscreen.tap(ppos.x, ppos.y);
+  await pp.waitForFunction(() => __wf.sfx.music.currentTime > 0.5, null, { timeout: 20000 }).catch(() => {});
+  const PH = await pp.evaluate(() => { const a = __wf.sfx; return { playing: !a.music.paused && a.music.currentTime > 0.5, ctx: a.ctx && a.ctx.state, plays: window.__plays, blocked: a.musicBlocked, state: __wf.state }; });
+  T('on a phone (touch pointerdown is not a valid gesture) the first music attempt is rejected, a later touch event retries and the music plays, with the effects working too',
+    PH.plays[0].endsWith('REJECTED') && PH.plays.some(x => x.endsWith('allowed')) && PH.playing && PH.ctx === 'running' && PH.blocked === false && PH.state === 'play' && pp.errs.length === 0, JSON.stringify(PH));
+  await pctx.close();
+
   // ================================================================ 8. the 2D page has no sound code and still works
   const p2 = await open(base + '2d.html');
   const TD = await p2.evaluate(() => ({ hasSfx: !!__wf.sfx, hasClass: typeof GameAudio !== 'undefined' }));

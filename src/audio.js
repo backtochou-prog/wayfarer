@@ -14,10 +14,12 @@ class GameAudio {
     this.muted = false; try { this.muted = localStorage.getItem('wayfarer.sound') === '0'; } catch (e) {}
     this.ctx = null; this.master = null; this.unlocked = false; this.active = 0; this.nodesMade = 0;
     this.musicVol = 0; this.streak = 0; this.streakT = -9; this.lastState = ''; this.clock = 0; this.b = { t: 0, beat: 0, phase: 0, pulse: 0, energy: 0, kick: 0, playing: false };
-    this.music = null;
+    this.music = null; this.musicBlocked = false; this.musicTries = 0;
     try { const a = new Audio(); a.loop = true; a.preload = 'auto'; a.src = this.src; a.volume = 0; a.muted = this.muted; this.music = a; } catch (e) {}
-    const go = () => this.unlock();
-    for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, go, { passive: true });
+    // Every gesture (re)tries to start the music until it is really playing. Browsers on phones do not count a touch's pointerdown as a user gesture (touchend / click are), so
+    // the first attempt there is rejected and a later one succeeds; a single attempt at the first event left the music silent while the effects worked.
+    const go = () => { this.unlock(); this.startMusic(); };
+    for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(ev, go, { passive: true });
     document.addEventListener('visibilitychange', () => this.visibility());
   }
 
@@ -32,13 +34,19 @@ class GameAudio {
       this.master.connect(this.bus); this.bus.connect(this.ctx.destination);
     } catch (e) { this.ctx = null; }
     this.resume();
-    if (this.music && !document.hidden) { const p = this.music.play(); if (p && p.catch) p.catch(() => {}); }
+    this.startMusic();
+  }
+  // start the track if it is not playing (a rejected attempt is remembered in musicBlocked and simply tried again on the next gesture)
+  startMusic() {
+    const a = this.music; if (!this.unlocked || !a || !a.paused || document.hidden) return;
+    this.musicTries = (this.musicTries || 0) + 1;
+    try { const p = a.play(); if (p && p.then) p.then(() => { this.musicBlocked = false; }, e => { this.musicBlocked = e && e.name || true; }); } catch (e) { this.musicBlocked = true; }
   }
   resume() { try { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); } catch (e) {} }
   visibility() {
     if (!this.unlocked) return;
     if (document.hidden) { try { this.music.pause(); if (this.ctx) this.ctx.suspend(); } catch (e) {} }
-    else { this.resume(); try { const p = this.music.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+    else { this.resume(); this.startMusic(); }
   }
 
   // ---- mute

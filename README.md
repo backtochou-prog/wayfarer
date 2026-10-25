@@ -108,7 +108,7 @@ src/game.js     state, input, loop, collisions, scoring
 
 ## Sound and music
 
-- **Music:** your "Deep Disco" track (`assets/music.mp3`, 172 s, looped; converted from the m4a and lowered 3 dB so it does not clip) plays from the first tap or key press (browsers do not allow sound before one). Its volume follows the game: softer in the menu, full while running, ducked on pause and after a crash.
+- **Music:** your "Deep Disco" track (`assets/music.mp3`, 172 s, looped; converted from the m4a and lowered 3 dB so it does not clip) plays from the first tap or key press (browsers do not allow sound before one; on phones a touch's first event is not accepted as a gesture, so every gesture retries until the music is really playing). Its volume follows the game: softer in the menu, full while running, ducked on pause and after a crash.
 - **Animation to the beat:** the track is a steady 117.7 BPM and `src3d/music_beats.js` holds its beat grid and loudness curves, computed offline (`tools/make_beatmap.py`), so nothing is analysed in the browser (that would not work from `file://`). On every kick the avatar bounces and stretches, the scene light and all the glowing neon parts brighten, and the PLAY button glows green; the effect is stronger in the neon quarter and weaker in quiet parts of the track. Before the sound starts the same clock runs at the same tempo, so the menu already moves in time.
 - **Effects** (synthesised with the Web Audio API, no sound files): jump, land, slide, coin (the pitch climbs with a streak of coins), crash, game-over jingle, fork prompt and fork choice, start, pause and resume.
 - **Mute:** `M`, or the speaker icon at the bottom right of the menu / pause / game-over screens; remembered between visits.
