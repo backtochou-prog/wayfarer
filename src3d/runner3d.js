@@ -115,6 +115,27 @@ class Runner3D {
     parts.push(coat(shell(JT - 0.07, JT, 0.058, 1, 44, false, JF0, JF1), '#30303f'));                        // collar line under the visor
     parts.push(coat(shell(JB + 0.16, JT - 0.07, 0.052, 8, 2, false, Math.PI - 0.018, Math.PI + 0.018), '#5a5a70'));   // centre-back seam
     parts.push(coat(shell(3.04, 3.07, 0.052, 1, 44, false, JF0, JF1), '#5a5a70'));                          // yoke seam across the shoulders
+    // a five-pointed star patch on the middle of the jacket's back: a flat star outline subdivided and projected onto the curved jacket surface
+    const starPatch = (cy, ro, ri, off, color, gain) => {
+      const pos = [], O = [];
+      for (let k = 0; k < 10; k++) { const a = Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? ri : ro; O.push([Math.cos(a) * r, Math.sin(a) * r]); }
+      const lift = (x, v) => { const y = cy + v; return new THREE.Vector3(x, A(y), DZ * Math.sqrt(Math.max(0, Math.pow(eggR(y) + off, 2) - x * x))); };   // back surface (+z)
+      const tri = (a, b, c) => {
+        const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
+        if (n.z < 0) { const t = b; b = c; c = t; }                                           // normal pointing out of the back
+        pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+      };
+      const sub = (p, q, r, d) => {
+        if (d === 0) return tri(lift(p[0], p[1]), lift(q[0], q[1]), lift(r[0], r[1]));
+        const m = (u, v) => [(u[0] + v[0]) / 2, (u[1] + v[1]) / 2], pq = m(p, q), qr = m(q, r), rp = m(r, p);
+        sub(p, pq, rp, d - 1); sub(pq, q, qr, d - 1); sub(rp, qr, r, d - 1); sub(pq, qr, rp, d - 1);
+      };
+      for (let k = 0; k < 10; k++) sub([0, 0], O[k], O[(k + 1) % 10], 2);
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+      return { geo: g, color, glow: false, gain };
+    };
+    parts.push(starPatch(2.74, 0.59, 0.236, 0.064, '#7a1020', 1));                                // dark red border
+    parts.push(starPatch(2.74, 0.5, 0.2, 0.084, '#ffcf3a', 1.4));                           // gold star
     { const [x, y] = px(375, 770); parts.push(Kit.ico(0.08, x, A(y), onEgg(x, y, 0.04), '#9fb4ff', { sx: 1.6, sz: 0.2, detail: 1, rz: 0.5, glow: true })); }   // the painting's white glare on the visor
     for (const s of [-1, 1]) {                                                                              // black oval side panels with a white inner edge and two buttons
       parts.push(Kit.ico(0.5, s * 1.0, A(2.7), -0.22, BLACK, { sx: 0.5, sy: 1.35, sz: 0.8, detail: 2, rz: -0.2 * s }));
