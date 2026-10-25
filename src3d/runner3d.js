@@ -1,8 +1,8 @@
-// Runner3D: the player avatar, the red egg-man from the user's character painting.
-// Proportions measured from the painting (height from the soles, 5.1 units to the top of the head; the group is scaled to ~1.8 m):
+// Runner3D: the player avatar, the strawberry-man from the user's character painting.
+// Proportions measured from the painting (height from the soles, 5.1 units to the top; the group is scaled to ~1.8 m):
 //   black sneakers with pink trim 0-0.5 | long navy legs fading to pale blue at the ankles to 1.95 | navy belt with a ring, 1.98-2.12 |
-//   one big glossy red egg (widest 2.28 at 3.45, flat wide bottom) | dark navy visor band 3.43-4.42 whose lower edge peaks in a V at the
-//   front | yellow cap on the dome, four neon-green hair strands arcing over it | pink lips on the red belly with yellow studs |
+//   one big glossy red strawberry body (broad rounded top, widest 2.28 at 3.9, tapering to a narrower flat bottom) with yellow seeds |
+//   dark navy visor band 3.43-4.42 whose lower edge peaks in a V at the front | green calyx leaves fanning over the top | pink lips |
 //   black oval panels at the sides, thin black arms with tiny red hands
 // Built once from Kit parts, animated procedurally by rotating pivots (hips, knees, ankles, shoulders, elbows, torso).
 // Origin = ground between the feet, facing -Z (the chase camera sees its back).
@@ -11,9 +11,9 @@
 const SLIDE_Y = 1.3, SLIDE_RX = 1.6, SLIDE_SQ = 0.8;
 class Runner3D {
   constructor() {
-    const RED = '#ff3a28', YELLOW_CAP = '#fff08a', NAVY = '#0c1a56', NAVY2 = '#102a7c', PALE = '#c8d8ff', BLACK = '#0b0b12', SHOE = '#1b1b24', PINK = '#e8386a', LIPS = '#ff2f86', HAND = '#d8262a', GREEN = '#46ff1c', LIME = '#c6ff3a', YEL = '#ffd60a';
+    const RED = '#ff2a2e', YELLOW_CAP = '#ff7a5c', NAVY = '#0c1a56', NAVY2 = '#102a7c', PALE = '#c8d8ff', BLACK = '#0b0b12', SHOE = '#1b1b24', PINK = '#e8386a', LIPS = '#ff2f86', HAND = '#d8262a', GREEN = '#46ff1c', LIME = '#c6ff3a', YEL = '#ffd60a';
     const mats = Kit.materials();
-    // glossy, smooth-shaded body: normals averaged over shared vertices (so the egg is round, not faceted) and a Phong material with a specular highlight
+    // glossy, smooth-shaded body: normals averaged over shared vertices (so the berry is round, not faceted) and a Phong material with a specular highlight
     const gloss = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 70, specular: 0x666666 });
     const smooth = geo => {
       const P = geo.attributes.position.array, N = geo.attributes.normal.array, acc = new Map(), key = i => Math.round(P[i] * 1e3) + ',' + Math.round(P[i + 1] * 1e3) + ',' + Math.round(P[i + 2] * 1e3);
@@ -46,16 +46,18 @@ class Runner3D {
     this.body = pivot(this.root, 0, this.HIP, 0);                  // bob / tilt, pivot at the hips
     const A = y => y - this.HIP;                                   // painting height (ground = 0) -> coordinates relative to the hip pivot
 
-    // the egg: a surface of revolution (half-width EA, half-depth EC), widest at YC, upper/lower half-heights BU/BL, flat wide bottom at Y0
-    const EA = 1.14, EC = 1.0, YC = 3.45, BU = 1.65, BL = 1.8, Y0 = 1.98, Y1 = 5.1, DZ = EC / EA;
-    const eggR = y => EA * Math.sqrt(Math.max(0, 1 - Math.pow((y - YC) / (y > YC ? BU : BL), 2)));
+    // the strawberry body: a surface of revolution (half-width EA, half-depth EC), widest at YC; a broad rounded top (half-height BU) and a
+    // lower half that tapers to a narrower flat bottom at Y0 (radius 0.58 EA there)
+    const EA = 1.14, EC = 1.0, YC = 3.9, BU = 1.2, Y0 = 1.98, Y1 = 5.1, DZ = EC / EA;
+    const eggR = y => y > YC ? EA * Math.sqrt(Math.max(0, 1 - Math.pow((y - YC) / BU, 2)))
+                             : EA * (0.58 + 0.42 * Math.sqrt(Math.max(0, 1 - Math.pow((YC - y) / (YC - Y0), 1.7))));
     // a band of that surface between a bottom edge (constant or a function of the angle from the front) and a top edge, inflated by `infl`
     const shell = (yBot, yTop, infl, rows, segs, cap) => {
       const pos = [], P = (i, j) => {
         const f = 2 * Math.PI * i / segs, yb = typeof yBot === 'function' ? yBot(f) : yBot, y = yb + (yTop - yb) * j / rows, r = Math.max(0, eggR(y) + (y < Y1 - 0.001 ? infl : 0));
         return new THREE.Vector3(r * Math.sin(f), A(y), -r * DZ * Math.cos(f));
       };
-      const tri = (a, b, c) => {                                                     // wound so the normal points away from the egg's axis
+      const tri = (a, b, c) => {                                                     // wound so the normal points away from the body's axis
         const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)), m = new THREE.Vector3().add(a).add(b).add(c).divideScalar(3);
         m.y -= A(YC); if (n.dot(m) < 0) { const t = b; b = c; c = t; }
         pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
@@ -92,35 +94,53 @@ class Runner3D {
       this.hip.push(hip); this.knee.push(knee); this.ankle.push(ankle);
     }
 
-    // torso group: the egg itself (yellow cap fading into red), the visor band, belt, lips, studs, side panels, hair
+    // torso group: the strawberry body (glare on the top fading into red), the visor band, belt, lips, seeds, side panels, calyx
     this.torso = pivot(this.body, 0, 0, 0);
-    const egg = coat(shell(Y0, Y1, 0, 30, 32, true), YELLOW_CAP); G(egg, RED, 3.2); egg.gain = 1.8;
+    const berry = coat(shell(Y0, Y1, 0, 30, 32, true), YELLOW_CAP); G(berry, RED, 3.2); berry.gain = 1.8;
     const visor = coat(shell(vBot, 4.42, 0.03, 8, 40, false), '#12248a'); G(visor, '#050612');
-    const parts = [egg, visor,
+    const parts = [berry, visor,
       ring(eggR(4.42) + 0.04, 0.026, A(4.42), DZ, YEL, true),                                              // thin yellow line along the top of the visor
       Kit.cyl(eggR(2.12) + 0.03, eggR(Y0) + 0.03, 0.14, 0, A(1.97), 0, '#141a55', { seg: 28, sz: DZ }),    // navy belt
       ring(eggR(2.14) + 0.03, 0.014, A(2.14), DZ, '#eaf0ff', true),                                        // thin white line above it
       raw(new THREE.TorusGeometry(0.17, 0.05, 6, 16), '#10143c', new THREE.Vector3(0, A(2.05), -0.7), Q0, ONE, false)];   // belt ring
-    for (const [u, v] of [[335, 950], [415, 930], [490, 918], [560, 930], [610, 960], [352, 1015], [360, 1050], [595, 1003], [540, 1042], [548, 1085], [432, 1192], [487, 1196]]) {
-      const [x, y] = px(u, v); parts.push(Kit.ico(0.04, x, A(y), onEgg(x, y, 0.01), '#ffd23a', { detail: 1, glow: true }));   // yellow studs on the red
+    // yellow seeds in staggered rows all round the red body (not over the lips or under the visor)
+    for (let row = 0, y = 2.3; y < 3.5; row++, y += 0.33) {
+      const n = Math.max(8, Math.round(2 * Math.PI * eggR(y) / 0.37));
+      for (let i = 0; i < n; i++) {
+        const f = 2 * Math.PI * (i + (row % 2) * 0.5) / n, r = eggR(y) + 0.008, x = r * Math.sin(f), front = Math.cos(f) > 0;
+        if (y > vBot(f) - 0.1) continue;                                                     // under the visor's lower edge only
+        if (front && Math.abs(y - 2.78) < 0.2 && Math.abs(x) < 0.55) continue;               // keep the lips clear
+        parts.push(Kit.ico(0.04, x, A(y), -r * DZ * Math.cos(f), '#ffd23a', { sy: 1.3, sz: 0.7, detail: 0, glow: true }));
+      }
     }
-    { const [x, y] = px(375, 770); parts.push(Kit.ico(0.11, x, A(y), onEgg(x, y, 0.04), '#e9f2ff', { sx: 1.4, sz: 0.2, detail: 1, rz: 0.5, glow: true })); }   // the painting's white glare on the visor
+    { const [x, y] = px(375, 770); parts.push(Kit.ico(0.08, x, A(y), onEgg(x, y, 0.04), '#9fb4ff', { sx: 1.6, sz: 0.2, detail: 1, rz: 0.5, glow: true })); }   // the painting's white glare on the visor
     for (const s of [-1, 1]) {                                                                              // black oval side panels with a white inner edge and two buttons
       parts.push(Kit.ico(0.5, s * 1.0, A(2.7), -0.22, BLACK, { sx: 0.5, sy: 1.35, sz: 0.8, detail: 2, rz: -0.2 * s }));
       parts.push(Kit.box(0.025, 1.05, 0.03, s * 0.76, A(2.2), -0.7, '#f0f0ff', { glow: true, rz: -0.2 * s }));
       parts.push(Kit.ico(0.035, s * 0.98, A(3.05), -0.74, '#d9b13a', { glow: true }), Kit.ico(0.035, s * 1.0, A(2.85), -0.74, '#d9b13a', { glow: true }));
     }
-    // four neon-green hair strands: arcs over the dome from one side of the crown down the front-left to the visor
-    const STR = [[-0.35, 1.3, -0.55], [-0.7, 1.25, -0.7], [-1.05, 1.2, -0.85], [-1.4, 1.15, -1.0]];
-    for (const [psi, s1, s0] of STR) {
-      const pts = [];
-      for (let k = 0; k <= 14; k++) {
-        const s = s0 + (s1 - s0) * k / 14, f = 1.045;
-        pts.push(new THREE.Vector3(EA * f * Math.sin(s) * Math.cos(psi), A(YC + BU * f * Math.cos(s)), EC * f * Math.sin(s) * Math.sin(psi)));
+    // the calyx: green pointed leaves fan out from the apex and lie over the dome, the front-left ones reaching down over the visor (as in the painting)
+    const calyx = (psi, sEnd, w0) => {
+      const N = 10, pos = [], rowsL = [], rowsR = [], side = new THREE.Vector3(-Math.sin(psi), 0, Math.cos(psi));
+      for (let k = 0; k <= N; k++) {
+        const u = k / N, sa = sEnd * u, f = 1.03 + 0.07 * u * u, w = w0 * Math.pow(1 - u, 0.7) * (0.75 + 0.25 * Math.min(1, u * 4));
+        const c = new THREE.Vector3(EA * f * Math.sin(sa) * Math.cos(psi), A(YC + BU * f * Math.cos(sa)), EC * f * Math.sin(sa) * Math.sin(psi));
+        rowsL.push(c.clone().addScaledVector(side, -w)); rowsR.push(c.clone().addScaledVector(side, w));
       }
-      parts.push(raw(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.06, 6), GREEN, V0, Q0, ONE, true));
-      parts.push(Kit.ico(0.075, pts[14].x, pts[14].y, pts[14].z, GREEN, { detail: 1, glow: true }));
+      const tri = (a, b, c) => {
+        const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)), m = new THREE.Vector3().add(a).add(b).add(c).divideScalar(3);
+        m.y -= A(YC); if (n.dot(m) < 0) { const t = b; b = c; c = t; }
+        pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+      };
+      for (let k = 0; k < N; k++) { tri(rowsL[k], rowsR[k], rowsR[k + 1]); tri(rowsL[k], rowsR[k + 1], rowsL[k + 1]); }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+      return { geo: g, color: '#2fd01c', glow: false, gain: 1.7 };
+    };
+    for (let i = 0; i < 9; i++) {
+      const psi = i * 2 * Math.PI / 9 + 0.2, toFrontLeft = Math.max(0, Math.cos(psi + 0.7));
+      parts.push(calyx(psi, 1.05 + 0.45 * toFrontLeft, 0.32));
     }
+    parts.push(Kit.ico(0.13, 0, A(Y1) + 0.02, 0, '#2fd01c', { sy: 0.8, detail: 1 }));        // stem nub at the apex
     this.torso.add(mesh(parts));
     // neon rim light along the visor (an inflated back-face copy glows round its silhouette)
     const rimMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide });
@@ -128,7 +148,7 @@ class Runner3D {
     // lips: soft pink on the belly (pulses gently)
     this.eye = pivot(this.torso, ...(() => { const [x, y] = px(462, 1085); return [x, A(y), onEgg(x, y, 0.0)]; })());
     this.eye.add(mesh([Kit.ico(0.5, 0, 0, 0, LIPS, { sx: 0.82, sy: 0.2, sz: 0.1, detail: 1, rz: 0.08, glow: true }), Kit.ico(0.3, 0.05, 0.06, -0.01, '#ff5aa2', { sx: 1.0, sy: 0.25, sz: 0.1, detail: 1, rz: 0.12, glow: true })]));
-    this.head = this.torso;                                       // (no separate head: nod / tilt move the whole egg)
+    this.head = this.torso;                                       // (no separate head: nod / tilt move the whole body)
 
     // arms: thin black tubes from the shoulders with tiny red hands (they hang out and down like the painting's)
     this.arm = []; this.fore = [];
