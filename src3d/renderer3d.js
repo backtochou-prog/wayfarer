@@ -56,7 +56,10 @@ class Renderer3D {
       for (const name of Object.keys(props)) {
         if (this.props[name]) continue;
         const m = props[name](), cap = /^house/.test(name) ? 26 : /^sign/.test(name) ? 4 : CAP[name] || 28, list = [];
-        for (let i = 0; i < cap; i++) { const g = Kit.mesh(m); g.visible = false; this.scene.add(g); list.push(g); }
+        for (let i = 0; i < cap; i++) {
+          const g = m.sprite ? new THREE.Group().add(new THREE.Mesh(m.sprite, TreeSprite.material())) : Kit.mesh(m);   // trees are textured crossed planes (TreeSprite), everything else merged vertex-coloured geometry
+          g.visible = false; this.scene.add(g); list.push(g);
+        }
         this.props[name] = list; this.propUsed[name] = 0;
       }
     }

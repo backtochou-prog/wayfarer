@@ -22,22 +22,10 @@ window.ENV3D = window.ENV3D || {};
     innerOk: new Set(['pine', 'oak', 'fbush', 'rock', 'log', 'stump', 'flowers']),
 
     props: {
-      pine: () => {                                                      // layered cone pine
-        const p = [Kit.cyl(0.18, 0.26, 1.4, 0, 0, 0, L.trunk, { seg: 5 })];
-        [[1.5, 2.0, 1.1, L.pineD], [2.4, 1.7, 0.9, L.pineM], [3.2, 1.35, 0.7, L.pineL], [3.9, 1.0, 0.5, L.pineM]].forEach(([y, h, r, c], i) => p.push(Kit.cone(r * 1.5, h, 0, y, 0, c, { seg: 7, ry: i })));
-        return Kit.merge(p);
-      },
-      pineTall: () => {
-        const p = [Kit.cyl(0.15, 0.22, 1.6, 0, 0, 0, L.trunk, { seg: 5 })];
-        [[1.8, 2.4, 0.95, L.pineD], [3.0, 2.2, 0.8, L.pineM], [4.2, 1.9, 0.65, L.pineL], [5.2, 1.6, 0.5, L.pineM], [6.0, 1.2, 0.34, L.pineL]].forEach(([y, h, r, c], i) => p.push(Kit.cone(r * 1.5, h, 0, y, 0, c, { seg: 6, ry: i })));
-        return Kit.merge(p);
-      },
-      oak: () => Kit.merge([
-        Kit.cyl(0.22, 0.34, 2.6, 0, 0, 0, L.trunk, { seg: 6 }), Kit.box(0.5, 0.2, 0.18, 0.25, 1.9, 0, L.trunkD, { rz: 0.7 }),
-        Kit.ico(1.7, 0, 3.7, 0, L.oakD, { detail: 1 }), Kit.ico(1.3, 1.1, 4.1, 0.5, L.oakL, { detail: 1 }), Kit.ico(1.2, -1.0, 3.5, -0.6, L.oakL), Kit.ico(1.0, 0.1, 4.8, -0.2, L.oakD)]),
-      birch: () => Kit.merge([
-        Kit.cyl(0.13, 0.17, 3.6, 0, 0, 0, L.birch, { seg: 5 }), Kit.box(0.14, 0.06, 0.2, 0, 1.2, 0, L.trunkD), Kit.box(0.14, 0.06, 0.2, 0, 2.3, 0, L.trunkD),
-        Kit.ico(1.1, 0, 4.2, 0, L.oakL), Kit.ico(0.85, 0.6, 4.8, 0.3, L.oakD), Kit.ico(0.8, -0.5, 3.8, -0.3, L.oakL)]),
+      pine: () => TreeSprite.prop(5.5),                                  // the user's feather-tree artwork
+      pineTall: () => TreeSprite.prop(7.5),                                  // the user's feather-tree artwork
+      oak: () => TreeSprite.prop(6.0),                                  // the user's feather-tree artwork
+      birch: () => TreeSprite.prop(5.0),                                  // the user's feather-tree artwork
       fbush: () => Kit.merge([Kit.ico(0.7, 0, 0.55, 0, L.bush, { sy: 0.8, detail: 1 }), Kit.ico(0.5, 0.5, 0.45, 0.3, L.bushL, { sy: 0.8 }),
                              Kit.box(0.1, 0.1, 0.1, 0.1, 0.8, -0.5, L.berry), Kit.box(0.1, 0.1, 0.1, -0.3, 0.95, -0.4, L.berry)]),
       rock: () => Kit.merge([Kit.ico(0.9, 0, 0.5, 0, L.rock, { sy: 0.65, sx: 1.2 }), Kit.ico(0.6, 0.8, 0.3, 0.3, L.rockD, { sy: 0.7 }), Kit.ico(0.5, -0.2, 0.95, 0.1, L.moss, { sy: 0.4, sx: 1.2 })]),
@@ -52,9 +40,7 @@ window.ENV3D = window.ENV3D || {};
                Kit.box(0.5, 0.6, 1.8, -0.6, 0.3, 2.6, L.trunkD), Kit.box(0.5, 0.5, 1.6, -0.6, 0.9, 2.6, L.trunk));   // porch and a woodpile
         return Kit.merge(p);
       },
-      giantOak: () => Kit.merge([
-        Kit.cyl(0.9, 1.4, 6.0, 0, 0, 0, L.trunk, { seg: 7 }), Kit.box(0.5, 0.3, 1.4, 1.2, 0.2, 0.2, L.trunkD, { rz: 0.5 }), Kit.box(0.5, 0.3, 1.4, -1.2, 0.2, -0.3, L.trunkD, { rz: -0.5 }),
-        Kit.ico(3.6, 0, 8.4, 0, L.oakD, { detail: 1 }), Kit.ico(2.7, 2.6, 9.2, 1.3, L.oakL, { detail: 1 }), Kit.ico(2.5, -2.5, 8.7, -1.2, L.oakL, { detail: 1 }), Kit.ico(2.2, 0.4, 11.2, -0.4, L.oakD, { detail: 1 })]),
+      giantOak: () => TreeSprite.prop(12.0),                                  // the user's feather-tree artwork
       standingStones: () => {                                            // a ring of mossy slabs
         const p = [Kit.ico(3.4, 0, 0.0, 0, L.moss, { sy: 0.06, detail: 1 })];
         for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3 + 0.3, h = 3.2 + (k % 3) * 1.1; p.push(Kit.box(1.1, h, 0.7, Math.cos(a) * 3.0, 0, Math.sin(a) * 3.0, k % 2 ? L.rock : L.rockD, { ry: -a, rz: (k % 3 - 1) * 0.06 }), Kit.ico(0.55, Math.cos(a) * 3.0, h, Math.sin(a) * 3.0, L.moss, { sy: 0.5 })); }

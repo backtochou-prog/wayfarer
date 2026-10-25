@@ -169,6 +169,18 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('road ribbon stays continuous and the chase camera glitch-free through all of it (max edge step between sections ' + Run.maxEdge.toFixed(2) + ' m, look-at step ' + Run.maxCamDx.toFixed(2) + ' m / camera height step ' + Run.maxCamDy.toFixed(2) + ' m per 3 frames)', Run.maxEdge < 1.6 && Run.maxCamDx < 1.0 && Run.maxCamDy < 0.3, JSON.stringify({ edge: +Run.maxEdge.toFixed(2), dx: +Run.maxCamDx.toFixed(2), dy: +Run.maxCamDy.toFixed(2) }));
   T('landmarks and biome entrance markers actually show up in play (>= 3 landmark kinds and >= 2 entrance kinds seen), no prop dropped', Run.seen.length >= 3 && Run.gates.length >= 2 && Run.dropped === 0, JSON.stringify({ landmarks: Run.seen, gates: Run.gates, dropped: Run.dropped }));
 
+  // ================================================================ 4. trees are the user's artwork
+  const Tr = await pg.evaluate(async () => {
+    const r = __wf.r, names = ['tree', 'pine', 'pineTall', 'oak', 'birch', 'giantOak'], out = { kinds: {}, mats: new Set(), loaded: false };
+    const mat = TreeSprite.material(); for (let i = 0; i < 50 && !mat.visible; i++) await new Promise(q => setTimeout(q, 100));
+    out.loaded = mat.visible && mat.map.image.naturalWidth === TREE_ASSETS.w && mat.map.image.naturalHeight === TREE_ASSETS.h;
+    for (const n of names) { const g = r.props[n] && r.props[n][0], m = g && g.children[0]; out.kinds[n] = !!m && m.isMesh && !!m.material.map; if (m) { out.mats.add(m.material.uuid); const bb = new THREE.Box3().setFromObject(m); out.kinds[n + 'H'] = +(bb.max.y - bb.min.y).toFixed(1); } }
+    out.mats = out.mats.size; out.pools = names.map(n => r.props[n].length);
+    return out;
+  });
+  T('all six tree kinds are the artwork (textured crossed planes sharing one material), the image loads, and their heights differ (tree 4.6 .. giant oak 12 m)',
+    Tr.loaded && ['tree', 'pine', 'pineTall', 'oak', 'birch', 'giantOak'].every(n => Tr.kinds[n]) && Tr.mats === 1 && Tr.kinds.treeH > 4 && Tr.kinds.giantOakH > 11 && Tr.kinds.giantOakH > Tr.kinds.pineTallH && Tr.kinds.pineTallH > Tr.kinds.pineH, JSON.stringify(Tr));
+
   T('no JS errors during the whole session', errs.length === 0, errs.slice(0, 2).join('|'));
   console.log('\n' + res.filter(Boolean).length + '/' + res.length + ' passed');
   await b.close(); srv.close(); process.exit(res.every(Boolean) ? 0 : 1);

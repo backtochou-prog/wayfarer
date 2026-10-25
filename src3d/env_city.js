@@ -91,10 +91,7 @@ window.ENV3D = window.ENV3D || {};
         Kit.box(1.0, 0.08, 0.08, -0.5, 3.86, 0, P.lampPost),
         Kit.box(0.36, 0.46, 0.36, -0.95, 3.32, 0, P.lampPost), Kit.box(0.28, 0.34, 0.28, -0.95, 3.38, 0, P.lampGlow, { glow: true }),
         Kit.cone(0.32, 0.26, -0.95, 3.78, 0, P.lampPost, { seg: 4, ry: Math.PI / 4 })]),
-      tree: () => Kit.merge([
-        Kit.box(1.2, 0.45, 1.2, 0, 0, 0, P.terracottaDark), Kit.box(1.0, 0.04, 1.0, 0, 0.45, 0, P.trunk),
-        Kit.cyl(0.12, 0.17, 2.3, 0, 0.45, 0, P.trunk),
-        Kit.ico(1.15, 0, 3.25, 0, P.leaf), Kit.ico(0.85, 0.4, 3.95, 0.35, P.leafDark), Kit.ico(0.8, -0.35, 2.95, -0.45, P.leaf, { sy: 0.85 })]),
+      tree: () => TreeSprite.prop(4.6),                                // the user's feather-tree artwork (was a low-poly tree in a planter)
       bush: () => Kit.merge([Kit.ico(0.55, 0, 0.42, 0, P.bush, { sy: 0.8 }), Kit.ico(0.42, 0.3, 0.4, 0.32, P.leaf, { sy: 0.85 })]),
       bench: () => Kit.merge([
         Kit.box(0.5, 0.08, 1.6, 0, 0.42, 0, P.wood), Kit.box(0.08, 0.45, 1.6, 0.24, 0.5, 0, P.wood),
