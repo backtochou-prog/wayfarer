@@ -11,7 +11,7 @@
 const SLIDE_Y = 1.3, SLIDE_RX = 1.6, SLIDE_SQ = 0.8;
 class Runner3D {
   constructor() {
-    const RED = '#ff2a2e', YELLOW_CAP = '#ff7a5c', NAVY = '#0c1a56', NAVY2 = '#102a7c', PALE = '#c8d8ff', JACKET = '#2f5bff', JACKET_D = '#1f3fc0', JACKET_L = '#9bb4ff', JG = 1.3, SHOE = '#1b1b24', PINK = '#e8386a', LIPS = '#ff2f86', HAND = '#d8262a', GREEN = '#46ff1c', LIME = '#c6ff3a', YEL = '#ffd60a';
+    const RED = '#ff2a2e', YELLOW_CAP = '#ff7a5c', NAVY = '#0c1a56', NAVY2 = '#102a7c', PALE = '#c8d8ff', JACKET = '#ecdcb8', JACKET_D = '#cbb68c', JACKET_L = '#fff6e2', JG = 1.28, SHOE = '#1b1b24', PINK = '#e8386a', LIPS = '#ff2f86', HAND = '#d8262a', GREEN = '#46ff1c', LIME = '#c6ff3a', YEL = '#ffd60a';
     const mats = Kit.materials();
     // glossy, smooth-shaded body: normals averaged over shared vertices (so the berry is round, not faceted) and a Phong material with a specular highlight
     const gloss = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 70, specular: 0x666666 });
@@ -136,7 +136,7 @@ class Runner3D {
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
       return { geo: g, color, glow: false, gain };
     };
-    parts.push(starOutline(2.74, 0.64, 0.26, 0.4, 0.075, '#ffcf3a', 1.4));                   // gold outline star, hollow inside
+    parts.push(starOutline(2.74, 0.64, 0.26, 0.4, 0.075, '#ff62b4', 1.5));                   // pink outline star, hollow inside
     { const [x, y] = px(375, 770); parts.push(Kit.ico(0.08, x, A(y), onEgg(x, y, 0.04), '#9fb4ff', { sx: 1.6, sz: 0.2, detail: 1, rz: 0.5, glow: true })); }   // the painting's white glare on the visor
     for (const s of [-1, 1]) {                                                                              // black oval side panels with a white inner edge and two buttons
       parts.push(jk(Kit.ico(0.5, s * 1.0, A(2.7), -0.22, JACKET, { sx: 0.5, sy: 1.35, sz: 0.8, detail: 2, rz: -0.2 * s })));
