@@ -40,8 +40,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   // ================================================================ 2. the beat map against the real audio
   const BM = await pg.evaluate(async () => {
     const B = MUSIC_BEATS, out = { bpm: B.bpm, first: B.first, frames: B.energy.length, fps: B.fps, dur: B.duration };
-    const buf = await (await fetch('assets/music.mp3')).arrayBuffer(); const ac = new OfflineAudioContext(1, 1, 44100); const au = await ac.decodeAudioData(buf), x = au.getChannelData(0), sr = au.sampleRate;
-    out.bytes = buf.byteLength; out.decDur = +au.duration.toFixed(2);
+    const buf = await (await fetch('assets/music.mp3')).arrayBuffer(); out.bytes = buf.byteLength; const ac = new OfflineAudioContext(1, 1, 44100); const au = await ac.decodeAudioData(buf), x = au.getChannelData(0), sr = au.sampleRate;
+    out.decDur = +au.duration.toFixed(2);
     // kick onsets: the 40-200 Hz band (two poles below 200 Hz minus one pole below 40 Hz), its 4 ms RMS envelope, and the rise over the previous 32 ms (sustained bass notes do not count)
     const lp = f => 1 - Math.exp(-2 * Math.PI * f / sr), a2 = lp(200), a1 = lp(40), H = Math.round(0.004 * sr), M = Math.floor(x.length / H), env = new Float32Array(M);
     let s1 = 0, s2 = 0, l = 0, acc = 0, j = 0, n = 0; for (let i = 0; i < M * H; i++) { s1 += a2 * (x[i] - s1); s2 += a2 * (s1 - s2); l += a1 * (x[i] - l); const v = s2 - l; acc += v * v; if (++n === H) { env[j++] = Math.sqrt(acc / H); acc = 0; n = 0; } }
