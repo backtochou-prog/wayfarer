@@ -278,10 +278,15 @@ class Renderer {
 
   // 3D menu: title block on the left, the animated character fills the rest of the screen
   drawTitle3D(g) {
-    this.panel(8, 8, 124, 52); this.panel(8, 66, 124, 40);
-    this.txt('WAYFARER', 14, 16, C.amber, 2, C.burgD);
-    this.txt('PROTOTYPE 01', 14, 38, C.tealL, 1);
-    this.txt('TAKE A FORK.', 14, 48, C.sand, 1);
+    // the title panel is the user's artwork (this.titleImg, set by the 3D front end) with the text over its dark part, to the right of the light wall at its left;
+    // its glowing red line falls between 'PROTOTYPE 01' and 'TAKE A FORK.'. Without the image the usual bordered panel is drawn.
+    const ti = this.titleImg;
+    if (ti && ti.complete && ti.naturalWidth) { const sm = this.ctx.imageSmoothingEnabled; this.ctx.imageSmoothingEnabled = true; this.ctx.imageSmoothingQuality = 'high'; this.ctx.drawImage(ti, 8, 8, 124, 52); this.ctx.imageSmoothingEnabled = sm; } else this.panel(8, 8, 124, 52);
+    this.panel(8, 66, 124, 40);
+    const tx = ti && ti.complete && ti.naturalWidth ? 34 : 14;
+    this.txt('WAYFARER', tx, 16, C.amber, 2, C.burgD);
+    this.txt('PROTOTYPE 01', tx, 38, C.tealL, 1);
+    this.txt('TAKE A FORK.', tx, 48, C.sand, 1);
     if (g.touch) { this.txt('HOLD < > STEER', 14, 74, C.bone, 1); this.txt('UP JUMP  DOWN SLIDE', 14, 84, C.bone, 1); this.txt('II PAUSE', 14, 94, C.bone, 1); }
     else { this.txt('A D / ARROWS STEER', 14, 74, C.bone, 1); this.txt('SPACE / UP  JUMP', 14, 84, C.bone, 1); this.txt('DOWN SLIDE  P PAUSE', 14, 94, C.bone, 1); }
     this.button(BTN.title, g);

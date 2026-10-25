@@ -21,6 +21,8 @@ Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **htt
 
 **Route:** city start > city running section > visible fork > **LEFT: Greenwood (forest)** / **RIGHT: Market Detour (city)** > both merge into the same city plaza > a second lap with variant segments (a different bend, length and obstacle mix) > a second junction with the same choice, then it loops. Both branches are fully their own biome within 15 m of the junction.
 
+**Menu:** the title panel (top-left) is your own artwork (`src3d/ui_assets.js`, drawn by `Renderer.drawTitle3D`), with the title text over its dark part and its glowing red line between 'PROTOTYPE 01' and 'TAKE A FORK.'; if the image is missing the usual drawn panel is used. The controls panel below it is still drawn by the game (its text changes on a phone).
+
 **World variety (all deterministic, no random state):**
 - *Obstacle patterns* (`World.genSegment`): each spot takes a seeded pick from its segment's pattern list, never the same pattern twice running, and the gap to the next spot is the base spacing plus 0-49 seeded units (never less, so hazards stay >= 19 m apart). The run still opens with the gentle first pattern.
 - *Segments:* `cityRunB`, `plazaB`, `forestB`, `detourB` and a second junction `gate2` (same biomes and names, different curves and lengths) join the loop.
@@ -71,11 +73,12 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 
 ```
 index.html (3D game), 2d.html (classic 2D), 3d.html (redirect to index.html), style.css
-src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market, runner_sprite + avatar_assets (the artwork avatar), runner3d (the 3D model), items3d, fx3d, signs3d, renderer3d, main3d
+src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market, runner_sprite + avatar_assets (the artwork avatar), ui_assets (the title-panel artwork), runner3d (the 3D model), items3d, fx3d, signs3d, renderer3d, main3d
 vendor/         three.min.js (Three.js r186)
 tools/preview3d.html  dev page that renders one 3D module in isolation
 tests/qa3d_coins.js   regression test: coin pickup (coins vanish at once, count once, can't be re-collected, pool reuse, both branches, restart)
 tests/qa3d_world.js   regression test: world variety, track integrity, pools, six junctions played
+tests/qa3d_ui.js      regression test: the title-panel artwork loads, is drawn (with a fallback to the drawn panel)
 tests/qa3d_avatar.js  regression test: the artwork avatar (default), ?avatar=3d, images load (also from file://), view per state, size / ground / slide height, faces the camera, no leaks
 src/biomes.js   palette + biome definitions (city, forest, market)
 src/track.js    track pieces, obstacle patterns, collision boxes
@@ -93,6 +96,7 @@ npm i playwright-core            # once, anywhere (or point PW_CORE at an existi
 CHROMIUM=/path/to/chrome node tests/qa3d_coins.js
 CHROMIUM=/path/to/chrome node tests/qa3d_world.js
 CHROMIUM=/path/to/chrome node tests/qa3d_avatar.js
+CHROMIUM=/path/to/chrome node tests/qa3d_ui.js
 ```
 
 Set `TEST_URL=https://your-deployment/` to run the same checks against a deployed copy. Both start their own static server, drive the real page (scene graph and game rules, WebGL stubbed for speed) and exit non-zero on failure. `qa3d_coins.js` asserts on every frame that the number of coin meshes on screen equals the number of uncollected coins in range, so a collected coin that stays visible (or an effect built from the coin mesh) fails at once.
