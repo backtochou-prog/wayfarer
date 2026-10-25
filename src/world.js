@@ -22,7 +22,7 @@ class World {
 
   reset() {
     this.pieces = []; this.items = []; this.cursor = {}; this.lastPat = {}; this.seqIdx = 0; this.uid = 0; this.ver = (this.ver || 0) + 1;   // ver only ever increases; it changes whenever bandsAt() results could change (pieces added/dropped, a route chosen)
-    this.baseBiome = this.track.segments[this.track.sequence[0].seg].biome;
+    this.baseBiome = this.track.base || this.track.segments[this.track.sequence[0].seg].biome;
     this.extend(0);
   }
 
@@ -112,7 +112,7 @@ class World {
     if (P.type === 'seg') {
       const s = P.seg, pv = P.prev;
       let to = s.biome, t = 0;
-      if (s.district) { const d = s.district === true ? 0.3 * (P.z1 - P.z0) : s.district; t = ease(clamp(Math.min(z - P.z0, P.z1 - z) / d, 0, 1)); }   // a district fades in over its first `district` units and out over its last
+      if (s.district) { const d = s.district === true ? 0.3 * (P.z1 - P.z0) : s.district; t = ease(clamp(Math.min(s.opening ? d : z - P.z0, P.z1 - z) / d, 0, 1)); }   // a district fades in over its first `district` units and out over its last (an `opening` one is already fully in at the start)
       if (pv && pv.type === 'fork' && pv.choice) { // fade out of the branch we just left
         to = T.segments[pv.fork[pv.choice].route].biome;
         t = clamp(1 - (z - pv.be) / (pv.fork.merge + 250), 0, 1);

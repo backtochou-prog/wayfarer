@@ -88,7 +88,8 @@ class Game {
     this.world.reset();
     this.p = { x: 0, z: 0, vx: 0, jy: 0, vy: 0, slide: 0, speed: BASE_SPEED };
     this.coins = 0; this.camX = 0; this.camOff = 0; this.camRel = 0; this.camErr = 0; this.prevTgt = 0;
-    this.bgT = 0; this.bgTo = this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0;
+    const ahead0 = this.world.playerBand(300, 0);                                    // the atmosphere starts as the road ahead looks (the run opens in the neon quarter), not eased in from the base look
+    this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0;
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
     this.carryC = 0; this.lean = 0; this.kick = null; this.sway = 0; this.prompt = null; this.banner = null;
     if (this.r.onReset) this.r.onReset(this);

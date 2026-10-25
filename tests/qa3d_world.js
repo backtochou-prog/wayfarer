@@ -169,6 +169,21 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('road ribbon stays continuous and the chase camera glitch-free through all of it (max edge step between sections ' + Run.maxEdge.toFixed(2) + ' m, look-at step ' + Run.maxCamDx.toFixed(2) + ' m / camera height step ' + Run.maxCamDy.toFixed(2) + ' m per 3 frames)', Run.maxEdge < 1.6 && Run.maxCamDx < 1.0 && Run.maxCamDy < 0.3, JSON.stringify({ edge: +Run.maxEdge.toFixed(2), dx: +Run.maxCamDx.toFixed(2), dy: +Run.maxCamDy.toFixed(2) }));
   T('landmarks and biome entrance markers actually show up in play (>= 3 landmark kinds and >= 2 entrance kinds seen), no prop dropped', Run.seen.length >= 3 && Run.gates.length >= 2 && Run.dropped === 0, JSON.stringify({ landmarks: Run.seen, gates: Run.gates, dropped: Run.dropped }));
 
+  // ================================================================ 3a. the run opens in the neon quarter
+  const St = await pg.evaluate(() => {
+    const out = {}, w = new World(TRACK); w.extend(9000); const P = w.pieces[0], b0 = w.bandsAt(0)[0], bn = w.bandsAt(-300)[0];
+    out.first = P.id; out.len = P.z1 - P.z0; out.base = w.baseBiome; out.t0 = b0.t; out.to0 = b0.to; out.tNeg = bn.t;
+    let prev = 1, maxStep = 0, mono = true; for (let z = 0; z < P.z1 - 0.5; z += 5) { const t = w.bandsAt(z)[0].t; maxStep = Math.max(maxStep, Math.abs(t - prev)); if (t > prev + 1e-9) mono = false; prev = t; }
+    out.maxStep = +maxStep.toFixed(3); out.mono = mono; out.tEnd = prev; out.next = w.pieces[1].id; out.nextT = w.bandsAt(P.z1 + 5)[0].t;
+    const g = __wf; g.start(); out.state = g.state; out.bgTo = g.bgTo; out.bgT = g.bgT; for (let i = 0; i < 30; i++) g.advance(1 / 60); out.bgToAfter = g.bgTo; out.bgTAfter = +g.bgT.toFixed(2);
+    out.name = g.world.track.segments[g.world.playerBand(g.p.z, g.p.x).route].name; out.hazardFree = w.items.filter(i => OBST[i.kind] && i.z < 600).length;
+    return out;
+  });
+  T('the run opens in the Neon Quarter: first piece neonStart (400 m), fully night at distance 0 (no fade-in), the atmosphere starts as neon (not eased in), the zone name reads NEON QUARTER, the first 60 m are free of hazards',
+    St.first === 'neonStart' && St.len >= 4000 && St.t0 === 1 && St.to0 === 'neon' && St.tNeg === 1 && St.bgTo === 'neon' && St.bgT === 1 && St.bgToAfter === 'neon' && St.bgTAfter === 1 && St.name === 'NEON QUARTER' && St.hazardFree === 0, JSON.stringify(St));
+  T('it fades back to the sunset city only over its last 120 m (smooth, never back up) and the base look stays the city\'s (the other segments are unaffected): next piece ' + St.next + ' at t=' + St.nextT,
+    St.mono && St.maxStep < 0.1 && St.tEnd < 0.05 && St.base === 'city' && St.next === 'cityRun' && St.nextT === 0, JSON.stringify({ mono: St.mono, maxStep: St.maxStep, tEnd: St.tEnd, base: St.base, next: St.next, nextT: St.nextT }));
+
   // ================================================================ 3b. the neon quarter: a district that fades in and out, and its scenery
   const Nq = await pg.evaluate(() => {
     const w = new World(TRACK); w.extend(60000); const out = { segs: 0, bad: [], maxStep: 0, mid: 0, ends: 0, ids: [] };

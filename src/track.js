@@ -46,6 +46,9 @@ const TRACK = {
                  patterns: ['line', 'dodgeR', 'hurdle', 'rowL', 'risky'] },
     // the NEON QUARTER: a night district of the city. `district` (a distance in units) makes the world fade the atmosphere, road palette and scenery into this biome over its first
     // and last `district` units (see World.bandsAt), so it is entered and left smoothly however long the segment is; 5000 units = 500 m = about 15 s.
+    // the run opens in the quarter: `opening` = no fade-in (it is already night at distance 0); it fades back to the sunset city over its last 1200 units
+    neonStart: { name: 'NEON QUARTER',  biome: 'neon',   length: 4000, curve: 0,    first: 420, spacing: 210, district: 1200, opening: true, calmStart: true,
+                 patterns: ['line', 'crateJump', 'hurdle', 'slideGate', 'trailR', 'dodgeL', 'risky', 'zig'] },
     neonRun:   { name: 'NEON QUARTER',  biome: 'neon',   length: 5000, curve: -0.8, first: 140, spacing: 210, district: 1200,
                  patterns: ['line', 'trailR', 'crateJump', 'dodgeL', 'hurdle', 'risky', 'slideGate', 'zig'] },
     // second variants of the repeating pieces (same biomes and names, a different bend, length and pattern mix) so each lap along the loop is not a copy of the last
@@ -67,6 +70,7 @@ const TRACK = {
             left:  { route: 'forestB', sign: 'signForest' },
             right: { route: 'detourB', sign: 'signMarket' } },
   },
-  sequence: [{ seg: 'cityStart' }, { seg: 'cityRun' }, { fork: 'gate' }, { seg: 'plaza' }, { seg: 'neonRun' }, { seg: 'cityRunB' }, { fork: 'gate2' }, { seg: 'plazaB' }],
+  base: 'city',          // the biome every segment's palette blends from (the "unblended" look); NOT the biome of the first piece, which is the neon quarter
+  sequence: [{ seg: 'neonStart' }, { seg: 'cityRun' }, { fork: 'gate' }, { seg: 'plaza' }, { seg: 'neonRun' }, { seg: 'cityRunB' }, { fork: 'gate2' }, { seg: 'plazaB' }],
   loopFrom: 1,
 };

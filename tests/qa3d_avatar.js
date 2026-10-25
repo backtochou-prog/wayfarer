@@ -55,15 +55,18 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   });
   T('no leaks: the uploaded textures stop growing (<= 6: trees, avatar back view, three neon atlases), the 2 cards and the scene children stay constant over 60 s of play', L.state === 'play' && L.tex[0] >= 1 && L.tex[0] <= 6 && L.tex[0] === L.tex[1] && L.kids[0] === L.kids[1] && L.own[0] === 2 && L.own[1] === 2 && L.sameCards, JSON.stringify(L));
   T('no JS errors in the default avatar session', pg.errs.length === 0, pg.errs.slice(0, 2).join('|'));
+  await pg.context().close();                                   // close it: a page left running keeps drawing and slows every page opened after it (software GL)
 
   // ---------------------------------------------------------------- 3. ?avatar=3d selects the 3D model; file:// works (the images are embedded)
   if (!process.env.TEST_URL) {
     const p3 = await open('http://localhost:' + PORT + '/?avatar=3d');
     const M = await p3.evaluate(() => ({ is3d: __wf.r.runner instanceof Runner3D, kids: __wf.r.runner.group.children.length }));
     T('?avatar=3d selects the 3D model', M.is3d && M.kids > 0 && p3.errs.length === 0, JSON.stringify({ is3d: M.is3d, errs: p3.errs.length }));
+    await p3.context().close();
     const ps = await open('http://localhost:' + PORT + '/?menu=side');
     const V = await ps.evaluate(() => { const rn = __wf.r.runner; rn.group.rotation.y = Math.PI; for (let i = 0; i < 5; i++) rn.update(1 / 60, { state: 'title', time: 3.1, runRate: 3, airborne: false, vy: 0, sliding: false, lean: 0 }); return { menuView: rn.menuView, side: rn.cards.side.visible, back: rn.cards.back.visible }; });
     T('?menu=side shows the side view in the menu', V.menuView === 'side' && V.side && !V.back && ps.errs.length === 0, JSON.stringify(V));
+    await ps.context().close();
     const pf = await open('file://' + path.join(ROOT, 'index.html'));
     const F = await pf.evaluate(async () => { const rn = __wf.r.runner; for (let i = 0; i < 50 && !rn.cards.back.material.visible; i++) await new Promise(r => setTimeout(r, 100)); return { sprite: rn instanceof RunnerSprite, visible: rn.cards.back.material.visible && rn.cards.side.material.visible }; });
     T('works from file:// (images embedded as data URIs, no CORS problem)', F.sprite && F.visible && pf.errs.length === 0, JSON.stringify({ ...F, errs: pf.errs.slice(0, 1) }));

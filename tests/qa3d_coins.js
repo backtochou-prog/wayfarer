@@ -105,7 +105,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     };
     for (const want of ['left', 'right']) {
       CT.fresh(); g.world.reset(); g.start();
-      const F0 = g.world.openFork(); g.p.z = F0.z0 - 1500; g.world.extend(g.p.z);
+      const F0 = (g.world.extend(9000), g.world.openFork()); g.p.z = F0.z0 - 1500; g.world.extend(g.p.z); g.world.items = g.world.items.filter(i => i.z > g.p.z + 700);   // the jump can land inside a pattern: clear the first 70 m
       const other = F0.uid + (want === 'left' ? 'right' : 'left'), mine = F0.uid + want, tags = [];
       let calls = 0, bad = 0, first = null, otherSeen = 0; const orig = r.onCoin.bind(r); r.onCoin = (gg, it) => { calls++; tags.push(it.tag); orig(gg, it); };
       const c0 = g.coins;
@@ -120,7 +120,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   });
   for (const side of ['left', 'right']) { const B2 = Br[side];
     T('branch ' + side + ': invariant holds on every frame, counter = pickups (' + B2.coins + '), only the chosen road\'s coins are collected, the other road\'s coins stay uncollected',
-      B2.state === 'play' && B2.chose === side && B2.bad === 0 && B2.coins === B2.calls && B2.coins === B2.takenCount && B2.coins > 20 && B2.branchCoinsTaken > 3 && B2.tookOtherRoad === 0 && B2.otherRoadSeen > 3, JSON.stringify(B2)); }
+      B2.state === 'play' && B2.chose === side && B2.bad === 0 && B2.coins === B2.calls && B2.coins === B2.takenCount && B2.coins > 10 && B2.branchCoinsTaken > 3 && B2.tookOtherRoad === 0 && B2.otherRoadSeen > 3, JSON.stringify(B2)); }
 
   // ---------------------------------------------------------------- 5. restart: counter and coins reset, nothing stale on screen, coins work again
   const Rs = await pg.evaluate(() => {

@@ -10,7 +10,7 @@
 // blend between biomes with the same value the 2D game uses (g.bgTo / g.bgT).
 class Renderer3D {
   constructor(uiCanvas, envs) {
-    this.envs = envs; this.baseId = TRACK.segments[TRACK.sequence[0].seg].biome;
+    this.envs = envs; this.baseId = TRACK.base || TRACK.segments[TRACK.sequence[0].seg].biome;
     const base = envs[this.baseId];
     this.ui = new Renderer(uiCanvas);                     // the pixel-art HUD / menus / touch controls, drawn on a transparent overlay
     this.uiCtx = uiCanvas.getContext('2d');
@@ -69,6 +69,17 @@ class Renderer3D {
         }
         this.props[name] = list; this.propUsed[name] = 0;
       }
+    }
+    // upload the art textures to the GPU as soon as their images have loaded, so the first frames that show them do not hitch (a big atlas upload is a one-off spike)
+    // and warm up once: compile every material variant and draw one frame with every pooled prop visible, so geometries, textures and shaders are all on the GPU before
+    // the first prop of each kind comes into view (otherwise that first sight costs a one-off hitch of hundreds of ms in a software renderer)
+    let pending = 4;
+    const warm = () => { const hid = []; this.scene.traverse(o => { if (!o.visible && o.parent) { hid.push(o); o.visible = true; } });
+      try { this.renderer.compile(this.scene, this.camera); this.renderer.render(this.scene, this.camera); this.renderer.clear(); } catch (e) {}   // drawn on screen (that is the program variant that must be ready) and cleared in the same task: a canvas is only shown after the next game frame
+      for (const o of hid) o.visible = false; };
+    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3()]) {
+      const tex = get().map, go = () => { try { this.renderer.initTexture(tex); } catch (e) {} if (--pending === 0) setTimeout(warm, 50); };
+      if (tex.image.complete && tex.image.naturalWidth) go(); else tex.image.addEventListener('load', () => setTimeout(go, 0));
     }
     this.droppedBy = {}; this.dropped = 0;                 // props skipped because a pool was full (should stay 0)
     this.layouts = {}; for (const id of Object.keys(envs)) if (envs[id].layout) this.layouts[id] = new Map();   // per biome: slot -> cached placements

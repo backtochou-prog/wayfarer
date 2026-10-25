@@ -72,6 +72,6 @@ function lerpPalette(a, b, t) {
 const _palCache = new Map();
 function paletteFor(toId, t) {
   const q = Math.round(t * 8), key = toId + q;
-  if (!_palCache.has(key)) _palCache.set(key, lerpPalette(BIOMES[TRACK.segments[TRACK.sequence[0].seg].biome], BIOMES[toId], q / 8));
+  if (!_palCache.has(key)) _palCache.set(key, lerpPalette(BIOMES[TRACK.base || TRACK.segments[TRACK.sequence[0].seg].biome], BIOMES[toId], q / 8));
   return _palCache.get(key);
 }
