@@ -103,21 +103,9 @@ class Runner3D {
       Kit.cyl(eggR(2.12) + 0.03, eggR(Y0) + 0.03, 0.14, 0, A(1.97), 0, '#141a55', { seg: 28, sz: DZ }),    // navy belt
       ring(eggR(2.14) + 0.03, 0.014, A(2.14), DZ, '#eaf0ff', true),                                        // thin white line above it
       raw(new THREE.TorusGeometry(0.17, 0.05, 6, 16), '#10143c', new THREE.Vector3(0, A(2.05), -0.7), Q0, ONE, false)];   // belt ring
-    // a few small yellow seeds scattered irregularly round the red body (fixed pseudo-random sequence, so it is the same berry every run;
-    // kept apart from each other, off the lips and under the visor's lower edge)
-    {
-      let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-      const placed = []; let tries = 0;
-      while (placed.length < 22 && tries++ < 400) {
-        const f = rnd() * 2 * Math.PI, y = 2.3 + rnd() * 1.2, r = eggR(y) + 0.006, x = r * Math.sin(f), z = -r * DZ * Math.cos(f);
-        if (y > vBot(f) - 0.12) continue;
-        if (Math.cos(f) > 0 && Math.abs(y - 2.78) < 0.22 && Math.abs(x) < 0.6) continue;
-        if (placed.some(q => (q[0] - x) ** 2 + (q[1] - y) ** 2 + (q[2] - z) ** 2 < 0.3 * 0.3)) continue;
-        placed.push([x, y, z]);
-        const sz = 0.026 + rnd() * 0.014;
-        parts.push(Kit.ico(sz, x, A(y), z, '#ffd23a', { sy: 1.4, sz: 0.7, detail: 1, ry: -f, rz: (rnd() - 0.5) * 1.2, glow: true }));
-      }
-    }
+    // seeds: only three small ones on each cheek (either side of the lips), placed a little unevenly and not mirrored
+    for (const [x, y, sz] of [[0.5, 2.93, 0.048], [0.62, 2.8, 0.042], [0.52, 2.67, 0.046], [-0.52, 2.87, 0.044], [-0.63, 2.74, 0.05], [-0.48, 2.62, 0.04]])
+      parts.push(Kit.ico(sz, x, A(y), onEgg(x, y, 0.006), '#ffd23a', { sy: 1.4, sz: 0.7, detail: 1, rz: (x * 7 + y * 3) % 1.2 - 0.6, glow: true }));
     { const [x, y] = px(375, 770); parts.push(Kit.ico(0.08, x, A(y), onEgg(x, y, 0.04), '#9fb4ff', { sx: 1.6, sz: 0.2, detail: 1, rz: 0.5, glow: true })); }   // the painting's white glare on the visor
     for (const s of [-1, 1]) {                                                                              // black oval side panels with a white inner edge and two buttons
       parts.push(Kit.ico(0.5, s * 1.0, A(2.7), -0.22, BLACK, { sx: 0.5, sy: 1.35, sz: 0.8, detail: 2, rz: -0.2 * s }));
