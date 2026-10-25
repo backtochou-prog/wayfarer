@@ -2,7 +2,7 @@
 // Proportions measured from the painting (height from the soles, 5.1 units to the top; the group is scaled to ~1.8 m):
 //   black sneakers with pink trim 0-0.5 | long navy legs fading to pale blue at the ankles to 1.95 | navy belt with a ring, 1.98-2.12 |
 //   one big glossy red strawberry body (broad rounded top, widest 2.28 at 3.9, tapering to a narrower flat bottom) with yellow seeds |
-//   dark navy visor band 3.43-4.42 whose lower edge peaks in a V at the front | green calyx leaves fanning over the top | pink lips |
+//   dark glasses 3.43-4.42 across the face only (lower edge peaks in a V at the front, temple arms to behind the ears) | green calyx leaves fanning over the top | pink lips |
 //   black oval panels at the sides, thin black arms with tiny red hands
 // Built once from Kit parts, animated procedurally by rotating pivots (hips, knees, ankles, shoulders, elbows, torso).
 // Origin = ground between the feet, facing -Z (the chase camera sees its back).
@@ -98,9 +98,14 @@ class Runner3D {
     // torso group: the strawberry body (glare on the top fading into red), the visor band, belt, lips, seeds, side panels, calyx
     this.torso = pivot(this.body, 0, 0, 0);
     const berry = coat(shell(Y0, Y1, 0, 30, 32, true), YELLOW_CAP); G(berry, RED, 3.2); berry.gain = 1.8;
-    const visor = coat(shell(vBot, 4.42, 0.03, 8, 40, false), '#12248a'); G(visor, '#050612');
+    // the visor is a pair of glasses: dark lenses across the face only (the lower edge peaks in a V), a thin yellow frame, and slim temple arms
+    // that end behind the ears, so the back of the head stays bare strawberry
+    const FV = 1.35, FT = 2.0;
+    const visor = coat(shell(vBot, 4.42, 0.03, 8, 28, false, -FV, FV), '#12248a'); G(visor, '#050612');
     const parts = [berry, visor,
-      ring(eggR(4.42) + 0.04, 0.026, A(4.42), DZ, YEL, true),                                              // thin yellow line along the top of the visor
+      coat(shell(4.37, 4.42, 0.045, 1, 28, false, -FV, FV), YEL, true),                                    // thin yellow frame along the top of the lenses
+      coat(shell(vBot, 4.42, 0.045, 8, 1, false, FV - 0.03, FV), YEL, true), coat(shell(vBot, 4.42, 0.045, 8, 1, false, -FV, -FV + 0.03), YEL, true),   // frame at the outer edges
+      coat(shell(4.05, 4.13, 0.03, 1, 14, false, FV, FT), '#12248a'), coat(shell(4.05, 4.13, 0.03, 1, 14, false, -FT, -FV), '#12248a'),               // temple arms
       Kit.cyl(eggR(2.12) + 0.03, eggR(Y0) + 0.03, 0.14, 0, A(1.97), 0, '#141a55', { seg: 28, sz: DZ }),    // navy belt
       ring(eggR(2.14) + 0.03, 0.014, A(2.14), DZ, '#eaf0ff', true),                                        // thin white line above it
       raw(new THREE.TorusGeometry(0.17, 0.05, 6, 16), '#10143c', new THREE.Vector3(0, A(2.05), -0.7), Q0, ONE, false)];   // belt ring
@@ -109,7 +114,7 @@ class Runner3D {
                        [-0.52, 2.87, 0.044], [-0.63, 2.74, 0.05], [-0.48, 2.62, 0.04], [-0.62, 2.98, 0.038], [-0.44, 2.76, 0.035], [-0.65, 2.56, 0.037]])
       parts.push(Kit.ico(sz, x, A(y), onEgg(x, y, 0.006), '#ffd23a', { sy: 1.4, sz: 0.7, detail: 1, rz: (x * 7 + y * 3) % 1.2 - 0.6, glow: true }));
     // the jacket: the painting's black side panels are the open front of a black jacket, so its back and sides wrap the body (the front stays open on the red).
-    // Glossy black shell from just under the visor to above the belt, with a ribbed hem, a collar line and a centre-back seam.
+    // Glossy shell from just under the glasses to above the belt, with a ribbed hem, a collar line and a centre-back seam.
     const JF0 = 1.0, JF1 = 2 * Math.PI - 1.0, JB = 2.16, JT = 3.44;
     parts.push(jk(coat(shell(JB, JT, 0.045, 10, 44, false, JF0, JF1), JACKET)));
     parts.push(jk(coat(shell(JB, JB + 0.16, 0.065, 2, 44, false, JF0, JF1), JACKET_D)));                       // ribbed hem
@@ -137,6 +142,17 @@ class Runner3D {
       return { geo: g, color, glow: false, gain };
     };
     parts.push(starOutline(2.74, 0.64, 0.26, 0.4, 0.075, '#ff62b4', 1.5));                   // pink outline star, hollow inside
+    // the back of the head is bare strawberry: a few small seeds scattered irregularly between the jacket collar and the calyx (fixed pseudo-random sequence)
+    {
+      let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+      const placed = []; let tries = 0;
+      while (placed.length < 10 && tries++ < 500) {
+        const f = Math.PI + (rnd() - 0.5) * 2 * 1.1, y = 3.62 + rnd() * 0.68, r = eggR(y) + 0.006, x = r * Math.sin(f), z = -r * DZ * Math.cos(f);
+        if (placed.some(q => (q[0] - x) ** 2 + (q[1] - y) ** 2 + (q[2] - z) ** 2 < 0.3 * 0.3)) continue;
+        placed.push([x, y, z]);
+        parts.push(Kit.ico(0.028 + rnd() * 0.014, x, A(y), z, '#ffd23a', { sy: 1.4, sz: 0.7, detail: 1, ry: -f, rz: (rnd() - 0.5) * 1.2, glow: true }));
+      }
+    }
     { const [x, y] = px(375, 770); parts.push(Kit.ico(0.08, x, A(y), onEgg(x, y, 0.04), '#9fb4ff', { sx: 1.6, sz: 0.2, detail: 1, rz: 0.5, glow: true })); }   // the painting's white glare on the visor
     for (const s of [-1, 1]) {                                                                              // black oval side panels with a white inner edge and two buttons
       parts.push(jk(Kit.ico(0.5, s * 1.0, A(2.7), -0.22, JACKET, { sx: 0.5, sy: 1.35, sz: 0.8, detail: 2, rz: -0.2 * s })));
@@ -166,9 +182,9 @@ class Runner3D {
     }
     parts.push(Kit.ico(0.13, 0, A(Y1) + 0.02, 0, '#2fd01c', { sy: 0.8, detail: 1 }));        // stem nub at the apex
     this.torso.add(mesh(parts));
-    // neon rim light along the visor (an inflated back-face copy glows round its silhouette)
+    // neon rim light along the lenses (an inflated back-face copy glows round its silhouette)
     const rimMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide });
-    this.torso.add(new THREE.Mesh(Kit.merge([coat(shell(vBot, 4.42, 0.075, 8, 40, false), LIME, true)]).glow, rimMat));
+    this.torso.add(new THREE.Mesh(Kit.merge([coat(shell(vBot, 4.42, 0.075, 8, 28, false, -FV, FV), LIME, true)]).glow, rimMat));
     // lips: soft pink on the belly (pulses gently)
     this.eye = pivot(this.torso, ...(() => { const [x, y] = px(462, 1085); return [x, A(y), onEgg(x, y, 0.0)]; })());
     this.eye.add(mesh([Kit.ico(0.5, 0, 0, 0, LIPS, { sx: 0.82, sy: 0.2, sz: 0.1, detail: 1, rz: 0.08, glow: true }), Kit.ico(0.3, 0.05, 0.06, -0.01, '#ff5aa2', { sx: 1.0, sy: 0.25, sz: 0.1, detail: 1, rz: 0.12, glow: true })]));
