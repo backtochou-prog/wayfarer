@@ -33,7 +33,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const g = __wf, ui = g.r.ui, ctx = document.getElementById('screen').getContext('2d'), out = {}, b = BTN.title;
     out.loaded = !!(ui.startImg && ui.startImg.complete && ui.startImg.naturalWidth === 400 && ui.startImg.naturalHeight === 64);
     const px = (x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data);
-    const face = () => { g.r.draw(g); const d = ctx.getImageData(b.x, b.y, b.w, b.h).data; let sat = 0, green = 0, pink = 0, lum = 0, n = 0; for (let i = 0; i < d.length; i += 4) { const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]); if (mx - mn > 90) sat++; if (d[i + 1] > 200 && d[i] < 120 && d[i + 2] < 80) green++; if (d[i] > 200 && d[i + 1] < 80 && d[i + 2] > 80) pink++; lum += (d[i] + d[i + 1] + d[i + 2]) / 3; n++; } return { sat, green, pink, lum: Math.round(lum / n) }; };
+    const face = () => { g.r.draw(g); const d = ctx.getImageData(b.x, b.y, b.w, b.h).data; let sat = 0, green = 0, pink = 0, white = 0, lum = 0, n = 0; for (let i = 0; i < d.length; i += 4) { const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]); if (mx - mn > 90) sat++; if (d[i + 1] > 200 && d[i] < 120 && d[i + 2] < 80) green++; if (d[i] > 200 && d[i + 1] < 80 && d[i + 2] > 80) pink++; if (d[i] > 225 && d[i + 1] > 225 && d[i + 2] > 225) white++; lum += (d[i] + d[i + 1] + d[i + 2]) / 3; n++; } return { sat, green, pink, white, lum: Math.round(lum / n) }; };
     g.state = 'title'; g.mouse = { x: 0, y: 0, down: false }; out.idle = face();
     g.mouse = { x: b.x + 5, y: b.y + 5, down: false }; out.hover = face();
     g.mouse = { x: b.x + 5, y: b.y + 5, down: true }; out.pressed = face();
@@ -46,6 +46,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   });
   T('START button: the artwork loads (400 x 64) and the face shows its green and pink rings (plain button has none)', B.loaded && B.idle.green > 100 && B.idle.pink > 20 && B.plain.green === 0 && B.plain.pink === 0, JSON.stringify({ loaded: B.loaded, idle: B.idle, plain: B.plain }));
   T('START button feedback: lighter on hover, darker when pressed', B.hover.lum > B.idle.lum + 5 && B.pressed.lum < B.idle.lum - 5, JSON.stringify({ idle: B.idle.lum, hover: B.hover.lum, pressed: B.pressed.lum }));
+  T('no white on the button: no near-white pixels in its face', B.idle.white === 0, JSON.stringify({ white: B.idle.white }));
   T('the main menu button says PLAY, and the pause button still says RESUME', B.label === 'PLAY' && B.pauseLabel === 'RESUME', JSON.stringify({ title: B.label, pause: B.pauseLabel }));
   T('the pause button (RESUME) is still the plain amber one', B.resume[0] > 200 && B.resume[1] > 140 && B.resume[2] < 110, JSON.stringify(B.resume));
   T('no JS errors', errs.length === 0, errs.slice(0, 2).join('|'));
