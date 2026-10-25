@@ -1,4 +1,4 @@
-// WAYFARER regression test: both main-menu panels are the user's artwork (UI_ASSETS.titlePanel / controlsPanel), with a safe fallback to the drawn panels,
+// WAYFARER regression test: both main-menu panels and the START button are the user's artwork (UI_ASSETS.titlePanel / controlsPanel / startButton), with a safe fallback to the drawn panels,
 // and the controls text stays legible over the (veiled) artwork.
 // Run:  node tests/qa3d_ui.js     (needs playwright-core and a Chromium: CHROMIUM=/path/to/chrome, NODE_PATH or PW_CORE as for the other tests)
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -28,6 +28,24 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('title panel: the artwork shows its dark body and glowing red line (red pixels present, dark mean)', U.withImage.title.red > 10 && U.withImage.title.mean < 90 && U.withImage.title.range > 100, JSON.stringify(U.withImage.title));
   T('controls panel: the colourful artwork shows through the veil (many saturated pixels, far more than the plain drawn panel) and the text is legible (its colour is present in numbers)', U.withImage.controls.sat > 3 * Math.max(50, U.fallback.controls.sat) && U.withImage.controls.mean < 110 && U.withImage.controls.text > 40, JSON.stringify({ art: U.withImage.controls, drawn: U.fallback.controls }));
   T('without the images the usual drawn panels are the fallback (no red line), and restoring them brings the artwork back', U.fallback.title.red === 0 && U.restored.title.red === U.withImage.title.red && Math.abs(U.restored.controls.mean - U.withImage.controls.mean) <= 3, JSON.stringify({ withImage: U.withImage, fallback: U.fallback, restored: U.restored }));
+  // the START button: artwork face, hover / pressed feedback, the fallback, and that RESUME / RUN AGAIN stay plain amber
+  const B = await pg.evaluate(() => {
+    const g = __wf, ui = g.r.ui, ctx = document.getElementById('screen').getContext('2d'), out = {}, b = BTN.title;
+    out.loaded = !!(ui.startImg && ui.startImg.complete && ui.startImg.naturalWidth === 400 && ui.startImg.naturalHeight === 64);
+    const px = (x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data);
+    const face = () => { g.r.draw(g); const d = ctx.getImageData(b.x, b.y, b.w, b.h).data; let sat = 0, green = 0, pink = 0, lum = 0, n = 0; for (let i = 0; i < d.length; i += 4) { const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]); if (mx - mn > 90) sat++; if (d[i + 1] > 200 && d[i] < 120 && d[i + 2] < 80) green++; if (d[i] > 200 && d[i + 1] < 80 && d[i + 2] > 80) pink++; lum += (d[i] + d[i + 1] + d[i + 2]) / 3; n++; } return { sat, green, pink, lum: Math.round(lum / n) }; };
+    g.state = 'title'; g.mouse = { x: 0, y: 0, down: false }; out.idle = face();
+    g.mouse = { x: b.x + 5, y: b.y + 5, down: false }; out.hover = face();
+    g.mouse = { x: b.x + 5, y: b.y + 5, down: true }; out.pressed = face();
+    g.mouse = { x: 0, y: 0, down: false };
+    const img = ui.startImg; ui.startImg = null; out.plain = face(); ui.startImg = img;
+    g.state = 'pause'; g.r.draw(g); out.resume = px(BTN.pause.x + 3, BTN.pause.y + 8);     // the pause button must still be plain amber (no artwork)
+    g.state = 'title';
+    return out;
+  });
+  T('START button: the artwork loads (400 x 64) and the face shows its green and pink rings (plain button has none)', B.loaded && B.idle.green > 100 && B.idle.pink > 20 && B.plain.green === 0 && B.plain.pink === 0, JSON.stringify({ loaded: B.loaded, idle: B.idle, plain: B.plain }));
+  T('START button feedback: lighter on hover, darker when pressed', B.hover.lum > B.idle.lum + 5 && B.pressed.lum < B.idle.lum - 5, JSON.stringify({ idle: B.idle.lum, hover: B.hover.lum, pressed: B.pressed.lum }));
+  T('the pause button (RESUME) is still the plain amber one', B.resume[0] > 200 && B.resume[1] > 140 && B.resume[2] < 110, JSON.stringify(B.resume));
   T('no JS errors', errs.length === 0, errs.slice(0, 2).join('|'));
   console.log('\n' + res.filter(Boolean).length + '/' + res.length + ' passed');
   await b.close(); srv.close(); process.exit(res.every(Boolean) ? 0 : 1);

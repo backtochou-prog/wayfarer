@@ -222,6 +222,17 @@ class Renderer {
   }
   button(b, g) {
     const m = g.mouse, hov = m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h, pr = hov && m.down, c = this.ctx;
+    const art = b.art && this[b.art];
+    if (art && art.complete && art.naturalWidth) {          // the user's artwork as the button face: white base, the rings, a light veil on hover / a dark one when pressed, and a pale plate behind the label
+      c.fillStyle = C.ink; c.fillRect(b.x - 1, b.y - 1, b.w + 2, b.h + 2);
+      c.fillStyle = '#fff8f0'; c.fillRect(b.x, b.y, b.w, b.h);
+      const sm = c.imageSmoothingEnabled; c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(art, b.x, b.y, b.w, b.h); c.imageSmoothingEnabled = sm;
+      if (pr) { c.fillStyle = 'rgba(40,10,60,0.32)'; c.fillRect(b.x, b.y, b.w, b.h); } else if (hov) { c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(b.x, b.y, b.w, b.h); }
+      const tw = textW(b.label, 2), tx = Math.round(b.x + (b.w - tw) / 2), ty = b.y + 3 + (pr ? 1 : 0);
+      c.fillStyle = 'rgba(255,255,255,0.88)'; c.fillRect(tx - 3, ty - 2, tw + 6, 14);
+      drawText(c, b.label, tx, ty, C.ink, 2);
+      return;
+    }
     c.fillStyle = C.ink; c.fillRect(b.x - 1, b.y - 1, b.w + 2, b.h + 2);
     c.fillStyle = pr ? C.amberD : hov ? C.amberL : C.amber; c.fillRect(b.x, b.y, b.w, b.h);
     if (!pr) { c.fillStyle = C.amberD; c.fillRect(b.x, b.y + b.h - 2, b.w, 2); }

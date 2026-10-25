@@ -3,7 +3,7 @@
 const BASE_SPEED = 220, MAX_SPEED = 340, ACCEL = 1.6, STEER = 2.7;
 // on-canvas buttons (canvas pixels); the renderer draws them, the game hit-tests them
 const BTN = {
-  title: { x: 110, y: 123, w: 100, h: 16, label: 'START' },
+  title: { x: 110, y: 123, w: 100, h: 16, label: 'START', art: 'startImg' },   // art: the name of a renderer image to draw as the button face (the 3D front end sets it; without it the button is plain amber)
   pause: { x: 110, y: 88, w: 100, h: 16, label: 'RESUME' },
   over:  { x: 100, y: 114, w: 120, h: 16, label: 'RUN AGAIN' },
 };
