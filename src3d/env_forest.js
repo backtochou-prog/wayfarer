@@ -9,15 +9,15 @@ window.ENV3D = window.ENV3D || {};
 
   ENV3D.forest = {
     name: 'GREENWOOD',
-    sky: { top: '#223a5e', mid: '#6a8a6e', horizon: '#e8c07a' },       // cooler zenith, the same warm glow at the horizon
+    sky: { top: '#2c2a5e', mid: '#8a6a96', horizon: '#eab890' },       // a violet dusk to match the feather trees, the same warm glow at the horizon
     sunDisc: { color: '#ffe6b0', size: 7 },
-    fog: { color: '#a8b47e', near: 22, far: 105 },                       // closer, greener fog: enclosed
-    hemi: { sky: '#d6e6c0', ground: '#2c4a44', intensity: 1.45 },
+    fog: { color: '#c49cb6', near: 22, far: 105 },                       // closer, dusty-rose fog: enclosed
+    hemi: { sky: '#f0d4e6', ground: '#4a3560', intensity: 1.45 },
     sun: { color: '#ffd596', intensity: 2.1, position: [-7, 8, 4] },
-    groundFar: '#3a5f3a',
-    road: {                                                              // a packed-earth track with mossy borders
-      asphalt: ['#8a6a46', '#7e603f'], mark: '#6a4e34', edge: '#4f7a3a',
-      curb: ['#6a9a46', '#5e8c3e'], curbFace: '#44683a', walk: ['#4a7e3c', '#427435'], court: '#3a6a30', verge: ['#3a6a34', '#33602e'],
+    groundFar: '#5a3a70',
+    road: {                                                              // a packed-earth track with violet grass borders
+      asphalt: ['#8a6a46', '#7e603f'], mark: '#6a4e34', edge: '#8a5aa6',
+      curb: ['#a070b8', '#9468ac'], curbFace: '#5a3a70', walk: ['#8a5aa6', '#80529c'], court: '#6e468a', verge: ['#6e468a', '#664082'],       // the grass: a dusk violet to go with the pink trees and the sunset
     },
     innerOk: new Set(['pine', 'oak', 'fbush', 'rock', 'log', 'stump', 'flowers']),
 
