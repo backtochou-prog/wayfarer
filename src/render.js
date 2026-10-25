@@ -253,7 +253,10 @@ class Renderer {
     const w = g.world, p = g.p, T = w.track, pulse = g.coinPulse > 0;
     this.plate(3, 3, 62, 24);
     this.txt('DIST ' + Math.floor(p.z / 10) + ' M', 7, 6, C.bone);
-    this.ctx.drawImage(SPR.coin[pulse ? 1 : 0], 7, pulse ? 14 : 15);
+    if (this.menu3d) {                                      // the 3D coin's rings, small: lilac rim, pink, green, cream, lime, mint core
+      const cx = 11, cy = pulse ? 18 : 19;
+      [[5, '#d9baff'], [4.4, '#ff2a8a'], [3.8, '#62d444'], [2.8, '#e9f7a8'], [2.1, '#8dff1f'], [1.4, '#52ff2e'], [0.7, '#c8ffb8']].forEach(([r, col]) => { this.ctx.fillStyle = col; this.ctx.beginPath(); this.ctx.arc(cx, cy, r, 0, 6.2832); this.ctx.fill(); });
+    } else this.ctx.drawImage(SPR.coin[pulse ? 1 : 0], 7, pulse ? 14 : 15);
     this.txt('' + g.coins, 18, 17, pulse ? C.bone : C.amberL);
     const nm = T.segments[w.playerBand(p.z, p.x).route].name, nw = textW(nm) + 8;
     this.plate(VW - 3 - nw, 3, nw, 11);

@@ -44,13 +44,16 @@ class Renderer3D {
     this.road = new Road3D(this.scene, envs, this.baseId);
 
     // scenery: one shared geometry per prop name (first biome that defines it wins), a bounded pool per name
-    const CAP = { lamp: 90, tree: 80, bench: 40, planter: 40, bush: 50, stall: 30, stallB: 30, pine: 90, pineTall: 70, oak: 70, birch: 50, fbush: 60, rock: 40, log: 30, fence: 30, gore: 4 };
+    const CAP = { lamp: 100, tree: 120, bench: 50, planter: 130, bush: 60, stall: 40, stallB: 40, pine: 110, pineTall: 90, oak: 90, birch: 70, fbush: 80, rock: 60, log: 40, fence: 60, gore: 4,
+                  wall: 70, cafe: 40, bollard: 40, barrel: 40, boulder: 30, stump: 30, flowers: 40,                       // street furniture and roadside details
+                  fountain: 6, clockTower: 6, statue: 6, cabin: 6, giantOak: 8, standingStones: 6, marketHall: 6, bigTent: 6,   // landmarks: at most one per stretch and side
+                  gateCity: 8, gateWood: 8, gateMarket: 8 };                                                              // entrance markers where the biome changes
     this.props = {}; this.propUsed = {};
     for (const id of Object.keys(envs)) {
       const props = envs[id].props; if (!props) continue;
       for (const name of Object.keys(props)) {
         if (this.props[name]) continue;
-        const m = props[name](), cap = /^house/.test(name) ? 14 : /^sign/.test(name) ? 4 : CAP[name] || 28, list = [];
+        const m = props[name](), cap = /^house/.test(name) ? 26 : /^sign/.test(name) ? 4 : CAP[name] || 28, list = [];
         for (let i = 0; i < cap; i++) { const g = Kit.mesh(m); g.visible = false; this.scene.add(g); list.push(g); }
         this.props[name] = list; this.propUsed[name] = 0;
       }
@@ -59,7 +62,7 @@ class Renderer3D {
     this.layouts = {}; for (const id of Object.keys(envs)) if (envs[id].layout) this.layouts[id] = new Map();   // per biome: slot -> cached placements
     this.slotCache = []; for (let i = 0; i < 20; i++) this.slotCache.push({ i: -1e9, ver: -1, mid: null, a: null, b: null });   // track bands per scenery slot (middle / start / end), reused until the track changes
     this.items = new Items3D(this.scene);
-    this.fx = new Fx3D(this.scene, this.items.merged.coin);
+    this.fx = new Fx3D(this.scene);
     this.runner = new Runner3D(); this.scene.add(this.runner.group); this.scene.add(this.runner.shadow);
 
     this.menu = 1; this.lookX = 0; this.heading = 0;                         // menu blend (1 = menu camera, 0 = chase) and smoothed look-ahead
@@ -159,8 +162,13 @@ class Renderer3D {
             if (avail < 3.5) continue;
           }
           const info = sg < 0 ? b.eL : b.eR;
-          const envId = rnd(i * 4 + bi * 2 + (sg > 0 ? 1 : 0), 21) < info.t ? info.to : this.baseId, env = this.envs[envId];
+          // which biome dresses this side of this slot: the blend decides, with a seeded threshold per pair of slots, so the scenery changes once, cleanly, as the blend passes ~half
+          const pick = j => (0.35 + 0.3 * rnd(Math.floor(j / 2) * 4 + bi * 2 + (sg > 0 ? 1 : 0), 21) < info.t ? info.to : this.baseId);
+          const envId = pick(i), env = this.envs[envId];
           if (c0 === null) { c0 = this.centreOf(sc.a, b.side) - Lref; c1 = this.centreOf(sc.b, b.side) - Lref; }
+          // an entrance marker at the first slot of a new biome (only when the change is clean: the two slots before differ, the next one agrees)
+          if (env.entrance && !inner && pick(i - 1) !== envId && pick(i - 2) !== envId && pick(i + 1) === envId)
+            this.place(env.entrance, c0 + (c1 - c0) * (1.5 / SL) + sg * 5.2, WALK_Y, rz - zs - 1.5, (sg < 0 ? Math.PI : 0) - Math.atan2(c1 - c0, SL));
           for (const pl of this.layoutFor(envId, i)) {
             if ((pl.x < 0 ? -1 : 1) !== sg) continue;
             if (inner && (!env.innerOk.has(pl.prop) || Math.abs(pl.x) - hwM > avail - 0.8)) continue;

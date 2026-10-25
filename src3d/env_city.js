@@ -4,6 +4,7 @@
 window.ENV3D = window.ENV3D || {};
 
 (function () {
+  const mod = (a, n) => ((a % n) + n) % n;                        // modulo that stays >= 0 for the (negative) slot indexes at the very start
   const P = PAL3;
   const TRIM = '#efe0c0', TRIM_D = '#8a6a52', STONE = '#9c8468';
 
@@ -98,30 +99,77 @@ window.ENV3D = window.ENV3D || {};
       bench: () => Kit.merge([
         Kit.box(0.5, 0.08, 1.6, 0, 0.42, 0, P.wood), Kit.box(0.08, 0.45, 1.6, 0.24, 0.5, 0, P.wood),
         Kit.box(0.42, 0.42, 0.08, 0, 0, -0.68, P.lampPost), Kit.box(0.42, 0.42, 0.08, 0, 0, 0.68, P.lampPost)]),
+      // landmarks: one per stretch at most (see Stretch), never the same kind twice in a row
+      fountain: () => Kit.merge([
+        Kit.cyl(2.9, 3.1, 0.8, 0, 0, 0, STONE, { seg: 14 }), Kit.cyl(2.6, 2.6, 0.06, 0, 0.8, 0, '#3d8a86', { seg: 14 }), Kit.cyl(3.0, 3.0, 0.14, 0, 0.8, 0, TRIM_D, { seg: 14 }),
+        Kit.cyl(0.45, 0.65, 2.3, 0, 0.8, 0, STONE, { seg: 8 }), Kit.cyl(1.4, 0.6, 0.4, 0, 3.0, 0, STONE, { seg: 10 }), Kit.cyl(1.25, 1.25, 0.06, 0, 3.4, 0, '#6fc4c0', { seg: 10 }),
+        Kit.cyl(0.16, 0.16, 1.2, 0, 3.4, 0, '#8ed8d2', { seg: 6 }), Kit.ico(0.45, 0, 4.8, 0, '#8ed8d2'), Kit.ico(0.3, 1.0, 3.9, 0, '#8ed8d2'), Kit.ico(0.3, -1.0, 3.9, 0, '#8ed8d2')]),
+      clockTower: () => {                                              // a slim tower in the building line, with a lit clock face and a steep roof
+        const parts = []; house(parts, { F: 3.8, D: 3.8, H: 14, wall: P.cream, trim: '#f8eed8', roof: 'steep', roofCol: P.slate, cols: 1, shutters: P.burgundy, chimney: false, seed: 9 });
+        parts.push(Kit.cyl(0.85, 0.85, 0.14, -0.14, 11.4, 0, '#f8eed8', { rz: Math.PI / 2, seg: 16 }), Kit.cyl(0.7, 0.7, 0.1, -0.2, 11.4, 0, '#fff3cf', { rz: Math.PI / 2, seg: 16, glow: true }),
+                   Kit.box(0.06, 0.55, 0.08, -0.28, 11.4, 0, P.lampPost), Kit.box(0.06, 0.08, 0.4, -0.28, 11.4, 0.15, P.lampPost));
+        return Kit.merge(parts);
+      },
+      statue: () => Kit.merge([
+        Kit.box(3.8, 0.6, 3.8, 0, 0, 0, STONE), Kit.box(2.0, 2.4, 2.0, 0, 0.6, 0, TRIM_D), Kit.box(2.3, 0.25, 2.3, 0, 3.0, 0, STONE), Kit.cyl(0.42, 0.55, 2.0, 0, 3.25, 0, '#5f9a82', { seg: 7 }),
+        Kit.ico(0.4, 0, 5.5, 0, '#5f9a82'), Kit.box(0.18, 1.2, 0.18, 0.15, 4.0, -0.7, '#5f9a82', { rx: -0.6 }), Kit.cone(0.55, 0.9, 0.25, 5.8, 0, '#5f9a82', { seg: 6 })]),
+      // street furniture and fences
+      wall: () => Kit.merge([Kit.box(0.45, 0.95, 5.6, 0, 0, 0, STONE), Kit.box(0.6, 0.15, 5.7, 0, 0.95, 0, TRIM_D), Kit.box(0.7, 1.25, 0.7, 0, 0, -2.75, STONE), Kit.box(0.7, 1.25, 0.7, 0, 0, 2.75, STONE), Kit.box(0.8, 0.12, 0.8, 0, 1.25, -2.75, TRIM_D), Kit.box(0.8, 0.12, 0.8, 0, 1.25, 2.75, TRIM_D)]),
+      cafe: () => Kit.merge([
+        Kit.cyl(0.55, 0.55, 0.06, 0, 0.75, 0, P.cream, { seg: 8 }), Kit.cyl(0.06, 0.06, 0.75, 0, 0, 0, P.lampPost, { seg: 5 }), Kit.cyl(0.05, 0.05, 2.3, 0.0, 0, 0, P.lampPost, { seg: 5 }),
+        Kit.cone(1.5, 0.55, 0, 2.3, 0, P.stripeRed, { seg: 8 }), Kit.cyl(0.22, 0.22, 0.45, 0, 0, -1.0, P.wood, { seg: 6 }), Kit.cyl(0.22, 0.22, 0.45, 0, 0, 1.0, P.wood, { seg: 6 })]),
+      bollard: () => Kit.merge([-1.6, 0, 1.6].flatMap(z => [Kit.cyl(0.12, 0.15, 0.85, 0, 0, z, P.lampPost, { seg: 6 }), Kit.cyl(0.14, 0.14, 0.06, 0, 0.8, z, P.capBand, { seg: 6 })])),
+      // marks where the street changes character (entering Old Town again after a detour)
+      gateCity: () => Kit.merge([
+        Kit.box(0.7, 3.0, 0.7, 0, 0, 0, STONE), Kit.box(0.9, 0.2, 0.9, 0, 3.0, 0, TRIM_D), Kit.roof(1.0, 0.7, 1.0, 0, 3.2, 0, P.roofDark),
+        Kit.box(0.06, 0.06, 0.8, -0.5, 2.6, 0, P.lampPost), Kit.box(0.3, 0.4, 0.3, -0.5, 2.15, 0.35, P.lampGlow, { glow: true }), Kit.box(0.04, 1.1, 0.9, -0.38, 1.2, 0, P.burgundy)]),
       planter: () => Kit.merge([
         Kit.box(0.8, 0.5, 1.8, 0, 0, 0, P.terracotta), Kit.box(0.84, 0.08, 1.84, 0, 0.5, 0, TRIM),
         Kit.ico(0.32, 0, 0.75, -0.5, P.leaf), Kit.ico(0.3, 0, 0.75, 0.2, P.capBand), Kit.ico(0.28, 0, 0.72, 0.65, P.burgundy)]),
     },
 
-    // per side: one house (neighbours always differ), sometimes a small plaza instead, a lamp every other
-    // segment and occasionally a tree / bench / planter on the sidewalk. Never more than 4 per side.
+    entrance: 'gateCity',
+
+    // The street is built in stretches (Stretch.of): each has a seeded character, so the same few props are never repeated slot after slot.
+    //   0 terrace: a continuous row of houses on the building line, lamps every other slot       3 shops: low shop fronts, planters, cafe tables, a lamp in every slot
+    //   1 avenue: a double row of trees, houses set back further, few lamps                      4 tall: tall houses with a gap (trees, bushes, a wall) every third slot
+    //   2 square: open; houses far back and only every other slot, trees, benches, bollards      5 walled: a low stone wall along the walk, houses and trees behind it
+    // A landmark (fountain / clock tower / statue) replaces the house on its side of one slot per stretch. Small seeded jitter keeps spacing from looking ruled.
     layout(i, rnd) {
-      const out = [], HOUSES = ['houseA', 'houseB', 'houseC', 'houseD', 'houseE'];
+      const out = [], HOUSES = ['houseA', 'houseB', 'houseC', 'houseD', 'houseE'], S = Stretch.of(i, 0, 6, ['fountain', 'clockTower', 'statue']);
       for (const side of [-1, 1]) {
-        const k = i * 2 + (side > 0 ? 1 : 0);
-        if (rnd(k, 11) < 0.12) { // plaza: trees and a bench set back from the street
-          out.push({ prop: 'tree', x: side * 8.6, dist: 3 }, { prop: 'tree', x: side * 8.6, dist: 9.2 }, { prop: 'bench', x: side * 7.6, dist: 6 });
-        } else {
-          // consecutive segments step the variant by 1-3 (mod 5), so neighbours never repeat
-          const v = (i * 2 + (side > 0 ? 3 : 0) + Math.floor(rnd(k, 12) * 2)) % 5;
-          out.push({ prop: HOUSES[(v + 5) % 5], x: side * FRONT_X, dist: 6 });
+        const k = i * 2 + (side > 0 ? 1 : 0), r = n => rnd(k, n), lm = S.lm && S.lm.slot === i && S.lm.side === side ? S.lm.kind : null;
+        const hv = (((i * 2 + (side > 0 ? 3 : 0) + Math.floor(r(12) * 2)) % 5) + 5) % 5;                         // consecutive slots step the house type by 1-3 (mod 5): neighbours differ
+        const house = (prop, x, dz) => { if (!lm) out.push({ prop, x: side * x, dist: 6 + dz }); };
+        const extras = () => { const e = r(14); if (e < 0.3) out.push({ prop: 'tree', x: side * 5.7, dist: 8.5 }); else if (e < 0.48) out.push({ prop: 'bench', x: side * 6.0, dist: 8.2 }); else if (e < 0.62) out.push({ prop: 'planter', x: side * 6.0, dist: 9 }); else if (e < 0.72) out.push({ prop: 'bush', x: side * 6.1, dist: 9.5 }); };
+        switch (S.variant) {
+          case 0:
+            house(HOUSES[hv], FRONT_X + r(1) * 0.5, (r(2) - 0.5) * 0.8);
+            if (mod(i + (side > 0 ? 1 : 0), 2) === 0) out.push({ prop: 'lamp', x: side * 4.0, dist: 2.5 });
+            extras(); break;
+          case 1:
+            house(HOUSES[hv], FRONT_X + 1.3 + r(1) * 0.8, (r(2) - 0.5) * 0.8);
+            out.push({ prop: 'tree', x: side * 5.6, dist: 2.5 + r(3) }, { prop: 'tree', x: side * 5.6, dist: 8.5 + r(4) });
+            if (mod(i, 3) === (side > 0 ? 1 : 0)) out.push({ prop: 'lamp', x: side * 4.0, dist: 6 }); break;
+          case 2:
+            if (mod(i, 2) === (side > 0 ? 1 : 0)) house(HOUSES[(hv + 2) % 5], FRONT_X + 4.5, (r(2) - 0.5) * 1.2);
+            out.push({ prop: 'tree', x: side * (7.5 + r(3) * 2.5), dist: 2.5 + r(4) * 3 }, { prop: 'tree', x: side * (7.5 + r(5) * 2.5), dist: 8 + r(6) * 3 }, { prop: 'bench', x: side * 6.0, dist: 6 }, { prop: 'bollard', x: side * 4.7, dist: 6 });
+            if (r(7) < 0.5) out.push({ prop: 'lamp', x: side * 4.0, dist: 3 }); break;
+          case 3:
+            house(['houseA', 'houseD'][mod(i + (side > 0 ? 1 : 0), 2)], FRONT_X - 0.5 + r(1) * 0.4, (r(2) - 0.5) * 0.8);
+            out.push({ prop: 'planter', x: side * 5.8, dist: 3 }, { prop: 'planter', x: side * 5.8, dist: 9 }, { prop: 'lamp', x: side * 4.0, dist: 2.5 });
+            if (r(8) < 0.55) out.push({ prop: 'cafe', x: side * 5.3, dist: 6.5 }); break;
+          case 4:
+            if (mod(i + (side > 0 ? 1 : 0), 3) === 2) { if (!lm) out.push({ prop: 'tree', x: side * 8.0, dist: 4 }, { prop: 'bush', x: side * 6.2, dist: 8 }, { prop: 'wall', x: side * 6.6, dist: 6 }); }
+            else house(['houseE', 'houseB', 'houseC'][mod(i + (side > 0 ? 1 : 0), 3) === 0 ? 0 : 1 + mod(i, 2)], FRONT_X + r(1) * 0.5, (r(2) - 0.5) * 0.8);
+            if (mod(i, 2) === 0) out.push({ prop: 'lamp', x: side * 4.0, dist: 2.5 }); break;
+          default:
+            out.push({ prop: 'wall', x: side * 5.0, dist: 3 }, { prop: 'wall', x: side * 5.0, dist: 9 });
+            house(HOUSES[hv], FRONT_X + 1.5 + r(1) * 0.6, (r(2) - 0.5) * 0.8);
+            if (r(3) < 0.6) out.push({ prop: 'tree', x: side * 6.9, dist: 4 + r(4) * 4 });
+            if (mod(i, 2) === (side > 0 ? 1 : 0)) out.push({ prop: 'lamp', x: side * 4.0, dist: 6 });
         }
-        if ((i + (side > 0 ? 1 : 0)) % 2 === 0) out.push({ prop: 'lamp', x: side * 4.0, dist: 2.5 });
-        const r = rnd(k, 14);
-        if (r < 0.3) out.push({ prop: 'tree', x: side * 5.7, dist: 8.5 });
-        else if (r < 0.48) out.push({ prop: 'bench', x: side * 6.0, dist: 8.2 });
-        else if (r < 0.62) out.push({ prop: 'planter', x: side * 6.0, dist: 9 });
-        else if (r < 0.72) out.push({ prop: 'bush', x: side * 6.1, dist: 9.5 });
+        if (lm) out.push({ prop: lm, x: side * (lm === 'clockTower' ? FRONT_X + 0.3 : lm === 'fountain' ? 9.3 : 8.2), dist: 6 });
       }
       return out;
     },

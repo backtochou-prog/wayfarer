@@ -15,11 +15,13 @@ function rnd(a, b = 0) {
   return (h >>> 0) / 4294967296;
 }
 
+function hashStr(s) { let h = 17; for (let i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0; return h; }
+
 class World {
   constructor(track) { this.track = track; this.reset(); }
 
   reset() {
-    this.pieces = []; this.items = []; this.cursor = {}; this.seqIdx = 0; this.uid = 0; this.ver = (this.ver || 0) + 1;   // ver only ever increases; it changes whenever bandsAt() results could change (pieces added/dropped, a route chosen)
+    this.pieces = []; this.items = []; this.cursor = {}; this.lastPat = {}; this.seqIdx = 0; this.uid = 0; this.ver = (this.ver || 0) + 1;   // ver only ever increases; it changes whenever bandsAt() results could change (pieces added/dropped, a route chosen)
     this.baseBiome = this.track.segments[this.track.sequence[0].seg].biome;
     this.extend(0);
   }
@@ -62,15 +64,25 @@ class World {
     this.pieces.push(P); this.ver++;
   }
 
+  // Items of one segment. Each spot takes a seeded pick from the segment's pattern list (never the same pattern twice in a row), and the
+  // gap to the next spot is the base spacing plus 0-49 seeded units, never less. Hazards sit 55-70 units into every pattern, so the
+  // distance between consecutive hazards stays >= spacing - 15 whatever the order. Deterministic: same track -> same items.
   genSegment(id, z0, len, tag, cx, tail = 0) {
-    const seg = this.track.segments[id], end = z0 + len - tail;
-    let n = this.cursor[id] || 0;
-    for (let z = z0 + seg.first; z + seg.spacing <= end; z += seg.spacing) {
-      const pat = PATTERNS[seg.patterns[n++ % seg.patterns.length]];
-      for (const [kind, dz, lane, h] of pat)
-        this.items.push({ kind, z: z + dz, x: cx + lane * LANE_W, h: h === undefined ? 12 : h, tag });
+    const seg = this.track.segments[id], end = z0 + len - tail, L = seg.patterns.length;
+    let n = this.cursor[id] || 0, last = this.lastPat[id] === undefined ? -1 : this.lastPat[id];
+    const h = hashStr(id);
+    for (let z = z0 + seg.first; z + seg.spacing <= end; z += seg.spacing + Math.floor(rnd(h, n * 3 + 2) * 50)) {
+      let k = Math.floor(rnd(h, n * 3) * L);
+      if (n === 0 && seg.calmStart) k = 0;
+      else if (L > 1 && last >= 0 && seg.patterns[k] === seg.patterns[last]) {           // compare names: a list can hold the same pattern at two indices
+        k = (k + 1 + Math.floor(rnd(h, n * 3 + 1) * (L - 1))) % L;
+        for (let t = 0; t < L && seg.patterns[k] === seg.patterns[last]; t++) k = (k + 1) % L;
+      }
+      n++; last = k;
+      for (const [kind, dz, lane, hh] of PATTERNS[seg.patterns[k]])
+        this.items.push({ kind, z: z + dz, x: cx + lane * LANE_W, h: hh === undefined ? 12 : hh, tag, pat: seg.patterns[k], seg: id, inst: n });   // pat / seg / inst: which pattern, segment and occurrence made this item (for tests)
     }
-    this.cursor[id] = n;
+    this.cursor[id] = n; this.lastPat[id] = last;
   }
 
   genFork(P) {

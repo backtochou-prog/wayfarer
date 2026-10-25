@@ -19,7 +19,16 @@ Open the hosted page on an Android phone (Chrome). On-screen buttons appear auto
 
 Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **http://localhost:8080** (same server command as above); it is the default page. `/3d.html` redirects there, and `2d.html` is the classic pixel-art 2D version.
 
-**Route:** city start > city running section > visible fork > **LEFT: Greenwood (forest)** / **RIGHT: Market Detour (city)** > both merge into the same city plaza and the track continues (and loops, so the fork comes round again). Both branches are short (130 m) and are fully their own biome within 15 m of the junction.
+**Route:** city start > city running section > visible fork > **LEFT: Greenwood (forest)** / **RIGHT: Market Detour (city)** > both merge into the same city plaza > a second lap with variant segments (a different bend, length and obstacle mix) > a second junction with the same choice, then it loops. Both branches are fully their own biome within 15 m of the junction.
+
+**World variety (all deterministic, no random state):**
+- *Obstacle patterns* (`World.genSegment`): each spot takes a seeded pick from its segment's pattern list, never the same pattern twice running, and the gap to the next spot is the base spacing plus 0-49 seeded units (never less, so hazards stay >= 19 m apart). The run still opens with the gentle first pattern.
+- *Segments:* `cityRunB`, `plazaB`, `forestB`, `detourB` and a second junction `gate2` (same biomes and names, different curves and lengths) join the loop.
+- *Scenery stretches* (`src3d/stretch.js`): slots are grouped into stretches of 4-13 slots (50-150 m), each with its own character, and at most one landmark. Neighbouring stretches always differ (the variant and landmark kind are drawn from list entries of alternating parity) and landmarks are >= 3 slots apart. City: terrace, tree avenue, open square, shops, tall houses with gaps, walled walk; landmarks fountain / clock tower / statue. Forest: dense wood, clearing, pine stand, grove, rocky, fenced pasture; landmarks cabin / giant oak / standing stones. Market: stalls, open market, arcade, cobbles; landmarks market hall / fountain / big tent. Extra street furniture: walls, cafe tables, bollards, barrels, stumps, flowers, boulders.
+- *Transitions:* the biome of each side switches once, cleanly, as the blend passes about half, and a small entrance marker (stone gate post / carved wood post / pennant pole) stands where the street changes character.
+- Pools are fixed-size and shared (peak use <= 71 %); layouts are cached per slot and trimmed.
+
+![landmarks](docs/screenshots/landmarks.jpg)
 
 **How a junction works**
 - The track is data (`src/track.js`): a `sequence` of segments (each with a biome, length, curve, obstacle patterns) and a `fork` (diverge zone, branch length, merge zone, biome blend, which segment each side leads to). `src/world.js` turns it into pieces and answers "where are the road(s) at distance z?" for gameplay and rendering alike.
@@ -32,7 +41,7 @@ Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **htt
 
 **Gameplay loop (shared rules in `src/game.js`, drawn in 3D)**
 - *Controls:* steer left/right (arrows or A/D, continuous across the three marked lanes), Space/Up jump (0.55 s, ~3 m apex, 0.12 s landing buffer), Down slide (0.55 s; tapping again mid-slide does not chain it; Down in the air fast-falls; a jump cancels a slide). Forward movement is automatic. Auto-repeat key events are ignored; jump/slide always return to running.
-- *Coins:* pooled gold coins that spin and bob, in lines, groups, zig-zags and left/right lane trails, plus a coin trail on each branch of a fork. Pickup box: ~0.7 m sideways, ~0.9 m in depth, and the runner's body height must overlap the coin height (high coins need a jump). The counter updates the frame you pass through; each coin counts once; a collected coin swells and rises for 0.4 s.
+- *Coins:* pooled ringed coins (green core, cream and lime bands, a pink ring and a lilac edge) that spin and bob, in lines, groups, zig-zags and left/right lane trails, plus a coin trail on each branch of a fork. Pickup box: ~0.7 m sideways, ~0.9 m in depth, and the runner's body height must overlap the coin height (high coins need a jump). The counter updates the frame you pass through; each coin counts once; a collected coin disappears in that same frame (it is flagged `taken` and skipped by the draw loop) and a separate burst of tiny green / pink / lilac sparks plays for 0.3 s. The sparks deliberately do not use the coin mesh: a coin-shaped effect at the same spot looks exactly like the coin staying on the track.
 - *Hazards (what you see is what you hit — meshes are built from the collision table `OBST`):* crate (1.2 m, jump), low striped barrier (2.8 m wide, jump), overhead gate (banner 1.05 m above the road, slide; you can only get round it at the very edge of the road). Spacing is >= 19.5 m, the first hazard is ~69 m in, and the last 66 m before every junction is hazard-free (that stretch is where the picked road gently guides the runner).
 - *Game over:* any collision ends the run: debris burst, screen shake, red flash, the avatar tips over. Distance, speed, coins, spawning and track updates all stop and the chosen route is kept; the panel shows distance, coins, score and best. Restart (button, Space, Enter, R) gives a clean run.
 - *Difficulty:* speed starts at 22 m/s and rises 0.16 m/s per second to a 34 m/s cap; distance is the integral of speed and is unaffected by forks or recycling.
@@ -62,9 +71,11 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 
 ```
 index.html (3D game), 2d.html (classic 2D), 3d.html (redirect to index.html), style.css
-src3d/*         3D front end: kit, road3d, env_city/forest/market, runner3d, items3d, signs3d, renderer3d, main3d
+src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market, runner3d, items3d, fx3d, signs3d, renderer3d, main3d
 vendor/         three.min.js (Three.js r186)
 tools/preview3d.html  dev page that renders one 3D module in isolation
+tests/qa3d_coins.js   regression test: coin pickup (coins vanish at once, count once, can't be re-collected, pool reuse, both branches, restart)
+tests/qa3d_world.js   regression test: world variety, track integrity, pools, six junctions played
 src/biomes.js   palette + biome definitions (city, forest, market)
 src/track.js    track pieces, obstacle patterns, collision boxes
 src/world.js    road geometry, fork/merge logic, item spawning
@@ -73,5 +84,15 @@ src/font.js     3×5 pixel font
 src/render.js   drawing: sky, road, objects, HUD, screens
 src/game.js     state, input, loop, collisions, scoring
 ```
+
+## Tests
+
+```
+npm i playwright-core            # once, anywhere (or point PW_CORE at an existing install)
+CHROMIUM=/path/to/chrome node tests/qa3d_coins.js
+CHROMIUM=/path/to/chrome node tests/qa3d_world.js
+```
+
+Both start their own static server, drive the real page (scene graph and game rules, WebGL stubbed for speed) and exit non-zero on failure. `qa3d_coins.js` asserts on every frame that the number of coin meshes on screen equals the number of uncollected coins in range, so a collected coin that stays visible (or an effect built from the coin mesh) fails at once.
 
 Score = distance in metres + 10 per coin. Best score is kept in `localStorage`.

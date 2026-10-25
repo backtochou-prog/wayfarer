@@ -4,7 +4,7 @@
 //   crate   1.2 m wide, 1.05 m tall           (jump over it)
 //   barrier 2.77 m wide, 0.68 m tall          (jump over it)
 //   over    gate posts 3.9 m apart, banner from 1.15 m to the top beam (slide under it; the gap is 1.05 m)
-//   coin    disc of radius 0.32 m, spinning and bobbing
+//   coin    ringed disc of radius 0.32 m, spinning and bobbing
 class Items3D {
   constructor(scene) {
     const P = PAL3, mats = Kit.materials(), X = U3.X, Y = U3.Y;
@@ -35,10 +35,19 @@ class Items3D {
         p.push(Kit.ico(0.5, 0, mid, 0.06, P.capBand, { sz: 0.35, detail: 1 }), Kit.ico(0.26, 0, mid, 0.1, P.burgundy, { sz: 0.35 }));   // emblem
         return Kit.merge(p);
       },
-      coin: () => Kit.merge([
-        Kit.cyl(0.32, 0.32, 0.08, 0, 0, 0, P.coinEdge, { rx: Math.PI / 2, seg: 14 }),
-        Kit.cyl(0.27, 0.27, 0.1, 0, 0, 0, P.coin, { rx: Math.PI / 2, seg: 14, glow: true }),
-        Kit.box(0.08, 0.3, 0.115, 0, -0.15, 0, P.coinEdge, { glow: true })]),
+      // the coin: concentric rings on both faces (a green core with cream and lime bands, a thick green band, a hot-pink ring, a lilac rim) on a lilac edge.
+      // Radius 0.32 m as before (the pickup box is unchanged). Faces are flat unlit bands, so the colours read the same in every biome's light.
+      coin: () => {
+        const R = 0.32, HT = 0.04, parts = [Kit.cyl(R, R, 2 * HT, 0, -HT, 0, '#a46cf0', { rx: Math.PI / 2, seg: 22 })];
+        const BANDS = [[0, 0.07, '#c8ffb8'], [0.07, 0.14, '#52ff2e'], [0.14, 0.21, '#aef59a'], [0.21, 0.29, '#52ff2e'], [0.29, 0.37, '#e9f7a8'], [0.37, 0.47, '#8dff1f'],
+                       [0.47, 0.55, '#f0eeb8'], [0.55, 0.65, '#7dff2a'], [0.65, 0.73, '#f2e8c0'], [0.73, 0.86, '#62d444'], [0.86, 0.9, '#ffffff'], [0.9, 0.95, '#ff2a8a'], [0.95, 1, '#d9baff']];
+        for (const face of [1, -1]) for (const [a, b, col] of BANDS) {
+          const geo = new THREE.RingGeometry(a * R, b * R, 22, 1); if (face < 0) geo.rotateY(Math.PI); geo.translate(0, 0, face * (HT + 0.002));
+          const g = geo.toNonIndexed(); geo.dispose(); g.deleteAttribute('uv'); g.deleteAttribute('normal'); g.computeVertexNormals();
+          parts.push({ geo: g, color: col, glow: true });
+        }
+        return Kit.merge(parts);
+      },
     };
     // pool sizes cover everything inside the 150 m draw range, including both roads of a fork
     const POOL = { coin: 140, crate: 40, barrier: 24, over: 24 };

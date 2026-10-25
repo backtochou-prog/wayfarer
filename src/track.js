@@ -34,7 +34,7 @@ const PATTERNS = {
 // The sequence repeats from `loopFrom` so the run is endless but fully deterministic.
 const TRACK = {
   segments: {
-    cityStart: { name: 'OLD TOWN',      biome: 'city',   length: 900,  curve: 0,    first: 420, spacing: 210,
+    cityStart: { name: 'OLD TOWN',      biome: 'city',   length: 900,  curve: 0,    first: 420, spacing: 210, calmStart: true,   // calmStart: the run always opens with the first (hazard-free) pattern
                  patterns: ['line', 'crateJump', 'hurdle', 'slideGate'] },
     cityRun:   { name: 'OLD TOWN',      biome: 'city',   length: 1000, curve: 1.1,  first: 60,  spacing: 210,
                  patterns: ['rowR', 'hurdle', 'trailL', 'crateJump', 'slideGate', 'dodgeL', 'risky', 'trailR', 'line'] },
@@ -44,12 +44,25 @@ const TRACK = {
                  patterns: ['rowL', 'slideGate', 'line', 'crateJump', 'rowR', 'hurdle', 'trailR', 'slideGate', 'line'] },
     plaza:     { name: 'OLD TOWN',      biome: 'city',   length: 800,  curve: -0.9, first: 100, spacing: 210,
                  patterns: ['line', 'dodgeR', 'hurdle', 'rowL', 'risky'] },
+    // second variants of the repeating pieces (same biomes and names, a different bend, length and pattern mix) so each lap along the loop is not a copy of the last
+    cityRunB:  { name: 'OLD TOWN',      biome: 'city',   length: 1150, curve: -1.0, first: 90,  spacing: 210,
+                 patterns: ['trailR', 'crateJump', 'dodgeR', 'risky', 'line', 'hurdle', 'slideGate', 'rowL', 'trailL', 'zig'] },
+    plazaB:    { name: 'OLD TOWN',      biome: 'city',   length: 900,  curve: 0.8,  first: 120, spacing: 210,
+                 patterns: ['hurdle', 'line', 'dodgeL', 'rowR', 'slideGate', 'trailR'] },
+    forestB:   { name: 'GREENWOOD',     biome: 'forest', curve: 1.0, first: 100, spacing: 210,
+                 patterns: ['twin', 'dodgeL', 'slideGate', 'zig', 'trailR', 'hurdle', 'risky', 'dodgeR', 'line'] },
+    detourB:   { name: 'MARKET DETOUR', biome: 'market', curve: -0.9, first: 100, spacing: 210,
+                 patterns: ['rowR', 'line', 'slideGate', 'trailL', 'crateJump', 'rowL', 'hurdle', 'trailR'] },
   },
   forks: {
     gate: { zone: 440, branchLen: 1300, merge: 360, blend: 40,    // blend: extra distance after the diverge zone before a branch is fully its own biome
             left:  { route: 'forest', sign: 'signForest' },
             right: { route: 'detour', sign: 'signMarket' } },
+    // the same choice (Greenwood left, Market Detour right) on the second lap, with different timings and the variant branches
+    gate2: { zone: 480, branchLen: 1500, merge: 380, blend: 40,
+            left:  { route: 'forestB', sign: 'signForest' },
+            right: { route: 'detourB', sign: 'signMarket' } },
   },
-  sequence: [{ seg: 'cityStart' }, { seg: 'cityRun' }, { fork: 'gate' }, { seg: 'plaza' }],
+  sequence: [{ seg: 'cityStart' }, { seg: 'cityRun' }, { fork: 'gate' }, { seg: 'plaza' }, { seg: 'cityRunB' }, { fork: 'gate2' }, { seg: 'plazaB' }],
   loopFrom: 1,
 };
