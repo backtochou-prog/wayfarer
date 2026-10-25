@@ -46,6 +46,17 @@ class Renderer {
     if (g.state === 'title') this.drawTitle(g);
     else if (g.state === 'pause') this.drawPause(g);
     else if (g.state === 'over' && g.overT > 0.5) this.drawOver(g);
+    if (g.sfx && g.state !== 'play') this.drawSoundBtn(g);
+  }
+
+  // the sound on / off icon (bottom-right of the menu, pause and game-over screens): a speaker with waves when on, crossed out when off
+  drawSoundBtn(g) {
+    const b = BTN.sound, c = this.ctx, m = g.mouse, hov = m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h, off = g.sfx.muted;
+    c.fillStyle = C.ink; c.fillRect(b.x - 1, b.y - 1, b.w + 2, b.h + 2); c.fillStyle = hov ? '#3a2d52' : C.plum; c.fillRect(b.x, b.y, b.w, b.h);
+    const x = b.x + 3, y = b.y + 4, col = off ? C.stoneD : C.tealL;
+    c.fillStyle = col; c.fillRect(x, y + 3, 3, 4); c.fillRect(x + 3, y + 2, 1, 6); c.fillRect(x + 4, y + 1, 1, 8); c.fillRect(x + 5, y, 1, 10);
+    if (off) { c.fillStyle = C.terraL; for (let k = 0; k < 6; k++) { c.fillRect(x + 8 + k, y + 2 + k, 1, 1); c.fillRect(x + 13 - k, y + 2 + k, 1, 1); } }
+    else { c.fillStyle = col; c.fillRect(x + 8, y + 3, 1, 4); c.fillRect(x + 10, y + 1, 1, 8); }
   }
 
   drawSky(g) {
@@ -227,6 +238,7 @@ class Renderer {
       c.fillStyle = C.ink; c.fillRect(b.x - 1, b.y - 1, b.w + 2, b.h + 2);
       c.fillStyle = C.ink; c.fillRect(b.x, b.y, b.w, b.h);
       const sm = c.imageSmoothingEnabled; c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(art, b.x, b.y, b.w, b.h); c.imageSmoothingEnabled = sm;
+      if (this.beatPulse > 0.01) { c.fillStyle = 'rgba(120,255,90,' + (0.2 * this.beatPulse).toFixed(3) + ')'; c.fillRect(b.x, b.y, b.w, b.h); }          // the button glows on the beat
       if (pr) { c.fillStyle = 'rgba(40,10,60,0.32)'; c.fillRect(b.x, b.y, b.w, b.h); } else if (hov) { c.fillStyle = 'rgba(90,230,70,0.30)'; c.fillRect(b.x, b.y, b.w, b.h); }
       const tw = textW(b.label, 2), tx = Math.round(b.x + (b.w - tw) / 2), ty = b.y + 3 + (pr ? 1 : 0);
       c.fillStyle = 'rgba(14,8,26,0.82)'; c.fillRect(tx - 3, ty - 2, tw + 6, 14);

@@ -112,7 +112,7 @@ class Renderer3D {
     const lerpTo = (out, x, y) => out.set(x).lerp(c1.set(y), q);
     lerpTo(this.scene.fog.color, a.fog.color, b.fog.color); this.scene.fog.near = a.fog.near + (b.fog.near - a.fog.near) * q; this.scene.fog.far = a.fog.far + (b.fog.far - a.fog.far) * q;
     this.scene.background.copy(this.scene.fog.color);
-    lerpTo(this.hemi.color, a.hemi.sky, b.hemi.sky); lerpTo(this.hemi.groundColor, a.hemi.ground, b.hemi.ground); this.hemi.intensity = a.hemi.intensity + (b.hemi.intensity - a.hemi.intensity) * q;
+    lerpTo(this.hemi.color, a.hemi.sky, b.hemi.sky); lerpTo(this.hemi.groundColor, a.hemi.ground, b.hemi.ground); this.hemiBase = a.hemi.intensity + (b.hemi.intensity - a.hemi.intensity) * q; this.hemi.intensity = this.hemiBase;
     lerpTo(this.sun.color, a.sun.color, b.sun.color); this.sun.intensity = a.sun.intensity + (b.sun.intensity - a.sun.intensity) * q;
     lerpTo(this.sunDisc.material.color, a.sunDisc.color, b.sunDisc.color);
     lerpTo(top, a.sky.top, b.sky.top); lerpTo(mid, a.sky.mid, b.sky.mid); lerpTo(hor, a.sky.horizon, b.sky.horizon);
@@ -164,6 +164,12 @@ class Renderer3D {
     if (g.state !== 'pause') this.lastT = g.time;
     const rz = p.z * U.Z, Lref = (g.camX + g.camOff) * U.X, SL = SEG_LEN;
     this.applyAtmosphere(g.bgTo, g.bgT);
+    // the music's beat (g.sfx.beat(): pulse 1 on each kick, decaying), scaled by how loud the track is at that moment, drives the animation: the sun-side light, the glowing
+    // neon parts (one shared material), the PLAY button, the avatar. Stronger in the neon quarter. Without sound (the pulse is a clock at the same tempo) it still moves.
+    const bt = g.sfx ? g.sfx.beat() : null, nw = g.bgTo === 'neon' ? g.bgT : 0, pulse = bt ? bt.pulse * (0.4 + 0.6 * bt.energy) : 0;
+    this.hemi.intensity = this.hemiBase * (1 + (0.05 + 0.1 * nw) * pulse);
+    Kit.materials().glow.color.setScalar(1 - (0.1 + 0.12 * nw) * (1 - pulse));
+    this.ui.beatPulse = pulse;
 
     // ---- road ribbons (two roads at a fork)
     this.road.update(w, rz, Lref);
@@ -230,7 +236,7 @@ class Renderer3D {
     const slope = ((c1.c + c1.off) - (c0.c + c0.off)) * U.X / (100 * U.Z);
     this.heading += (-Math.atan(slope) - this.heading) * (1 - Math.exp(-10 * dt));
     this.runner.group.rotation.y = Math.PI * mm + this.heading * (1 - mm);
-    this.runner.update(dt, { faceYaw: Math.atan2(this.cam.x - relX, this.cam.z), time: g.time, runRate: 2.3 + p.speed / 340 * 1.1, airborne: p.jy > 0, vy: p.vy, sliding: p.slide > 0,
+    this.runner.update(dt, { beat: pulse, faceYaw: Math.atan2(this.cam.x - relX, this.cam.z), time: g.time, runRate: 2.3 + p.speed / 340 * 1.1, airborne: p.jy > 0, vy: p.vy, sliding: p.slide > 0,
                              lean: Math.max(-1, Math.min(1, p.vx / STEER)), state: g.state });
 
     // ---- camera: chase (behind and above, centred on the 2D camera) blended with the menu showcase orbit; looks down the active route

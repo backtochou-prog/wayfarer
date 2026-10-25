@@ -87,11 +87,14 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 
 ```
 index.html (3D game), 2d.html (classic 2D), 3d.html (redirect to index.html), style.css
+src/audio.js    sound: the music track + beat clock, synthesised effects, mute
+assets/         music.mp3 (the track)
 src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market/neon (+ neon_art / neon_assets), runner_sprite + avatar_assets (the artwork avatar), tree_sprite + tree_assets (the artwork trees), ui_assets (the menu-panel artwork), runner3d (the 3D model), items3d, fx3d, signs3d, renderer3d, main3d
 vendor/         three.min.js (Three.js r186)
 tools/preview3d.html  dev page that renders one 3D module in isolation
 tests/qa3d_coins.js   regression test: coin pickup (coins vanish at once, count once, can't be re-collected, pool reuse, both branches, restart)
 tests/qa3d_world.js   regression test: world variety, track integrity, pools, six junctions played
+tests/qa3d_audio.js   regression test: sound and music (locked until a gesture, the track and its beat grid checked against the decoded mp3, every event's effect, offline-rendered effects, mute, animation on the beat)
 tests/qa3d_ui.js      regression test: both menu-panel artworks load, are drawn, controls text legible (with a fallback to the drawn panels)
 tests/qa3d_avatar.js  regression test: the artwork avatar (default), ?avatar=3d, images load (also from file://), view per state, size / ground / slide height, faces the camera, no leaks
 src/biomes.js   palette + biome definitions (city, forest, market)
@@ -103,6 +106,15 @@ src/render.js   drawing: sky, road, objects, HUD, screens
 src/game.js     state, input, loop, collisions, scoring
 ```
 
+## Sound and music
+
+- **Music:** your "Deep Disco" track (`assets/music.mp3`, 172 s, looped; converted from the m4a and lowered 3 dB so it does not clip) plays from the first tap or key press (browsers do not allow sound before one). Its volume follows the game: softer in the menu, full while running, ducked on pause and after a crash.
+- **Animation to the beat:** the track is a steady 117.7 BPM and `src3d/music_beats.js` holds its beat grid and loudness curves, computed offline (`tools/make_beatmap.py`), so nothing is analysed in the browser (that would not work from `file://`). On every kick the avatar bounces and stretches, the scene light and all the glowing neon parts brighten, and the PLAY button glows green; the effect is stronger in the neon quarter and weaker in quiet parts of the track. Before the sound starts the same clock runs at the same tempo, so the menu already moves in time.
+- **Effects** (synthesised with the Web Audio API, no sound files): jump, land, slide, coin (the pitch climbs with a streak of coins), crash, game-over jingle, fork prompt and fork choice, start, pause and resume.
+- **Mute:** `M`, or the speaker icon at the bottom right of the menu / pause / game-over screens; remembered between visits.
+- The classic 2D page (`2d.html`) is silent.
+- To change the music: put another track in `assets/music.mp3` and run the two ffmpeg / python commands at the top of `tools/make_beatmap.py`.
+
 ## Tests
 
 ```
@@ -111,6 +123,7 @@ CHROMIUM=/path/to/chrome node tests/qa3d_coins.js
 CHROMIUM=/path/to/chrome node tests/qa3d_world.js
 CHROMIUM=/path/to/chrome node tests/qa3d_avatar.js
 CHROMIUM=/path/to/chrome node tests/qa3d_ui.js
+CHROMIUM=/path/to/chrome node tests/qa3d_audio.js
 ```
 
 Set `TEST_URL=https://your-deployment/` to run the same checks against a deployed copy. Both start their own static server, drive the real page (scene graph and game rules, WebGL stubbed for speed) and exit non-zero on failure. `qa3d_coins.js` asserts on every frame that the number of coin meshes on screen equals the number of uncollected coins in range, so a collected coin that stays visible (or an effect built from the coin mesh) fails at once.

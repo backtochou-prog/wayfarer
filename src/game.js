@@ -6,6 +6,7 @@ const BTN = {
   title: { x: 110, y: 123, w: 100, h: 16, label: 'START', art: 'startImg' },   // art: the name of a renderer image to draw as the button face (the 3D front end sets it; without it the button is plain amber)
   pause: { x: 110, y: 88, w: 100, h: 16, label: 'RESUME' },
   over:  { x: 100, y: 114, w: 120, h: 16, label: 'RUN AGAIN' },
+  sound: { x: 298, y: 158, w: 18, h: 16 },     // the sound on / off icon (menu, pause and game-over screens; only when the front end has a GameAudio, g.sfx)
 };
 // touch controls (canvas pixels): hold left/right to steer, tap jump/slide/pause; each finger is tracked separately
 const TOUCH = [
@@ -53,6 +54,7 @@ class Game {
     addEventListener('pointerup', e => { // a click counts when released over the same button it started on
       lift(e);
       const was = this.mouse.down; this.mouse.down = false; at(e);
+      if (was && this.sfx && this.state !== 'play' && this.overButton(BTN.sound)) { this.sfx.toggle(); return; }
       const b = this.activeButton();
       if (was && b && this.overButton(b)) {
         if (this.state === 'pause') this.state = 'play';
@@ -103,7 +105,8 @@ class Game {
   }
   overButton(b) { const m = this.mouse; return m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h; }
 
-  start() { this.resetRun(); this.state = 'play'; }
+  start() { this.resetRun(); this.state = 'play'; this.emit('start'); }
+  emit(name, arg) { if (this.sfx) this.sfx.play(name, arg); }                       // a sound effect, if the front end has sound
 
   // which road the player would take if the junction line were crossed now: an explicit left/right input given inside the
   // prompt window wins (lane steering outside the window never counts); with no input, the side the runner is on, else right
@@ -117,7 +120,7 @@ class Game {
 
   jump() { this.jumpBuf = 0.12; } // buffered: a press just before landing still jumps
   // down: fast-fall in the air; on the ground start a slide (a slide already under way is not restarted, so taps can't chain)
-  slideKey() { const p = this.p; if (p.jy > 0) p.vy = -600; else if (p.slide <= 0) p.slide = SLIDE_T; }
+  slideKey() { const p = this.p; if (p.jy > 0) p.vy = -600; else if (p.slide <= 0) { p.slide = SLIDE_T; this.emit('slide'); } }
 
   // a finger went down on / moved onto a control; jump, slide and pause fire once, steering is held
   hold(pid, id, fresh) {
@@ -141,6 +144,7 @@ class Game {
     if (c === 'ArrowLeft' || c === 'KeyA') this.keys.left = down;
     if (c === 'ArrowRight' || c === 'KeyD') this.keys.right = down;
     if (!down || e.repeat) return;
+    if (c === 'KeyM' && this.sfx) { this.sfx.toggle(); return; }                      // M: sound on / off
     const s = this.state;
     if (s === 'title' && (c === 'Enter' || c === 'Space')) this.start();
     else if (s === 'over' && this.overT > 0.5 && (c === 'Enter' || c === 'Space' || c === 'KeyR')) this.start();
@@ -153,7 +157,8 @@ class Game {
 
   update(dt) {
     const w = this.world, p = this.p, ab = this.activeButton();
-    this.cv.style.cursor = ab && this.overButton(ab) ? 'pointer' : 'default';
+    this.cv.style.cursor = (ab && this.overButton(ab)) || (this.sfx && this.state !== 'play' && this.overButton(BTN.sound)) ? 'pointer' : 'default';
+    if (this.sfx) this.sfx.tick(this, dt);                                          // beat clock, music volume and state-change sounds (also while paused)
     if (this.state === 'pause') return;
     this.time += dt;
     this.updateFx(dt);
@@ -211,9 +216,9 @@ class Game {
     this.steer(dt);
     if (this.jumpBuf > 0) { // jump starts on the ground, cancels a slide; a press just before landing is kept briefly
       this.jumpBuf -= dt;
-      if (p.jy === 0) { p.slide = 0; p.vy = JUMP_V; p.jy = 0.01; this.jumpBuf = 0; }
+      if (p.jy === 0) { p.slide = 0; p.vy = JUMP_V; p.jy = 0.01; this.jumpBuf = 0; this.emit('jump'); }
     }
-    if (p.jy > 0) { p.vy -= GRAV * dt; p.jy += p.vy * dt; if (p.jy <= 0) { p.jy = 0; p.vy = 0; } }
+    if (p.jy > 0) { p.vy -= GRAV * dt; p.jy += p.vy * dt; if (p.jy <= 0) { p.jy = 0; p.vy = 0; this.emit('land'); } }
     if (p.slide > 0) p.slide = Math.max(0, p.slide - dt);
     this.dust(dt);
     w.extend(p.z);
@@ -248,12 +253,13 @@ class Game {
       if (dir && p.z < F.z0) this.lean = dir;
       if (p.z >= F.z0) {
         const side = this.preview();
-        w.commit(F, side);
+        w.commit(F, side); this.emit('choose');
         this.kick = { t: 0, side: side === 'left' ? -1 : 1 };
         this.banner = { t: 2.2, text: w.track.segments[F.fork[side].route].name };
         this.lean = 0;
-      } else this.prompt = { fork: F.fork, sel: this.preview() };
+      } else { this.prompt = { fork: F.fork, sel: this.preview() }; if (!this._hadPrompt) this.emit('prompt'); }
     }
+    this._hadPrompt = !!this.prompt;
     // once a road has been picked, ease the runner onto that road's side for the last stretch before the junction line,
     // so it never has to cut across the widening gap at the fork's tip (only while no steering key is held)
     if (F && this.lean && !dir && p.z < F.z0 && p.z > F.z0 - GUIDE_DIST) p.x += ((this.lean < 0 ? -0.45 : 0.45) - p.x) * Math.min(1, dt * 4);
@@ -279,6 +285,7 @@ class Game {
     }
   }
   onCoin(it) {
+    this.emit('coin');
     if (this.r.onCoin) this.r.onCoin(this, it);                  // 3D front end shows its own pickup effect
     const cxp = 160 + (it.x - this.camX) * LPX * S20;
     this.burst(cxp, 159 - it.h, [C.amberL, C.amber, C.bone], 6, 55, 0.35);
@@ -290,7 +297,7 @@ class Game {
     this.releaseTouch();
     if (this.touch && navigator.vibrate) navigator.vibrate(60);
     this.state = 'over'; this.flash = 0.25; this.shake = 0.35; this.overT = 0; this.jumpBuf = 0;
-    this.onDie();
+    this.emit('crash'); this.onDie();
     const s = this.score();
     if (s > this.best) { this.best = s; try { localStorage.setItem('wayfarer.best', s); } catch (e) {} }
   }

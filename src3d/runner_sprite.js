@@ -55,6 +55,7 @@ class RunnerSprite {
     } else {                                                   // run cycle: bounce, squash-and-stretch, sway and a steering lean
       t.y = Math.abs(sn) * 0.07; t.sy = 1 + 0.025 * Math.sin(2 * this.phase); t.sx = 1 / t.sy; t.rz = -s.lean * 0.14 + 0.03 * sn;
     }
+    if (s.beat > 0 && s.state !== 'over') { const m = s.state === 'title' ? 1 : 0.4; t.y += 0.1 * m * s.beat; t.sy += 0.05 * m * s.beat; t.sx -= 0.03 * m * s.beat; }   // bounces on the beat of the music (more in the menu)
     const k = 1 - Math.exp(-(s.sliding ? 60 : 15) * dt);       // the slide pose is near-instant: the game counts a slide from the first frame
     for (const key in c) c[key] += (t[key] - c[key]) * k;
     if (view !== this.view) { this.cards.back.visible = view === 'back'; this.cards.side.visible = view === 'side'; this.view = view; }

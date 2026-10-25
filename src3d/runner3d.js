@@ -253,6 +253,7 @@ class Runner3D {
       t.kl = -(0.15 + 1.1 * Math.max(0, -sn)); t.kr = -(0.15 + 1.1 * Math.max(0, sn));
       t.al = -sn * 0.7; t.ar = sn * 0.7; t.alz = -0.6; t.arz = 0.6; t.nod = Math.abs(sn) * 0.05; t.tilt = 0;
     }
+    if (s.beat > 0 && s.state !== 'over' && !s.sliding) t.y += (s.state === 'title' ? 0.18 : 0.07) * s.beat;           // bounces on the beat of the music
     const k = 1 - Math.exp(-(s.sliding ? 60 : 15) * dt);   // the crouch is near-instant: the game counts a slide from the first frame
     for (const key in c) c[key] += (t[key] - c[key]) * k;
     this.root.rotation.y = spin; this.root.scale.y = c.sq;
