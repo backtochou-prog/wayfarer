@@ -277,13 +277,22 @@ class Renderer {
   }
 
   // 3D menu: title block on the left, the animated character fills the rest of the screen
+  // a panel made of the user's artwork (an Image), optionally under a dark veil of the given strength; false if the image is not available
+  artPanel(img, x, y, w, h, veil) {
+    if (!(img && img.complete && img.naturalWidth)) return false;
+    const c = this.ctx, sm = c.imageSmoothingEnabled;
+    c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(img, x, y, w, h); c.imageSmoothingEnabled = sm;
+    if (veil) { c.fillStyle = 'rgba(14,8,26,' + veil + ')'; c.fillRect(x, y, w, h); }
+    return true;
+  }
+
   drawTitle3D(g) {
-    // the title panel is the user's artwork (this.titleImg, set by the 3D front end) with the text over its dark part, to the right of the light wall at its left;
-    // its glowing red line falls between 'PROTOTYPE 01' and 'TAKE A FORK.'. Without the image the usual bordered panel is drawn.
-    const ti = this.titleImg;
-    if (ti && ti.complete && ti.naturalWidth) { const sm = this.ctx.imageSmoothingEnabled; this.ctx.imageSmoothingEnabled = true; this.ctx.imageSmoothingQuality = 'high'; this.ctx.drawImage(ti, 8, 8, 124, 52); this.ctx.imageSmoothingEnabled = sm; } else this.panel(8, 8, 124, 52);
-    this.panel(8, 66, 124, 40);
-    const tx = ti && ti.complete && ti.naturalWidth ? 34 : 14;
+    // both menu panels are the user's artwork (this.titleImg / this.controlsImg, set by the 3D front end). The title text sits over the dark part of the first, to the
+    // right of its light wall, with its glowing red line between 'PROTOTYPE 01' and 'TAKE A FORK.'; the controls panel is drawn under a dark veil so its text stays
+    // readable. Without an image the usual bordered panel is drawn.
+    const art1 = this.artPanel(this.titleImg, 8, 8, 124, 52, 0); if (!art1) this.panel(8, 8, 124, 52);
+    if (!this.artPanel(this.controlsImg, 8, 66, 124, 40, 0.58)) this.panel(8, 66, 124, 40);
+    const tx = art1 ? 34 : 14;
     this.txt('WAYFARER', tx, 16, C.amber, 2, C.burgD);
     this.txt('PROTOTYPE 01', tx, 38, C.tealL, 1);
     this.txt('TAKE A FORK.', tx, 48, C.sand, 1);

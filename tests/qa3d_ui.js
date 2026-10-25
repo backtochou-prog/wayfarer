@@ -1,4 +1,5 @@
-// WAYFARER regression test: the main-menu title panel is the user's artwork (UI_ASSETS.titlePanel), with a safe fallback to the drawn panel.
+// WAYFARER regression test: both main-menu panels are the user's artwork (UI_ASSETS.titlePanel / controlsPanel), with a safe fallback to the drawn panels,
+// and the controls text stays legible over the (veiled) artwork.
 // Run:  node tests/qa3d_ui.js     (needs playwright-core and a Chromium: CHROMIUM=/path/to/chrome, NODE_PATH or PW_CORE as for the other tests)
 const http = require('http'), fs = require('fs'), path = require('path');
 let chromium; try { ({ chromium } = require('playwright-core')); } catch (e) { ({ chromium } = require(process.env.PW_CORE || 'playwright-core')); }
@@ -13,16 +14,20 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   await pg.goto(process.env.TEST_URL || 'http://localhost:' + PORT + '/'); await pg.waitForFunction(() => window.__wf, null, { timeout: 30000 }); await pg.waitForTimeout(1200);
   const U = await pg.evaluate(() => {
     const g = __wf, ui = g.r.ui, ctx = document.getElementById('screen').getContext('2d'), out = {};
-    const img = ui.titleImg; out.loaded = !!(img && img.complete && img.naturalWidth === 496 && img.naturalHeight === 208);
-    const grab = () => { g.r.draw(g); const d = ctx.getImageData(10, 10, 120, 48).data; let lum = 0, red = 0, n = 0, mn = 255, mx = 0; for (let i = 0; i < d.length; i += 4) { const l = (d[i] + d[i + 1] + d[i + 2]) / 3; lum += l; if (d[i] > 150 && d[i + 1] < 90 && d[i + 2] < 90) red++; mn = Math.min(mn, l); mx = Math.max(mx, l); n++; } return { mean: Math.round(lum / n), red, range: mx - mn }; };
+    const ti = ui.titleImg, ci = ui.controlsImg;
+    out.loaded = !!(ti && ti.complete && ti.naturalWidth === 496 && ti.naturalHeight === 208); out.loadedControls = !!(ci && ci.complete && ci.naturalWidth === 496 && ci.naturalHeight === 160);
+    const bone = (() => { const h = C.bone.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); })();
+    const stats = (x, y, w, h) => { const d = ctx.getImageData(x, y, w, h).data; let lum = 0, red = 0, text = 0, sat = 0, n = 0, mn = 255, mx = 0; for (let i = 0; i < d.length; i += 4) { const l = (d[i] + d[i + 1] + d[i + 2]) / 3; lum += l; if (d[i] > 150 && d[i + 1] < 90 && d[i + 2] < 90) red++; if (Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]) > 70) sat++; if (Math.abs(d[i] - bone[0]) < 8 && Math.abs(d[i + 1] - bone[1]) < 8 && Math.abs(d[i + 2] - bone[2]) < 8) text++; mn = Math.min(mn, l); mx = Math.max(mx, l); n++; } return { mean: Math.round(lum / n), red, text, sat, range: Math.round(mx - mn) }; };
+    const grab = () => { g.r.draw(g); return { title: stats(10, 10, 120, 48), controls: stats(10, 68, 120, 36) }; };
     g.state = 'title'; out.withImage = grab();
-    ui.titleImg = null; out.fallback = grab();                       // no image: the old drawn panel (a light border and a plain dark fill)
-    ui.titleImg = img; out.restored = grab();
+    ui.titleImg = null; ui.controlsImg = null; out.fallback = grab();            // no images: the old drawn panels (a light border and a plain dark fill)
+    ui.titleImg = ti; ui.controlsImg = ci; out.restored = grab();
     return out;
   });
-  T('the title-panel artwork loads at its embedded size (496 x 208)', U.loaded, JSON.stringify({ loaded: U.loaded }));
-  T('with the artwork, the panel shows its dark body and glowing red line (red pixels present, dark mean); the old border panel is not drawn', U.withImage.red > 10 && U.withImage.mean < 90 && U.withImage.range > 100, JSON.stringify(U.withImage));
-  T('without the image the usual drawn panel is the fallback (no red line) and restoring the image brings the artwork back', U.fallback.red === 0 && U.restored.red === U.withImage.red, JSON.stringify({ fallback: U.fallback, restored: U.restored }));
+  T('both panel images load at their embedded sizes (496 x 208 and 496 x 160)', U.loaded && U.loadedControls, JSON.stringify({ title: U.loaded, controls: U.loadedControls }));
+  T('title panel: the artwork shows its dark body and glowing red line (red pixels present, dark mean)', U.withImage.title.red > 10 && U.withImage.title.mean < 90 && U.withImage.title.range > 100, JSON.stringify(U.withImage.title));
+  T('controls panel: the colourful artwork shows through the veil (many saturated pixels, far more than the plain drawn panel) and the text is legible (its colour is present in numbers)', U.withImage.controls.sat > 3 * Math.max(50, U.fallback.controls.sat) && U.withImage.controls.mean < 110 && U.withImage.controls.text > 40, JSON.stringify({ art: U.withImage.controls, drawn: U.fallback.controls }));
+  T('without the images the usual drawn panels are the fallback (no red line), and restoring them brings the artwork back', U.fallback.title.red === 0 && U.restored.title.red === U.withImage.title.red && Math.abs(U.restored.controls.mean - U.withImage.controls.mean) <= 3, JSON.stringify({ withImage: U.withImage, fallback: U.fallback, restored: U.restored }));
   T('no JS errors', errs.length === 0, errs.slice(0, 2).join('|'));
   console.log('\n' + res.filter(Boolean).length + '/' + res.length + ' passed');
   await b.close(); srv.close(); process.exit(res.every(Boolean) ? 0 : 1);

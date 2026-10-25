@@ -15,7 +15,7 @@ class Renderer3D {
     this.ui = new Renderer(uiCanvas);                     // the pixel-art HUD / menus / touch controls, drawn on a transparent overlay
     this.uiCtx = uiCanvas.getContext('2d');
     this.ui.menu3d = true;
-    if (typeof UI_ASSETS !== 'undefined') { this.ui.titleImg = new Image(); this.ui.titleImg.src = UI_ASSETS.titlePanel; }      // the user's title-panel artwork
+    if (typeof UI_ASSETS !== 'undefined') { this.ui.titleImg = new Image(); this.ui.titleImg.src = UI_ASSETS.titlePanel; this.ui.controlsImg = new Image(); this.ui.controlsImg.src = UI_ASSETS.controlsPanel; }   // the user's menu-panel artwork
 
     const gl = this.gl = document.getElementById('gl');
     this.renderer = new THREE.WebGLRenderer({ canvas: gl, antialias: true, powerPreference: 'high-performance' });
