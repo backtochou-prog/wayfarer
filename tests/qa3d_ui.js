@@ -16,8 +16,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const g = __wf, ui = g.r.ui, ctx = document.getElementById('screen').getContext('2d'), out = {};
     const ti = ui.titleImg, ci = ui.controlsImg;
     out.loaded = !!(ti && ti.complete && ti.naturalWidth === 496 && ti.naturalHeight === 208); out.loadedControls = !!(ci && ci.complete && ci.naturalWidth === 496 && ci.naturalHeight === 160);
-    const bone = (() => { const h = C.bone.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); })();
-    const stats = (x, y, w, h) => { const d = ctx.getImageData(x, y, w, h).data; let lum = 0, red = 0, text = 0, sat = 0, n = 0, mn = 255, mx = 0; for (let i = 0; i < d.length; i += 4) { const l = (d[i] + d[i + 1] + d[i + 2]) / 3; lum += l; if (d[i] > 150 && d[i + 1] < 90 && d[i + 2] < 90) red++; if (Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]) > 70) sat++; if (Math.abs(d[i] - bone[0]) < 8 && Math.abs(d[i + 1] - bone[1]) < 8 && Math.abs(d[i + 2] - bone[2]) < 8) text++; mn = Math.min(mn, l); mx = Math.max(mx, l); n++; } return { mean: Math.round(lum / n), red, text, sat, range: Math.round(mx - mn) }; };
+    const bone = (() => { const h = C.tealL.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); })();      // the controls text colour over the artwork (light teal)
+    const stats = (x, y, w, h) => { const d = ctx.getImageData(x, y, w, h).data; let lum = 0, red = 0, text = 0, sat = 0, white = 0, n = 0, mn = 255, mx = 0; for (let i = 0; i < d.length; i += 4) { const l = (d[i] + d[i + 1] + d[i + 2]) / 3; lum += l; if (d[i] > 150 && d[i + 1] < 90 && d[i + 2] < 90) red++; if (Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]) > 70) sat++; if (d[i] > 225 && d[i + 1] > 225 && d[i + 2] > 225) white++; if (Math.abs(d[i] - bone[0]) < 8 && Math.abs(d[i + 1] - bone[1]) < 8 && Math.abs(d[i + 2] - bone[2]) < 8) text++; mn = Math.min(mn, l); mx = Math.max(mx, l); n++; } return { mean: Math.round(lum / n), red, text, sat, white, range: Math.round(mx - mn) }; };
     const grab = () => { g.r.draw(g); return { title: stats(10, 10, 120, 48), controls: stats(10, 68, 120, 36) }; };
     g.state = 'title'; out.withImage = grab();
     ui.titleImg = null; ui.controlsImg = null; out.fallback = grab();            // no images: the old drawn panels (a light border and a plain dark fill)
@@ -39,6 +39,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     g.mouse = { x: b.x + 5, y: b.y + 5, down: true }; out.pressed = face();
     g.mouse = { x: 0, y: 0, down: false };
     const img = ui.startImg; ui.startImg = null; out.plain = face(); ui.startImg = img;
+    { g.mouse = { x: 0, y: 0, down: false }; g.state = 'title'; g.r.draw(g); const tw = 4 + 5 * 4 * 2; const d = ctx.getImageData(b.x + 30, b.y + 2, 40, 12).data; let gr = 0, am = 0; for (let i = 0; i < d.length; i += 4) { if (d[i + 1] > 190 && d[i] < 140 && d[i + 2] < 100) gr++; if (d[i] > 200 && d[i + 1] > 140 && d[i + 1] < 190 && d[i + 2] < 100) am++; } out.labelGreen = gr; out.labelAmber = am; }
     out.label = BTN.title.label; out.pauseLabel = BTN.pause.label;
     g.state = 'pause'; g.r.draw(g); out.resume = px(BTN.pause.x + 3, BTN.pause.y + 8);     // the pause button must still be plain amber (no artwork)
     g.state = 'title';
@@ -47,6 +48,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('START button: the artwork loads (400 x 64) and the face shows its green and pink rings (plain button has none)', B.loaded && B.idle.green > 100 && B.idle.pink > 20 && B.plain.green === 0 && B.plain.pink === 0, JSON.stringify({ loaded: B.loaded, idle: B.idle, plain: B.plain }));
   T('START button feedback: lighter on hover, darker when pressed', B.hover.lum > B.idle.lum + 5 && B.pressed.lum < B.idle.lum - 5, JSON.stringify({ idle: B.idle.lum, hover: B.hover.lum, pressed: B.pressed.lum }));
   T('no white on the button: no near-white pixels in its face', B.idle.white === 0, JSON.stringify({ white: B.idle.white }));
+  T('no white in the controls panel either: no near-white pixels (the text is light teal, the artwork is veiled)', U.withImage.controls.white === 0, JSON.stringify({ white: U.withImage.controls.white }));
+  T('the PLAY label is green (green pixels in the label area, no amber)', B.labelGreen > 20 && B.labelAmber === 0, JSON.stringify({ green: B.labelGreen, amber: B.labelAmber }));
   T('the main menu button says PLAY, and the pause button still says RESUME', B.label === 'PLAY' && B.pauseLabel === 'RESUME', JSON.stringify({ title: B.label, pause: B.pauseLabel }));
   T('the pause button (RESUME) is still the plain amber one', B.resume[0] > 200 && B.resume[1] > 140 && B.resume[2] < 110, JSON.stringify(B.resume));
   T('no JS errors', errs.length === 0, errs.slice(0, 2).join('|'));

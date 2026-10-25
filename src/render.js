@@ -223,14 +223,14 @@ class Renderer {
   button(b, g) {
     const m = g.mouse, hov = m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h, pr = hov && m.down, c = this.ctx;
     const art = b.art && this[b.art];
-    if (art && art.complete && art.naturalWidth) {          // the user's artwork as the button face: a dark base (no white), the rings, an amber glow on hover / a dark veil when pressed, and a dark plate behind the label
+    if (art && art.complete && art.naturalWidth) {          // the user's artwork as the button face: a dark base (no white), the rings, a green glow on hover / a dark veil when pressed, and a dark plate behind the label
       c.fillStyle = C.ink; c.fillRect(b.x - 1, b.y - 1, b.w + 2, b.h + 2);
       c.fillStyle = C.ink; c.fillRect(b.x, b.y, b.w, b.h);
       const sm = c.imageSmoothingEnabled; c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(art, b.x, b.y, b.w, b.h); c.imageSmoothingEnabled = sm;
-      if (pr) { c.fillStyle = 'rgba(40,10,60,0.32)'; c.fillRect(b.x, b.y, b.w, b.h); } else if (hov) { c.fillStyle = 'rgba(240,176,72,0.30)'; c.fillRect(b.x, b.y, b.w, b.h); }
+      if (pr) { c.fillStyle = 'rgba(40,10,60,0.32)'; c.fillRect(b.x, b.y, b.w, b.h); } else if (hov) { c.fillStyle = 'rgba(90,230,70,0.30)'; c.fillRect(b.x, b.y, b.w, b.h); }
       const tw = textW(b.label, 2), tx = Math.round(b.x + (b.w - tw) / 2), ty = b.y + 3 + (pr ? 1 : 0);
       c.fillStyle = 'rgba(14,8,26,0.82)'; c.fillRect(tx - 3, ty - 2, tw + 6, 14);
-      drawText(c, b.label, tx, ty, pr ? C.amberD : hov ? C.amberL : C.amber, 2);
+      drawText(c, b.label, tx, ty, pr ? '#2f9a2a' : hov ? '#b4f58c' : '#5ee83c', 2);   // a green label
       return;
     }
     c.fillStyle = C.ink; c.fillRect(b.x - 1, b.y - 1, b.w + 2, b.h + 2);
@@ -302,13 +302,14 @@ class Renderer {
     // right of its light wall, with its glowing red line between 'PROTOTYPE 01' and 'TAKE A FORK.'; the controls panel is drawn under a dark veil so its text stays
     // readable. Without an image the usual bordered panel is drawn.
     const art1 = this.artPanel(this.titleImg, 8, 8, 124, 52, 0); if (!art1) this.panel(8, 8, 124, 52);
-    if (!this.artPanel(this.controlsImg, 8, 66, 124, 40, 0.58)) this.panel(8, 66, 124, 40);
+    if (!this.artPanel(this.controlsImg, 8, 66, 124, 40, 0.25)) this.panel(8, 66, 124, 40);
     const tx = art1 ? 34 : 14;
     this.txt('WAYFARER', tx, 16, C.amber, 2, C.burgD);
     this.txt('PROTOTYPE 01', tx, 38, C.tealL, 1);
     this.txt('TAKE A FORK.', tx, 48, C.sand, 1);
-    if (g.touch) { this.txt('HOLD < > STEER', 14, 74, C.bone, 1); this.txt('UP JUMP  DOWN SLIDE', 14, 84, C.bone, 1); this.txt('II PAUSE', 14, 94, C.bone, 1); }
-    else { this.txt('A D / ARROWS STEER', 14, 74, C.bone, 1); this.txt('SPACE / UP  JUMP', 14, 84, C.bone, 1); this.txt('DOWN SLIDE  P PAUSE', 14, 94, C.bone, 1); }
+    const tc = this.controlsImg && this.controlsImg.complete && this.controlsImg.naturalWidth ? C.tealL : C.bone;     // over the artwork the controls text is light teal (no white)
+    if (g.touch) { this.txt('HOLD < > STEER', 14, 74, tc, 1); this.txt('UP JUMP  DOWN SLIDE', 14, 84, tc, 1); this.txt('II PAUSE', 14, 94, tc, 1); }
+    else { this.txt('A D / ARROWS STEER', 14, 74, tc, 1); this.txt('SPACE / UP  JUMP', 14, 84, tc, 1); this.txt('DOWN SLIDE  P PAUSE', 14, 94, tc, 1); }
     this.button(BTN.title, g);
     if (!g.touch) this.txt('OR PRESS ENTER', 24, 144, C.stoneL, 1);
   }
