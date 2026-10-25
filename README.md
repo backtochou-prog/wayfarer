@@ -28,7 +28,7 @@ Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **htt
 - Camera: a chase camera behind and above the runner that follows the active route's centre, looks 20 m down it, and blends gradually into the fork's biome. Sky, fog and light colours, road palette and scenery all blend between city, forest and market (scenery per road side is chosen per 12 m slot by the blend at that spot).
 - Biomes are `src3d/env_city.js`, `env_forest.js`, `env_market.js` (colours, road palette, props, layout rule); the market detour reuses the city's buildings and street props with a different layout and a warmer cobbled road. A new biome is a new `ENV3D.<id>` plus a segment in `track.js`.
 
-**Avatar:** the neon egg-bot from the character sheet (`src3d/runner3d.js`), with an animated main-menu showcase. Its feet stay on the road through the run cycle (ankle joint), it turns to face along curves, and its slide pose fits under the gate.
+**Avatar:** the red egg-man from the character painting (`src3d/runner3d.js`): glossy red egg body, navy visor with a V lower edge, neon-green hair, pink lips, black side panels, long navy legs, black-and-pink sneakers, with an animated main-menu showcase. Its feet stay on the road through the run cycle (ankle joint), it turns to face along curves, and its slide pose fits under the gate.
 
 **Gameplay loop (shared rules in `src/game.js`, drawn in 3D)**
 - *Controls:* steer left/right (arrows or A/D, continuous across the three marked lanes), Space/Up jump (0.55 s, ~3 m apex, 0.12 s landing buffer), Down slide (0.55 s; tapping again mid-slide does not chain it; Down in the air fast-falls; a jump cancels a slide). Forward movement is automatic. Auto-repeat key events are ignored; jump/slide always return to running.
@@ -43,7 +43,7 @@ Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **htt
 
 **Limitations**
 - Real-device frame rate and touch feel are not measured. Per-frame JavaScript allocation in the 3D draw path is about 12 KB (down from 57 KB), mostly small temporaries.
-- Steering is continuous across the road (as in the 2D game), not snapping between three lanes. Collision uses the hit boxes above; the avatar's thin frond crown and arms are drawn taller/wider than its 1.8 m hit box, so a close shave is forgiving, never a phantom hit.
+- Steering is continuous across the road (as in the 2D game), not snapping between three lanes. Collision uses the hit boxes above; the avatar's hair and outstretched arms are drawn slightly taller/wider than its 1.8 m hit box, so a close shave is forgiving, never a phantom hit.
 - The road you did not take stays visible with its coins and hazards (it cannot be touched: you are confined to your road and the two are metres apart). Pickup sparkles and dust are 2D-only; the 3D build has its own coin pop and crash debris.
 
 ## Controls (keyboard)
