@@ -60,7 +60,7 @@ class Renderer3D {
     this.slotCache = []; for (let i = 0; i < 20; i++) this.slotCache.push({ i: -1e9, ver: -1, mid: null, a: null, b: null });   // track bands per scenery slot (middle / start / end), reused until the track changes
     this.items = new Items3D(this.scene);
     this.fx = new Fx3D(this.scene, this.items.merged.coin);
-    this.runner = new Runner3D(); this.scene.add(this.runner.group);
+    this.runner = new Runner3D(); this.scene.add(this.runner.group); this.scene.add(this.runner.shadow);
 
     this.menu = 1; this.lookX = 0; this.heading = 0;                         // menu blend (1 = menu camera, 0 = chase) and smoothed look-ahead
     this.cam = new THREE.Vector3(); this.look = new THREE.Vector3();
@@ -189,6 +189,7 @@ class Renderer3D {
     // ---- runner (absolute lateral on its road, jump height in metres)
     const pb = w.playerBand(p.z, p.x), relX = (p.x + pb.off) * U.X - Lref;
     this.runner.group.position.set(relX, p.jy * U.Y, 0);
+    { const sh = this.runner.shadow, k = Math.max(0.25, 1 - p.jy * U.Y / 3.5); sh.position.set(relX, 0.04, 0); sh.scale.set(0.5 * k, 1, 0.42 * k); sh.material.opacity = 0.3 * k; sh.visible = this.runner.group.visible; }   // contact shadow, fading as the runner leaves the ground
     const ms = 1 - Math.exp(-3.5 * dt);
     this.menu += ((g.state === 'title' ? 1 : 0) - this.menu) * ms;
     const mm = this.menu * this.menu * (3 - 2 * this.menu);

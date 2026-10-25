@@ -13,7 +13,17 @@ class Runner3D {
   constructor() {
     const RED = '#ff3a28', YELLOW_CAP = '#fff08a', NAVY = '#0c1a56', NAVY2 = '#102a7c', PALE = '#c8d8ff', BLACK = '#0b0b12', SHOE = '#1b1b24', PINK = '#e8386a', LIPS = '#ff2f86', HAND = '#d8262a', GREEN = '#46ff1c', LIME = '#c6ff3a', YEL = '#ffd60a';
     const mats = Kit.materials();
-    const mesh = parts => { const m = Kit.merge(parts), g = new THREE.Group(); if (m.lit) g.add(new THREE.Mesh(m.lit, mats.lit)); if (m.glow) g.add(new THREE.Mesh(m.glow, mats.glow)); return g; };
+    // glossy, smooth-shaded body: normals averaged over shared vertices (so the egg is round, not faceted) and a Phong material with a specular highlight
+    const gloss = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 70, specular: 0x666666 });
+    const smooth = geo => {
+      const P = geo.attributes.position.array, N = geo.attributes.normal.array, acc = new Map(), key = i => Math.round(P[i] * 1e3) + ',' + Math.round(P[i + 1] * 1e3) + ',' + Math.round(P[i + 2] * 1e3);
+      for (let i = 0; i < P.length; i += 3) { const k = key(i); let a = acc.get(k); if (!a) acc.set(k, a = [0, 0, 0]); a[0] += N[i]; a[1] += N[i + 1]; a[2] += N[i + 2]; }
+      for (let i = 0; i < P.length; i += 3) { const a = acc.get(key(i)), l = Math.hypot(a[0], a[1], a[2]) || 1; N[i] = a[0] / l; N[i + 1] = a[1] / l; N[i + 2] = a[2] / l; }
+    };
+    const mesh = parts => {
+      for (const p of parts) if (!p.glow) smooth(p.geo);
+      const m = Kit.merge(parts), g = new THREE.Group(); if (m.lit) g.add(new THREE.Mesh(m.lit, gloss)); if (m.glow) g.add(new THREE.Mesh(m.glow, mats.glow)); return g;
+    };
     const pivot = (parent, x, y, z) => { const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g); return g; };
     const UP = new THREE.Vector3(0, 1, 0), ONE = new THREE.Vector3(1, 1, 1), Q0 = new THREE.Quaternion(), V0 = new THREE.Vector3();
     // a free-form part from any THREE geometry (torus, tube): transform baked in, then merged like every other part
@@ -26,6 +36,9 @@ class Runner3D {
     const RX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
     const ring = (R, tube, y, zs, color, glow) => raw(new THREE.TorusGeometry(R, tube, 5, 30), color, new THREE.Vector3(0, y, 0), RX, new THREE.Vector3(1, zs, 1), glow);   // horizontal ring, zs squeezes it front-to-back
 
+    // soft contact shadow on the road: lives in the scene (the renderer places it under the runner and shrinks it with jump height)
+    this.shadow = new THREE.Mesh(new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }));
+    this.shadow.renderOrder = 1; this.shadow.scale.set(0.5, 1, 0.42);
     this.HIP = 1.95;
     this.group = new THREE.Group();
     this.group.scale.setScalar(0.35);                              // 5.1 units -> 1.8 m
@@ -81,7 +94,7 @@ class Runner3D {
 
     // torso group: the egg itself (yellow cap fading into red), the visor band, belt, lips, studs, side panels, hair
     this.torso = pivot(this.body, 0, 0, 0);
-    const egg = coat(shell(Y0, Y1, 0, 30, 32, true), YELLOW_CAP); G(egg, RED, 3.2); egg.gain = 1.5;
+    const egg = coat(shell(Y0, Y1, 0, 30, 32, true), YELLOW_CAP); G(egg, RED, 3.2); egg.gain = 1.8;
     const visor = coat(shell(vBot, 4.42, 0.03, 8, 40, false), '#12248a'); G(visor, '#050612');
     const parts = [egg, visor,
       ring(eggR(4.42) + 0.04, 0.026, A(4.42), DZ, YEL, true),                                              // thin yellow line along the top of the visor
