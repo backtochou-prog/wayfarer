@@ -121,13 +121,13 @@ class Runner3D {
     parts.push(jk(coat(shell(JT - 0.07, JT, 0.058, 1, 44, false, JF0, JF1), JACKET_D)));                        // collar line under the visor
     parts.push(coat(shell(JB + 0.16, JT - 0.07, 0.052, 8, 2, false, Math.PI - 0.018, Math.PI + 0.018), JACKET_L));   // centre-back seam
     parts.push(coat(shell(3.04, 3.07, 0.052, 1, 44, false, JF0, JF1), JACKET_L));
-    // a stand-up collar rising from the jacket and opening slightly round the neck: navy outside, darker navy lining inside, a rolled edge on top;
+    // a stand-up collar rising from the jacket and opening slightly round the neck: black outside, a slightly darker lining inside, a rolled edge on top;
     // it is tallest at the back and shrinks to nothing where the jacket opens at the front
-    const CB = 3.43, CTM = 3.7, CI0 = 0.07, CI1 = 0.1, COLLAR = '#1f3a9a', COLLAR_D = '#17297a';   // smaller than before, one navy colour
+    const CB = 3.43, CTM = 3.7, CI0 = 0.07, CI1 = 0.1, COLLAR = '#1a1a22', COLLAR_D = '#0e0e14';   // smaller than before, one black colour
     const CT = f => CB + 0.08 + (CTM - CB - 0.08) * Math.pow(Math.max(0, Math.min(1, (f - JF0) / 0.8, (JF1 - f) / 0.8)), 0.8);
     parts.push(jk(coat(shell(CB, CT, CI0, 6, 44, false, JF0, JF1, CI1), COLLAR)));                           // outer face
-    parts.push(jk(coat(shell(CB, CT, CI0 - 0.04, 6, 44, false, JF0, JF1, CI1 - 0.03, true), COLLAR_D)));    // lining, facing inward (a slightly darker navy)
-    parts.push(jk(coat(shell(f => CT(f) - 0.05, CT, CI0 + (CI1 - CI0) * 0.9 + 0.005, 1, 44, false, JF0, JF1, CI1 + 0.012), COLLAR)));   // rolled top edge, same navy                          // yoke seam across the shoulders
+    parts.push(jk(coat(shell(CB, CT, CI0 - 0.04, 6, 44, false, JF0, JF1, CI1 - 0.03, true), COLLAR_D)));    // lining, facing inward (a slightly darker black)
+    parts.push(jk(coat(shell(f => CT(f) - 0.05, CT, CI0 + (CI1 - CI0) * 0.9 + 0.005, 1, 44, false, JF0, JF1, CI1 + 0.012), COLLAR)));   // rolled top edge, same black                          // yoke seam across the shoulders
     // a five-pointed star on the middle of the jacket's back, drawn as a thick outline (hollow in the middle, the jacket shows through): the band between the
     // star and a scaled copy of it, subdivided and projected onto the curved jacket surface
     const starOutline = (cy, ro, ri, inner, off, color, gain) => {
