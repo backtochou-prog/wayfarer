@@ -53,14 +53,14 @@ class Runner3D {
     const eggR = y => y > YC ? EA * Math.sqrt(Math.max(0, 1 - Math.pow((y - YC) / BU, 2)))
                              : EA * (0.58 + 0.42 * Math.sqrt(Math.max(0, 1 - Math.pow((YC - y) / (YC - Y0), 1.7))));
     // a band of that surface between a bottom edge (constant or a function of the angle from the front) and a top edge, inflated by `infl`
-    const shell = (yBot, yTop, infl, rows, segs, cap, f0 = 0, f1 = 2 * Math.PI) => {
+    const shell = (yBot, yTop, infl, rows, segs, cap, f0 = 0, f1 = 2 * Math.PI, inflTop, flip) => {   // inflTop: the inflation at the top edge (flares the band); flip: face inward
       const pos = [], P = (i, j) => {
-        const f = f0 + (f1 - f0) * i / segs, yb = typeof yBot === 'function' ? yBot(f) : yBot, y = yb + (yTop - yb) * j / rows, r = Math.max(0, eggR(y) + (y < Y1 - 0.001 ? infl : 0));
+        const f = f0 + (f1 - f0) * i / segs, yb = typeof yBot === 'function' ? yBot(f) : yBot, yt = typeof yTop === 'function' ? yTop(f) : yTop, y = yb + (yt - yb) * j / rows, inf = inflTop === undefined ? infl : infl + (inflTop - infl) * j / rows, r = Math.max(0, eggR(y) + (y < Y1 - 0.001 ? inf : 0));
         return new THREE.Vector3(r * Math.sin(f), A(y), -r * DZ * Math.cos(f));
       };
       const tri = (a, b, c) => {                                                     // wound so the normal points away from the body's axis
         const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)), m = new THREE.Vector3().add(a).add(b).add(c).divideScalar(3);
-        m.y -= A(YC); if (n.dot(m) < 0) { const t = b; b = c; c = t; }
+        m.y -= A(YC); if ((n.dot(m) < 0) !== !!flip) { const t = b; b = c; c = t; }
         pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
       };
       for (let j = 0; j < rows; j++) for (let i = 0; i < segs; i++) { const a = P(i, j), b = P(i + 1, j), c = P(i + 1, j + 1), d = P(i, j + 1); tri(a, b, c); tri(a, c, d); }
@@ -120,7 +120,14 @@ class Runner3D {
     parts.push(jk(coat(shell(JB, JB + 0.16, 0.065, 2, 44, false, JF0, JF1), JACKET_D)));                       // ribbed hem
     parts.push(jk(coat(shell(JT - 0.07, JT, 0.058, 1, 44, false, JF0, JF1), JACKET_D)));                        // collar line under the visor
     parts.push(coat(shell(JB + 0.16, JT - 0.07, 0.052, 8, 2, false, Math.PI - 0.018, Math.PI + 0.018), JACKET_L));   // centre-back seam
-    parts.push(coat(shell(3.04, 3.07, 0.052, 1, 44, false, JF0, JF1), JACKET_L));                          // yoke seam across the shoulders
+    parts.push(coat(shell(3.04, 3.07, 0.052, 1, 44, false, JF0, JF1), JACKET_L));
+    // a stand-up collar rising from the jacket and opening slightly round the neck: navy outside, darker navy lining inside, a rolled edge on top;
+    // it is tallest at the back and shrinks to nothing where the jacket opens at the front
+    const CB = 3.43, CTM = 3.7, CI0 = 0.07, CI1 = 0.1, COLLAR = '#1f3a9a', COLLAR_D = '#17297a';   // smaller than before, one navy colour
+    const CT = f => CB + 0.08 + (CTM - CB - 0.08) * Math.pow(Math.max(0, Math.min(1, (f - JF0) / 0.8, (JF1 - f) / 0.8)), 0.8);
+    parts.push(jk(coat(shell(CB, CT, CI0, 6, 44, false, JF0, JF1, CI1), COLLAR)));                           // outer face
+    parts.push(jk(coat(shell(CB, CT, CI0 - 0.04, 6, 44, false, JF0, JF1, CI1 - 0.03, true), COLLAR_D)));    // lining, facing inward (a slightly darker navy)
+    parts.push(jk(coat(shell(f => CT(f) - 0.05, CT, CI0 + (CI1 - CI0) * 0.9 + 0.005, 1, 44, false, JF0, JF1, CI1 + 0.012), COLLAR)));   // rolled top edge, same navy                          // yoke seam across the shoulders
     // a five-pointed star on the middle of the jacket's back, drawn as a thick outline (hollow in the middle, the jacket shows through): the band between the
     // star and a scaled copy of it, subdivided and projected onto the curved jacket surface
     const starOutline = (cy, ro, ri, inner, off, color, gain) => {
@@ -142,12 +149,12 @@ class Runner3D {
       return { geo: g, color, glow: false, gain };
     };
     parts.push(starOutline(2.74, 0.64, 0.26, 0.4, 0.075, '#ff62b4', 1.5));                   // pink outline star, hollow inside
-    // the back of the head is bare strawberry: a few small seeds scattered irregularly between the jacket collar and the calyx (fixed pseudo-random sequence)
+    // the back of the head is bare strawberry: a few small seeds scattered irregularly between the stand-up collar and the calyx (fixed pseudo-random sequence)
     {
       let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
       const placed = []; let tries = 0;
-      while (placed.length < 10 && tries++ < 500) {
-        const f = Math.PI + (rnd() - 0.5) * 2 * 1.1, y = 3.62 + rnd() * 0.68, r = eggR(y) + 0.006, x = r * Math.sin(f), z = -r * DZ * Math.cos(f);
+      while (placed.length < 7 && tries++ < 500) {
+        const f = Math.PI + (rnd() - 0.5) * 2 * 1.1, y = 4.0 + rnd() * 0.38, r = eggR(y) + 0.006, x = r * Math.sin(f), z = -r * DZ * Math.cos(f);
         if (placed.some(q => (q[0] - x) ** 2 + (q[1] - y) ** 2 + (q[2] - z) ** 2 < 0.3 * 0.3)) continue;
         placed.push([x, y, z]);
         parts.push(Kit.ico(0.028 + rnd() * 0.014, x, A(y), z, '#ffd23a', { sy: 1.4, sz: 0.7, detail: 1, ry: -f, rz: (rnd() - 0.5) * 1.2, glow: true }));
