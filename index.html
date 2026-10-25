@@ -4,14 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1b1420">
+<meta name="theme-color" content="#efb27c">
 <title>Wayfarer</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="style.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #efb27c; overflow: hidden; overscroll-behavior: none; }
+  body { height: 100dvh; display: flex; align-items: center; justify-content: center; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
+  /* the 3D view fills the window; the pixel-art HUD/menu canvas (320x180, whole-number scale) sits centred on top of it */
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #screen { position: relative; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; background: transparent; }
+</style>
 </head>
 <body>
+<canvas id="gl"></canvas>
 <canvas id="screen" width="320" height="180"></canvas>
-<div id="rotate">ROTATE YOUR PHONE FOR A BIGGER VIEW</div>
+<script src="vendor/three.min.js"></script>
 <script src="src/biomes.js"></script>
 <script src="src/track.js"></script>
 <script src="src/world.js"></script>
@@ -19,6 +26,16 @@
 <script src="src/font.js"></script>
 <script src="src/render.js"></script>
 <script src="src/game.js"></script>
-<script src="src/main.js"></script>
+<script src="src3d/kit.js"></script>
+<script src="src3d/env_city.js"></script>
+<script src="src3d/env_forest.js"></script>
+<script src="src3d/env_market.js"></script>
+<script src="src3d/signs3d.js"></script>
+<script src="src3d/runner3d.js"></script>
+<script src="src3d/items3d.js"></script>
+<script src="src3d/fx3d.js"></script>
+<script src="src3d/road3d.js"></script>
+<script src="src3d/renderer3d.js"></script>
+<script src="src3d/main3d.js"></script>
 </body>
 </html>

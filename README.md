@@ -9,7 +9,7 @@ cd wayfarer
 python3 -m http.server 8080      # Windows: py -m http.server 8080
 ```
 
-Open http://localhost:8080. Opening `index.html` directly in a browser also works.
+Open http://localhost:8080 for the 3D game (the default page). The original pixel-art 2D version is at http://localhost:8080/2d.html. Opening `index.html` directly in a browser also works.
 
 ## Play on a phone
 
@@ -17,7 +17,7 @@ Open the hosted page on an Android phone (Chrome). On-screen buttons appear auto
 
 ## 3D build
 
-Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **http://localhost:8080/3d.html** (same server command as above; `index.html` is still the classic pixel-art 2D version).
+Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **http://localhost:8080** (same server command as above); it is the default page. `/3d.html` redirects there, and `2d.html` is the classic pixel-art 2D version.
 
 **Route:** city start > city running section > visible fork > **LEFT: Greenwood (forest)** / **RIGHT: Market Detour (city)** > both merge into the same city plaza and the track continues (and loops, so the fork comes round again). Both branches are short (130 m) and are fully their own biome within 15 m of the junction.
 
@@ -61,7 +61,7 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 ## Layout
 
 ```
-index.html, style.css
+index.html (3D game), 2d.html (classic 2D), 3d.html (redirect to index.html), style.css
 src3d/*         3D front end: kit, road3d, env_city/forest/market, runner3d, items3d, signs3d, renderer3d, main3d
 vendor/         three.min.js (Three.js r186)
 tools/preview3d.html  dev page that renders one 3D module in isolation
