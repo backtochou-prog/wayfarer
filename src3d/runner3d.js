@@ -85,13 +85,13 @@ class Runner3D {
       knee.add(mesh([Kit.ico(0.36, 0, 0, 0, NAVY2, { sx: 0.6, detail: 1 }), G(Kit.cyl(0.4, 0.17, 1.03, 0, -1.03, 0, NAVY2, { seg: 10, sx: 0.6 }), PALE, 1.5)]));   // knee ball + shin fading to a pale ankle
       const ankle = pivot(knee, 0, -1.03, 0);
       const shoe = mesh([
-        G(Kit.ico(0.32, 0, -0.25, -0.08, SHOE, { sx: 0.9, sy: 0.62, sz: 1.75, detail: 2 }), '#050508'),   // low black upper, its top tucked round the ankle
-        Kit.ico(0.22, 0, -0.28, -0.52, PINK, { sx: 0.8, sy: 0.42, sz: 0.9, detail: 1 }),                  // pink toe cap
-        Kit.cyl(0.22, 0.22, 0.07, 0, -0.08, 0.05, PINK, { seg: 8, sx: 0.8 }),                             // pink collar round the ankle
-        Kit.box(0.03, 0.05, 0.8, 0.29, -0.33, -0.08, '#35e0ff', { glow: true }), Kit.box(0.03, 0.05, 0.8, -0.29, -0.33, -0.08, '#35e0ff', { glow: true }),   // neon cyan trim along the sides
-        Kit.box(0.03, 0.04, 0.76, 0.285, -0.41, -0.08, '#ff9a3a', { glow: true }), Kit.box(0.03, 0.04, 0.76, -0.285, -0.41, -0.08, '#ff9a3a', { glow: true }), // and an orange line under it
-        Kit.box(0.3, 0.12, 0.16, 0, -0.22, 0.46, PINK),                                                   // pink heel tab
-        Kit.cyl(0.29, 0.28, 0.07, 0, -0.5, -0.08, PINK, { seg: 16, sz: 1.75 })]);                         // pink sole following the foot
+        G(Kit.ico(0.34, 0, -0.22, -0.08, SHOE, { sx: 1.0, sy: 0.8, sz: 1.8, detail: 2 }), '#050508'),     // big round black upper, its top tucked round the ankle
+        Kit.ico(0.25, 0, -0.26, -0.56, PINK, { sx: 0.85, sy: 0.55, sz: 0.9, detail: 1 }),                 // pink toe cap
+        Kit.cyl(0.24, 0.24, 0.07, 0, -0.08, 0.05, PINK, { seg: 8, sx: 0.8 }),                             // pink collar round the ankle
+        Kit.box(0.03, 0.05, 0.85, 0.33, -0.33, -0.08, '#35e0ff', { glow: true }), Kit.box(0.03, 0.05, 0.85, -0.33, -0.33, -0.08, '#35e0ff', { glow: true }),   // neon cyan trim along the sides
+        Kit.box(0.03, 0.04, 0.8, 0.325, -0.42, -0.08, '#ff9a3a', { glow: true }), Kit.box(0.03, 0.04, 0.8, -0.325, -0.42, -0.08, '#ff9a3a', { glow: true }),  // and an orange line under it
+        Kit.box(0.34, 0.12, 0.16, 0, -0.22, 0.5, PINK),                                                   // pink heel tab
+        Kit.cyl(0.37, 0.36, 0.09, 0, -0.5, -0.08, PINK, { seg: 18, sz: 1.85 })]);                         // wide pink sole (a platform) following the foot
       shoe.position.y = 0.1;                                                                             // sole bottom at -0.4: the soles touch the road
       ankle.add(shoe);
       this.hip.push(hip); this.knee.push(knee); this.ankle.push(ankle);
@@ -116,25 +116,22 @@ class Runner3D {
                        [-0.52, 2.87, 0.044], [-0.63, 2.74, 0.05], [-0.48, 2.62, 0.04], [-0.62, 2.98, 0.038], [-0.44, 2.76, 0.035], [-0.65, 2.56, 0.037]])
       parts.push(Kit.ico(sz, x, A(y), onEgg(x, y, 0.006), '#ffd23a', { sy: 1.4, sz: 0.7, detail: 1, rz: (x * 7 + y * 3) % 1.2 - 0.6, glow: true }));
     // the jacket: the painting's black side panels are the open front of a black jacket, so its back and sides wrap the body (the front stays open on the red).
-    // Glossy shell from just under the glasses to above the belt, with a ribbed hem, a collar line and a centre-back seam.
-    const JF0 = 1.0, JF1 = 2 * Math.PI - 1.0, JB = 2.16, JT = 3.44;
-    parts.push(jk(coat(shell(JB, JT, 0.045, 10, 44, false, JF0, JF1), JACKET)));
-    parts.push(jk(coat(shell(JB, JB + 0.16, 0.065, 2, 44, false, JF0, JF1), JACKET_D)));                       // ribbed hem
-    parts.push(jk(coat(shell(JT - 0.07, JT, 0.058, 1, 44, false, JF0, JF1), JACKET_D)));                        // collar line under the visor
-    parts.push(coat(shell(JB + 0.16, JT - 0.07, 0.052, 8, 2, false, Math.PI - 0.018, Math.PI + 0.018), JACKET_L));   // centre-back seam
-    parts.push(coat(shell(3.04, 3.07, 0.052, 1, 44, false, JF0, JF1), JACKET_L));
-    // a stand-up collar rising from the jacket and opening slightly round the neck: black outside, a slightly darker lining inside, a rolled edge on top;
-    // it is tallest at the back and shrinks to nothing where the jacket opens at the front
-    const CB = 3.43, CTM = 3.7, CI0 = 0.07, CI1 = 0.1, COLLAR = '#1a1a22', COLLAR_D = '#0e0e14';   // smaller than before, one black colour
-    const CT = f => CB + 0.08 + (CTM - CB - 0.08) * Math.pow(Math.max(0, Math.min(1, (f - JF0) / 0.8, (JF1 - f) / 0.8)), 0.8);
-    parts.push(jk(coat(shell(CB, CT, CI0, 6, 44, false, JF0, JF1, CI1), COLLAR)));                           // outer face
-    parts.push(jk(coat(shell(CB, CT, CI0 - 0.04, 6, 44, false, JF0, JF1, CI1 - 0.03, true), COLLAR_D)));    // lining, facing inward (a slightly darker black)
-    parts.push(jk(coat(shell(f => CT(f) - 0.05, CT, CI0 + (CI1 - CI0) * 0.9 + 0.005, 1, 44, false, JF0, JF1, CI1 + 0.012), COLLAR)));   // rolled top edge, same black                          // yoke seam across the shoulders
+    // Glossy shell from above the belt up to a dome under the red cap, with a grey crescent hem, a rolled top edge, a yoke seam and a centre-back seam.
+    const JF0 = 1.0, JF1 = 2 * Math.PI - 1.0, JB = 2.16, JT0 = 3.44, JT1 = 4.02;
+    // the jacket rises at the back as a rounded beige dome up to the red cap (no collar), and comes down to the glasses' height where it opens at the front
+    const JTOP = f => JT0 + (JT1 - JT0) * Math.pow(Math.max(0, Math.min(1, (f - JF0) / 0.9, (JF1 - f) / 0.9)), 0.8);
+    parts.push(jk(coat(shell(JB, JTOP, 0.045, 14, 44, false, JF0, JF1), JACKET)));
+    // hem: a grey crescent that hangs lowest at the middle of the back and tapers to nothing at the sides
+    const crescent = f => JB - 0.3 * Math.pow(Math.max(0, 1 - Math.abs(f - Math.PI) / (Math.PI - JF0)), 0.9);
+    parts.push(jk(coat(shell(crescent, JB + 0.04, 0.09, 3, 44, false, JF0, JF1), '#6e6e78')));
+    parts.push(jk(coat(shell(f => JTOP(f) - 0.05, JTOP, 0.052, 1, 44, false, JF0, JF1), JACKET_D)));            // rolled edge along the top of the dome
+    parts.push(coat(shell(JB + 0.16, JT1 - 0.07, 0.052, 10, 2, false, Math.PI - 0.018, Math.PI + 0.018), JACKET_L));   // centre-back seam
+    parts.push(coat(shell(3.04, 3.07, 0.052, 1, 44, false, JF0, JF1), JACKET_L));                                // yoke seam across the shoulders
     // a five-pointed star on the middle of the jacket's back: a thick outline with a differently coloured fill inside: the band between the
     // star and a scaled copy of it, subdivided and projected onto the curved jacket surface
-    const starOutline = (cy, ro, ri, inner, off, color, gain) => {
+    const starOutline = (cy, ro, ri, inner, off, color, gain, rot = 0) => {
       const pos = [], O = [];
-      for (let k = 0; k < 10; k++) { const a = Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? ri : ro; O.push([Math.cos(a) * r, Math.sin(a) * r]); }
+      for (let k = 0; k < 10; k++) { const a = Math.PI / 2 + k * Math.PI / 5 + rot, r = k % 2 ? ri : ro; O.push([Math.cos(a) * r, Math.sin(a) * r]); }
       const lift = (x, v) => { const y = cy + v; return new THREE.Vector3(x, A(y), DZ * Math.sqrt(Math.max(0, Math.pow(eggR(y) + off, 2) - x * x))); };   // back surface (+z)
       const tri = (a, b, c) => {
         const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
@@ -150,12 +147,15 @@ class Runner3D {
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
       return { geo: g, color, glow: false, gain };
     };
-    // thin lines: six fine pink stripes round the jacket (behind the star, so they show either side of it) and a fine pale line round the neck just above the collar
+    // thin lines: six fine pink stripes round the jacket (behind the star, so they show either side of it) and a fine pale line along the top of the jacket dome
     for (const y of [2.42, 2.58, 2.74, 2.90, 3.18, 3.32]) { const st = coat(shell(y, y + 0.028, 0.06, 1, 44, false, JF0, JF1), '#ff8cc6'); st.gain = 1.3; parts.push(st); }
-    { const ring = coat(shell(f => CT(f) + 0.03, f => CT(f) + 0.058, 0.02, 1, 44, false, JF0, JF1), '#ffe3f0'); ring.gain = 1.3; parts.push(ring); }
+    { const ring = coat(shell(f => JTOP(f) + 0.02, f => JTOP(f) + 0.048, 0.02, 1, 44, false, JF0, JF1), '#ffe3f0'); ring.gain = 1.3; parts.push(ring); }
     parts.push(starOutline(2.74, 0.64, 0.26, 0.4, 0.075, '#ff62b4', 1.5));
-    parts.push(starOutline(2.74, 0.64 * 0.43, 0.26 * 0.43, 0, 0.072, '#ffb8dc', 1.3));                   // the star's interior: a lighter pink fill (a star scaled to just overlap the outline's hole)                   // pink outline star, hollow inside
-    // the back of the head is bare strawberry: a few small seeds scattered irregularly between the stand-up collar and the calyx (fixed pseudo-random sequence)
+    // the star's interior is a big vortex: concentric stars (the largest nearly as big as the star, so only its points stay pink), each smaller one turned a
+    // little further, dark / magenta / dark / purple, with a light dot at the eye. Drawn above the pink outline.
+    [[0.82, '#2a1330'], [0.70, '#a83ab0'], [0.58, '#241028'], [0.46, '#7a3a8a'], [0.34, '#1a0a20'], [0.23, '#a83ab0'], [0.13, '#1a0a20'], [0.055, '#ffb8dc']]
+      .forEach(([sc, col], k) => parts.push(starOutline(2.74, 0.64 * sc, 0.26 * sc, 0, 0.0765 + 0.0012 * k, col, 1.3, k * 0.22)));
+    // the back of the head is bare strawberry: a few small seeds scattered irregularly between the jacket dome and the calyx (fixed pseudo-random sequence)
     {
       let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
       const placed = []; let tries = 0;
