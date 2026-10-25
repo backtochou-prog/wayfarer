@@ -128,7 +128,7 @@ class Runner3D {
     parts.push(jk(coat(shell(CB, CT, CI0, 6, 44, false, JF0, JF1, CI1), COLLAR)));                           // outer face
     parts.push(jk(coat(shell(CB, CT, CI0 - 0.04, 6, 44, false, JF0, JF1, CI1 - 0.03, true), COLLAR_D)));    // lining, facing inward (a slightly darker black)
     parts.push(jk(coat(shell(f => CT(f) - 0.05, CT, CI0 + (CI1 - CI0) * 0.9 + 0.005, 1, 44, false, JF0, JF1, CI1 + 0.012), COLLAR)));   // rolled top edge, same black                          // yoke seam across the shoulders
-    // a five-pointed star on the middle of the jacket's back, drawn as a thick outline (hollow in the middle, the jacket shows through): the band between the
+    // a five-pointed star on the middle of the jacket's back: a thick outline with a differently coloured fill inside: the band between the
     // star and a scaled copy of it, subdivided and projected onto the curved jacket surface
     const starOutline = (cy, ro, ri, inner, off, color, gain) => {
       const pos = [], O = [];
@@ -148,7 +148,8 @@ class Runner3D {
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
       return { geo: g, color, glow: false, gain };
     };
-    parts.push(starOutline(2.74, 0.64, 0.26, 0.4, 0.075, '#ff62b4', 1.5));                   // pink outline star, hollow inside
+    parts.push(starOutline(2.74, 0.64, 0.26, 0.4, 0.075, '#ff62b4', 1.5));
+    parts.push(starOutline(2.74, 0.64 * 0.43, 0.26 * 0.43, 0, 0.072, '#ffd23a', 1.4));                   // the star's interior: a gold fill (a star scaled to just overlap the outline's hole)                   // pink outline star, hollow inside
     // the back of the head is bare strawberry: a few small seeds scattered irregularly between the stand-up collar and the calyx (fixed pseudo-random sequence)
     {
       let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
