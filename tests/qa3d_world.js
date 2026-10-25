@@ -191,8 +191,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   });
   T('the neon quarter is a district: biome neon through the whole segment, atmosphere fades in over the first 120 m and out over the last 120 m (no jumps), full strength for the ~250 m between, the segment sits between plain city pieces (' + Nq.ids[0] + ')',
     Nq.segs >= 2 && Nq.len >= 5000 && Nq.bad.length === 0 && Nq.maxStep < 0.1 && Nq.mid > 5 && Nq.ends > 0 && Nq.ids.every(x => /^(plaza|plazaB)>neonRun>cityRunB$/.test(x)), JSON.stringify({ segs: Nq.segs, len: Nq.len, bad: Nq.bad.slice(0, 3), maxStep: +Nq.maxStep.toFixed(3), ids: Nq.ids.slice(0, 2) }));
-  T('the neon quarter\'s layout only uses props it defines, dresses every slot (2..14 props) and uses >= 20 kinds incl. the four landmarks; the 2D game has a palette for it',
-    Nq.missing.length === 0 && Nq.layout.min >= 2 && Nq.layout.max <= 14 && Nq.kinds.length >= 20 && ['neonRing', 'neonSpire', 'neonBillboard', 'neonHalo'].every(k => Nq.kinds.includes(k)) && Nq.has2D, JSON.stringify({ missing: Nq.missing, layout: Nq.layout, kinds: Nq.kinds.length }));
+  T('the neon quarter\'s layout only uses props it defines, dresses every slot (2..14 props) and uses >= 30 kinds incl. the eight landmarks; the 2D game has a palette for it',
+    Nq.missing.length === 0 && Nq.layout.min >= 2 && Nq.layout.max <= 14 && Nq.kinds.length >= 30 && ['neonRing', 'neonSpire', 'neonBillboard', 'neonHalo', 'neonBoardVortex', 'neonBoardSphere', 'neonBoardRings', 'neonBoardSpiral'].every(k => Nq.kinds.includes(k)) && Nq.has2D, JSON.stringify({ missing: Nq.missing, layout: Nq.layout, kinds: Nq.kinds.length }));
 
   const Na = await pg.evaluate(async () => {
     const r = __wf.r, mat = NeonArt.material(); for (let i = 0; i < 60 && !mat.visible; i++) await new Promise(q => setTimeout(q, 100));
@@ -216,6 +216,17 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   });
   T('the second set of materials (8 pictures in one alpha atlas, 1024 x 744) loads and is on 8 new neon props sharing one material; every one of them is placed by the street layout',
     M2.loaded && M2.cells === 8 && M2.mats === 1 && Object.values(M2.props).every(n => n === 1) && M2.unused.length === 0, JSON.stringify(M2));
+
+  const M3 = await pg.evaluate(async () => {
+    const r = __wf.r, mat = NeonArt.material3(); for (let i = 0; i < 80 && !mat.visible; i++) await new Promise(q => setTimeout(q, 100));
+    const NAMES = ['neonSwirlR', 'neonSwirlP', 'neonSwirlG', 'neonSwirlT', 'neonStreetBlock', 'neonDotsBlock', 'neonRaysTower', 'neonSwirlSign', 'neonCapSign', 'neonDotScreen', 'neonLinesBanner', 'neonShopD', 'neonCar', 'neonBoardVortex', 'neonBoardSphere', 'neonBoardRings', 'neonBoardSpiral'];
+    const out = { loaded: mat.visible && mat.map.image.naturalWidth === 1024 && mat.map.image.naturalHeight > 1000, props: {}, mats: new Set(), cells: Object.keys(NEON_ASSETS3).filter(k => k !== 'src').length };
+    for (const n of NAMES) { const g = r.props[n] && r.props[n][0], tex = g ? g.children.filter(c => c.isMesh && c.material.map) : []; out.props[n] = tex.length; tex.forEach(m => out.mats.add(m.material.uuid)); }
+    const used = new Set(); for (let i = -3; i < 4000; i++) for (const q of ENV3D.neon.layout(i, rnd)) used.add(q.prop); out.unused = NAMES.filter(n => !used.has(n));
+    out.mats = out.mats.size; return out;
+  });
+  T('the third set of materials (17 pictures in one alpha atlas, 1024 px wide) loads and is on 17 new neon props sharing one material; every one of them is placed by the street layout',
+    M3.loaded && M3.cells === 17 && M3.mats === 1 && Object.values(M3.props).every(n => n === 1) && M3.unused.length === 0, JSON.stringify(M3));
 
   // ================================================================ 4. trees are the user's artwork
   const Tr = await pg.evaluate(async () => {

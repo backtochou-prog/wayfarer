@@ -25,6 +25,19 @@ const NeonArt = {
     }
     return this._mat2;
   },
+  // the third atlas (NEON_ASSETS3): same kind as the second
+  _mat3: null,
+  material3() {
+    if (!this._mat3) {
+      const img = new Image(), tex = new THREE.Texture(img);
+      tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; tex.generateMipmaps = true; tex.minFilter = THREE.LinearMipmapLinearFilter;
+      const mat = new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.3, side: THREE.DoubleSide });
+      mat.visible = false; img.onload = () => { tex.needsUpdate = true; mat.visible = true; }; img.src = NEON_ASSETS3.src;
+      this._mat3 = mat;
+    }
+    return this._mat3;
+  },
+  panel3(cell, x, z0, z1, y0, y1) { return this.panel(cell, x, z0, z1, y0, y1, NEON_ASSETS3); },
   // same as panel(), for a cell of the second atlas
   panel2(cell, x, z0, z1, y0, y1) { return this.panel(cell, x, z0, z1, y0, y1, NEON_ASSETS2); },
   // two crossed vertical planes (a free-standing cut-out seen from any side) of a cell of the second atlas, h metres tall, standing on y0, centred on the origin
