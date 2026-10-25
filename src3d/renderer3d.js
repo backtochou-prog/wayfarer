@@ -15,6 +15,7 @@ class Renderer3D {
     this.ui = new Renderer(uiCanvas);                     // the pixel-art HUD / menus / touch controls, drawn on a transparent overlay
     this.uiCtx = uiCanvas.getContext('2d');
     this.ui.menu3d = true;
+    BTN.title.label = 'PLAY';                              // the 3D menu's main button says PLAY (the classic 2D page keeps START)
     if (typeof UI_ASSETS !== 'undefined') { this.ui.titleImg = new Image(); this.ui.titleImg.src = UI_ASSETS.titlePanel; this.ui.controlsImg = new Image(); this.ui.controlsImg.src = UI_ASSETS.controlsPanel; this.ui.startImg = new Image(); this.ui.startImg.src = UI_ASSETS.startButton; }   // the user's menu-panel artwork
 
     const gl = this.gl = document.getElementById('gl');

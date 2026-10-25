@@ -28,7 +28,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('title panel: the artwork shows its dark body and glowing red line (red pixels present, dark mean)', U.withImage.title.red > 10 && U.withImage.title.mean < 90 && U.withImage.title.range > 100, JSON.stringify(U.withImage.title));
   T('controls panel: the colourful artwork shows through the veil (many saturated pixels, far more than the plain drawn panel) and the text is legible (its colour is present in numbers)', U.withImage.controls.sat > 3 * Math.max(50, U.fallback.controls.sat) && U.withImage.controls.mean < 110 && U.withImage.controls.text > 40, JSON.stringify({ art: U.withImage.controls, drawn: U.fallback.controls }));
   T('without the images the usual drawn panels are the fallback (no red line), and restoring them brings the artwork back', U.fallback.title.red === 0 && U.restored.title.red === U.withImage.title.red && Math.abs(U.restored.controls.mean - U.withImage.controls.mean) <= 3, JSON.stringify({ withImage: U.withImage, fallback: U.fallback, restored: U.restored }));
-  // the START button: artwork face, hover / pressed feedback, the fallback, and that RESUME / RUN AGAIN stay plain amber
+  // the main button (PLAY): artwork face, hover / pressed feedback, the fallback, and that RESUME / RUN AGAIN stay plain amber
   const B = await pg.evaluate(() => {
     const g = __wf, ui = g.r.ui, ctx = document.getElementById('screen').getContext('2d'), out = {}, b = BTN.title;
     out.loaded = !!(ui.startImg && ui.startImg.complete && ui.startImg.naturalWidth === 400 && ui.startImg.naturalHeight === 64);
@@ -39,12 +39,14 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     g.mouse = { x: b.x + 5, y: b.y + 5, down: true }; out.pressed = face();
     g.mouse = { x: 0, y: 0, down: false };
     const img = ui.startImg; ui.startImg = null; out.plain = face(); ui.startImg = img;
+    out.label = BTN.title.label; out.pauseLabel = BTN.pause.label;
     g.state = 'pause'; g.r.draw(g); out.resume = px(BTN.pause.x + 3, BTN.pause.y + 8);     // the pause button must still be plain amber (no artwork)
     g.state = 'title';
     return out;
   });
   T('START button: the artwork loads (400 x 64) and the face shows its green and pink rings (plain button has none)', B.loaded && B.idle.green > 100 && B.idle.pink > 20 && B.plain.green === 0 && B.plain.pink === 0, JSON.stringify({ loaded: B.loaded, idle: B.idle, plain: B.plain }));
   T('START button feedback: lighter on hover, darker when pressed', B.hover.lum > B.idle.lum + 5 && B.pressed.lum < B.idle.lum - 5, JSON.stringify({ idle: B.idle.lum, hover: B.hover.lum, pressed: B.pressed.lum }));
+  T('the main menu button says PLAY, and the pause button still says RESUME', B.label === 'PLAY' && B.pauseLabel === 'RESUME', JSON.stringify({ title: B.label, pause: B.pauseLabel }));
   T('the pause button (RESUME) is still the plain amber one', B.resume[0] > 200 && B.resume[1] > 140 && B.resume[2] < 110, JSON.stringify(B.resume));
   T('no JS errors', errs.length === 0, errs.slice(0, 2).join('|'));
   console.log('\n' + res.filter(Boolean).length + '/' + res.length + ' passed');
