@@ -207,7 +207,7 @@ class Renderer3D {
     const slope = ((c1.c + c1.off) - (c0.c + c0.off)) * U.X / (100 * U.Z);
     this.heading += (-Math.atan(slope) - this.heading) * (1 - Math.exp(-10 * dt));
     this.runner.group.rotation.y = Math.PI * mm + this.heading * (1 - mm);
-    this.runner.update(dt, { time: g.time, runRate: 2.3 + p.speed / 340 * 1.1, airborne: p.jy > 0, vy: p.vy, sliding: p.slide > 0,
+    this.runner.update(dt, { faceYaw: Math.atan2(this.cam.x - relX, this.cam.z), time: g.time, runRate: 2.3 + p.speed / 340 * 1.1, airborne: p.jy > 0, vy: p.vy, sliding: p.slide > 0,
                              lean: Math.max(-1, Math.min(1, p.vx / STEER)), state: g.state });
 
     // ---- camera: chase (behind and above, centred on the 2D camera) blended with the menu showcase orbit; looks down the active route

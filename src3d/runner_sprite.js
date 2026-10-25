@@ -1,7 +1,7 @@
 // RunnerSprite: the player avatar as the user's own retouched artwork (AVATAR_ASSETS in avatar_assets.js), shown as flat cards.
 // It has the same interface as Runner3D (group, shadow, update(dt, state), cur), so the renderer and the tests treat both alike:
 //   - the chase camera looks at the runner from behind, so gameplay shows the retouched BACK view;
-//   - the menu shows the retouched SIDE view with an idle / wave / spin / dance / run-in-place showcase, like the 3D model's;
+//   - the menu shows the same BACK view (or the SIDE view with ?menu=side) with an idle / wave / spin / dance / run-in-place showcase, like the 3D model's;
 //   - there is no skeleton, so the motion is done to the whole card: run bounce and squash-and-stretch, a steering lean, a stretch in the jump,
 //     ducking (squashed) for the slide, tipping forward for a crash.
 // Size: 1.9 m tall (hair top to soles), feet on the road (the card pivots at its bottom centre). The group is yawed by the renderer like the 3D
@@ -9,6 +9,7 @@
 // States: 'play' run / jump / slide, 'over' trip, 'pause' hold, 'title' a looping showcase for the main menu.
 class RunnerSprite {
   constructor() {
+    this.menuView = (location.search.match(/[?&]menu=(side|back)\b/) || [])[1] || 'back';   // which artwork the menu shows: the back view (default, wider and matching the game) or the side view (?menu=side)
     this.group = new THREE.Group();
     this.pivot = new THREE.Group(); this.group.add(this.pivot);                   // bottom-centre pivot: tilts, squashes and spins happen here
     this.cards = {};
@@ -35,11 +36,12 @@ class RunnerSprite {
     if (s.state !== 'over') this.phase += dt * s.runRate * Math.PI * 2;
     const sn = Math.sin(this.phase);
     let spin = 0, view = 'back';
+    const face = s.faceYaw || 0;                                // the renderer passes the direction of the camera, so the card squarely faces it (the menu camera orbits)
     t.y = 0; t.rx = 0; t.rz = 0; t.sx = 1; t.sy = 1;
     if (s.state === 'over') {                                  // tripped: tips forward onto its face
       t.rx = -1.35; t.rz = 0.1; t.sy = 0.95;
-    } else if (s.state === 'title') {                          // showcase loop (10 s) on the side view: idle, wave, spin, dance, run in place
-      view = 'side'; const u = T % 10;
+    } else if (s.state === 'title') {                          // showcase loop (10 s): idle, wave, spin, dance, run in place
+      view = this.menuView; const u = T % 10;
       t.y = Math.sin(T * 2.2) * 0.02;
       if (u < 2) { t.rz = Math.sin(T * 1.3) * 0.04; }
       else if (u < 4) { t.rz = 0.07 + Math.sin(T * 11) * 0.05; t.sy = 1.02; t.sx = 0.985; }                                  // wave: a quick sway
@@ -57,7 +59,7 @@ class RunnerSprite {
     for (const key in c) c[key] += (t[key] - c[key]) * k;
     if (view !== this.view) { this.cards.back.visible = view === 'back'; this.cards.side.visible = view === 'side'; this.view = view; }
     this.pivot.position.y = c.y;
-    this.pivot.rotation.set(c.rx, -this.group.rotation.y + spin, c.rz, 'YXZ');   // cancel the renderer's yaw: the card always faces the camera (plus the showcase spin)
+    this.pivot.rotation.set(c.rx, -this.group.rotation.y + face + spin, c.rz, 'YXZ');   // cancel the renderer's yaw: the card always faces the camera (plus the showcase spin)
     this.pivot.scale.set(c.sx, c.sy, 1);
   }
 }

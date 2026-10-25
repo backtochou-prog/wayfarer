@@ -31,14 +31,16 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     pose('stand', {}); pose('jump', { airborne: true, vy: 3 }); pose('slide', { sliding: true }); pose('over', { state: 'over' }); pose('title', { state: 'title', time: 3.1 });
     // the card always faces the camera (world normal +z) whatever yaw the renderer gives the group: heading on a curve, the menu's half turn
     out.facing = [0, 0.3, -0.4, Math.PI].map(yaw => { rn.group.rotation.y = yaw; for (let i = 0; i < 5; i++) rn.update(1 / 60, st({})); rn.group.updateMatrixWorld(true); const n = new THREE.Vector3(0, 0, 1).transformDirection(rn.cards.back.matrixWorld); return +n.z.toFixed(3); });
+    // the renderer passes the direction of the (orbiting) menu camera as faceYaw: the card turns to face it exactly
+    out.faceYaw = [0.5, -0.8].map(fy => { rn.group.rotation.y = Math.PI; for (let i = 0; i < 5; i++) rn.update(1 / 60, st({ state: 'title', time: 3.1, faceYaw: fy })); rn.group.updateMatrixWorld(true); const card = rn.cards.back.visible ? rn.cards.back : rn.cards.side, n = new THREE.Vector3(0, 0, 1).transformDirection(card.matrixWorld); return +(n.x * Math.sin(fy) + n.z * Math.cos(fy)).toFixed(3); });
     rn.group.rotation.y = 0; rn.update(1 / 60, st({ state: 'pause', time: 9 })); out.pauseHolds = true;
     return out;
   });
   T('default avatar is the retouched artwork (RunnerSprite); the 3D model class is still there', A.isSprite && A.has3dClass, JSON.stringify({ isSprite: A.isSprite, has3d: A.has3dClass }));
   T('both images load at their embedded size and become visible', A.loaded.every(Boolean) && A.assets.back.h === 800 && A.assets.side.h === 800 && Math.abs(A.assets.back.mh - 1.9) < 0.02 && Math.abs(A.assets.side.mh - 1.9) < 0.05, JSON.stringify({ loaded: A.loaded, assets: A.assets }));
-  T('the view follows the state: back while playing / jumping / sliding / tripping, side in the menu', A.stand.view === 'back' && A.jump.view === 'back' && A.slide.view === 'back' && A.over.view === 'back' && A.title.view === 'side', JSON.stringify({ stand: A.stand.view, jump: A.jump.view, slide: A.slide.view, over: A.over.view, title: A.title.view }));
+  T('the view follows the state: back while playing / jumping / sliding / tripping and, by default, in the menu', A.stand.view === 'back' && A.jump.view === 'back' && A.slide.view === 'back' && A.over.view === 'back' && A.title.view === 'back', JSON.stringify({ stand: A.stand.view, jump: A.jump.view, slide: A.slide.view, over: A.over.view, title: A.title.view }));
   T('size and ground: standing ~1.9 m (+ run bounce), feet on the road, jumping clear of it, sliding under 0.9 m, tripped lower still', A.stand.top >= 1.85 && A.stand.top <= 2.05 && A.stand.bottom >= -0.06 && A.stand.bottom <= 0.1 && A.jump.bottom >= -0.01 && A.slide.top <= 0.9 && A.slide.bottom >= -0.06 && A.over.top < A.slide.top + 0.2 && A.stand.half >= 0.43, JSON.stringify({ stand: A.stand, jump: A.jump, slide: A.slide, over: A.over }));
-  T('the card always faces the camera whatever the group\'s yaw (heading on curves, the menu turn)', A.facing.every(z => z > 0.999), JSON.stringify(A.facing));
+  T('the card always faces the camera whatever the group\'s yaw (heading on curves, the menu turn), and squarely faces the menu camera\'s direction (faceYaw)', A.facing.every(z => z > 0.999) && A.faceYaw.every(v => v > 0.999), JSON.stringify({ facing: A.facing, faceYaw: A.faceYaw }));
 
   // ---------------------------------------------------------------- 2. no leaks over a long play-through; textures stay at 2
   const L = await pg.evaluate(() => {
@@ -50,7 +52,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     r.draw(g);
     return { state: g.state, tex: [tex0, r.renderer.info.memory.textures], kids: [kids0, r.scene.children.length], own: [own0, rn.pivot.children.length], sameCards: geoIds0 === ['back', 'side'].map(k => rn.cards[k].geometry.uuid).join() };   // (geometry counts also grow as new scenery is first drawn: that is the GPU upload of props, not the avatar)
   });
-  T('no leaks: the 2 textures, the 2 cards and the scene children stay constant over 30 s of play', L.state === 'play' && L.tex[0] === 2 && L.tex[0] === L.tex[1] && L.kids[0] === L.kids[1] && L.own[0] === 2 && L.own[1] === 2 && L.sameCards, JSON.stringify(L));
+  T('no leaks: the uploaded textures (only the back view's by default), the 2 cards and the scene children stay constant over 30 s of play', L.state === 'play' && L.tex[0] >= 1 && L.tex[0] === L.tex[1] && L.kids[0] === L.kids[1] && L.own[0] === 2 && L.own[1] === 2 && L.sameCards, JSON.stringify(L));
   T('no JS errors in the default avatar session', pg.errs.length === 0, pg.errs.slice(0, 2).join('|'));
 
   // ---------------------------------------------------------------- 3. ?avatar=3d selects the 3D model; file:// works (the images are embedded)
@@ -58,6 +60,9 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const p3 = await open('http://localhost:' + PORT + '/?avatar=3d');
     const M = await p3.evaluate(() => ({ is3d: __wf.r.runner instanceof Runner3D, kids: __wf.r.runner.group.children.length }));
     T('?avatar=3d selects the 3D model', M.is3d && M.kids > 0 && p3.errs.length === 0, JSON.stringify({ is3d: M.is3d, errs: p3.errs.length }));
+    const ps = await open('http://localhost:' + PORT + '/?menu=side');
+    const V = await ps.evaluate(() => { const rn = __wf.r.runner; rn.group.rotation.y = Math.PI; for (let i = 0; i < 5; i++) rn.update(1 / 60, { state: 'title', time: 3.1, runRate: 3, airborne: false, vy: 0, sliding: false, lean: 0 }); return { menuView: rn.menuView, side: rn.cards.side.visible, back: rn.cards.back.visible }; });
+    T('?menu=side shows the side view in the menu', V.menuView === 'side' && V.side && !V.back && ps.errs.length === 0, JSON.stringify(V));
     const pf = await open('file://' + path.join(ROOT, 'index.html'));
     const F = await pf.evaluate(async () => { const rn = __wf.r.runner; for (let i = 0; i < 50 && !rn.cards.back.material.visible; i++) await new Promise(r => setTimeout(r, 100)); return { sprite: rn instanceof RunnerSprite, visible: rn.cards.back.material.visible && rn.cards.side.material.visible }; });
     T('works from file:// (images embedded as data URIs, no CORS problem)', F.sprite && F.visible && pf.errs.length === 0, JSON.stringify({ ...F, errs: pf.errs.slice(0, 1) }));
