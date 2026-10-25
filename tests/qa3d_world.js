@@ -194,6 +194,19 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('the neon quarter\'s layout only uses props it defines, dresses every slot (2..14 props) and uses >= 12 kinds incl. the three landmarks; the 2D game has a palette for it',
     Nq.missing.length === 0 && Nq.layout.min >= 2 && Nq.layout.max <= 14 && Nq.kinds.length >= 12 && ['neonRing', 'neonSpire', 'neonBillboard'].every(k => Nq.kinds.includes(k)) && Nq.has2D, JSON.stringify({ missing: Nq.missing, layout: Nq.layout, kinds: Nq.kinds.length }));
 
+  const Na = await pg.evaluate(async () => {
+    const r = __wf.r, mat = NeonArt.material(); for (let i = 0; i < 60 && !mat.visible; i++) await new Promise(q => setTimeout(q, 100));
+    const out = { loaded: mat.visible && mat.map.image.naturalWidth === 512 && mat.map.image.naturalHeight > 700, cells: {}, mats: new Set() };
+    for (const n of ['neonTowerA', 'neonTowerB', 'neonBillboard']) {
+      const g = r.props[n][0], meshes = g.children.filter(c => c.isMesh), tex = meshes.filter(m => m.material.map);
+      out.cells[n] = { meshes: meshes.length, textured: tex.length }; tex.forEach(m => out.mats.add(m.material.uuid));
+      if (tex[0]) { const bb = new THREE.Box3().setFromObject(tex[0]); out.cells[n].w = +(bb.max.z - bb.min.z).toFixed(1); out.cells[n].h = +(bb.max.y - bb.min.y).toFixed(1); }
+    }
+    out.mats = out.mats.size; return out;
+  });
+  T('the neon billboard and the two neon towers carry the user\'s pictures (one textured panel each, one shared unlit atlas that loads; billboard ~9.8 x 6.4 m, towers ~0.9 of their height)',
+    Na.loaded && Na.mats === 1 && ['neonTowerA', 'neonTowerB', 'neonBillboard'].every(n => Na.cells[n].textured === 1 && Na.cells[n].meshes >= 2) && Na.cells.neonBillboard.w > 9 && Na.cells.neonBillboard.h > 6 && Na.cells.neonTowerB.h > Na.cells.neonTowerA.h, JSON.stringify(Na));
+
   // ================================================================ 4. trees are the user's artwork
   const Tr = await pg.evaluate(async () => {
     const r = __wf.r, names = ['tree', 'pine', 'pineTall', 'oak', 'birch', 'giantOak'], out = { kinds: {}, mats: new Set(), loaded: false };

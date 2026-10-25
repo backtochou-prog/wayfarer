@@ -23,6 +23,8 @@ window.ENV3D = window.ENV3D || {};
     p.push(Kit.box(D * 0.7, 0.3, F * 0.8, D / 2, H, 0, N.base), Kit.box(0.14, 0.14, F * 0.8, 0.0, H + 0.1, 0, N.mag, { glow: true }));   // roof cap with a magenta rim
     return Kit.merge(p);
   }
+  // a tower whose facade carries a panel of the user's picture (in front of the glowing strips, between the lit corners)
+  const artTower = (F, D, H, seed, cell) => ({ merged: tower(F, D, H, seed), sprite: NeonArt.panel(cell, -0.2, -F * 0.43, F * 0.43, 1.3, 1.3 + H * 0.9), material: () => NeonArt.material() });
   // a block with a grid of lit windows (warm, blue, cyan, some dark) and a neon rim
   function block(F, D, H, seed, rim) {
     const p = [Kit.box(D, H, F, D / 2, 0, 0, seed % 2 ? N.bodyC : N.body), Kit.box(D + 0.1, 0.5, F + 0.1, D / 2, 0, 0, N.base)];
@@ -66,7 +68,7 @@ window.ENV3D = window.ENV3D || {};
     entrance: 'gateNeon',
 
     props: {
-      neonTowerA: () => tower(7, 6.5, 19, 1), neonTowerB: () => tower(6.4, 6, 24, 2),
+      neonTowerA: () => artTower(7, 6.5, 19, 1, 'towA'), neonTowerB: () => artTower(6.4, 6, 24, 2, 'towB'),
       neonBlockA: () => block(9.6, 7, 11.5, 3, N.mag), neonBlockB: () => block(9, 7.5, 14.5, 4, N.teal), neonBlockC: () => block(10, 6.5, 9, 5, N.green),
       neonShopA: () => shop(8.5, 6, 5.2, N.mag, N.yellow), neonShopB: () => shop(9, 6, 5.6, N.teal, N.green),
       neonLampM: lampOf(N.mag), neonLampC: lampOf(N.teal),
@@ -77,9 +79,11 @@ window.ENV3D = window.ENV3D || {};
       neonRing: () => { const p = [Kit.cyl(0.18, 0.24, 5.4, 0, 0, -3.2, N.post), Kit.cyl(0.18, 0.24, 5.4, 0, 0, 3.2, N.post)]; ring(0, 6.4, 3.4, 0.3, N.mag, p); ring(0, 6.4, 2.6, 0.22, N.teal, p, 16); ring(0, 6.4, 1.8, 0.16, N.yellow, p, 12); ring(0, 6.4, 1.0, 0.12, N.green, p, 8); return Kit.merge(p); },
       neonSpire: () => { const p = [Kit.box(3.4, 26, 3.4, 0, 0, 0, N.body)]; for (let k = 0; k < 7; k++) p.push(Kit.box(3.7, 0.28, 3.7, 0, 2.5 + k * 3.4, 0, [N.mag, N.teal, N.yellow, N.purple][k % 4], { glow: true }));
         p.push(Kit.box(0.2, 26, 0.3, -1.72, 0, 0, N.teal, { glow: true }), Kit.cone(1.6, 5, 0, 26, 0, N.body), Kit.cyl(0.07, 0.07, 4, 0, 31, 0, N.post), Kit.ico(0.28, 0, 35.2, 0, N.red, { glow: true })); return Kit.merge(p); },
-      neonBillboard: () => { const p = [Kit.box(0.4, 7, 0.4, 0, 0, -4.2, N.post), Kit.box(0.4, 7, 0.4, 0, 0, 4.2, N.post), Kit.box(0.3, 4.8, 10, -0.1, 6.0, 0, N.base)];
-        [[N.mag, 6.2], [N.purple, 7.2], [N.teal, 8.2], [N.yellow, 9.2], [N.green, 10.2]].forEach(([c, y], i) => p.push(Kit.box(0.34, 0.7 + (i % 2) * 0.5, 9.2, -0.14, y + 0.0, 0, c, { glow: true })));
-        p.push(Kit.box(0.4, 0.2, 10.2, -0.1, 11.0, 0, N.mag, { glow: true }), Kit.box(0.4, 0.2, 10.2, -0.1, 6.0, 0, N.teal, { glow: true })); return Kit.merge(p); },
+      // the big billboard: the user's picture of coloured towers on a green sky, in a glowing frame on two posts
+      neonBillboard: () => { const p = [Kit.box(0.4, 6.4, 0.4, 0, 0, -5.0, N.post), Kit.box(0.4, 6.4, 0.4, 0, 0, 5.0, N.post), Kit.box(0.3, 6.9, 10.6, -0.05, 5.7, 0, N.base),
+          Kit.box(0.42, 0.22, 10.8, -0.1, 12.5, 0, N.mag, { glow: true }), Kit.box(0.42, 0.22, 10.8, -0.1, 5.55, 0, N.teal, { glow: true }),
+          Kit.box(0.42, 7.1, 0.22, -0.1, 5.55, -5.3, N.yellow, { glow: true }), Kit.box(0.42, 7.1, 0.22, -0.1, 5.55, 5.3, N.green, { glow: true })];
+        return { merged: Kit.merge(p), sprite: NeonArt.panel('bill', -0.24, -4.9, 4.9, 5.9, 12.3), material: () => NeonArt.material() }; },
       // marks where the street turns to neon (the first slot of the quarter): a glowing pylon
       gateNeon: () => Kit.merge([Kit.box(0.5, 4.2, 0.5, 0, 0, 0, N.post), Kit.box(0.12, 4.0, 0.2, -0.3, 0.1, 0, N.mag, { glow: true }), Kit.box(0.12, 4.0, 0.2, 0.3, 0.1, 0, N.green, { glow: true }), Kit.box(0.9, 0.24, 0.9, 0, 4.2, 0, N.yellow, { glow: true })]),
     },

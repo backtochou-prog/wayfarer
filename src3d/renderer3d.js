@@ -59,7 +59,9 @@ class Renderer3D {
         if (this.props[name]) continue;
         const m = props[name](), cap = /^house/.test(name) ? 26 : /^sign/.test(name) ? 4 : CAP[name] || 28, list = [];
         for (let i = 0; i < cap; i++) {
-          const g = m.sprite ? new THREE.Group().add(new THREE.Mesh(m.sprite, TreeSprite.material())) : Kit.mesh(m);   // trees are textured crossed planes (TreeSprite), everything else merged vertex-coloured geometry
+          // textured panels (trees: TreeSprite; the neon billboard and tower facades: NeonArt) are a `sprite` geometry with its own material, optionally beside ordinary merged geometry (`merged`)
+          let g;
+          if (m.sprite) { g = m.merged ? Kit.mesh(m.merged) : new THREE.Group(); g.add(new THREE.Mesh(m.sprite, m.material ? m.material() : TreeSprite.material())); } else g = Kit.mesh(m);
           g.visible = false; this.scene.add(g); list.push(g);
         }
         this.props[name] = list; this.propUsed[name] = 0;

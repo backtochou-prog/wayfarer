@@ -23,6 +23,8 @@ Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **htt
 
 **Neon Quarter:** a night district of the city (`src3d/env_neon.js`, from your neon-city picture) between the first plaza and the second lap, as the track segment `neonRun` (`district: true`). The sky, fog, light, road palette and scenery fade from the sunset city into the night over the first 30 % of the segment and back over the last 30 % (`World.bandsAt`), so it is entered and left smoothly; its neighbours are plain city pieces. Near-black asphalt with glowing magenta / green / red lines, tall slabs striped in yellow, purple, teal and magenta, blocks with lit windows, glowing signs, tube lamps, bollards, neon strips along the kerbs, a glowing gate pylon where it starts, and three landmarks (neon ring, spire, billboard). The 2D game gets a dark palette for the same biome so the shared track works.
 
+Two of your pictures are on the district's walls (`src3d/neon_assets.js` / `neon_art.js`, one shared unlit atlas): the picture of coloured towers on a green sky is the big billboard landmark, and crops of the close-up of coloured slabs are the facades of the two neon towers.
+
 ![neon quarter](docs/screenshots/neon-quarter.jpg)
 
 **Menu:** both panels are your own artwork (`src3d/ui_assets.js`, drawn by `Renderer.drawTitle3D` / `artPanel`). The title panel (top) keeps its text over the dark part, with the glowing red line between 'PROTOTYPE 01' and 'TAKE A FORK.'; the controls panel (below, whose text changes on a phone) is drawn under a dark veil so the text stays readable. The main button (it says PLAY in the 3D menu; the 2D page keeps START) is your ring artwork too (a band through the middle of your image; it glows green on hover and darkens when pressed, on a dark base with a dark plate behind the green label, so there is no white). If an image is missing, the usual drawn panel or amber button is used. RESUME and RUN AGAIN stay plain amber.
@@ -79,7 +81,7 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 
 ```
 index.html (3D game), 2d.html (classic 2D), 3d.html (redirect to index.html), style.css
-src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market/neon, runner_sprite + avatar_assets (the artwork avatar), tree_sprite + tree_assets (the artwork trees), ui_assets (the menu-panel artwork), runner3d (the 3D model), items3d, fx3d, signs3d, renderer3d, main3d
+src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market/neon (+ neon_art / neon_assets), runner_sprite + avatar_assets (the artwork avatar), tree_sprite + tree_assets (the artwork trees), ui_assets (the menu-panel artwork), runner3d (the 3D model), items3d, fx3d, signs3d, renderer3d, main3d
 vendor/         three.min.js (Three.js r186)
 tools/preview3d.html  dev page that renders one 3D module in isolation
 tests/qa3d_coins.js   regression test: coin pickup (coins vanish at once, count once, can't be re-collected, pool reuse, both branches, restart)
