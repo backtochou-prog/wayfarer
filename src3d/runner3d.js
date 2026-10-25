@@ -8,7 +8,7 @@
 // Origin = ground between the feet, facing -Z (the chase camera sees its back).
 // States: 'play' run cycle / jump / slide, 'over' trip, 'pause' hold, 'title' a looping showcase for the main menu.
 // slide pose: leaning back and squashed so the whole avatar stays under the ~1.05 m gap of an overhead gate
-const SLIDE_Y = 1.3, SLIDE_RX = 1.6, SLIDE_SQ = 0.8;
+const SLIDE_Y = 1.45, SLIDE_RX = 1.6, SLIDE_SQ = 0.8;
 class Runner3D {
   constructor() {
     const RED = '#ff2a2e', YELLOW_CAP = '#ff7a5c', NAVY = '#0c1a56', NAVY2 = '#102a7c', PALE = '#c8d8ff', JACKET = '#ecdcb8', JACKET_D = '#cbb68c', JACKET_L = '#fff6e2', JG = 1.28, SHOE = '#1b1b24', PINK = '#e8386a', LIPS = '#ff2f86', HAND = '#d8262a', GREEN = '#46ff1c', LIME = '#c6ff3a', YEL = '#ffd60a';
@@ -40,12 +40,12 @@ class Runner3D {
     // soft contact shadow on the road: lives in the scene (the renderer places it under the runner and shrinks it with jump height)
     this.shadow = new THREE.Mesh(new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }));
     this.shadow.renderOrder = 1; this.shadow.scale.set(0.5, 1, 0.42);
-    this.HIP = 1.95;
+    this.HIP = 2.25;                                               // hip pivot height: the legs are 0.3 longer than the painting's first measurement (the user's retouched side view)
     this.group = new THREE.Group();
-    this.group.scale.setScalar(0.35);                              // 5.1 units -> 1.8 m
+    this.group.scale.setScalar(0.3333);                            // 5.4 units -> 1.8 m
     this.root = pivot(this.group, 0, 0, 0);                        // spin (menu showcase)
     this.body = pivot(this.root, 0, this.HIP, 0);                  // bob / tilt, pivot at the hips
-    const A = y => y - this.HIP;                                   // painting height (ground = 0) -> coordinates relative to the hip pivot
+    const A = y => y - 1.95;                                       // painting height (ground = 0) -> coordinates relative to the hip pivot (the body sits 0.3 higher on the longer legs)
 
     // the strawberry body: a surface of revolution (half-width EA, half-depth EC), widest at YC; a broad rounded top (half-height BU) and a
     // lower half that tapers to a narrower flat bottom at Y0 (radius 0.58 EA there)
@@ -79,17 +79,19 @@ class Runner3D {
     // The ankle counter-rotates against the leg so the shoe stays level instead of digging its toe into the road.
     this.hip = []; this.knee = []; this.ankle = [];
     for (const s of [-1, 1]) {
-      const hip = pivot(this.body, s * 0.4, 0, 0);
-      hip.add(mesh([G(Kit.cyl(0.26, 0.18, 0.62, 0, -0.62, 0, NAVY, { seg: 8 }), NAVY2)]));
-      const knee = pivot(hip, 0, -0.62, 0);
-      knee.add(mesh([G(Kit.cyl(0.18, 0.1, 0.88, 0, -0.88, 0, NAVY2, { seg: 8 }), PALE, 1.5)]));
-      const ankle = pivot(knee, 0, -0.88, 0);
+      const hip = pivot(this.body, s * 0.34, 0, 0);
+      hip.add(mesh([G(Kit.cyl(0.56, 0.4, 0.77, 0, -0.77, 0, NAVY, { seg: 10, sx: 0.6 }), NAVY2)]));            // thick thigh: deep front-to-back, narrower across so both fit under the belt
+      const knee = pivot(hip, 0, -0.77, 0);
+      knee.add(mesh([Kit.ico(0.36, 0, 0, 0, NAVY2, { sx: 0.6, detail: 1 }), G(Kit.cyl(0.4, 0.17, 1.03, 0, -1.03, 0, NAVY2, { seg: 10, sx: 0.6 }), PALE, 1.5)]));   // knee ball + shin fading to a pale ankle
+      const ankle = pivot(knee, 0, -1.03, 0);
       const shoe = mesh([
-        G(Kit.ico(0.32, 0, -0.25, -0.05, SHOE, { sx: 0.95, sy: 0.8, sz: 1.8, detail: 2 }), '#050508'),   // black upper
-        Kit.ico(0.24, 0, -0.26, -0.5, PINK, { sx: 0.85, sy: 0.55, sz: 0.8, detail: 1 }),                  // pink toe cap
-        Kit.cyl(0.2, 0.2, 0.07, 0, 0.0, 0.1, PINK, { seg: 8 }),                                          // pink collar round the ankle opening
-        Kit.box(0.03, 0.05, 0.7, 0.3, -0.33, -0.05, PINK, { glow: true }), Kit.box(0.03, 0.05, 0.7, -0.3, -0.33, -0.05, PINK, { glow: true }),   // pink trim along the sides
-        Kit.cyl(0.29, 0.28, 0.07, 0, -0.5, -0.06, PINK, { seg: 16, sz: 1.85 })]);                          // pink sole following the foot
+        G(Kit.ico(0.32, 0, -0.25, -0.08, SHOE, { sx: 0.9, sy: 0.62, sz: 1.75, detail: 2 }), '#050508'),   // low black upper, its top tucked round the ankle
+        Kit.ico(0.22, 0, -0.28, -0.52, PINK, { sx: 0.8, sy: 0.42, sz: 0.9, detail: 1 }),                  // pink toe cap
+        Kit.cyl(0.22, 0.22, 0.07, 0, -0.08, 0.05, PINK, { seg: 8, sx: 0.8 }),                             // pink collar round the ankle
+        Kit.box(0.03, 0.05, 0.8, 0.29, -0.33, -0.08, '#35e0ff', { glow: true }), Kit.box(0.03, 0.05, 0.8, -0.29, -0.33, -0.08, '#35e0ff', { glow: true }),   // neon cyan trim along the sides
+        Kit.box(0.03, 0.04, 0.76, 0.285, -0.41, -0.08, '#ff9a3a', { glow: true }), Kit.box(0.03, 0.04, 0.76, -0.285, -0.41, -0.08, '#ff9a3a', { glow: true }), // and an orange line under it
+        Kit.box(0.3, 0.12, 0.16, 0, -0.22, 0.46, PINK),                                                   // pink heel tab
+        Kit.cyl(0.29, 0.28, 0.07, 0, -0.5, -0.08, PINK, { seg: 16, sz: 1.75 })]);                         // pink sole following the foot
       shoe.position.y = 0.1;                                                                             // sole bottom at -0.4: the soles touch the road
       ankle.add(shoe);
       this.hip.push(hip); this.knee.push(knee); this.ankle.push(ankle);
@@ -205,9 +207,9 @@ class Runner3D {
     this.arm = []; this.fore = [];
     for (const s of [-1, 1]) {
       const sh = pivot(this.torso, s * 1.0, A(3.3), 0);
-      sh.add(mesh([jk(Kit.ico(0.2, 0, 0, 0, JACKET, { detail: 1 })), jk(Kit.cyl(0.17, 0.13, 0.65, 0, -0.65, 0, JACKET, { seg: 8 }))]));
+      sh.add(mesh([jk(Kit.ico(0.3, 0, 0, 0, JACKET, { detail: 1 })), jk(Kit.cyl(0.25, 0.2, 0.65, 0, -0.65, 0, JACKET, { seg: 10 }))]));
       const fo = pivot(sh, 0, -0.65, 0);
-      fo.add(mesh([jk(Kit.cyl(0.13, 0.09, 0.6, 0, -0.6, 0, JACKET, { seg: 8 })), Kit.ico(0.13, 0, -0.72, 0, HAND, { sy: 1.8, detail: 1 })]));
+      fo.add(mesh([jk(Kit.cyl(0.2, 0.14, 0.6, 0, -0.6, 0, JACKET, { seg: 10 })), Kit.ico(0.22, 0, -0.76, 0, HAND, { sy: 1.25, detail: 1 })]));
       this.arm.push(sh); this.fore.push(fo);
     }
     this.phase = 0;
