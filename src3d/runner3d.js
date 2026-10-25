@@ -148,8 +148,11 @@ class Runner3D {
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
       return { geo: g, color, glow: false, gain };
     };
+    // thin lines: six fine pink stripes round the jacket (behind the star, so they show either side of it) and a fine pale line round the neck just above the collar
+    for (const y of [2.42, 2.58, 2.74, 2.90, 3.18, 3.32]) { const st = coat(shell(y, y + 0.028, 0.06, 1, 44, false, JF0, JF1), '#ff8cc6'); st.gain = 1.3; parts.push(st); }
+    { const ring = coat(shell(f => CT(f) + 0.03, f => CT(f) + 0.058, 0.02, 1, 44, false, JF0, JF1), '#ffe3f0'); ring.gain = 1.3; parts.push(ring); }
     parts.push(starOutline(2.74, 0.64, 0.26, 0.4, 0.075, '#ff62b4', 1.5));
-    parts.push(starOutline(2.74, 0.64 * 0.43, 0.26 * 0.43, 0, 0.072, '#ffd23a', 1.4));                   // the star's interior: a gold fill (a star scaled to just overlap the outline's hole)                   // pink outline star, hollow inside
+    parts.push(starOutline(2.74, 0.64 * 0.43, 0.26 * 0.43, 0, 0.072, '#ffb8dc', 1.3));                   // the star's interior: a lighter pink fill (a star scaled to just overlap the outline's hole)                   // pink outline star, hollow inside
     // the back of the head is bare strawberry: a few small seeds scattered irregularly between the stand-up collar and the calyx (fixed pseudo-random sequence)
     {
       let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
