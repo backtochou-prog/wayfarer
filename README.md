@@ -93,6 +93,6 @@ CHROMIUM=/path/to/chrome node tests/qa3d_coins.js
 CHROMIUM=/path/to/chrome node tests/qa3d_world.js
 ```
 
-Both start their own static server, drive the real page (scene graph and game rules, WebGL stubbed for speed) and exit non-zero on failure. `qa3d_coins.js` asserts on every frame that the number of coin meshes on screen equals the number of uncollected coins in range, so a collected coin that stays visible (or an effect built from the coin mesh) fails at once.
+Set `TEST_URL=https://your-deployment/` to run the same checks against a deployed copy. Both start their own static server, drive the real page (scene graph and game rules, WebGL stubbed for speed) and exit non-zero on failure. `qa3d_coins.js` asserts on every frame that the number of coin meshes on screen equals the number of uncollected coins in range, so a collected coin that stays visible (or an effect built from the coin mesh) fails at once.
 
 Score = distance in metres + 10 per coin. Best score is kept in `localStorage`.
