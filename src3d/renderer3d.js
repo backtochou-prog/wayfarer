@@ -63,7 +63,8 @@ class Renderer3D {
     this.slotCache = []; for (let i = 0; i < 20; i++) this.slotCache.push({ i: -1e9, ver: -1, mid: null, a: null, b: null });   // track bands per scenery slot (middle / start / end), reused until the track changes
     this.items = new Items3D(this.scene);
     this.fx = new Fx3D(this.scene);
-    this.runner = new Runner3D(); this.scene.add(this.runner.group); this.scene.add(this.runner.shadow);
+    this.runner = /[?&]avatar=(3d|model)\b/.test(location.search) ? new Runner3D() : new RunnerSprite();   // the user's retouched artwork by default; ?avatar=3d selects the 3D model
+    this.scene.add(this.runner.group); this.scene.add(this.runner.shadow);
 
     this.menu = 1; this.lookX = 0; this.heading = 0;                         // menu blend (1 = menu camera, 0 = chase) and smoothed look-ahead
     this.cam = new THREE.Vector3(); this.look = new THREE.Vector3();

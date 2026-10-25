@@ -37,7 +37,7 @@ Same game, same rules, rendered with Three.js as a low-poly 3D scene. Open **htt
 - Camera: a chase camera behind and above the runner that follows the active route's centre, looks 20 m down it, and blends gradually into the fork's biome. Sky, fog and light colours, road palette and scenery all blend between city, forest and market (scenery per road side is chosen per 12 m slot by the blend at that spot).
 - Biomes are `src3d/env_city.js`, `env_forest.js`, `env_market.js` (colours, road palette, props, layout rule); the market detour reuses the city's buildings and street props with a different layout and a warmer cobbled road. A new biome is a new `ENV3D.<id>` plus a segment in `track.js`.
 
-**Avatar:** the strawberry-man from the character painting (`src3d/runner3d.js`): glossy red strawberry body with a few yellow seeds on the cheeks, a beige jacket that rises at the back as a rounded dome up to the red cap (grey crescent hem, thin pink stripes, a fine pale line along the top) with a pink star whose centre is a purple vortex, wrapping its back and sides (open on the red in front), dark glasses across the face (V lower edge, temple arms ending behind the ears, bare strawberry back of the head), green calyx leaves, pink lips, black side panels, thick tapering navy legs (deep front-to-back), sleek black sneakers with neon trim, chunky sleeves and big red hands, smooth-shaded with a glossy Phong material and a soft contact shadow, with an animated main-menu showcase. Its feet stay on the road through the run cycle (ankle joint), it turns to face along curves, and its slide pose fits under the gate.
+**Avatar:** your own retouched artwork (`src3d/runner_sprite.js`, images embedded in `src3d/avatar_assets.js`), shown as flat cards that always face the camera: the **back view** while playing (the chase camera sees the runner from behind) and the **side view** in the main menu, with an idle / wave / spin / dance / run-in-place showcase. With no skeleton, the motion is applied to the whole card: run bounce and squash-and-stretch, a steering lean, a stretch in the jump, ducking (squashed to 42 % of its height, under 0.9 m) for the slide, tipping forward on a crash. It stands 1.9 m tall with its feet on the road. `?avatar=3d` in the URL selects the earlier 3D strawberry-man model (`src3d/runner3d.js`) instead; the transparent PNG exports in `docs/downloads` come from that model.
 
 **Gameplay loop (shared rules in `src/game.js`, drawn in 3D)**
 - *Controls:* steer left/right (arrows or A/D, continuous across the three marked lanes), Space/Up jump (0.55 s, ~3 m apex, 0.12 s landing buffer), Down slide (0.55 s; tapping again mid-slide does not chain it; Down in the air fast-falls; a jump cancels a slide). Forward movement is automatic. Auto-repeat key events are ignored; jump/slide always return to running.
@@ -71,11 +71,12 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 
 ```
 index.html (3D game), 2d.html (classic 2D), 3d.html (redirect to index.html), style.css
-src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market, runner3d, items3d, fx3d, signs3d, renderer3d, main3d
+src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market, runner_sprite + avatar_assets (the artwork avatar), runner3d (the 3D model), items3d, fx3d, signs3d, renderer3d, main3d
 vendor/         three.min.js (Three.js r186)
 tools/preview3d.html  dev page that renders one 3D module in isolation
 tests/qa3d_coins.js   regression test: coin pickup (coins vanish at once, count once, can't be re-collected, pool reuse, both branches, restart)
 tests/qa3d_world.js   regression test: world variety, track integrity, pools, six junctions played
+tests/qa3d_avatar.js  regression test: the artwork avatar (default), ?avatar=3d, images load (also from file://), view per state, size / ground / slide height, faces the camera, no leaks
 src/biomes.js   palette + biome definitions (city, forest, market)
 src/track.js    track pieces, obstacle patterns, collision boxes
 src/world.js    road geometry, fork/merge logic, item spawning
@@ -91,6 +92,7 @@ src/game.js     state, input, loop, collisions, scoring
 npm i playwright-core            # once, anywhere (or point PW_CORE at an existing install)
 CHROMIUM=/path/to/chrome node tests/qa3d_coins.js
 CHROMIUM=/path/to/chrome node tests/qa3d_world.js
+CHROMIUM=/path/to/chrome node tests/qa3d_avatar.js
 ```
 
 Set `TEST_URL=https://your-deployment/` to run the same checks against a deployed copy. Both start their own static server, drive the real page (scene graph and game rules, WebGL stubbed for speed) and exit non-zero on failure. `qa3d_coins.js` asserts on every frame that the number of coin meshes on screen equals the number of uncollected coins in range, so a collected coin that stays visible (or an effect built from the coin mesh) fails at once.
