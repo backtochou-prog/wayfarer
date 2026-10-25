@@ -43,6 +43,10 @@ window.ENV3D = window.ENV3D || {};
                Kit.box(0.14, H * 0.3, F * 0.8, -0.04, H * 0.66, 0, N.base), Kit.box(0.5, 0.12, F * 0.85, -0.3, H * 0.6 + 0.25, 0, col2, { glow: true, rz: 0.3 })];
     return Kit.merge(p);
   }
+  // props made of the user's materials (NeonArt, second atlas). A block / shop with a picture panel on its facade; free-standing cut-outs; posts with a banner or a glowing tube.
+  const art2 = (merged, sprite) => ({ merged: Kit.merge(merged), sprite, material: () => NeonArt.material2() });
+  const artBlock = (F, D, H, seed, cell, rim) => art2([Kit.box(D, H, F, D / 2, 0, 0, N.body), Kit.box(D + 0.1, 0.5, F + 0.1, D / 2, 0, 0, N.base), Kit.box(0.2, 0.18, F, -0.02, H - 0.1, 0, rim, { glow: true }), Kit.box(0.2, 0.18, F, -0.02, 0.9, 0, rim, { glow: true }), Kit.box(D * 0.8, 0.4, F * 0.9, D / 2, H, 0, N.base)],
+    NeonArt.panel2(cell, -0.06, -F * 0.46, F * 0.46, 1.1, H - 0.4));
   const lampOf = col => () => Kit.merge([
     Kit.box(0.3, 0.4, 0.3, 0, 0, 0, N.post), Kit.cyl(0.07, 0.1, 4.2, 0, 0, 0, N.post), Kit.box(1.1, 0.08, 0.08, -0.55, 4.1, 0, N.post),
     Kit.box(0.14, 0.14, 1.2, -1.1, 3.95, 0, col, { glow: true }), Kit.box(0.5, 0.05, 0.5, -1.1, 3.9, 0, col, { glow: true })]);
@@ -64,7 +68,7 @@ window.ENV3D = window.ENV3D || {};
       asphalt: ['#0e1626', '#0b1220'], mark: '#ff4fe0', edge: '#6bff3a',
       curb: ['#3a2466', '#321e5a'], curbFace: '#1a0f33', walk: ['#18213a', '#141c32'], court: '#0e1526', verge: ['#0b111e', '#090e1a'],
     },
-    innerOk: new Set(['neonLampM', 'neonLampC', 'stripM', 'stripG']),
+    innerOk: new Set(['neonLampM', 'neonLampC', 'stripM', 'stripG', 'neonBucket', 'neonBottle']),
     entrance: 'gateNeon',
 
     props: {
@@ -72,6 +76,14 @@ window.ENV3D = window.ENV3D || {};
       neonBlockA: () => block(9.6, 7, 11.5, 3, N.mag), neonBlockB: () => block(9, 7.5, 14.5, 4, N.teal), neonBlockC: () => block(10, 6.5, 9, 5, N.green),
       neonShopA: () => shop(8.5, 6, 5.2, N.mag, N.yellow), neonShopB: () => shop(9, 6, 5.6, N.teal, N.green),
       neonLampM: lampOf(N.mag), neonLampC: lampOf(N.teal),
+      neonBlockD: () => artBlock(9.6, 7, 12.5, 6, 'dots', N.teal), neonBlockE: () => artBlock(8.4, 6.5, 17, 7, 'lamps', N.yellow),
+      neonShopC: () => art2([Kit.box(6, 5.6, 9, 3, 0, 0, N.bodyB), Kit.box(0.16, 0.2, 9.2, -0.05, 5.6, 0, N.yellow, { glow: true }), Kit.box(6.2, 0.3, 9.2, 3, 5.6, 0, N.base)], NeonArt.panel2('stripes', -0.06, -4.3, 4.3, 0.4, 5.2)),
+      neonBlade: () => art2([Kit.box(0.5, 0.35, 0.5, 0, 0, 0, N.post)], NeonArt.cross('blade', 11, 0.3)),                                   // a tall glowing orange tube on a wall slice
+      neonBanner: () => art2([Kit.cyl(0.08, 0.1, 5.6, 0, 0, 0, N.post), Kit.box(0.08, 0.08, 2.8, 0, 5.4, 1.2, N.post)], NeonArt.panel2('banner', 0.0, -0.1, 2.5, 2.6, 5.4)),            // a banner of green stripes hanging from an arm
+      neonBucket: () => art2([Kit.cyl(0.45, 0.5, 0.06, 0, 0, 0, N.mag, { seg: 10, glow: true })], NeonArt.cross('bucket', 1.5, 0.05)),                                         // the bucket drawing, standing on a glowing disc
+      neonBottle: () => art2([Kit.box(0.55, 0.45, 0.55, 0, 0, 0, N.post), Kit.box(0.6, 0.05, 0.6, 0, 0.45, 0, N.yellow, { glow: true })], NeonArt.cross('bottle', 2.3, 0.5)),    // a glowing bottle lamp on a plinth
+      neonHalo: () => art2([Kit.cyl(0.18, 0.24, 3.0, 0, 0, -4.2, N.post), Kit.cyl(0.18, 0.24, 3.0, 0, 0, 4.2, N.post), Kit.box(0.3, 0.3, 9, 0, 3.0, 0, N.post), Kit.box(0.34, 0.12, 9.2, -0.05, 3.1, 0, N.mag, { glow: true })],
+        NeonArt.panel2('ring', -0.1, -4.5, 4.5, 3.2, 3.2 + 9 / NEON_ASSETS2.ring.ar)),                                                                                         // landmark: a giant glossy ring on two posts
       stripM: stripOf(N.mag), stripG: stripOf(N.green), stripR: stripOf(N.red),
       neonSignA: signOf(N.mag, N.teal), neonSignB: signOf(N.green, N.yellow),
       neonBollard: () => Kit.merge([-1.6, 0, 1.6].flatMap(z => [Kit.cyl(0.13, 0.15, 0.8, 0, 0, z, N.post, { seg: 6 }), Kit.cyl(0.14, 0.14, 0.07, 0, 0.78, z, z ? N.mag : N.teal, { seg: 6, glow: true })])),
@@ -88,14 +100,16 @@ window.ENV3D = window.ENV3D || {};
       gateNeon: () => Kit.merge([Kit.box(0.5, 4.2, 0.5, 0, 0, 0, N.post), Kit.box(0.12, 4.0, 0.2, -0.3, 0.1, 0, N.mag, { glow: true }), Kit.box(0.12, 4.0, 0.2, 0.3, 0.1, 0, N.green, { glow: true }), Kit.box(0.9, 0.24, 0.9, 0, 4.2, 0, N.yellow, { glow: true })]),
     },
 
-    // Stretches (Stretch.of), four characters:
+    // Stretches (Stretch.of), six characters (the last two use the user's materials):
     //   0 towers: tall striped slabs and blocks on the building line, tube lamps, neon strips along both kerbs
     //   1 signs: blocks set back, big glowing signs close to the road, bollards
     //   2 shops: low glowing shop fronts close to the street, strips, lamps
     //   3 canyon: sparse; only lamps, strips and one far tower on each side, so the sky opens up
-    // A landmark (neon ring / spire / billboard) replaces the building on its side of one slot per stretch.
+    //   4 boutiques: low striped shops, bucket drawings and bottle lamps along the kerb, banners and orange light blades
+    //   5 lounge: blocks with picture facades (blue dots, hanging lamps), light blades, bottle lamps
+    // A landmark (neon ring / spire / billboard / halo) replaces the building on its side of one slot per stretch.
     layout(i, rnd) {
-      const out = [], LMS = ['neonRing', 'neonSpire', 'neonBillboard'], S = Stretch.of(i, 120, 4, LMS), TOW = ['neonTowerA', 'neonBlockA', 'neonTowerB', 'neonBlockB', 'neonBlockC'], SH = ['neonShopA', 'neonShopB'];
+      const out = [], LMS = ['neonRing', 'neonSpire', 'neonBillboard', 'neonHalo'], S = Stretch.of(i, 120, 6, LMS), TOW = ['neonTowerA', 'neonBlockA', 'neonTowerB', 'neonBlockD', 'neonBlockB', 'neonBlockE', 'neonBlockC'], SH = ['neonShopA', 'neonShopB'];
       for (const side of [-1, 1]) {
         const k = i * 2 + (side > 0 ? 1 : 0), r = n => rnd(k, n), lm = S.lm && S.lm.slot === i && S.lm.side === side ? S.lm.kind : null;
         const bld = (prop, x, dz) => { if (!lm) out.push({ prop, x: side * x, dist: 6 + dz }); };
@@ -113,11 +127,19 @@ window.ENV3D = window.ENV3D || {};
             bld(SH[mod(i + (side > 0 ? 1 : 0) + S.b, 2)], 6.9 + r(1) * 0.5, (r(2) - 0.5) * 0.8);
             out.push({ prop: strip, x: side * 3.9, dist: 6 }, { prop: lamp, x: side * 4.4, dist: 2.5 });
             if (r(3) < 0.5) out.push({ prop: 'neonBollard', x: side * 4.8, dist: 9 }); if (r(4) < 0.35) out.push({ prop: 'neonSignB', x: side * 5.6, dist: 9.5 }); break;
+          case 4:                                                                       // boutiques: low striped shops, buckets and bottle lamps along the kerb, banners, orange light blades
+            bld(mod(i + (side > 0 ? 1 : 0) + S.b, 3) === 0 ? 'neonShopC' : SH[mod(i + S.b, 2)], 7.0 + r(1) * 0.5, (r(2) - 0.5) * 0.8);
+            out.push({ prop: strip, x: side * 3.9, dist: 6 }, { prop: 'neonBucket', x: side * 4.9, dist: 3 + r(3) * 2 }, { prop: r(4) < 0.5 ? 'neonBottle' : 'neonBucket', x: side * 5.0, dist: 9 + r(5) * 2 });
+            if (mod(i + (side > 0 ? 1 : 0), 2) === 0) out.push({ prop: 'neonBanner', x: side * 4.6, dist: 6.5 }); else out.push({ prop: 'neonBlade', x: side * 4.5, dist: 6 }); break;
+          case 5:                                                                       // lounge: blocks with picture facades, light blades and bottle lamps
+            bld(['neonBlockD', 'neonBlockE', 'neonTowerB', 'neonBlockE'][mod(i * 3 + (side > 0 ? 2 : 0) + S.b, 4)], FRONT_X + 0.8 + r(1) * 0.6, (r(2) - 0.5) * 0.8);
+            out.push({ prop: 'neonBlade', x: side * 4.5, dist: 2.5 }, { prop: strip, x: side * 3.9, dist: 6 });
+            if (r(3) < 0.55) out.push({ prop: 'neonBottle', x: side * 5.0, dist: 8.5 }); if (r(4) < 0.4) out.push({ prop: 'neonBucket', x: side * 4.9, dist: 11 }); break;
           default:
             if (mod(i + (side > 0 ? 1 : 0), 3) === 1) bld(TOW[mod(i + S.b + (side > 0 ? 3 : 0), TOW.length)], 15 + r(1) * 4, (r(2) - 0.5) * 2);
             out.push({ prop: strip, x: side * 3.9, dist: 6 }); if (mod(i + (side > 0 ? 1 : 0), 2) === 0) out.push({ prop: lamp, x: side * 4.4, dist: 4 + r(3) * 4 });
         }
-        if (lm) out.push({ prop: lm, x: side * (lm === 'neonRing' ? 9.5 : lm === 'neonSpire' ? 10.5 : 9.0), dist: 6 });
+        if (lm) out.push({ prop: lm, x: side * (lm === 'neonRing' ? 9.5 : lm === 'neonSpire' ? 10.5 : lm === 'neonHalo' ? 9.5 : 9.0), dist: 6 });
       }
       return out;
     },
