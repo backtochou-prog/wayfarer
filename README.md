@@ -1,6 +1,6 @@
 # WAYFARER — Prototype 01
 
-A small pixel-art branching endless runner. HTML + CSS + vanilla JavaScript on a Canvas 2D (320×180, scaled by whole numbers). No dependencies, no build step.
+A small branching endless runner, rendered in low-poly 3D with Three.js (the default page). The original pixel-art version (Canvas 2D, 320×180, scaled by whole numbers) is kept at `2d.html`. HTML + CSS + vanilla JavaScript; Three.js is vendored in `vendor/three.min.js` (MIT), so there is nothing to install and no build step.
 
 ## Run
 
