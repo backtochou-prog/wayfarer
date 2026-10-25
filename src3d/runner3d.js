@@ -52,9 +52,9 @@ class Runner3D {
     const eggR = y => y > YC ? EA * Math.sqrt(Math.max(0, 1 - Math.pow((y - YC) / BU, 2)))
                              : EA * (0.58 + 0.42 * Math.sqrt(Math.max(0, 1 - Math.pow((YC - y) / (YC - Y0), 1.7))));
     // a band of that surface between a bottom edge (constant or a function of the angle from the front) and a top edge, inflated by `infl`
-    const shell = (yBot, yTop, infl, rows, segs, cap) => {
+    const shell = (yBot, yTop, infl, rows, segs, cap, f0 = 0, f1 = 2 * Math.PI) => {
       const pos = [], P = (i, j) => {
-        const f = 2 * Math.PI * i / segs, yb = typeof yBot === 'function' ? yBot(f) : yBot, y = yb + (yTop - yb) * j / rows, r = Math.max(0, eggR(y) + (y < Y1 - 0.001 ? infl : 0));
+        const f = f0 + (f1 - f0) * i / segs, yb = typeof yBot === 'function' ? yBot(f) : yBot, y = yb + (yTop - yb) * j / rows, r = Math.max(0, eggR(y) + (y < Y1 - 0.001 ? infl : 0));
         return new THREE.Vector3(r * Math.sin(f), A(y), -r * DZ * Math.cos(f));
       };
       const tri = (a, b, c) => {                                                     // wound so the normal points away from the body's axis
@@ -107,18 +107,14 @@ class Runner3D {
     for (const [x, y, sz] of [[0.5, 2.93, 0.048], [0.62, 2.8, 0.042], [0.52, 2.67, 0.046], [0.66, 2.96, 0.036], [0.45, 2.78, 0.037], [0.64, 2.61, 0.04],
                        [-0.52, 2.87, 0.044], [-0.63, 2.74, 0.05], [-0.48, 2.62, 0.04], [-0.62, 2.98, 0.038], [-0.44, 2.76, 0.035], [-0.65, 2.56, 0.037]])
       parts.push(Kit.ico(sz, x, A(y), onEgg(x, y, 0.006), '#ffd23a', { sy: 1.4, sz: 0.7, detail: 1, rz: (x * 7 + y * 3) % 1.2 - 0.6, glow: true }));
-    // the back (what the chase camera sees): a dozen small seeds scattered irregularly (fixed pseudo-random sequence, kept apart, clear of the side panels)
-    {
-      let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-      const placed = []; let tries = 0;
-      while (placed.length < 12 && tries++ < 400) {
-        const f = Math.PI + (rnd() - 0.5) * 2 * 1.1, y = 2.32 + rnd() * 0.95, r = eggR(y) + 0.006, x = r * Math.sin(f), z = -r * DZ * Math.cos(f);
-        if (Math.abs(x) > 0.8) continue;
-        if (placed.some(q => (q[0] - x) ** 2 + (q[1] - y) ** 2 + (q[2] - z) ** 2 < 0.32 * 0.32)) continue;
-        placed.push([x, y, z]);
-        parts.push(Kit.ico(0.028 + rnd() * 0.016, x, A(y), z, '#ffd23a', { sy: 1.4, sz: 0.7, detail: 1, ry: -f, rz: (rnd() - 0.5) * 1.2, glow: true }));
-      }
-    }
+    // the jacket: the painting's black side panels are the open front of a black jacket, so its back and sides wrap the body (the front stays open on the red).
+    // Glossy black shell from just under the visor to above the belt, with a ribbed hem, a collar line and a centre-back seam.
+    const JF0 = 1.0, JF1 = 2 * Math.PI - 1.0, JB = 2.16, JT = 3.44;
+    parts.push(coat(shell(JB, JT, 0.045, 10, 44, false, JF0, JF1), '#242432'));
+    parts.push(coat(shell(JB, JB + 0.16, 0.065, 2, 44, false, JF0, JF1), '#30303f'));                       // ribbed hem
+    parts.push(coat(shell(JT - 0.07, JT, 0.058, 1, 44, false, JF0, JF1), '#30303f'));                        // collar line under the visor
+    parts.push(coat(shell(JB + 0.16, JT - 0.07, 0.052, 8, 2, false, Math.PI - 0.018, Math.PI + 0.018), '#5a5a70'));   // centre-back seam
+    parts.push(coat(shell(3.04, 3.07, 0.052, 1, 44, false, JF0, JF1), '#5a5a70'));                          // yoke seam across the shoulders
     { const [x, y] = px(375, 770); parts.push(Kit.ico(0.08, x, A(y), onEgg(x, y, 0.04), '#9fb4ff', { sx: 1.6, sz: 0.2, detail: 1, rz: 0.5, glow: true })); }   // the painting's white glare on the visor
     for (const s of [-1, 1]) {                                                                              // black oval side panels with a white inner edge and two buttons
       parts.push(Kit.ico(0.5, s * 1.0, A(2.7), -0.22, BLACK, { sx: 0.5, sy: 1.35, sz: 0.8, detail: 2, rz: -0.2 * s }));
