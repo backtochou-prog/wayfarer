@@ -92,7 +92,11 @@ const Kit = {
       for (const p of list) {
         const P = p.geo.attributes.position.array, N = p.geo.attributes.normal.array, k = P.length;
         pos.set(P, o); nor.set(N, o); c.set(p.color);
-        for (let i = 0; i < k; i += 3) { col[o + i] = c.r; col[o + i + 1] = c.g; col[o + i + 2] = c.b; }
+        if (p.grad) {                                                        // optional vertical gradient: p.color at the top of the part, p.grad at its bottom, t^gradPow as the blend
+          let y0 = Infinity, y1 = -Infinity; for (let i = 1; i < k; i += 3) { if (P[i] < y0) y0 = P[i]; if (P[i] > y1) y1 = P[i]; }
+          const c2 = new THREE.Color(p.grad), span = Math.max(1e-6, y1 - y0), gp = p.gradPow || 1;
+          for (let i = 0; i < k; i += 3) { const t = Math.pow((P[i + 1] - y0) / span, gp); col[o + i] = c2.r + (c.r - c2.r) * t; col[o + i + 1] = c2.g + (c.g - c2.g) * t; col[o + i + 2] = c2.b + (c.b - c2.b) * t; }
+        } else for (let i = 0; i < k; i += 3) { col[o + i] = c.r; col[o + i + 1] = c.g; col[o + i + 2] = c.b; }
         o += k; p.geo.dispose();
       }
       const g = new THREE.BufferGeometry();

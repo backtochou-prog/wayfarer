@@ -1,7 +1,7 @@
 // Runner3D: the player avatar, the neon egg-bot from the character sheet.
-// Proportions follow the sheet's front view (height from the soles, 5.1 units incl. fronds):
-//   sneakers 0-0.5 | thin legs 0.5-1.25 | blue/magenta hip bulb 1.25-2.0 | magenta+black torso 2.0-2.95 |
-//   tall glossy-black egg head 2.95-4.45 with a wide visor band over its lower half and a yellow ring eye | frond crown to 5.1
+// Proportions measured from the sheet's front view (height from the soles, ~5.4 units incl. the crown):
+//   sneakers 0-0.55 | thin legs to 1.1 | blue/pink bowl hip 1.1-2.0 | black chest between two magenta pill panels 1.95-2.95 |
+//   visor band 2.95-3.65 (as wide as the torso, yellow ring eye) | pointed glossy-black dome to 4.45 | propeller crown of 8 leaves above
 // Built once from Kit parts (units, then the group is scaled to ~2 m tall); animated procedurally by rotating pivots.
 // Origin = ground between the feet, facing -Z (the chase camera sees its back).
 // States: 'play' run cycle / jump / slide, 'over' trip, 'pause' hold, 'title' a looping showcase for the main menu.
@@ -58,6 +58,18 @@ class Runner3D {
     const GLOSS = '#ffe3ff';                                                       // pale specular streaks: the glossy look
     const spec = (x, y, z, sx, sy, rz) => Kit.ico(0.3, x, y, z, GLOSS, { sx, sy, sz: 0.1, detail: 1, rz: rz || 0, glow: true });
 
+    // Measured from the sheet's front view (ground = 0, units): sneakers 0-0.55 | thin legs 0.55-1.1 | blue/pink bowl hip 1.1-2.0 |
+    // magenta pill panels around a black chest 1.95-2.95 | visor band 2.95-3.65 (as wide as the torso) | pointed black dome to 4.45 | crown of leaves to ~5.4.
+    // `A` converts those heights to coordinates relative to the hip pivot (HIP = 1.33).
+    const A = y => y - 1.33;
+    const G = (part, bottom, pow) => (part.grad = bottom, part.gradPow = pow || 1, part);   // vertical gradient: the part's colour on top, `bottom` underneath (pow > 1 keeps `bottom` dominant)
+    const DOME = '#1c1248', CHEST = '#150d38';
+    // neon rim light: an inflated copy of a part drawn back-faces-only in a glow colour = a bright outline around its silhouette
+    const rimMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide });
+    const hull = parts => new THREE.Mesh(Kit.merge(parts).glow, rimMat);
+    const RX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2), RZ = a => new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), a);
+    const arc = (R, tube, y, span, color) => raw(new THREE.TorusGeometry(R, tube, 5, 22, span), color, new THREE.Vector3(0, y, 0), RX.clone().multiply(RZ(1.5 * Math.PI - span / 2)), ONE, true);   // arc centred on the front (-Z)
+
     // legs: thin black limbs, hip pivot -> knee pivot -> ankle pivot -> chunky neon sneaker with white cuff.
     // The ankle counter-rotates against the leg so the shoe stays level instead of digging its toe into the road.
     this.hip = []; this.knee = []; this.ankle = [];
@@ -65,73 +77,74 @@ class Runner3D {
       const hip = pivot(this.body, s * 0.4, 0, 0);
       hip.add(mesh([Kit.cyl(0.075, 0.07, 0.38, 0, -0.38, 0, GLASS, { seg: 6 })]));
       const knee = pivot(hip, 0, -0.38, 0);
-      knee.add(mesh([Kit.cyl(0.07, 0.065, 0.5, 0, -0.5, 0, GLASS, { seg: 6 }), Kit.cyl(0.19, 0.17, 0.14, 0, -0.58, 0, WHITE, { seg: 8 })]));   // shin + sock cuff
+      knee.add(mesh([Kit.cyl(0.07, 0.065, 0.5, 0, -0.5, 0, GLASS, { seg: 6 }), Kit.cyl(0.2, 0.18, 0.16, 0, -0.6, 0, WHITE, { seg: 8, glow: true })]));   // shin + glowing white sock cuff
       const ankle = pivot(knee, 0, -0.5, 0);
       const shoe = mesh([
-        Kit.ico(0.36, 0, -0.2, -0.08, MAG, { sx: 0.96, sy: 0.72, sz: 1.75, detail: 2 }),                 // sneaker body: a long glossy ellipsoid
+        G(Kit.ico(0.36, 0, -0.2, -0.08, '#ff48e4', { sx: 0.96, sy: 0.72, sz: 1.75, detail: 2 }), '#d0149a'),                 // sneaker body: a long glossy ellipsoid
         Kit.ico(0.3, 0, -0.17, -0.5, MAG_N, { sx: 0.95, sy: 0.7, sz: 0.95, detail: 1 }),                 // toe cap
-        Kit.ico(0.3, 0, -0.06, 0.2, VIO, { sx: 1.0, sy: 0.9, sz: 0.8, detail: 1 }),                      // heel collar
-        Kit.box(0.6, 0.07, 1.22, 0, -0.46, -0.1, WHITE),                                                 // white midsole
-        Kit.box(0.64, 0.04, 1.28, 0, -0.5, -0.1, YEL, { glow: true }),                                    // neon yellow outsole outline
-        Kit.box(0.3, 0.04, 0.09, 0, -0.01, -0.3, CYAN, { glow: true }), Kit.box(0.28, 0.04, 0.09, 0, -0.06, -0.46, CYAN, { glow: true }), Kit.box(0.24, 0.04, 0.09, 0, -0.11, -0.62, CYAN, { glow: true }),   // laces
+        Kit.ico(0.28, 0, 0.0, 0.2, MAG, { sx: 0.95, sy: 1.1, sz: 0.8, detail: 1 }),                      // high-top heel / ankle
+        Kit.ico(0.2, 0, 0.0, -0.3, BLUE, { sx: 0.8, sy: 0.5, sz: 1.2, detail: 1 }),                      // tongue
+        Kit.box(0.04, 0.07, 0.8, s * 0.35, -0.3, -0.1, YEL, { glow: true }), Kit.box(0.04, 0.07, 0.8, -s * 0.35, -0.3, -0.1, YEL, { glow: true }),   // yellow side trim
+        Kit.cyl(0.36, 0.34, 0.08, 0, -0.47, -0.08, WHITE, { seg: 16, sz: 1.78 }),                         // white midsole following the foot
+        Kit.cyl(0.4, 0.38, 0.03, 0, -0.5, -0.08, YEL, { seg: 16, sz: 1.78, glow: true }),                  // neon yellow outsole outline
+        Kit.box(0.3, 0.04, 0.09, 0, 0.1, -0.3, CYAN, { glow: true }), Kit.box(0.28, 0.04, 0.09, 0, 0.05, -0.46, CYAN, { glow: true }), Kit.box(0.24, 0.04, 0.09, 0, 0.0, -0.62, CYAN, { glow: true }),   // laces
         Kit.ico(0.12, s * 0.33, -0.2, 0.05, WHITE, { sx: 0.3, sy: 1, sz: 1, detail: 1, glow: true })]);   // round side emblem
       shoe.position.y = 0.1;                                                                            // outsole bottom at -0.4: the soles touch the road
       ankle.add(shoe);
       this.hip.push(hip); this.knee.push(knee); this.ankle.push(ankle);
     }
 
-    // torso group: glossy blue/pink hip bulb, two tall magenta->blue pill panels around a black chest with a curved mouth slit and trim lines
+    // torso group: wide pink collar + tapering blue bowl (hip), then a deep black chest between two big magenta->blue pill panels
     this.torso = pivot(this.body, 0, 0, 0);
     const SIDE = [-1, 1];
     this.torso.add(mesh([
-      Kit.ico(0.7, 0, 0.42, 0, BLUE, { sx: 1.0, sy: 0.62, sz: 0.8, detail: 2 }),
-      Kit.ico(0.5, 0, 0.26, -0.18, MAG, { sx: 1.05, sy: 0.5, sz: 0.62, detail: 2 }),                       // pink front of the hip bulb
-      spec(-0.32, 0.5, -0.5, 0.9, 0.5, 0.5),
-      Kit.cyl(0.74, 0.7, 0.05, 0, 0.74, 0, MAG_N, { seg: 16, glow: true }),                             // waist neon ring
-      Kit.ico(0.8, 0, 1.28, 0, BODY, { sx: 1.0, sy: 0.7, sz: 0.78, detail: 2 }),                         // chest
+      G(Kit.ico(0.8, 0, A(1.5), 0, '#ff4ae8', { sx: 0.95, sy: 0.55, sz: 0.84, detail: 2 }), '#2a5cff', 2.6),    // bowl: pink at the rim fading to blue
+      Kit.ico(0.5, -0.3, A(1.68), -0.3, MAG, { sx: 0.9, sy: 0.7, sz: 0.55, detail: 2 }),                    // magenta patch, front left
+      Kit.cyl(0.8, 0.76, 0.04, 0, A(2.0), 0, MAG_N, { seg: 20, glow: true, sz: 0.88 }),                    // waist neon ring
+      Kit.ico(0.8, 0, A(2.45), 0, CHEST, { sx: 0.95, sy: 0.62, sz: 0.86, detail: 2 }),                    // chest
       ...SIDE.flatMap(s => [
-        Kit.ico(0.5, s * 0.76, 1.3, -0.04, MAG, { sx: 0.68, sy: 1.3, sz: 0.85, detail: 2 }),             // tall pill panel
-        Kit.ico(0.42, s * 0.76, 0.98, -0.04, BLUE, { sx: 0.68, sy: 0.8, sz: 0.8, detail: 2 }),            // blue lower end of the panel
-        Kit.ico(0.3, s * 0.52, 1.18, -0.42, VIO, { sx: 0.45, sy: 1.0, sz: 0.4, detail: 1 }),              // violet inner glow strip
-        spec(s * 0.68, 1.55, -0.32, 0.4, 1.2, s * -0.1),
-        Kit.ico(0.3, s * 0.82, 1.78, -0.05, BLUE, { sx: 0.55, sy: 0.38, detail: 1 })]),                  // shoulder caps
-      Kit.box(0.82, 0.8, 0.06, 0, 0.88, -0.6, GLASS), Kit.box(0.82, 0.9, 0.06, 0, 0.82, 0.6, GLASS),      // front / back glass plates
-      raw(new THREE.TorusGeometry(0.34, 0.03, 4, 14, Math.PI), VIO, new THREE.Vector3(0, 1.5, -0.63), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI), ONE, true),   // curved mouth slit
-      Kit.box(0.76, 0.03, 0.03, 0, 1.0, -0.65, VIO, { glow: true }), Kit.box(0.76, 0.03, 0.03, 0, 0.92, -0.65, BLUE, { glow: true }), Kit.box(0.76, 0.03, 0.03, 0, 0.84, -0.65, MAG_N, { glow: true }),
-      Kit.cyl(0.42, 0.5, 0.2, 0, 1.78, 0, BODY, { seg: 10 })]));                                          // neck
+        G(Kit.ico(0.5, s * 0.66, A(2.42), 0, '#ff3cf0', { sx: 0.78, sy: 1.0, sz: 1.25, detail: 2 }), '#4a52ff'),   // tall pill panel, magenta fading to blue
+        spec(s * 0.8, A(2.5), -0.42, 0.3, 0.9, s * -0.1)]),
+      Kit.box(0.8, 0.95, 0.06, 0, A(1.97), -0.68, GLASS), Kit.box(0.8, 0.95, 0.06, 0, A(1.97), 0.68, GLASS),   // black front / back panels
+      raw(new THREE.TorusGeometry(0.34, 0.022, 4, 18, Math.PI), VIO, new THREE.Vector3(0, A(2.4), -0.725), RZ(Math.PI), new THREE.Vector3(1, 0.5, 1), true),   // mouth: lower lip ...
+      raw(new THREE.TorusGeometry(0.34, 0.022, 4, 18, Math.PI), VIO, new THREE.Vector3(0, A(2.4), -0.725), Q0, new THREE.Vector3(1, 0.3, 1), true),           // ... and upper lip make a lens
+      Kit.box(0.78, 0.025, 0.03, 0, A(2.15), -0.73, VIO, { glow: true }), Kit.box(0.78, 0.025, 0.03, 0, A(2.08), -0.73, BLUE, { glow: true }), Kit.box(0.78, 0.025, 0.03, 0, A(2.01), -0.73, MAG_N, { glow: true })]));
+    this.torso.add(hull([...SIDE.map(s => Kit.ico(0.54, s * 0.66, A(2.42), 0, MAG_N, { sx: 0.8, sy: 1.0, sz: 1.25, detail: 2, glow: true })),
+                         Kit.ico(0.84, 0, A(1.5), 0, '#a05cff', { sx: 0.96, sy: 0.57, sz: 0.86, detail: 2, glow: true })]));
 
-    // head pivot (nod / tilt): tall glossy-black egg, a wide visor band hugging its middle with curved neon rims, a yellow ring eye, a wide star crown of fronds
-    this.head = pivot(this.torso, 0, 1.7, 0);
+    // head pivot (nod / tilt) at the bottom of the visor: visor band as wide as the torso, pointed black dome above it, yellow ring eye, crown of leaves
+    this.head = pivot(this.torso, 0, A(2.95), 0);
     const hd = [
-      Kit.ico(0.85, 0, 0.78, 0, BODY, { sx: 1.08, sy: 0.92, sz: 1.0, detail: 2 }),
-      Kit.ico(1.0, 0, 0.46, 0, GLASS, { sx: 0.94, sy: 0.36, sz: 0.94, detail: 2 }),                       // visor band: a flattened shell bulging out of the egg
-      ring(0.8, 0.05, 0.66, 1, MAG_N), ring(0.86, 0.035, 0.6, 1, BLUE),                           // upper rims
-      ring(0.82, 0.055, 0.27, 1, YEL),                                                                  // thin yellow curve along the lower edge
-      Kit.ico(0.3, -0.38, 1.16, -0.45, GLOSS, { sx: 0.5, sy: 0.9, sz: 0.2, detail: 1, rz: 0.5, glow: true })];   // gloss streak on the egg
-    const base = new THREE.Vector3(), cr = [];                                                          // the crown is its own pivot so it can fold in the slide
-    // [azimuth, tilt, length, curl, colour, magenta rim]: outward-fanning, long, curved; a wide star
-    const FR = [[0, 0.45, 1.5, 0.5, VIO, 1], [0.6, 0.95, 1.7, 0.7, BLUE, 0], [1.2, 1.25, 1.65, 0.6, VIO, 1], [1.85, 1.0, 1.55, 0.8, BLUE, 0], [2.45, 1.3, 1.7, 0.55, VIO, 1],
-                [3.1, 0.6, 1.5, 0.6, BLUE, 0], [3.75, 1.25, 1.7, 0.65, VIO, 1], [4.35, 0.95, 1.55, 0.75, BLUE, 0], [4.95, 1.3, 1.65, 0.6, VIO, 1], [5.6, 0.85, 1.6, 0.7, BLUE, 1]];
-    for (const [az, tilt, len, curl, col, rim] of FR) {
-      cr.push(leaf(base, az, tilt, len, 0.26, 0.06, curl, 0, col, false));
-      if (rim) cr.push(leaf(base, az, tilt, len * 0.97, 0.07, 0.11, curl, 0, MAG_N, true));              // glowing magenta spine
-    }
-    cr.push(leaf(base, 0.3, 0.2, 1.0, 0.1, 0.06, 0.3, 0, MAG_N, true));                                  // short neon frond in the middle
+      Kit.cyl(0.98, 1.0, 0.7, 0, 0, 0, GLASS, { seg: 24, sx: 1.05, sz: 0.97 }),                           // visor band
+      G(Kit.ico(1.0, 0, 0.7, 0, '#2c1a78', { sx: 0.93, sy: 0.86, sz: 0.88, detail: 2 }), '#0b0624'),        // black dome with a violet sheen at the top (lower half hidden in the visor)
+      ring(1.03, 0.05, 0.69, 0.92, BLUE), ring(1.04, 0.04, 0.6, 0.92, MAG_N),                             // glowing rims along the top edge
+      ring(1.03, 0.045, 0.03, 0.92, MAG_N),                                                                // bottom rim
+      arc(1.0, 0.04, 0.07, 2.4, YEL)];                                                                     // thin yellow curve along the lower front edge
     this.head.add(mesh(hd));
-    this.crown = pivot(this.head, 0, 1.45, 0); this.crown.add(mesh(cr));
-    this.eye = pivot(this.head, 0, 0.5, -0.95);
-    this.eye.add(mesh([raw(new THREE.TorusGeometry(0.22, 0.055, 6, 18), YEL, new THREE.Vector3(), Q0, ONE, true),
-                       Kit.box(0.14, 0.05, 0.04, 0.22, -0.26, 0, YEL, { glow: true })]));
+    this.head.add(hull([Kit.cyl(1.0, 1.02, 0.78, 0, -0.04, 0, MAG_N, { seg: 24, sx: 1.08, sz: 1.0, glow: true }),
+                        Kit.ico(1.0, 0, 0.7, 0, '#6a46ff', { sx: 0.96, sy: 0.9, sz: 0.91, detail: 2, glow: true })]));
+    // crown: 8 long curved leaves fanning out from the apex like a propeller (top view of the sheet), the tallest rising ~1 unit
+    const base = new THREE.Vector3(), cr = [];
+    const FR = [[0.2, 0.7, 1.5, 0.6, VIO, 1], [0.95, 1.15, 1.35, 0.5, BLUE, 0], [1.75, 0.8, 1.55, 0.6, VIO, 1], [2.5, 1.2, 1.3, 0.5, BLUE, 0],
+                [3.3, 0.75, 1.5, 0.6, VIO, 1], [4.05, 1.15, 1.35, 0.5, BLUE, 0], [4.85, 0.85, 1.55, 0.6, VIO, 1], [5.6, 1.2, 1.3, 0.5, BLUE, 0]];
+    for (const [az, tilt, len, curl, col, rim] of FR) {
+      cr.push(leaf(base, az, tilt, len, 0.23, 0.05, curl, 0, col, false));
+      if (rim) cr.push(leaf(base, az, tilt, len * 0.98, 0.06, 0.1, curl, 0, MAG_N, true));                // glowing magenta spine
+    }
+    this.crown = pivot(this.head, 0, 1.42, 0); this.crown.add(mesh(cr));
+    this.eye = pivot(this.head, 0, 0.45, -0.97);
+    this.eye.add(mesh([raw(new THREE.TorusGeometry(0.2, 0.055, 6, 18), YEL, new THREE.Vector3(), Q0, ONE, true),
+                       Kit.box(0.14, 0.05, 0.04, 0.2, -0.24, 0, YEL, { glow: true })]));
 
-    // leaf-blade arms (shoulder blade + loose forearm); the left forearm is a long wavy ribbon, as on the sheet
+    // small leaf-blade arms at the sides of the torso; the one on the sheet's left (+x here) ends in a long wavy ribbon
     this.arm = []; this.fore = [];
     const AD = new THREE.Vector3(0, 0, 0);
     for (const s of [-1, 1]) {
-      const sh = pivot(this.torso, s * 1.15, 1.55, 0);
-      sh.add(mesh([leaf(AD, 0, Math.PI - 0.15, 0.85, 0.15, 0.05, s * 0.25, 0, VIO, false), leaf(AD, 0, Math.PI - 0.15, 0.82, 0.04, 0.08, s * 0.25, 0, MAG_N, true)]));
-      const fo = pivot(sh, 0, -0.8, 0);
-      fo.add(s < 0 ? mesh([leaf(AD, 0, Math.PI, 1.15, 0.13, 0.03, 0, 0.14, FROND, false), leaf(AD, 0, Math.PI, 1.1, 0.04, 0.05, 0, 0.14, MAG_N, true)])
-                   : mesh([leaf(AD, 0, Math.PI - 0.1, 0.75, 0.11, 0.04, 0.3, 0, FROND, false), leaf(AD, 0, Math.PI - 0.1, 0.72, 0.035, 0.07, 0.3, 0, MAG_N, true)]));
+      const sh = pivot(this.torso, s * 1.0, A(2.74), 0);
+      sh.add(mesh([leaf(AD, 0, Math.PI - 0.1, 0.75, 0.2, 0.05, s * 0.3, 0, BLUE, false), leaf(AD, 0, Math.PI - 0.1, 0.73, 0.045, 0.1, s * 0.3, 0, MAG_N, true)]));
+      const fo = pivot(sh, 0, -0.7, 0);
+      fo.add(s > 0 ? mesh([leaf(AD, 0, Math.PI, 1.5, 0.09, 0.04, 0, 0.16, VIO, false), leaf(AD, 0, Math.PI, 1.45, 0.03, 0.06, 0, 0.16, MAG_N, true)])
+                   : mesh([leaf(AD, 0, Math.PI - 0.1, 0.55, 0.17, 0.05, 0.3, 0, VIO, false), leaf(AD, 0, Math.PI - 0.1, 0.53, 0.04, 0.09, 0.3, 0, MAG_N, true)]));
       this.arm.push(sh); this.fore.push(fo);
     }
     this.phase = 0;
