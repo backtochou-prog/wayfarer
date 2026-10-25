@@ -103,8 +103,9 @@ class Runner3D {
       Kit.cyl(eggR(2.12) + 0.03, eggR(Y0) + 0.03, 0.14, 0, A(1.97), 0, '#141a55', { seg: 28, sz: DZ }),    // navy belt
       ring(eggR(2.14) + 0.03, 0.014, A(2.14), DZ, '#eaf0ff', true),                                        // thin white line above it
       raw(new THREE.TorusGeometry(0.17, 0.05, 6, 16), '#10143c', new THREE.Vector3(0, A(2.05), -0.7), Q0, ONE, false)];   // belt ring
-    // seeds: only three small ones on each cheek (either side of the lips), placed a little unevenly and not mirrored
-    for (const [x, y, sz] of [[0.5, 2.93, 0.048], [0.62, 2.8, 0.042], [0.52, 2.67, 0.046], [-0.52, 2.87, 0.044], [-0.63, 2.74, 0.05], [-0.48, 2.62, 0.04]])
+    // seeds: only six small ones on each cheek (either side of the lips), placed a little unevenly and not mirrored
+    for (const [x, y, sz] of [[0.5, 2.93, 0.048], [0.62, 2.8, 0.042], [0.52, 2.67, 0.046], [0.66, 2.96, 0.036], [0.45, 2.78, 0.037], [0.64, 2.61, 0.04],
+                       [-0.52, 2.87, 0.044], [-0.63, 2.74, 0.05], [-0.48, 2.62, 0.04], [-0.62, 2.98, 0.038], [-0.44, 2.76, 0.035], [-0.65, 2.56, 0.037]])
       parts.push(Kit.ico(sz, x, A(y), onEgg(x, y, 0.006), '#ffd23a', { sy: 1.4, sz: 0.7, detail: 1, rz: (x * 7 + y * 3) % 1.2 - 0.6, glow: true }));
     { const [x, y] = px(375, 770); parts.push(Kit.ico(0.08, x, A(y), onEgg(x, y, 0.04), '#9fb4ff', { sx: 1.6, sz: 0.2, detail: 1, rz: 0.5, glow: true })); }   // the painting's white glare on the visor
     for (const s of [-1, 1]) {                                                                              // black oval side panels with a white inner edge and two buttons
