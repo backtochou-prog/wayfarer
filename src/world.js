@@ -112,7 +112,7 @@ class World {
     if (P.type === 'seg') {
       const s = P.seg, pv = P.prev;
       let to = s.biome, t = 0;
-      if (s.district) { const u = (z - P.z0) / (P.z1 - P.z0); t = ease(clamp(Math.min(u, 1 - u) / 0.3, 0, 1)); }   // a district fades in over the first 30 % and out over the last 30 %
+      if (s.district) { const d = s.district === true ? 0.3 * (P.z1 - P.z0) : s.district; t = ease(clamp(Math.min(z - P.z0, P.z1 - z) / d, 0, 1)); }   // a district fades in over its first `district` units and out over its last
       if (pv && pv.type === 'fork' && pv.choice) { // fade out of the branch we just left
         to = T.segments[pv.fork[pv.choice].route].biome;
         t = clamp(1 - (z - pv.be) / (pv.fork.merge + 250), 0, 1);

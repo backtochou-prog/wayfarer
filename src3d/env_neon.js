@@ -79,11 +79,11 @@ window.ENV3D = window.ENV3D || {};
       neonRing: () => { const p = [Kit.cyl(0.18, 0.24, 5.4, 0, 0, -3.2, N.post), Kit.cyl(0.18, 0.24, 5.4, 0, 0, 3.2, N.post)]; ring(0, 6.4, 3.4, 0.3, N.mag, p); ring(0, 6.4, 2.6, 0.22, N.teal, p, 16); ring(0, 6.4, 1.8, 0.16, N.yellow, p, 12); ring(0, 6.4, 1.0, 0.12, N.green, p, 8); return Kit.merge(p); },
       neonSpire: () => { const p = [Kit.box(3.4, 26, 3.4, 0, 0, 0, N.body)]; for (let k = 0; k < 7; k++) p.push(Kit.box(3.7, 0.28, 3.7, 0, 2.5 + k * 3.4, 0, [N.mag, N.teal, N.yellow, N.purple][k % 4], { glow: true }));
         p.push(Kit.box(0.2, 26, 0.3, -1.72, 0, 0, N.teal, { glow: true }), Kit.cone(1.6, 5, 0, 26, 0, N.body), Kit.cyl(0.07, 0.07, 4, 0, 31, 0, N.post), Kit.ico(0.28, 0, 35.2, 0, N.red, { glow: true })); return Kit.merge(p); },
-      // the big billboard: the user's picture of coloured towers on a green sky, in a glowing frame on two posts
-      neonBillboard: () => { const p = [Kit.box(0.4, 6.4, 0.4, 0, 0, -5.0, N.post), Kit.box(0.4, 6.4, 0.4, 0, 0, 5.0, N.post), Kit.box(0.3, 6.9, 10.6, -0.05, 5.7, 0, N.base),
-          Kit.box(0.42, 0.22, 10.8, -0.1, 12.5, 0, N.mag, { glow: true }), Kit.box(0.42, 0.22, 10.8, -0.1, 5.55, 0, N.teal, { glow: true }),
-          Kit.box(0.42, 7.1, 0.22, -0.1, 5.55, -5.3, N.yellow, { glow: true }), Kit.box(0.42, 7.1, 0.22, -0.1, 5.55, 5.3, N.green, { glow: true })];
-        return { merged: Kit.merge(p), sprite: NeonArt.panel('bill', -0.24, -4.9, 4.9, 5.9, 12.3), material: () => NeonArt.material() }; },
+      // the big billboard: the user's neon LOUNGE sign (a square picture, shown square, 7.4 x 7.4 m) in a glowing frame on two posts
+      neonBillboard: () => { const p = [Kit.box(0.4, 6.0, 0.4, 0, 0, -4.1, N.post), Kit.box(0.4, 6.0, 0.4, 0, 0, 4.1, N.post), Kit.box(0.3, 7.9, 8.1, -0.05, 5.5, 0),
+          Kit.box(0.42, 0.22, 8.3, -0.1, 13.3, 0, N.mag, { glow: true }), Kit.box(0.42, 0.22, 8.3, -0.1, 5.35, 0, N.teal, { glow: true }),
+          Kit.box(0.42, 8.1, 0.22, -0.1, 5.35, -4.2, N.yellow, { glow: true }), Kit.box(0.42, 8.1, 0.22, -0.1, 5.35, 4.2, N.green, { glow: true })];
+        return { merged: Kit.merge(p), sprite: NeonArt.panel('bill', -0.24, -3.7, 3.7, 5.7, 13.1), material: () => NeonArt.material() }; },
       // marks where the street turns to neon (the first slot of the quarter): a glowing pylon
       gateNeon: () => Kit.merge([Kit.box(0.5, 4.2, 0.5, 0, 0, 0, N.post), Kit.box(0.12, 4.0, 0.2, -0.3, 0.1, 0, N.mag, { glow: true }), Kit.box(0.12, 4.0, 0.2, 0.3, 0.1, 0, N.green, { glow: true }), Kit.box(0.9, 0.24, 0.9, 0, 4.2, 0, N.yellow, { glow: true })]),
     },

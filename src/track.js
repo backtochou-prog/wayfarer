@@ -44,9 +44,9 @@ const TRACK = {
                  patterns: ['rowL', 'slideGate', 'line', 'crateJump', 'rowR', 'hurdle', 'trailR', 'slideGate', 'line'] },
     plaza:     { name: 'OLD TOWN',      biome: 'city',   length: 800,  curve: -0.9, first: 100, spacing: 210,
                  patterns: ['line', 'dodgeR', 'hurdle', 'rowL', 'risky'] },
-    // the NEON QUARTER: a night district of the city. `district` makes the world fade the atmosphere, road palette and scenery into this biome over the first
-    // and last 30 % of the segment (see World.bandsAt), so it is entered and left smoothly.
-    neonRun:   { name: 'NEON QUARTER',  biome: 'neon',   length: 1100, curve: -0.8, first: 140, spacing: 210, district: true,
+    // the NEON QUARTER: a night district of the city. `district` (a distance in units) makes the world fade the atmosphere, road palette and scenery into this biome over its first
+    // and last `district` units (see World.bandsAt), so it is entered and left smoothly however long the segment is; 5000 units = 500 m = about 15 s.
+    neonRun:   { name: 'NEON QUARTER',  biome: 'neon',   length: 5000, curve: -0.8, first: 140, spacing: 210, district: 1200,
                  patterns: ['line', 'trailR', 'crateJump', 'dodgeL', 'hurdle', 'risky', 'slideGate', 'zig'] },
     // second variants of the repeating pieces (same biomes and names, a different bend, length and pattern mix) so each lap along the loop is not a copy of the last
     cityRunB:  { name: 'OLD TOWN',      biome: 'city',   length: 1150, curve: -1.0, first: 90,  spacing: 210,
