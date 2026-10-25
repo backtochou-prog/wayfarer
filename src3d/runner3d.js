@@ -11,7 +11,7 @@
 const SLIDE_Y = 1.3, SLIDE_RX = 1.6, SLIDE_SQ = 0.8;
 class Runner3D {
   constructor() {
-    const RED = '#ff2a2e', YELLOW_CAP = '#ff7a5c', NAVY = '#0c1a56', NAVY2 = '#102a7c', PALE = '#c8d8ff', BLACK = '#0b0b12', SHOE = '#1b1b24', PINK = '#e8386a', LIPS = '#ff2f86', HAND = '#d8262a', GREEN = '#46ff1c', LIME = '#c6ff3a', YEL = '#ffd60a';
+    const RED = '#ff2a2e', YELLOW_CAP = '#ff7a5c', NAVY = '#0c1a56', NAVY2 = '#102a7c', PALE = '#c8d8ff', JACKET = '#2f5bff', JACKET_D = '#1f3fc0', JACKET_L = '#9bb4ff', JG = 1.3, SHOE = '#1b1b24', PINK = '#e8386a', LIPS = '#ff2f86', HAND = '#d8262a', GREEN = '#46ff1c', LIME = '#c6ff3a', YEL = '#ffd60a';
     const mats = Kit.materials();
     // glossy, smooth-shaded body: normals averaged over shared vertices (so the berry is round, not faceted) and a Phong material with a specular highlight
     const gloss = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 70, specular: 0x666666 });
@@ -33,6 +33,7 @@ class Runner3D {
       return { geo: g, color, glow: !!glow };
     };
     const G = (part, bottom, pow) => (part.grad = bottom, part.gradPow = pow || 1, part);   // vertical gradient: the part's colour on top, `bottom` underneath (pow > 1 keeps `bottom` dominant)
+    const jk = part => (part.gain = JG, part);                      // jacket-coloured parts get a brightness gain like the body
     const RX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
     const ring = (R, tube, y, zs, color, glow) => raw(new THREE.TorusGeometry(R, tube, 5, 30), color, new THREE.Vector3(0, y, 0), RX, new THREE.Vector3(1, zs, 1), glow);   // horizontal ring, zs squeezes it front-to-back
 
@@ -110,13 +111,14 @@ class Runner3D {
     // the jacket: the painting's black side panels are the open front of a black jacket, so its back and sides wrap the body (the front stays open on the red).
     // Glossy black shell from just under the visor to above the belt, with a ribbed hem, a collar line and a centre-back seam.
     const JF0 = 1.0, JF1 = 2 * Math.PI - 1.0, JB = 2.16, JT = 3.44;
-    parts.push(coat(shell(JB, JT, 0.045, 10, 44, false, JF0, JF1), '#242432'));
-    parts.push(coat(shell(JB, JB + 0.16, 0.065, 2, 44, false, JF0, JF1), '#30303f'));                       // ribbed hem
-    parts.push(coat(shell(JT - 0.07, JT, 0.058, 1, 44, false, JF0, JF1), '#30303f'));                        // collar line under the visor
-    parts.push(coat(shell(JB + 0.16, JT - 0.07, 0.052, 8, 2, false, Math.PI - 0.018, Math.PI + 0.018), '#5a5a70'));   // centre-back seam
-    parts.push(coat(shell(3.04, 3.07, 0.052, 1, 44, false, JF0, JF1), '#5a5a70'));                          // yoke seam across the shoulders
-    // a five-pointed star patch on the middle of the jacket's back: a flat star outline subdivided and projected onto the curved jacket surface
-    const starPatch = (cy, ro, ri, off, color, gain) => {
+    parts.push(jk(coat(shell(JB, JT, 0.045, 10, 44, false, JF0, JF1), JACKET)));
+    parts.push(jk(coat(shell(JB, JB + 0.16, 0.065, 2, 44, false, JF0, JF1), JACKET_D)));                       // ribbed hem
+    parts.push(jk(coat(shell(JT - 0.07, JT, 0.058, 1, 44, false, JF0, JF1), JACKET_D)));                        // collar line under the visor
+    parts.push(coat(shell(JB + 0.16, JT - 0.07, 0.052, 8, 2, false, Math.PI - 0.018, Math.PI + 0.018), JACKET_L));   // centre-back seam
+    parts.push(coat(shell(3.04, 3.07, 0.052, 1, 44, false, JF0, JF1), JACKET_L));                          // yoke seam across the shoulders
+    // a five-pointed star on the middle of the jacket's back, drawn as a thick outline (hollow in the middle, the jacket shows through): the band between the
+    // star and a scaled copy of it, subdivided and projected onto the curved jacket surface
+    const starOutline = (cy, ro, ri, inner, off, color, gain) => {
       const pos = [], O = [];
       for (let k = 0; k < 10; k++) { const a = Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? ri : ro; O.push([Math.cos(a) * r, Math.sin(a) * r]); }
       const lift = (x, v) => { const y = cy + v; return new THREE.Vector3(x, A(y), DZ * Math.sqrt(Math.max(0, Math.pow(eggR(y) + off, 2) - x * x))); };   // back surface (+z)
@@ -125,20 +127,19 @@ class Runner3D {
         if (n.z < 0) { const t = b; b = c; c = t; }                                           // normal pointing out of the back
         pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
       };
-      const sub = (p, q, r, d) => {
-        if (d === 0) return tri(lift(p[0], p[1]), lift(q[0], q[1]), lift(r[0], r[1]));
-        const m = (u, v) => [(u[0] + v[0]) / 2, (u[1] + v[1]) / 2], pq = m(p, q), qr = m(q, r), rp = m(r, p);
-        sub(p, pq, rp, d - 1); sub(pq, q, qr, d - 1); sub(rp, qr, r, d - 1); sub(pq, qr, rp, d - 1);
-      };
-      for (let k = 0; k < 10; k++) sub([0, 0], O[k], O[(k + 1) % 10], 2);
+      const N = 6, M = 2;
+      for (let k = 0; k < 10; k++) {
+        const P0 = O[k], P1 = O[(k + 1) % 10], Q0 = [P0[0] * inner, P0[1] * inner], Q1 = [P1[0] * inner, P1[1] * inner];
+        const at = (i, j) => { const s0 = i / N, t0 = j / M, ax = P0[0] + (P1[0] - P0[0]) * s0, ay = P0[1] + (P1[1] - P0[1]) * s0, bx = Q0[0] + (Q1[0] - Q0[0]) * s0, by = Q0[1] + (Q1[1] - Q0[1]) * s0; return lift(ax + (bx - ax) * t0, ay + (by - ay) * t0); };
+        for (let i = 0; i < N; i++) for (let j = 0; j < M; j++) { tri(at(i, j), at(i + 1, j), at(i + 1, j + 1)); tri(at(i, j), at(i + 1, j + 1), at(i, j + 1)); }
+      }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
       return { geo: g, color, glow: false, gain };
     };
-    parts.push(starPatch(2.74, 0.59, 0.236, 0.064, '#7a1020', 1));                                // dark red border
-    parts.push(starPatch(2.74, 0.5, 0.2, 0.084, '#ffcf3a', 1.4));                           // gold star
+    parts.push(starOutline(2.74, 0.64, 0.26, 0.4, 0.075, '#ffcf3a', 1.4));                   // gold outline star, hollow inside
     { const [x, y] = px(375, 770); parts.push(Kit.ico(0.08, x, A(y), onEgg(x, y, 0.04), '#9fb4ff', { sx: 1.6, sz: 0.2, detail: 1, rz: 0.5, glow: true })); }   // the painting's white glare on the visor
     for (const s of [-1, 1]) {                                                                              // black oval side panels with a white inner edge and two buttons
-      parts.push(Kit.ico(0.5, s * 1.0, A(2.7), -0.22, BLACK, { sx: 0.5, sy: 1.35, sz: 0.8, detail: 2, rz: -0.2 * s }));
+      parts.push(jk(Kit.ico(0.5, s * 1.0, A(2.7), -0.22, JACKET, { sx: 0.5, sy: 1.35, sz: 0.8, detail: 2, rz: -0.2 * s })));
       parts.push(Kit.box(0.025, 1.05, 0.03, s * 0.76, A(2.2), -0.7, '#f0f0ff', { glow: true, rz: -0.2 * s }));
       parts.push(Kit.ico(0.035, s * 0.98, A(3.05), -0.74, '#d9b13a', { glow: true }), Kit.ico(0.035, s * 1.0, A(2.85), -0.74, '#d9b13a', { glow: true }));
     }
@@ -177,9 +178,9 @@ class Runner3D {
     this.arm = []; this.fore = [];
     for (const s of [-1, 1]) {
       const sh = pivot(this.torso, s * 1.0, A(3.3), 0);
-      sh.add(mesh([Kit.ico(0.2, 0, 0, 0, BLACK, { detail: 1 }), Kit.cyl(0.17, 0.13, 0.65, 0, -0.65, 0, BLACK, { seg: 8 })]));
+      sh.add(mesh([jk(Kit.ico(0.2, 0, 0, 0, JACKET, { detail: 1 })), jk(Kit.cyl(0.17, 0.13, 0.65, 0, -0.65, 0, JACKET, { seg: 8 }))]));
       const fo = pivot(sh, 0, -0.65, 0);
-      fo.add(mesh([Kit.cyl(0.13, 0.09, 0.6, 0, -0.6, 0, BLACK, { seg: 8 }), Kit.ico(0.13, 0, -0.72, 0, HAND, { sy: 1.8, detail: 1 })]));
+      fo.add(mesh([jk(Kit.cyl(0.13, 0.09, 0.6, 0, -0.6, 0, JACKET, { seg: 8 })), Kit.ico(0.13, 0, -0.72, 0, HAND, { sy: 1.8, detail: 1 })]));
       this.arm.push(sh); this.fore.push(fo);
     }
     this.phase = 0;
