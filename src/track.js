@@ -44,6 +44,10 @@ const TRACK = {
                  patterns: ['rowL', 'slideGate', 'line', 'crateJump', 'rowR', 'hurdle', 'trailR', 'slideGate', 'line'] },
     plaza:     { name: 'OLD TOWN',      biome: 'city',   length: 800,  curve: -0.9, first: 100, spacing: 210,
                  patterns: ['line', 'dodgeR', 'hurdle', 'rowL', 'risky'] },
+    // the NEON QUARTER: a night district of the city. `district` makes the world fade the atmosphere, road palette and scenery into this biome over the first
+    // and last 30 % of the segment (see World.bandsAt), so it is entered and left smoothly.
+    neonRun:   { name: 'NEON QUARTER',  biome: 'neon',   length: 1100, curve: -0.8, first: 140, spacing: 210, district: true,
+                 patterns: ['line', 'trailR', 'crateJump', 'dodgeL', 'hurdle', 'risky', 'slideGate', 'zig'] },
     // second variants of the repeating pieces (same biomes and names, a different bend, length and pattern mix) so each lap along the loop is not a copy of the last
     cityRunB:  { name: 'OLD TOWN',      biome: 'city',   length: 1150, curve: -1.0, first: 90,  spacing: 210,
                  patterns: ['trailR', 'crateJump', 'dodgeR', 'risky', 'line', 'hurdle', 'slideGate', 'rowL', 'trailL', 'zig'] },
@@ -63,6 +67,6 @@ const TRACK = {
             left:  { route: 'forestB', sign: 'signForest' },
             right: { route: 'detourB', sign: 'signMarket' } },
   },
-  sequence: [{ seg: 'cityStart' }, { seg: 'cityRun' }, { fork: 'gate' }, { seg: 'plaza' }, { seg: 'cityRunB' }, { fork: 'gate2' }, { seg: 'plazaB' }],
+  sequence: [{ seg: 'cityStart' }, { seg: 'cityRun' }, { fork: 'gate' }, { seg: 'plaza' }, { seg: 'neonRun' }, { seg: 'cityRunB' }, { fork: 'gate2' }, { seg: 'plazaB' }],
   loopFrom: 1,
 };

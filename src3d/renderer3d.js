@@ -49,7 +49,9 @@ class Renderer3D {
     const CAP = { lamp: 100, tree: 120, bench: 50, planter: 130, bush: 60, stall: 40, stallB: 40, pine: 110, pineTall: 90, oak: 90, birch: 70, fbush: 80, rock: 60, log: 40, fence: 60, gore: 4,
                   wall: 70, cafe: 40, bollard: 40, barrel: 40, boulder: 30, stump: 30, flowers: 40,                       // street furniture and roadside details
                   fountain: 6, clockTower: 6, statue: 6, cabin: 6, giantOak: 8, standingStones: 6, marketHall: 6, bigTent: 6,   // landmarks: at most one per stretch and side
-                  gateCity: 8, gateWood: 8, gateMarket: 8 };                                                              // entrance markers where the biome changes
+                  gateCity: 8, gateWood: 8, gateMarket: 8, gateNeon: 8,                                                    // entrance markers where the biome changes
+                  neonTowerA: 24, neonTowerB: 24, neonBlockA: 24, neonBlockB: 24, neonBlockC: 24, neonShopA: 24, neonShopB: 24, neonLampM: 60, neonLampC: 60,   // the neon quarter
+                  stripM: 80, stripG: 80, stripR: 80, neonSignA: 40, neonSignB: 40, neonBollard: 40, neonRing: 6, neonSpire: 6, neonBillboard: 6 };                                                              // entrance markers where the biome changes
     this.props = {}; this.propUsed = {};
     for (const id of Object.keys(envs)) {
       const props = envs[id].props; if (!props) continue;

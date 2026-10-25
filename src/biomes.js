@@ -45,6 +45,18 @@ const BIOMES = {
   },
 };
 
+// night neon quarter (the 3D build's NEON QUARTER district; the 2D game just gets a dark palette so the shared track works)
+BIOMES.neon = {
+  name: 'NEON QUARTER', skyline: 'city', props: 'city', density: 0.2, margin: 0.4,
+  sky: ['#05060f', '#120a2a', '#2a1250', '#5a1c6a'],
+  ground: ['#0e1424', '#0b1020'],
+  road: ['#1a2238', '#141c30'],
+  curb: ['#2a1a4a', '#241540'],
+  line: '#ff2fd0',
+  layers: ['#1a1030', '#2a1448', '#14102a'], detail: 'cobble',
+  scenery: ['homeB', 'lamp', 'tower', 'shopSign', 'lamp', 'homeA', 'tower', 'lamp', 'shopSign', 'homeB'],
+};
+
 const _rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 function lerpHex(a, b, t) {
   if (t <= 0) return a;

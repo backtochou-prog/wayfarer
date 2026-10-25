@@ -98,7 +98,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('deterministic: two fresh worlds are item-for-item identical (items, pieces), scenery layouts reproducible', D.sameItems && D.sameLayouts, JSON.stringify({ items: D.sameItems, layouts: D.sameLayouts }));
   const I = D.integrity; const TRACK_ROUTES = Object.fromEntries(D.routes.map(r => [r, 1]));
   T('track integrity: pieces touch, 1 road on segments / 2 on junctions, road bands change smoothly (no jumps) along all ' + I.pieces + ' pieces incl. both junction types and every segment variant',
-    I.badSeam === 0 && I.badCount === 0 && I.maxJump < 0.03 && I.forkIds.join() === 'gate,gate2' && I.segs.includes('cityRunB') && I.segs.includes('plazaB') && ['forest', 'detour', 'forestB', 'detourB'].every(r => !!TRACK_ROUTES[r]), JSON.stringify(I));
+    I.badSeam === 0 && I.badCount === 0 && I.maxJump < 0.03 && I.forkIds.join() === 'gate,gate2' && I.segs.includes('cityRunB') && I.segs.includes('plazaB') && I.segs.includes('neonRun') && ['forest', 'detour', 'forestB', 'detourB'].every(r => !!TRACK_ROUTES[r]), JSON.stringify(I));
   T('both roads of every junction cover the single road at the fork tip and the merge (no gap)', D.forkCover === true, String(D.forkCover));
   const Pt = D.patterns;
   T('obstacle patterns: never the same pattern twice running, several orderings, spacing varies, hazards >= 19 m apart on a road, nothing in the run-up to a junction, first hazard >= 60 m in', Pt.repeats === 0 && Pt.orderings >= 2 && Pt.minGap >= 190 && Pt.guide >= 390 && Pt.firstHazard >= 600 && D.gapKinds >= 8 && Object.values(Pt.distinct).every(n => n >= 2), JSON.stringify({ ...Pt, gapKinds: D.gapKinds }));
@@ -168,6 +168,31 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('distance, speed, score and coins never go backwards across segments and junctions (' + Run.coins + ' coins)', Run.backwards === 0 && Run.coins > 30, JSON.stringify({ backwards: Run.backwards, coins: Run.coins }));
   T('road ribbon stays continuous and the chase camera glitch-free through all of it (max edge step between sections ' + Run.maxEdge.toFixed(2) + ' m, look-at step ' + Run.maxCamDx.toFixed(2) + ' m / camera height step ' + Run.maxCamDy.toFixed(2) + ' m per 3 frames)', Run.maxEdge < 1.6 && Run.maxCamDx < 1.0 && Run.maxCamDy < 0.3, JSON.stringify({ edge: +Run.maxEdge.toFixed(2), dx: +Run.maxCamDx.toFixed(2), dy: +Run.maxCamDy.toFixed(2) }));
   T('landmarks and biome entrance markers actually show up in play (>= 3 landmark kinds and >= 2 entrance kinds seen), no prop dropped', Run.seen.length >= 3 && Run.gates.length >= 2 && Run.dropped === 0, JSON.stringify({ landmarks: Run.seen, gates: Run.gates, dropped: Run.dropped }));
+
+  // ================================================================ 3b. the neon quarter: a district that fades in and out, and its scenery
+  const Nq = await pg.evaluate(() => {
+    const w = new World(TRACK); w.extend(60000); const out = { segs: 0, bad: [], maxStep: 0, mid: 0, ends: 0, ids: [] };
+    for (const P of w.pieces.filter(p => p.type === 'seg' && p.id === 'neonRun')) {
+      out.segs++; let prev = null;
+      for (let z = P.z0 + 0.5; z < P.z1 - 0.5; z += 5) {
+        const b = w.bandsAt(z)[0], u = (z - P.z0) / (P.z1 - P.z0);
+        if (b.to !== 'neon') out.bad.push(['to', Math.round(z)]);
+        if (prev !== null) out.maxStep = Math.max(out.maxStep, Math.abs(b.t - prev)); prev = b.t;
+        if (u > 0.4 && u < 0.6 && b.t < 0.999) out.bad.push(['mid', Math.round(z), b.t]); if (u > 0.4 && u < 0.6) out.mid++;
+        if ((u < 0.01 || u > 0.99) && b.t > 0.05) out.bad.push(['end', Math.round(z), b.t]); if (u < 0.01 || u > 0.99) out.ends++;
+      }
+      const before = w.pieces[w.pieces.indexOf(P) - 1], after = w.pieces[w.pieces.indexOf(P) + 1];      // the neighbours are plain city, so the quarter is entered and left from the base palette
+      out.ids.push(before.id + '>' + P.id + '>' + after.id);
+    }
+    const lay = []; for (let i = -3; i < 600; i++) lay.push(ENV3D.neon.layout(i, rnd).length); out.layout = { min: Math.min(...lay), max: Math.max(...lay) };
+    const kinds = new Set(); for (let i = -3; i < 1500; i++) for (const q of ENV3D.neon.layout(i, rnd)) kinds.add(q.prop); out.kinds = [...kinds].sort();
+    out.missing = out.kinds.filter(k => !ENV3D.neon.props[k]); out.has2D = !!BIOMES.neon;
+    return out;
+  });
+  T('the neon quarter is a district: biome neon through the whole segment, atmosphere fades in over the first 30 % and out over the last 30 % (no jumps), full strength in the middle, the segment sits between plain city pieces (' + Nq.ids[0] + ')',
+    Nq.segs >= 2 && Nq.bad.length === 0 && Nq.maxStep < 0.1 && Nq.mid > 5 && Nq.ends > 0 && Nq.ids.every(x => /^(plaza|plazaB)>neonRun>cityRunB$/.test(x)), JSON.stringify({ segs: Nq.segs, bad: Nq.bad.slice(0, 3), maxStep: +Nq.maxStep.toFixed(3), ids: Nq.ids.slice(0, 2) }));
+  T('the neon quarter\'s layout only uses props it defines, dresses every slot (2..14 props) and uses >= 12 kinds incl. the three landmarks; the 2D game has a palette for it',
+    Nq.missing.length === 0 && Nq.layout.min >= 2 && Nq.layout.max <= 14 && Nq.kinds.length >= 12 && ['neonRing', 'neonSpire', 'neonBillboard'].every(k => Nq.kinds.includes(k)) && Nq.has2D, JSON.stringify({ missing: Nq.missing, layout: Nq.layout, kinds: Nq.kinds.length }));
 
   // ================================================================ 4. trees are the user's artwork
   const Tr = await pg.evaluate(async () => {
