@@ -115,6 +115,10 @@ src/game.js     state, input, loop, collisions, scoring
 - The classic 2D page (`2d.html`) is silent.
 - To change the music: put another track in `assets/music.mp3` and run the two ffmpeg / python commands at the top of `tools/make_beatmap.py`.
 
+## Dabke video
+
+`docs/downloads/dabke-neon-quarter.mp4` (33 s, 960x540, 30 fps, with sound): five copies of the character (the 3D model, which has legs and arms) dance dabke in the Neon Quarter. Dabke is the stomping line dance of Syria and the Levant, so they hold hands in a line, step sideways together, stamp on the beat (a neon ring spreads from every stamp), and the leader on the right swings a red-and-white handkerchief and twirls once. Five camera shots cut on the beat. The sound is your track from 2:16 plus a synthesised dabke percussion layer (the maqsum rhythm, foot stamps on the steps, claps) on the track's beat grid. It is rendered from the game's own scene, frame by frame and deterministically; `tools/dabke_video/` has the scripts (`render.js`, `make_drums.py`, `build.sh`) and reproduces the file byte for byte.
+
 ## Tests
 
 ```
