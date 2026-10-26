@@ -139,18 +139,19 @@ class Game {
   }
 
   onKey(e, down) {
-    const c = e.code;
+    const c = e.code, k = (e.key || '').toLowerCase();                                    // by position (WASD cluster: on an AZERTY keyboard that is ZQSD) and by letter (Q Z D S on any layout)
+    const L = c === 'ArrowLeft' || c === 'KeyA' || k === 'q', R = c === 'ArrowRight' || c === 'KeyD' || k === 'd', U = c === 'ArrowUp' || c === 'KeyW' || k === 'z', D = c === 'ArrowDown' || c === 'KeyS' || k === 's';
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(c)) e.preventDefault();
-    if (c === 'ArrowLeft' || c === 'KeyA') this.keys.left = down;
-    if (c === 'ArrowRight' || c === 'KeyD') this.keys.right = down;
+    if (L) this.keys.left = down;
+    if (R) this.keys.right = down;
     if (!down || e.repeat) return;
     if (c === 'KeyM' && this.sfx) { this.sfx.toggle(); return; }                      // M: sound on / off
     const s = this.state;
     if (s === 'title' && (c === 'Enter' || c === 'Space')) this.start();
     else if (s === 'over' && this.overT > 0.5 && (c === 'Enter' || c === 'Space' || c === 'KeyR')) this.start();
     else if (s === 'play') {
-      if (c === 'Space' || c === 'ArrowUp' || c === 'KeyW') this.jump();
-      else if (c === 'ArrowDown' || c === 'KeyS') this.slideKey();
+      if (c === 'Space' || U) this.jump();
+      else if (D) this.slideKey();
       else if (c === 'KeyP' || c === 'Escape') this.state = 'pause';
     } else if (s === 'pause' && (c === 'KeyP' || c === 'Escape')) this.state = 'play';
   }

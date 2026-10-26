@@ -79,11 +79,15 @@ A third set of 17 pictures (`src3d/neon_assets3.js`, one alpha atlas) adds 17 mo
 
 | Key | Action |
 |---|---|
-| A / D or ← / → | steer |
-| Space or ↑ | jump (crates, low barriers) |
-| ↓ | slide (overhead banners and vines) |
+| Q / D, A / D or ← / → | steer (Q, Z, S, D work by letter on any layout; on an AZERTY keyboard the ZQSD keys work by position too) |
+| Space, Z, W or ↑ | jump (crates, low barriers) |
+| S or ↓ | slide (overhead banners and vines) |
 | P or Esc | pause / resume |
 | Enter, Space or R | start / restart (the on-screen buttons work too) |
+
+**Touch buttons** (phones): each one wears your neon ring picture (`src/touch_assets.js`, scaled to the overlay's pixel grid, with its arrow or pause symbol drawn over it; a held button grows and lights up). The hit boxes did not change.
+
+![touch buttons](docs/screenshots/touch-buttons.jpg)
 
 At a fork, lean to the road you want (or tap ← / →) before crossing the junction line. The prompt shows the current pick.
 
@@ -99,6 +103,7 @@ tools/preview3d.html  dev page that renders one 3D module in isolation
 tests/qa3d_coins.js   regression test: coin pickup (coins vanish at once, count once, can't be re-collected, pool reuse, both branches, restart)
 tests/qa3d_world.js   regression test: world variety, track integrity, pools, six junctions played
 tests/qa3d_audio.js   regression test: sound and music (locked until a gesture, the track and its beat grid checked against the decoded mp3, every event's effect, offline-rendered effects, mute, animation on the beat)
+tests/qa3d_controls.js regression test: keyboard bindings (arrows, WASD, ZQSD / AZERTY), the neon-ring touch buttons and the menu key text
 tests/qa3d_ui.js      regression test: both menu-panel artworks load, are drawn, controls text legible (with a fallback to the drawn panels)
 tests/qa3d_avatar.js  regression test: the artwork avatar (default), ?avatar=3d, images load (also from file://), view per state, size / ground / slide height, faces the camera, no leaks
 src/biomes.js   palette + biome definitions (city, forest, market)
