@@ -49,11 +49,11 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     for (let f = 0; f < 30; f++) { g.advance(1 / 60); r.draw(g); }                       // real frames first, so the textures are uploaded
     const rn = r.runner, kids0 = r.scene.children.length, own0 = rn.pivot.children.length, geoIds0 = ['back', 'side'].map(k => rn.cards[k].geometry.uuid).join();
     const play = n => { for (let f = 0; f < n && g.state === 'play'; f++) { if (f % 20 === 0) hazardFree(); g.advance(1 / 60); if (f % 15 === 0) r.draw(g); if (f === 600) g.keys.left = true; if (f === 700) { g.keys.left = false; g.keys.right = true; } if (f === 800) g.keys.right = false; } r.draw(g); };
-    play(1800); const tex1 = r.renderer.info.memory.textures;                              // textures are uploaded when first drawn: the tree atlas, the avatar's back view, and the neon atlas once the district comes into view
+    play(1800); const tex1 = r.renderer.info.memory.textures;                              // textures are uploaded when first drawn: the tree atlas, the avatar's back view, the sun glow and the sign atlas of the tram street (warmed up at start), and the neon atlas once the district comes into view
     play(1800); const tex2 = r.renderer.info.memory.textures;                              // a second 30 s: nothing new may appear
     return { state: g.state, tex: [tex1, tex2], kids: [kids0, r.scene.children.length], own: [own0, rn.pivot.children.length], sameCards: geoIds0 === ['back', 'side'].map(k => rn.cards[k].geometry.uuid).join() };   // (geometry counts also grow as new scenery is first drawn: that is the GPU upload of props, not the avatar)
   });
-  T('no leaks: the uploaded textures stop growing (<= 6: trees, avatar back view, three neon atlases), the 2 cards and the scene children stay constant over 60 s of play', L.state === 'play' && L.tex[0] >= 1 && L.tex[0] <= 6 && L.tex[0] === L.tex[1] && L.kids[0] === L.kids[1] && L.own[0] === 2 && L.own[1] === 2 && L.sameCards, JSON.stringify(L));
+  T('no leaks: the uploaded textures stop growing (<= 7: trees, avatar back view, three neon atlases, the tram signs, the sun glow), the 2 cards and the scene children stay constant over 60 s of play', L.state === 'play' && L.tex[0] >= 1 && L.tex[0] <= 7 && L.tex[0] === L.tex[1] && L.kids[0] === L.kids[1] && L.own[0] === 2 && L.own[1] === 2 && L.sameCards, JSON.stringify(L));
   T('no JS errors in the default avatar session', pg.errs.length === 0, pg.errs.slice(0, 2).join('|'));
   await pg.context().close();                                   // close it: a page left running keeps drawing and slows every page opened after it (software GL)
 

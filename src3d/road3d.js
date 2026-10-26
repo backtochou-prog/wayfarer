@@ -46,7 +46,8 @@ class Road3D {
       const mixC = (x, y) => C().set(x).lerp(C().set(y), f);
       p = { asphalt: [mixC(a.asphalt[0], b.asphalt[0]), mixC(a.asphalt[1], b.asphalt[1])], mark: mixC(a.mark, b.mark), edge: mixC(a.edge, b.edge),
             curb: [mixC(a.curb[0], b.curb[0]), mixC(a.curb[1], b.curb[1])], curbFace: mixC(a.curbFace, b.curbFace),
-            walk: [mixC(a.walk[0], b.walk[0]), mixC(a.walk[1], b.walk[1])], court: mixC(a.court, b.court), verge: [mixC(a.verge[0], b.verge[0]), mixC(a.verge[1], b.verge[1])] };
+            walk: [mixC(a.walk[0], b.walk[0]), mixC(a.walk[1], b.walk[1])], court: mixC(a.court, b.court), verge: [mixC(a.verge[0], b.verge[0]), mixC(a.verge[1], b.verge[1])],
+            rails: !!b.rails && f >= 0.5 };   // tram rails: the lane lines become continuous and a little wider once the zone is mostly in
       row[q] = p;
     }
     return p;
@@ -110,7 +111,7 @@ class Road3D {
       col[o] = c.r; col[o + 1] = c.g; col[o + 2] = c.b; col[o + 3] = c.r; col[o + 4] = c.g; col[o + 5] = c.b;
     }
     // markings: lane lines at the thirds (dashed), edge lines near each edge (continuous); zero width = nothing drawn
-    const w = hi - lo, my = 0.02, wide = w > 2.4, l1 = lo + w / 3, l2 = hi - w / 3, hw = wide && dash ? 0.06 : 0, ew = w > 0.8 ? 0.06 : 0;
+    const w = hi - lo, my = 0.02, wide = w > 2.4, l1 = lo + w / 3, l2 = hi - w / 3, hw = wide && (dash || pal.rails) ? (pal.rails ? 0.09 : 0.06) : 0, ew = w > 0.8 ? 0.06 : 0;
     const mk = pal.mark, ed = pal.edge, o = base + 11 * 6;
     pos[o] = l1 - hw; pos[o + 1] = my; pos[o + 2] = z; pos[o + 3] = l1 + hw; pos[o + 4] = my; pos[o + 5] = z;
     pos[o + 6] = l2 - hw; pos[o + 7] = my; pos[o + 8] = z; pos[o + 9] = l2 + hw; pos[o + 10] = my; pos[o + 11] = z;

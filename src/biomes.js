@@ -57,6 +57,18 @@ BIOMES.neon = {
   scenery: ['homeB', 'lamp', 'tower', 'shopSign', 'lamp', 'homeA', 'tower', 'lamp', 'shopSign', 'homeB'],
 };
 
+// sunset tram street (the 3D build's TRAM STREET district; the 2D game just gets a warm dusk palette so the shared track works)
+BIOMES.tram = {
+  name: 'TRAM STREET', skyline: 'city', props: 'city', density: 0.25, margin: 0.4,
+  sky: ['#7b8fa6', '#b8a898', '#e8b080', '#f6c48c'],
+  ground: ['#5a3c36', '#52362f'],
+  road: ['#6a4a46', '#5e4140'],
+  curb: ['#a89484', '#9c8878'],
+  line: '#cfc7c0',
+  layers: ['#4a2f38', '#7a4a3e', '#5a3036'], detail: 'cobble',
+  scenery: ['homeA', 'lamp', 'homeB', 'shopSign', 'lamp', 'homeA', 'fenceC', 'homeB', 'lamp', 'tower'],
+};
+
 const _rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 function lerpHex(a, b, t) {
   if (t <= 0) return a;

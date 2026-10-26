@@ -51,6 +51,9 @@ const TRACK = {
                  patterns: ['line', 'crateJump', 'hurdle', 'slideGate', 'trailR', 'dodgeL', 'risky', 'zig'] },
     neonRun:   { name: 'NEON QUARTER',  biome: 'neon',   length: 5000, curve: -0.8, first: 140, spacing: 210, district: 1200,
                  patterns: ['line', 'trailR', 'crateJump', 'dodgeL', 'hurdle', 'risky', 'slideGate', 'zig'] },
+    // the TRAM STREET: a Brussels street at sunset (low sun ahead, tram rails in the cobbles, overhead wires); a district like the neon quarter, fading in and out over 120 m
+    tramRun:   { name: 'TRAM STREET',   biome: 'tram',   length: 4500, curve: 0.6,  first: 140, spacing: 210, district: 1200,
+                 patterns: ['line', 'hurdle', 'trailL', 'crateJump', 'dodgeR', 'risky', 'slideGate', 'zig', 'trailR'] },
     // second variants of the repeating pieces (same biomes and names, a different bend, length and pattern mix) so each lap along the loop is not a copy of the last
     cityRunB:  { name: 'OLD TOWN',      biome: 'city',   length: 1150, curve: -1.0, first: 90,  spacing: 210,
                  patterns: ['trailR', 'crateJump', 'dodgeR', 'risky', 'line', 'hurdle', 'slideGate', 'rowL', 'trailL', 'zig'] },
@@ -71,6 +74,6 @@ const TRACK = {
             right: { route: 'detourB', sign: 'signMarket' } },
   },
   base: 'city',          // the biome every segment's palette blends from (the "unblended" look); NOT the biome of the first piece, which is the neon quarter
-  sequence: [{ seg: 'neonStart' }, { seg: 'cityRun' }, { fork: 'gate' }, { seg: 'plaza' }, { seg: 'neonRun' }, { seg: 'cityRunB' }, { fork: 'gate2' }, { seg: 'plazaB' }],
+  sequence: [{ seg: 'neonStart' }, { seg: 'cityRun' }, { fork: 'gate' }, { seg: 'plaza' }, { seg: 'neonRun' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { fork: 'gate2' }, { seg: 'plazaB' }],
   loopFrom: 1,
 };

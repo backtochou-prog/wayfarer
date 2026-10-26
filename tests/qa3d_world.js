@@ -17,7 +17,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM || '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const pg = await (await b.newContext({ viewport: { width: 480, height: 270 } })).newPage();
   const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => m.type() === 'error' && errs.push(m.text()));
-  await pg.goto(process.env.TEST_URL || 'http://localhost:' + PORT + '/');   // TEST_URL=https://... runs the same checks against a deployed copy await pg.waitForFunction(() => window.__wf, null, { timeout: 30000 }); await pg.waitForTimeout(600);
+  await pg.goto(process.env.TEST_URL || 'http://localhost:' + PORT + '/'); await pg.waitForFunction(() => window.__wf, null, { timeout: 30000 }); await pg.waitForTimeout(600);   // TEST_URL=https://... runs the same checks against a deployed copy
+  await pg.evaluate(() => { window.__realRender = __wf.r.renderer.render; });                // (later sections stub render out; the pixel check puts the real one back)
 
   // ================================================================ 1. data-level checks (no rendering)
   const D = await pg.evaluate(() => {
@@ -242,6 +243,73 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   });
   T('the third set of materials (17 pictures in one alpha atlas, 1024 px wide) loads and is on 17 new neon props sharing one material; every one of them is placed by the street layout',
     M3.loaded && M3.cells === 17 && M3.mats === 1 && Object.values(M3.props).every(n => n === 1) && M3.unused.length === 0, JSON.stringify(M3));
+
+  // ================================================================ 3c. the tram street: a sunset district from the user's street photos
+  const Ts = await pg.evaluate(async () => {
+    const out = { bad: [], maxStep: 0, mid: 0, ends: 0, ids: [] }, w = new World(TRACK); w.extend(70000);
+    for (const P of w.pieces.filter(p => p.type === 'seg' && p.id === 'tramRun')) {
+      out.segs = (out.segs || 0) + 1; out.len = P.z1 - P.z0; let prev = null;
+      for (let z = P.z0 + 0.5; z < P.z1 - 0.5; z += 5) {
+        const b = w.bandsAt(z)[0], u = (z - P.z0) / (P.z1 - P.z0);
+        if (b.to !== 'tram') out.bad.push(['to', Math.round(z)]);
+        if (prev !== null) out.maxStep = Math.max(out.maxStep, Math.abs(b.t - prev)); prev = b.t;
+        if (u > 0.4 && u < 0.6 && b.t < 0.999) out.bad.push(['mid', Math.round(z), b.t]); if (u > 0.4 && u < 0.6) out.mid++;
+        if ((u < 0.01 || u > 0.99) && b.t > 0.05) out.bad.push(['end', Math.round(z), b.t]); if (u < 0.01 || u > 0.99) out.ends++;
+      }
+      const before = w.pieces[w.pieces.indexOf(P) - 1], after = w.pieces[w.pieces.indexOf(P) + 1]; if (before && after) out.ids.push(before.id + '>' + P.id + '>' + (after.type === 'fork' ? 'fork:' + after.fork.left.route : after.id));
+    }
+    const all = new Set(); for (const id in ENV3D) for (const k in ENV3D[id].props || {}) all.add(k);
+    const lay = [], kinds = new Set(), nb = { same: 0, n: 0 }, prevH = {};
+    for (let i = -3; i < 2500; i++) { const L = ENV3D.tram.layout(i, rnd); lay.push(L.length); for (const q of L) kinds.add(q.prop);
+      for (const side of [-1, 1]) { const h = L.find(q => /^row/.test(q.prop) && Math.sign(q.x) === side); if (h) { if (prevH[side]) { nb.n++; if (prevH[side] === h.prop) nb.same++; } prevH[side] = h.prop; } else prevH[side] = null; } }
+    out.layout = { min: Math.min(...lay), max: Math.max(...lay) }; out.kinds = [...kinds].sort(); out.missing = out.kinds.filter(k => !all.has(k)); out.nb = nb; out.has2D = !!BIOMES.tram; out.name = TRACK.segments.tramRun.name;
+    out.entrance = !!ENV3D.tram.entrance && !!ENV3D.tram.props[ENV3D.tram.entrance];
+    // atmosphere: the sun sits low and ahead with a glow in the street, and returns to the default place in the old town; the rails appear on the road
+    const r = __wf.r; r.applyAtmosphere('tram', 1); out.sunTram = { ...r.sunOff, glowVisible: r.sunGlow.visible, fog: '#' + r.scene.fog.color.getHexString() }; r.applyAtmosphere('tram', 0.5); out.sunHalf = { ...r.sunOff };
+    r.applyAtmosphere('city', 0); out.sunCity = { ...r.sunOff, glowVisible: r.sunGlow.visible }; r.applyAtmosphere('neon', 1); out.sunNeon = { ...r.sunOff, glowVisible: r.sunGlow.visible };
+    out.rails = [r.road.pal('tram', 1).rails, r.road.pal('tram', 0.3).rails, r.road.pal('city', 1).rails, r.road.pal('neon', 1).rails];
+    // lettered signs: one canvas atlas, shared material, seven cells; the landmark and the shop houses carry textured panels
+    const mat = TramArt.material(); out.cells = Object.keys(TramArt.cells).length; out.canvas = mat.map.image instanceof HTMLCanvasElement && mat.map.image.width === 512;
+    out.signs = {}; for (const n of ['polyclinique', 'tramStop', 'rowE', 'rowF', 'rowG', 'rowH', 'cornerCafe', 'gateTram']) { const m = ENV3D.tram.props[n](); out.signs[n] = !!(m.sprite && m.material() === mat && m.merged); }
+    out.signs.rowA = !ENV3D.tram.props.rowA().sprite;
+    // the sprite panel of the Polyclinique is the vertical blade sign: tall and narrow
+    const pm = ENV3D.tram.props.polyclinique(); pm.sprite.computeBoundingBox(); const bb = pm.sprite.boundingBox; out.blade = { poly: TramArt.cells.poly.ar < 0.3, tall: bb.max.y > 9 };
+    return out;
+  });
+  T('the tram street is a district: biome tram through the whole segment, atmosphere fades in over the first 120 m and out over the last 120 m (no jumps), full strength in the middle, between the old town and the second fork (' + Ts.ids[0] + ')',
+    Ts.segs >= 2 && Ts.len >= 4000 && Ts.bad.length === 0 && Ts.maxStep < 0.1 && Ts.mid > 5 && Ts.ends > 0 && Ts.ids.every(x => /^cityRunB>tramRun>fork:forestB$/.test(x)) && Ts.name === 'TRAM STREET', JSON.stringify({ segs: Ts.segs, len: Ts.len, bad: Ts.bad.slice(0, 3), maxStep: +Ts.maxStep.toFixed(3), ids: Ts.ids.slice(0, 2), name: Ts.name }));
+  T('the tram streets layout uses only props that exist, dresses every slot (2..14 props), has the wire over both rails in every slot, uses >= 14 kinds incl. the three landmarks, never repeats a house on the same side in consecutive slots; 2D palette and entrance marker exist',
+    Ts.missing.length === 0 && Ts.layout.min >= 2 && Ts.layout.max <= 14 && Ts.kinds.length >= 14 && ['polyclinique', 'tramStop', 'cornerCafe', 'wire', 'pole', 'swan', 'plane', 'cobbles', 'carA', 'van'].every(k => Ts.kinds.includes(k)) && Ts.nb.n > 500 && Ts.nb.same === 0 && Ts.has2D && Ts.entrance,
+    JSON.stringify({ missing: Ts.missing, layout: Ts.layout, kinds: Ts.kinds.length, nb: Ts.nb, has2D: Ts.has2D, entrance: Ts.entrance }));
+  T('the sun is low and ahead with a glow in the tram street (blended in with the zone, half way at half strength), unchanged elsewhere (default place, no glow); warm fog; tram rails only in the street, once it is mostly in',
+    Ts.sunTram.glow >= 0.99 && Ts.sunTram.glowVisible && Ts.sunTram.y < 20 && Ts.sunTram.y > 5 && Math.abs(Ts.sunHalf.glow - 0.5) < 0.05 && Ts.sunCity.glow === 0 && !Ts.sunCity.glowVisible && Ts.sunCity.x === -70 && Ts.sunCity.y === 28 && !Ts.sunNeon.glowVisible && /^#e/.test(Ts.sunTram.fog) &&
+    Ts.rails[0] === true && Ts.rails[1] === false && Ts.rails[2] === false && Ts.rails[3] === false, JSON.stringify({ tram: Ts.sunTram, half: Ts.sunHalf, city: Ts.sunCity, rails: Ts.rails }));
+  T('the lettered signs are drawn on one small canvas atlas (7 cells: POLYCLINIQUE blade, VERHAEGEN fascia, TRAM plate, shop boards) with one shared material; the landmark, the shop houses, the stop and the entrance carry textured panels, the plain houses none',
+    Ts.cells === 7 && Ts.canvas && Object.values(Ts.signs).every(Boolean) && Ts.blade.poly && Ts.blade.tall, JSON.stringify({ cells: Ts.cells, canvas: Ts.canvas, signs: Ts.signs, blade: Ts.blade }));
+  const Tg = await pg.evaluate(async () => {
+    const g = __wf, r = g.r, realRender = window.__realRender; r.renderer.render = () => {}; g.start(); g.world.items = []; g.world.reset(); g.start(); g.world.extend(9000); for (let n = 9000; !g.world.pieces.find(p => p.type === 'seg' && p.id === 'tramRun') && n < 90000; n += 4000) g.world.extend(n);
+    const P = g.world.pieces.find(p => p.type === 'seg' && p.id === 'tramRun'); g.state = 'play'; g.world.items = []; r.dropped = 0; r.droppedBy = {};
+    let used = 0, rows = 0, wires = 0, peak = 0;
+    for (let z = P.z0 + 100; z < P.z1 - 100; z += 40) {
+      g.p.z = z; g.p.x = 0; g.world.extend(z); g.world.items = []; const ahead = g.world.playerBand(z + 300, 0); g.bgTo = ahead.to; g.bgT = ahead.t; const pb = g.world.playerBand(z, 0); g.camX = pb.c; g.camOff = pb.off; g.time += 1 / 60; r.menu = 0; r.draw(g);
+      let u = 0; for (const k in r.propUsed) u += r.propUsed[k]; used = Math.max(used, u); wires = Math.max(wires, r.propUsed.wire || 0);
+      for (const n of ['rowA', 'rowB', 'rowC', 'rowD', 'rowE', 'rowF', 'rowG', 'rowH']) rows += r.propUsed[n]; for (const k in r.propUsed) peak = Math.max(peak, r.propUsed[k] / r.props[k].length);
+    }
+    // draw one real frame in the middle of the street and look at it: a bright warm sun low in the upper half, a dark warm street under it
+    const mid = (P.z0 + P.z1) / 2; g.p.z = mid; g.world.extend(mid); g.world.items = []; const ah = g.world.playerBand(mid + 300, 0); g.bgTo = ah.to; g.bgT = ah.t; const pb2 = g.world.playerBand(mid, 0); g.camX = pb2.c; g.camOff = pb2.off; g.time += 0.01; r.atmoQ = -1; r.menu = 0;
+    r.draw(g); r.renderer.render = realRender; r.draw(g);
+    const cv = document.getElementById('gl'), url = cv.toDataURL('image/png'), img = new Image(); img.src = url; await img.decode();     // (read in the same task as the draw: the GL canvas does not keep its buffer)
+    const c2 = document.createElement('canvas'); c2.width = cv.width; c2.height = cv.height; const cx = c2.getContext('2d'); cx.drawImage(img, 0, 0);
+    const W = c2.width, H = c2.height, px = cx.getImageData(0, 0, W, H).data; let best = 0, bx = 0, by = 0, warm = 0, n = 0;
+    for (let y = 0; y < H * 0.7; y += 2) for (let x = 0; x < W; x += 2) { const i = (y * W + x) * 4, L = px[i] + px[i + 1] + px[i + 2]; if (L > best) { best = L; bx = x; by = y; } }
+    let hr = 0, hb = 0, hn = 0; for (let dy = -60; dy <= 60; dy += 6) for (let dx = -60; dx <= 60; dx += 6) { const d = Math.hypot(dx, dy); if (d < 28 || d > 60) continue; const x = bx + dx, y = by + dy; if (x < 0 || y < 0 || x >= W || y >= H) continue; const i = (y * W + x) * 4; hr += px[i]; hb += px[i + 2]; hn++; }   // the halo around the sun
+    for (let y = Math.floor(H * 0.85); y < H; y += 4) for (let x = Math.floor(W * 0.3); x < W * 0.7; x += 4) { const i = (y * W + x) * 4; if (px[i] > 20 && px[i] >= px[i + 2]) warm++; n++; }
+    return { dropped: r.dropped, by: r.droppedBy, used, rows, wires, peak: +peak.toFixed(2), sun: { rgb: [...px.slice((by * W + bx) * 4, (by * W + bx) * 4 + 3)], x: +(bx / W).toFixed(2), y: +(by / H).toFixed(2) }, warmRoad: +(warm / n).toFixed(2), halo: [Math.round(hr / hn), Math.round(hb / hn)], bgTo: g.bgTo };
+  });
+  T('driving through the whole tram street: nothing dropped from any pool (peak ' + Math.round(Tg.peak * 100) + ' %), the wire runs unbroken (both rails in every slot: ' + Tg.wires + ' spans), houses on every pass (' + Tg.rows + ')',
+    Tg.dropped === 0 && Tg.peak <= 0.85 && Tg.wires >= 20 && Tg.rows > 100 && Tg.bgTo === 'tram', JSON.stringify({ dropped: Tg.dropped, by: Tg.by, peak: Tg.peak, wires: Tg.wires, rows: Tg.rows }));
+  T('a real frame in the middle of the street: the brightest spot is the sun, low and ahead (upper half, near the middle), bright, in a warm orange halo (R >> B), over a warm road',
+    Tg.sun.rgb[0] > 220 && Tg.halo[0] > Tg.halo[1] + 25 && Tg.sun.y < 0.5 && Tg.sun.y > 0.1 && Math.abs(Tg.sun.x - 0.5) < 0.2 && Tg.warmRoad > 0.9, JSON.stringify(Tg.sun) + ' halo ' + Tg.halo + ' warmRoad ' + Tg.warmRoad);
 
   // ================================================================ 4. trees are the user's artwork
   const Tr = await pg.evaluate(async () => {

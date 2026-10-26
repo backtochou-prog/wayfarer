@@ -38,6 +38,11 @@ class Renderer3D {
     this.sky.renderOrder = -2; this.scene.add(this.sky);
     this.sunDisc = new THREE.Mesh(new THREE.CircleGeometry(1, 20), new THREE.MeshBasicMaterial({ color: base.sunDisc.color, fog: false, depthWrite: false }));
     this.sunDisc.scale.setScalar(250 * Math.tan(base.sunDisc.size * Math.PI / 360)); this.sunDisc.renderOrder = -1; this.scene.add(this.sunDisc);
+    // soft halo around the sun (additive radial gradient), only strong in zones that ask for it (`sunGlow`); sunOff = where the sun sits relative to the camera at 250 m (per biome, blended)
+    const gc = document.createElement('canvas'); gc.width = gc.height = 128; const gx = gc.getContext('2d'), gr = gx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,214,140,0.95)'); gr.addColorStop(0.18, 'rgba(255,170,90,0.55)'); gr.addColorStop(0.5, 'rgba(255,120,60,0.16)'); gr.addColorStop(1, 'rgba(255,100,50,0)'); gx.fillStyle = gr; gx.fillRect(0, 0, 128, 128);
+    this.sunGlow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(gc), transparent: true, blending: THREE.AdditiveBlending, fog: false, depthWrite: false }));
+    this.sunGlow.renderOrder = -1; this.sunGlow.visible = false; this.scene.add(this.sunGlow); this.sunOff = { x: -70, y: 28, glow: 0, size: base.sunDisc.size };
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.MeshLambertMaterial({ color: base.groundFar }));
     ground.rotation.x = -Math.PI / 2; ground.position.y = -0.03; this.scene.add(ground);
     this._c = [new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color()];   // scratch colours for blending
@@ -54,7 +59,9 @@ class Renderer3D {
                   stripM: 80, stripG: 80, stripR: 80, neonSignA: 40, neonSignB: 40, neonBollard: 40, neonRing: 6, neonSpire: 6, neonBillboard: 6,
                   neonBlockD: 24, neonBlockE: 24, neonShopC: 24, neonBlade: 80, neonBanner: 40, neonBucket: 80, neonBottle: 60, neonHalo: 6,      // props made of the user's materials
                   neonSwirlR: 24, neonSwirlP: 24, neonSwirlG: 24, neonSwirlT: 24, neonStreetBlock: 24, neonDotsBlock: 24, neonRaysTower: 28, neonSwirlSign: 40, neonCapSign: 40, neonDotScreen: 28, neonLinesBanner: 40,
-                  neonShopD: 24, neonCar: 40, neonBoardVortex: 6, neonBoardSphere: 6, neonBoardRings: 6, neonBoardSpiral: 6 };                                                              // entrance markers where the biome changes
+                  neonShopD: 24, neonCar: 40, neonBoardVortex: 6, neonBoardSphere: 6, neonBoardRings: 6, neonBoardSpiral: 6,
+                  rowA: 26, rowB: 26, rowC: 26, rowD: 26, rowE: 26, rowF: 26, rowG: 26, rowH: 26, pole: 24, wire: 36, swan: 40, plane: 60, cobbles: 44, carA: 20, carB: 20, carC: 20, van: 20,   // the tram street
+                  polyclinique: 6, tramStop: 6, cornerCafe: 6, gateTram: 8 };                                                              // entrance markers where the biome changes
     this.props = {}; this.propUsed = {};
     for (const id of Object.keys(envs)) {
       const props = envs[id].props; if (!props) continue;
@@ -73,13 +80,13 @@ class Renderer3D {
     // upload the art textures to the GPU as soon as their images have loaded, so the first frames that show them do not hitch (a big atlas upload is a one-off spike)
     // and warm up once: compile every material variant and draw one frame with every pooled prop visible, so geometries, textures and shaders are all on the GPU before
     // the first prop of each kind comes into view (otherwise that first sight costs a one-off hitch of hundreds of ms in a software renderer)
-    let pending = 4;
+    let pending = 6;
     const warm = () => { const hid = []; this.scene.traverse(o => { if (!o.visible && o.parent) { hid.push(o); o.visible = true; } });
       try { this.renderer.compile(this.scene, this.camera); this.renderer.render(this.scene, this.camera); this.renderer.clear(); } catch (e) {}   // drawn on screen (that is the program variant that must be ready) and cleared in the same task: a canvas is only shown after the next game frame
       for (const o of hid) o.visible = false; };
-    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3()]) {
+    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3(), () => TramArt.material(), () => this.sunGlow.material]) {
       const tex = get().map, go = () => { try { this.renderer.initTexture(tex); } catch (e) {} if (--pending === 0) setTimeout(warm, 50); };
-      if (tex.image.complete && tex.image.naturalWidth) go(); else tex.image.addEventListener('load', () => setTimeout(go, 0));
+      if (!(tex.image instanceof HTMLImageElement) || (tex.image.complete && tex.image.naturalWidth)) go();   // (a canvas texture, the tram signs, is ready at once) else tex.image.addEventListener('load', () => setTimeout(go, 0));
     }
     this.droppedBy = {}; this.dropped = 0;                 // props skipped because a pool was full (should stay 0)
     this.layouts = {}; for (const id of Object.keys(envs)) if (envs[id].layout) this.layouts[id] = new Map();   // per biome: slot -> cached placements
@@ -115,6 +122,9 @@ class Renderer3D {
     lerpTo(this.hemi.color, a.hemi.sky, b.hemi.sky); lerpTo(this.hemi.groundColor, a.hemi.ground, b.hemi.ground); this.hemiBase = a.hemi.intensity + (b.hemi.intensity - a.hemi.intensity) * q; this.hemi.intensity = this.hemiBase;
     lerpTo(this.sun.color, a.sun.color, b.sun.color); this.sun.intensity = a.sun.intensity + (b.sun.intensity - a.sun.intensity) * q;
     lerpTo(this.sunDisc.material.color, a.sunDisc.color, b.sunDisc.color);
+    { const pa = a.sunPos || [-70, 28], pb = b.sunPos || [-70, 28], so = this.sunOff;
+      so.x = pa[0] + (pb[0] - pa[0]) * q; so.y = pa[1] + (pb[1] - pa[1]) * q; so.glow = (a.sunGlow || 0) + ((b.sunGlow || 0) - (a.sunGlow || 0)) * q; so.size = a.sunDisc.size + (b.sunDisc.size - a.sunDisc.size) * q;
+      this.sunDisc.scale.setScalar(250 * Math.tan(so.size * Math.PI / 360)); this.sunGlow.scale.setScalar(250 * Math.tan(so.size * Math.PI / 360) * 7); this.sunGlow.material.opacity = Math.min(1, so.glow); this.sunGlow.visible = so.glow > 0.02; }
     lerpTo(top, a.sky.top, b.sky.top); lerpTo(mid, a.sky.mid, b.sky.mid); lerpTo(hor, a.sky.horizon, b.sky.horizon);
     const col = this.sky.geometry.attributes.color, arr = col.array, H = this.domeH;
     for (let i = 0; i < H.length; i++) {
@@ -248,8 +258,9 @@ class Renderer3D {
     if (g.shake > 0) { this.cam.x += Math.sin(g.time * 90) * g.shake * 0.5; this.cam.y += Math.cos(g.time * 70) * g.shake * 0.3; }
     this.camera.position.copy(this.cam); this.camera.lookAt(this.look);
     this.sky.position.copy(this.camera.position);
-    this.sunDisc.position.set(this.camera.position.x - 70, this.camera.position.y + 28, this.camera.position.z - 250);
+    this.sunDisc.position.set(this.camera.position.x + this.sunOff.x, this.camera.position.y + this.sunOff.y, this.camera.position.z - 250);
     this.sunDisc.lookAt(this.camera.position);
+    if (this.sunGlow.visible) { this.sunGlow.position.copy(this.sunDisc.position); this.sunGlow.position.z += 0.5; this.sunGlow.lookAt(this.camera.position); }
 
     this.renderer.render(this.scene, this.camera);
     this.uiCtx.clearRect(0, 0, VW, VH);
