@@ -270,7 +270,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.rails = [r.road.pal('tram', 1).rails, r.road.pal('tram', 0.3).rails, r.road.pal('city', 1).rails, r.road.pal('neon', 1).rails];
     // lettered signs: one canvas atlas, shared material, seven cells; the landmark and the shop houses carry textured panels
     const mat = TramArt.material(); out.cells = Object.keys(TramArt.cells).length; out.canvas = mat.map.image instanceof HTMLCanvasElement && mat.map.image.width === 512;
-    out.signs = {}; for (const n of ['polyclinique', 'tramStop', 'rowE', 'rowF', 'rowG', 'rowH', 'cornerCafe', 'gateTram']) { const m = ENV3D.tram.props[n](); out.signs[n] = !!(m.sprite && m.material() === mat && m.merged); }
+    out.signs = {}; for (const n of ['polyclinique', 'tramStop', 'rowE', 'rowF', 'rowG', 'rowH', 'cornerCafe', 'gateTram', 'school', 'streetSign']) { const m = ENV3D.tram.props[n](); out.signs[n] = !!(m.sprite && m.material() === mat && m.merged); }
     out.signs.rowA = !ENV3D.tram.props.rowA().sprite;
     // descent: the street falls 7 % along its length in proportion to its blend; flat everywhere else
     { const P = w.pieces.find(q => q.type === 'seg' && q.id === 'tramRun'), B = w.pieces.find(q => q.type === 'seg' && q.id === 'cityRunB'); let mono = true, prev = -1;
@@ -282,14 +282,14 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   });
   T('the tram street is a district: biome tram through the whole segment, atmosphere fades in over the first 120 m and out over the last 120 m (no jumps), full strength in the middle, between the old town and the second fork (' + Ts.ids[0] + ')',
     Ts.segs >= 2 && Ts.len >= 4000 && Ts.bad.length === 0 && Ts.maxStep < 0.1 && Ts.mid > 5 && Ts.ends > 0 && Ts.ids.every(x => /^cityRunB>tramRun>fork:forestB$/.test(x)) && Ts.name === 'SAINT-GILLES', JSON.stringify({ segs: Ts.segs, len: Ts.len, bad: Ts.bad.slice(0, 3), maxStep: +Ts.maxStep.toFixed(3), ids: Ts.ids.slice(0, 2), name: Ts.name }));
-  T('the tram streets layout uses only props that exist, dresses every slot (2..14 props), has the wire over both rails in every slot, uses >= 14 kinds incl. the three landmarks, never repeats a house on the same side in consecutive slots; 2D palette and entrance marker exist',
-    Ts.missing.length === 0 && Ts.layout.min >= 2 && Ts.layout.max <= 14 && Ts.kinds.length >= 14 && ['polyclinique', 'tramStop', 'cornerCafe', 'wire', 'pole', 'swan', 'blossom', 'cobbles', 'carA', 'van'].every(k => Ts.kinds.includes(k)) && Ts.nb.n > 500 && Ts.nb.same === 0 && Ts.has2D && Ts.entrance,
+  T('the tram streets layout uses only props that exist, dresses every slot (2..16 props), has the wire over both rails in every slot, uses >= 30 kinds incl. the five landmarks and the new street furniture, never repeats a house on the same side in consecutive slots; 2D palette and entrance marker exist',
+    Ts.missing.length === 0 && Ts.layout.min >= 2 && Ts.layout.max <= 16 && Ts.kinds.length >= 30 && ['polyclinique', 'tramStop', 'cornerCafe', 'school', 'glassTower', 'wire', 'pole', 'swan', 'lantern', 'posts', 'streetSign', 'hedge', 'tent', 'scooter', 'steps', 'zebra', 'rowI', 'rowJ', 'rowK', 'rowL', 'blossom', 'cobbles', 'carA', 'van'].every(k => Ts.kinds.includes(k)) && Ts.nb.n > 500 && Ts.nb.same === 0 && Ts.has2D && Ts.entrance,
     JSON.stringify({ missing: Ts.missing, layout: Ts.layout, kinds: Ts.kinds.length, nb: Ts.nb, has2D: Ts.has2D, entrance: Ts.entrance }));
   T('the sun is low and ahead with a glow in the tram street (blended in with the zone, half way at half strength), unchanged elsewhere (default place, no glow); warm fog; tram rails only in the street, once it is mostly in',
     Ts.sunTram.glow >= 0.99 && Ts.sunTram.glowVisible && Ts.sunTram.y < 20 && Ts.sunTram.y > 5 && Math.abs(Ts.sunHalf.glow - 0.5) < 0.05 && Ts.sunCity.glow === 0 && !Ts.sunCity.glowVisible && Ts.sunCity.x === -70 && Ts.sunCity.y === 28 && !Ts.sunNeon.glowVisible && /^#e/.test(Ts.sunTram.fog) &&
     Ts.rails[0] === true && Ts.rails[1] === false && Ts.rails[2] === false && Ts.rails[3] === false, JSON.stringify({ tram: Ts.sunTram, half: Ts.sunHalf, city: Ts.sunCity, rails: Ts.rails }));
-  T('the lettered signs are drawn on one small canvas atlas (7 cells: POLYCLINIQUE blade, VERHAEGEN fascia, TRAM plate, shop boards) with one shared material; the landmark, the shop houses, the stop and the entrance carry textured panels, the plain houses none',
-    Ts.cells === 7 && Ts.canvas && Object.values(Ts.signs).every(Boolean) && Ts.blade.poly && Ts.blade.tall, JSON.stringify({ cells: Ts.cells, canvas: Ts.canvas, signs: Ts.signs, blade: Ts.blade }));
+  T('the lettered signs are drawn on one small canvas atlas (14 cells: POLYCLINIQUE blade, VERHAEGEN fascia, TRAM plate, shop boards, BRICO, the parking, ZONE P and no-entry signs, three murals) with one shared material; the landmark, the school, the shop houses, the stop, the street signs and the entrance carry textured panels, the plain houses none',
+    Ts.cells === 14 && Ts.canvas && Object.values(Ts.signs).every(Boolean) && Ts.blade.poly && Ts.blade.tall, JSON.stringify({ cells: Ts.cells, canvas: Ts.canvas, signs: Ts.signs, blade: Ts.blade }));
   const Bl = await pg.evaluate(async () => {
     const mat = BlossomSprite.material(); for (let i = 0; i < 60 && !mat.visible; i++) await new Promise(q => setTimeout(q, 100));
     const m = ENV3D.tram.props.blossom(), g = m.sprite; g.computeBoundingBox(); const bb = g.boundingBox, pc = g.attributes.position.count;

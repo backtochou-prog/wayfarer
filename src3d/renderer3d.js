@@ -64,7 +64,8 @@ class Renderer3D {
                   neonSwirlR: 24, neonSwirlP: 24, neonSwirlG: 24, neonSwirlT: 24, neonStreetBlock: 24, neonDotsBlock: 24, neonRaysTower: 28, neonSwirlSign: 40, neonCapSign: 40, neonDotScreen: 28, neonLinesBanner: 40,
                   neonShopD: 24, neonCar: 40, neonBoardVortex: 6, neonBoardSphere: 6, neonBoardRings: 6, neonBoardSpiral: 6,
                   rowA: 26, rowB: 26, rowC: 26, rowD: 26, rowE: 26, rowF: 26, rowG: 26, rowH: 26, pole: 24, wire: 36, swan: 40, blossom: 60, cobbles: 44, carA: 20, carB: 20, carC: 20, van: 20,   // the tram street
-                  polyclinique: 6, tramStop: 6, cornerCafe: 6, gateTram: 8 };                                                              // entrance markers where the biome changes
+                  polyclinique: 6, tramStop: 6, cornerCafe: 6, gateTram: 8, school: 6, glassTower: 6,
+                  rowI: 26, rowJ: 26, rowK: 26, rowL: 26, lantern: 40, posts: 40, streetSign: 24, hedge: 30, tent: 24, scooter: 24, steps: 24, zebra: 8 };                                                              // entrance markers where the biome changes
     this.props = {}; this.propUsed = {};
     for (const id of Object.keys(envs)) {
       const props = envs[id].props; if (!props) continue;

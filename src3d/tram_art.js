@@ -2,7 +2,7 @@
 // and a couple of shop boards), drawn once on a small canvas atlas at start-up: no image file. One shared texture and material, same contract as NeonArt:
 // a prop factory returns { merged, sprite, material: () => TramArt.material() } and Renderer3D pools both together.
 const TramArt = {
-  W: 512, H: 512, cells: {},
+  W: 512, H: 1024, cells: {},
   _mat: null,
   // name: [x, y, w, h, background, text colour, text, orientation]
   SPEC: {
@@ -13,12 +13,32 @@ const TramArt = {
     pharm: [128, 192, 384, 96, '#e8e2d2', '#1f7a4d', 'PHARMACIE', 'h'],
     cafe:  [128, 288, 384, 96, '#6b2737', '#f3cf7a', 'CAFE', 'h'],
     boul:  [128, 384, 384, 96, '#d9b46a', '#4a2e28', 'BOULANGERIE', 'h'],
+    brico: [0, 512, 256, 96, '#e8741f', '#3a1a0c', 'BRICO', 'h'],               // a hardware-shop board (orange)
+    park:  [256, 512, 96, 96, '#1d5fb8', '#ffffff', 'P', 'h'],                   // blue parking sign
+    zonep: [0, 608, 192, 96, '#1d5fb8', '#ffffff', 'ZONE P', 'h'],
+    noent: [352, 512, 96, 96, null, null, null, 'noent'],                        // round no-entry sign
+    mural1: [0, 704, 160, 256, null, null, null, 'mural'],                       // the three murals of the school's arched windows (drawn here, in the spirit of the photo)
+    mural2: [160, 704, 160, 256, null, null, null, 'mural'],
+    mural3: [320, 704, 160, 256, null, null, null, 'mural'],
   },
   _build() {
     const c = document.createElement('canvas'); c.width = this.W; c.height = this.H;
     const g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, this.W, this.H);
     for (const name in this.SPEC) {
       const [x, y, w, h, bg, fg, text, o] = this.SPEC[name];
+      if (o === 'noent') {                                              // red disc, white bar
+        g.fillStyle = '#e9e2d2'; g.fillRect(x, y, w, h); g.fillStyle = '#c4292b'; g.beginPath(); g.arc(x + w / 2, y + h / 2, w * 0.46, 0, 7); g.fill();
+        g.fillStyle = '#fff'; g.fillRect(x + w * 0.22, y + h * 0.43, w * 0.56, h * 0.14);
+        this.cells[name] = { u0: (x + 2) / this.W, u1: (x + w - 2) / this.W, v0: 1 - (y + h - 2) / this.H, v1: 1 - (y + 2) / this.H, ar: w / h }; continue;
+      }
+      if (o === 'mural') {                                              // a bright painted wall: sky, hills, a few shapes (three different ones)
+        const k = +name.slice(-1), P = [['#8ed0f0', '#5fae5a', '#f06aa0'], ['#f7d86a', '#3f9a6a', '#e8481c'], ['#c9a0e8', '#f0a0c0', '#2a6ac8']][k - 1];
+        g.fillStyle = P[0]; g.fillRect(x, y, w, h); g.fillStyle = P[1]; g.beginPath(); g.ellipse(x + w * 0.3, y + h, w * 0.8, h * 0.35, 0, Math.PI, 0); g.fill();
+        g.fillStyle = P[2]; g.fillRect(x + w * 0.52, y + h * (0.34 + 0.05 * k), w * 0.34, h * 0.42); g.fillStyle = '#fff6d8'; for (let r = 0; r < 3; r++) g.fillRect(x + w * 0.58, y + h * (0.42 + 0.05 * k) + r * h * 0.11, w * 0.08, h * 0.06);
+        g.fillStyle = '#ffd23a'; g.beginPath(); g.arc(x + w * 0.22, y + h * 0.2, w * 0.13, 0, 7); g.fill();
+        g.strokeStyle = '#3a2a2a'; g.lineWidth = 5; g.strokeRect(x + 2, y + 2, w - 4, h - 4);
+        this.cells[name] = { u0: (x + 2) / this.W, u1: (x + w - 2) / this.W, v0: 1 - (y + h - 2) / this.H, v1: 1 - (y + 2) / this.H, ar: w / h }; continue;
+      }
       g.fillStyle = bg; g.fillRect(x, y, w, h);
       g.strokeStyle = fg; g.lineWidth = 3; g.strokeRect(x + 4, y + 4, w - 8, h - 8);
       g.fillStyle = fg; g.textAlign = 'center'; g.textBaseline = 'middle';

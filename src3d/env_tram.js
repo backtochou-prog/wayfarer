@@ -9,18 +9,21 @@ window.ENV3D = window.ENV3D || {};
   const mod = (a, n) => ((a % n) + n) % n;
   const T = { brick: '#a45a45', brickD: '#8a4a3c', brickL: '#b8704f', cream: '#e3d0b0', white: '#ece2d0', grey: '#b8aea2', stone: '#a8927e', slate: '#4a424c', roof: '#7a4a42',
               glass: '#2c2a3a', sun: '#e8975a', trim: '#f1e5cd', iron: '#2a2630', wire: '#26222c', warm: '#ffb870', cobble: '#55352f', cobbleA: '#6a4640', cobbleB: '#47302b',
-              awnA: '#b23a3a', awnB: '#efe0c0' };
+              awnA: '#b23a3a', awnB: '#efe0c0',
+              ochre: '#d8a35e', brickRed: '#a9483a', stoneL: '#cfc2a8', wood: '#9a5a1c', blue: '#22318c', white2: '#f0ede6', green: '#2c3d34', hedge: '#2c5a34', lime: '#7ddc3a' };
   const SLOT = SEG_LEN;
 
   // one townhouse (or half of a twin): facade plane at local x = 0, body toward +X, centred at z = zc
   function house(parts, o) {
-    const { F, D, H, zc = 0, wall, trim = T.trim, gable = 'step', roofCol = T.slate, cols = 3, bay = false, balcony = false, shop = null, seed = 1 } = o;
+    const { F, D, H, zc = 0, wall, trim = T.trim, gable = 'step', roofCol = T.slate, cols = 3, bay = false, balcony = false, shop = null, seed = 1, bands = null, bayCol = null, doorCol = null, base = null, cross = false, wallLamp = false } = o;
     const GF = 3.4, FL = 3.0, floors = Math.max(1, Math.floor((H - GF - 0.6) / FL));
     parts.push(Kit.box(D, H, F, D / 2, 0, zc, wall));                                                       // body
     parts.push(Kit.box(D + 0.08, 0.7, F + 0.08, D / 2, 0, zc, T.stone));                                    // plinth
     parts.push(Kit.box(0.36, 0.24, F + 0.3, -0.07, H - 0.24, zc, trim));                                    // cornice
     parts.push(Kit.box(0.16, 0.14, F, -0.02, GF - 0.12, zc, trim));                                         // ground-floor band
     const bc = Math.floor(cols / 2), cw = F / cols;
+    if (base) parts.push(Kit.box(0.08, GF, F, -0.02, 0, zc, base));                                          // a darker ground floor (modern block: dark brick)
+    if (bands) for (let f = 0; f <= Math.floor((H - GF) / FL); f++) parts.push(Kit.box(0.05, 0.16, F, -0.015, GF + f * FL - 0.2, zc, bands));   // horizontal brick / stone bands at every floor line
     for (let f = 0; f < floors; f++) {
       const y = GF + f * FL + 0.45;
       for (let c = 0; c < cols; c++) {
@@ -39,7 +42,7 @@ window.ENV3D = window.ENV3D || {};
     }
     if (bay) {                                                                                               // oriel (bay window) over two floors
       const bw = cw * 1.3, bz = zc - F / 2 + (bc + 0.5) * cw, by = GF + 0.2, bh = 2 * FL - 0.5;
-      parts.push(Kit.box(0.95, bh, bw, -0.45, by, bz, wall), Kit.box(1.1, 0.16, bw + 0.2, -0.5, by + bh, bz, trim), Kit.box(1.1, 0.16, bw + 0.2, -0.5, by - 0.1, bz, trim));
+      parts.push(Kit.box(0.95, bh, bw, -0.45, by, bz, bayCol || wall), Kit.box(1.1, 0.16, bw + 0.2, -0.5, by + bh, bz, trim), Kit.box(1.1, 0.16, bw + 0.2, -0.5, by - 0.1, bz, trim));
       for (let f = 0; f < 2; f++) for (const dz of [-0.4, 0.4]) {
         const lit = rnd(seed * 13 + f * 5 + (dz > 0 ? 1 : 0), 6) < 0.4;
         parts.push(Kit.box(0.08, 1.6, 0.62, -0.95, by + 0.45 + f * FL, bz + dz, lit ? T.sun : T.glass, { glow: lit }));
@@ -51,9 +54,12 @@ window.ENV3D = window.ENV3D || {};
       parts.push(Kit.box(0.14, 2.5, 1.1, -0.04, 0.0, zc + F / 2 - 1.1, T.iron));
       parts.push(Kit.box(0.22, 0.7, F * 0.94, -0.08, 2.75, zc, shop));                                       // fascia board
     } else {
-      parts.push(Kit.box(0.14, 2.5, 1.2, -0.04, 0.0, zc, T.iron), Kit.box(0.22, 0.18, 1.6, -0.08, 2.5, zc, trim));
+      parts.push(Kit.box(0.14, 2.5, 1.2, -0.04, 0.0, zc, doorCol || T.iron), Kit.box(0.22, 0.18, 1.6, -0.08, 2.5, zc, trim));
+      if (doorCol) for (const sd of [-1, 1]) parts.push(Kit.box(0.24, 2.7, 0.22, -0.07, 0, zc + sd * 0.78, T.stone));      // stone door surround
       for (const s of [-1, 1]) parts.push(Kit.box(0.1, 1.5, 0.9, -0.04, 0.95, zc + s * F * 0.3, T.glass));
     }
+    if (wallLamp) parts.push(Kit.box(0.4, 0.08, 0.08, -0.2, 3.1, zc + F / 2 - 0.6, T.iron), Kit.box(0.22, 0.34, 0.22, -0.42, 2.78, zc + F / 2 - 0.6, T.warm, { glow: true }));   // a wall lantern by the door
+    if (cross) parts.push(Kit.box(0.1, 0.1, 0.1, -0.1, 4.0, zc - F / 2 + 0.7, T.iron), Kit.box(0.9, 0.3, 0.1, -0.7, 4.3, zc - F / 2 + 0.7, '#3dff72', { glow: true }), Kit.box(0.3, 0.9, 0.1, -0.7, 4.0, zc - F / 2 + 0.7, '#3dff72', { glow: true }));   // a pharmacy cross, glowing green
     if (gable === 'step') {                                                                                  // Brussels stepped gable
       const steps = [0.92, 0.7, 0.48, 0.26];
       steps.forEach((k, n) => parts.push(Kit.box(0.5, 0.55, F * k, 0.25, H + n * 0.55, zc, n % 2 ? wall : T.brickD), Kit.box(0.56, 0.1, F * k + 0.1, 0.25, H + n * 0.55 + 0.55, zc, trim)));
@@ -90,8 +96,8 @@ window.ENV3D = window.ENV3D || {};
     return Kit.merge(p);
   }
   // house types by slot parity (A C E G on even slots of a side, B D F H on odd ones), so two neighbouring houses are never the same whatever the stretch
-  const ODD = ['rowB', 'rowD', 'rowF', 'rowH'], EVEN = ['rowA', 'rowC', 'rowE', 'rowG'];
-  const BRICK = [['rowA', 'rowE', 'rowC'], ['rowH', 'rowB']], SHOPS = [['rowE', 'rowG'], ['rowF', 'rowH']];
+  const ODD = ['rowB', 'rowD', 'rowF', 'rowH', 'rowJ', 'rowL'], EVEN = ['rowA', 'rowC', 'rowE', 'rowG', 'rowI', 'rowK'];
+  const BRICK = [['rowA', 'rowE', 'rowC', 'rowK'], ['rowH', 'rowB']], SHOPS = [['rowE', 'rowG'], ['rowF', 'rowH']], ART = [['rowI', 'rowK'], ['rowJ', 'rowB']];
 
   ENV3D.tram = {
     name: 'SAINT-GILLES',
@@ -119,6 +125,12 @@ window.ENV3D = window.ENV3D || {};
       rowF: build([{ F: 8.8, D: 8, H: 12.6, wall: T.cream, cols: 3, shop: '#2f5d4a', bay: true, seed: 7 }], [fascia('brass', 8.8)]),
       rowG: build([{ F: 10, D: 7, H: 11.8, wall: T.white, cols: 4, shop: '#e8e2d2', gable: 'flat', balcony: true, seed: 8 }], [fascia('pharm', 10)]),
       rowH: build([{ F: 8.6, D: 7, H: 9.8, wall: T.brickD, cols: 3, shop: '#d9b46a', seed: 9 }], [fascia('boul', 8.6)]),
+      // the second set of houses, from your later photos: an ochre-brick Art Nouveau house with red brick bands, a stone door surround, a wooden door and a big iron balcony; a white house
+      // with a dark-blue oriel; a red-brick corner house with a glowing pharmacy cross; a modern white block over a dark brick ground floor
+      rowI: build([{ F: 9, D: 8, H: 14.4, wall: T.ochre, trim: T.stoneL, bands: T.brickRed, cols: 3, balcony: true, doorCol: T.wood, gable: 'step', seed: 13 }]),
+      rowJ: build([{ F: 8.2, D: 8, H: 15, wall: '#efe7d8', trim: '#ffffff', cols: 3, bay: true, bayCol: T.blue, doorCol: T.wood, gable: 'mansard', roofCol: T.slate, seed: 14 }]),
+      rowK: build([{ F: 9.4, D: 8, H: 12.4, wall: '#9e4a3b', trim: T.stoneL, bands: T.stoneL, cols: 3, balcony: true, doorCol: '#c9942e', cross: true, wallLamp: true, gable: 'gable', roofCol: T.roof, seed: 15 }]),
+      rowL: build([{ F: 11, D: 8, H: 16.6, wall: T.white2, trim: '#d9d4ca', cols: 4, balcony: true, base: '#6b3a30', gable: 'flat', seed: 16 }]),
       // street furniture
       pole: () => Kit.merge([                                        // a pole carrying a cantilever arm over the rails, with a dropper to the wire
         Kit.box(0.4, 0.4, 0.4, 0, 0, 0, T.iron), Kit.cyl(0.09, 0.13, 6.6, 0, 0, 0, T.iron), Kit.box(3.0, 0.1, 0.1, -1.5, 6.1, 0, T.iron), Kit.box(1.7, 0.06, 0.06, -0.85, 5.5, 0, T.iron, { rz: -0.5 }),
@@ -130,6 +142,7 @@ window.ENV3D = window.ENV3D || {};
       blossom: () => BlossomSprite.prop(7.5),                          // the user's blossom-tree photo, 7.5 m tall
       cobbles: () => { const p = [Kit.box(2.9, 0.03, SLOT - 0.4, 0, 0, 0, T.cobble)];                      // a cobbled parking strip with lighter setts
         for (let k = 0; k < 22; k++) p.push(Kit.box(0.55, 0.045, 0.4, -1.2 + rnd(k, 31) * 2.4, 0, -5 + rnd(k, 32) * 10, k % 2 ? T.cobbleA : T.cobbleB));
+        p.push(Kit.cyl(0.4, 0.4, 0.05, 0.5, 0, 2.2, '#2b2527', { seg: 12 }));                                       // a manhole cover
         return Kit.merge(p); },
       carA: () => car('#2a2530', { lit: true }), carB: () => car('#d8d4cc'), carC: () => car('#8e8a96', { lit: true }), van: () => car('#cfcac2', { van: true, lit: true }),
       // landmarks (at most one per stretch and side), and the entrance marker
@@ -146,6 +159,27 @@ window.ENV3D = window.ENV3D || {};
         for (let k = 0; k < 8; k++) parts.push(Kit.box(1.4, 0.08, 1.0, -0.9, 3.2, -3.5 + k * 1.0, k % 2 ? T.awnA : T.awnB, { rz: 0.35 }));        // striped awning
         for (const z of [-2.2, 2.2]) parts.push(Kit.cyl(0.5, 0.5, 0.05, -2.6, 0.75, z, T.cream, { seg: 8 }), Kit.cyl(0.05, 0.05, 0.75, -2.6, 0, z, T.iron, { seg: 5 }), Kit.cone(1.4, 0.5, -2.6, 2.3, z, T.awnA, { seg: 8 }), Kit.cyl(0.05, 0.05, 2.3, -2.6, 0, z, T.iron, { seg: 5 }));
       }),
+      lantern: () => Kit.merge([                                      // the dark-green street lamp of the photos: a curved arm and a glowing globe
+        Kit.box(0.3, 0.4, 0.3, 0, 0, 0, T.green), Kit.cyl(0.07, 0.1, 4.3, 0, 0, 0, T.green), Kit.box(0.9, 0.06, 0.06, -0.45, 4.3, 0, T.green), Kit.box(0.05, 0.4, 0.05, -0.9, 3.95, 0, T.green),
+        Kit.ico(0.24, -0.9, 3.7, 0, T.warm, { glow: true }), Kit.cone(0.3, 0.2, -0.9, 3.96, 0, T.green, { seg: 8 })]),
+      posts: () => Kit.merge([-1.8, 0, 1.8].flatMap(z => [Kit.cyl(0.09, 0.11, 0.95, 0, 0, z, '#1d2128', { seg: 8 }), Kit.ico(0.1, 0, 0.98, z, '#1d2128')])),   // a row of black bollards with round tops
+      streetSign: () => ({ merged: Kit.merge([Kit.cyl(0.05, 0.06, 3.4, 0, 0, 0, '#8a8f96', { seg: 6 })]),
+                           sprite: TramArt.join([TramArt.blade('park', 0, -0.32, 0.28, 2.45, 3.05), TramArt.blade('noent', 0, -0.3, 0.3, 3.1, 3.7)]), material: () => TramArt.material() }),
+      hedge: () => Kit.merge([Kit.box(1.0, 0.9, 5.2, 0, 0, 0, T.hedge), Kit.box(0.8, 0.25, 5.0, 0, 0.9, 0, '#35683c'), Kit.ico(0.5, 0, 1.0, -2.0, '#35683c'), Kit.ico(0.45, 0, 1.0, 1.4, '#2f6038')]),
+      tent: () => { const p = [Kit.box(1.8, 0.8, 2.4, 0, 0, 0, '#6a4a36'), Kit.cone(2.1, 0.7, 0, 2.5, 0, '#f1efe8', { seg: 4, ry: Math.PI / 4 }), Kit.box(2.5, 0.06, 2.5, 0, 2.45, 0, '#f1efe8')];   // a white market canopy over a table of crates
+        for (const [x, z] of [[-1.2, -1.2], [1.2, -1.2], [-1.2, 1.2], [1.2, 1.2]]) p.push(Kit.cyl(0.04, 0.04, 2.5, x, 0, z, '#9aa0a6', { seg: 5 }));
+        [['#c0392b', -0.4, -0.7], ['#5a9a3c', 0.3, -0.2], ['#e08a1e', -0.3, 0.4], ['#c0392b', 0.4, 0.8]].forEach(([c, x, z]) => p.push(Kit.box(0.5, 0.25, 0.45, x, 0.8, z, c)));
+        return Kit.merge(p); },
+      scooter: () => Kit.merge([Kit.box(0.2, 0.05, 0.85, 0, 0.14, 0, '#222428'), Kit.cyl(0.02, 0.02, 1.05, 0, 0.14, -0.4, T.lime, { seg: 5 }), Kit.box(0.5, 0.04, 0.05, 0, 1.15, -0.4, '#222428'),
+        Kit.cyl(0.11, 0.11, 0.06, 0, 0.0, -0.4, T.lime, { rz: Math.PI / 2, seg: 8 }), Kit.cyl(0.11, 0.11, 0.06, 0, 0.0, 0.4, T.lime, { rz: Math.PI / 2, seg: 8 })]),
+      steps: () => Kit.merge([0, 1, 2, 3].map(k => Kit.box(0.9, 0.15 * (k + 1), 5.2, 0.5 + k * 0.9, 0, 0, k % 2 ? '#a39d94' : '#b3aca1'))),   // stone steps up from the pavement
+      zebra: () => Kit.merge([-3, -2, -1, 0, 1, 2, 3].map(k => Kit.box(0.5, 0.17, 2.4, k * 0.9, -0.14, 0, '#e9e2d2'))),            // a pedestrian crossing painted on the road (sunk so its top is 3 cm above it)
+      school: () => { const sp = [], p = [Kit.box(9, 10.4, 15, 4.5, 0, 0, '#9a463a'), Kit.box(9.1, 0.7, 15.1, 4.5, 0, 0, T.stone), Kit.box(0.36, 0.3, 15.4, -0.08, 10.1, 0, T.stoneL), Kit.box(0.14, 0.2, 15, -0.03, 6.9, 0, T.stoneL), Kit.box(0.14, 0.2, 15, -0.03, 2.2, 0, T.stoneL)];
+        ['mural1', 'mural2', 'mural3'].forEach((m, k) => { const z = -4.8 + k * 4.8; p.push(Kit.box(0.22, 4.9, 2.8, -0.05, 2.15, z, T.stoneL)); sp.push(TramArt.panel(m, -0.18, z - 1.1, z + 1.1, 2.4, 6.4)); });   // an arched window frame and a mural in each
+        p.push(Kit.box(0.4, 0.5, 15.4, -0.1, 7.2, 0, '#6e2f2c'), Kit.box(9, 0.3, 15, 4.5, 10.4, 0, '#5a2a30'), Kit.box(0.14, 2.6, 1.3, -0.04, 0, 6.0, T.iron));
+        return { merged: Kit.merge(p), sprite: TramArt.join(sp), material: () => TramArt.material() }; },
+      glassTower: () => Kit.merge([Kit.box(10, 20, 16, 5, 0, 0, '#7c8a9c'), Kit.box(10.4, 26, 16.4, 5, 20, 0, '#e8b96b', { glow: true }), Kit.box(10.2, 0.6, 16.2, 5, 46, 0, '#6a7888'), Kit.cyl(0.15, 0.2, 5, 5, 46.6, 0, '#9aa0a6', { seg: 5 }),
+        ...[26, 32, 38].map(y => Kit.box(10.5, 0.25, 16.5, 5, y, 0, '#b88e48', { glow: true }))]),                                   // a tall glass tower in the distance, gold where it catches the sun
       gateTram: () => ({ merged: Kit.merge([Kit.cyl(0.09, 0.12, 3.6, 0, 0, 0, T.iron), Kit.box(0.3, 0.3, 0.3, 0, 0, 0, T.iron)]), sprite: TramArt.blade('stop', 0, -0.9, 0.9, 2.5, 3.5), material: () => TramArt.material() }),
     },
 
@@ -158,25 +192,33 @@ window.ENV3D = window.ENV3D || {};
     //   2 brick: tall brick houses with bay windows and stepped gables
     // A landmark (Polyclinique block / tram stop / corner cafe) replaces the house on its side of one slot per stretch (the tram stop stands on the pavement, the houses stay).
     layout(i, rnd) {
-      const out = [{ prop: 'wire', x: -1.1, dist: 6 }, { prop: 'wire', x: 1.1, dist: 6 }], S = Stretch.of(i, 31, 5, ['polyclinique', 'tramStop', 'cornerCafe']);
+      const out = [{ prop: 'wire', x: -1.1, dist: 6 }, { prop: 'wire', x: 1.1, dist: 6 }], S = Stretch.of(i, 31, 7, ['polyclinique', 'tramStop', 'cornerCafe', 'school', 'glassTower']);
       for (const side of [-1, 1]) {
-        const k = i * 2 + (side > 0 ? 1 : 0), r = n => rnd(k, n), lm = S.lm && S.lm.slot === i && S.lm.side === side ? S.lm.kind : null, blocks = lm && lm !== 'tramStop';
+        const k = i * 2 + (side > 0 ? 1 : 0), r = n => rnd(k, n), lm = S.lm && S.lm.slot === i && S.lm.side === side ? S.lm.kind : null, blocks = lm && lm !== 'tramStop' && lm !== 'glassTower';
         const par = mod(i + (side > 0 ? 1 : 0), 2), pick = (L = [EVEN, ODD]) => L[par][Math.floor(r(12) * L[par].length)];   // a house type of this slot's parity class
         const house = (prop, x, dz) => { if (!blocks) out.push({ prop, x: side * x, dist: 6 + dz }); };
         const park = mod(S.b + (side > 0 ? 1 : 0), 2) === 0;                                                 // which side of this stretch has the parking strip
         const cars = (p = 0.6) => { if (!park) return; out.push({ prop: 'cobbles', x: side * 5.15, dist: 6 }); if (r(5) < p) out.push({ prop: ['carA', 'carB', 'carC', 'van'][Math.floor(r(6) * 4)], x: side * 5.15, dist: 3.2 + r(7) * 5 }); };
         if (mod(i + (side > 0 ? 1 : 0), 3) === 0) out.push({ prop: 'pole', x: side * 4.0, dist: 2.5 });
         switch (S.variant) {
-          case 0: house(pick(), FRONT_X + r(1) * 0.5, (r(2) - 0.5) * 0.8); cars(0.65); if (mod(i, 2) === (side > 0 ? 1 : 0)) out.push({ prop: 'swan', x: side * 3.95, dist: 8 }); break;
+          case 0: house(pick(), FRONT_X + r(1) * 0.5, (r(2) - 0.5) * 0.8); cars(0.65); if (mod(i, 2) === (side > 0 ? 1 : 0)) out.push({ prop: mod(i, 4) < 2 ? 'swan' : 'lantern', x: side * 3.95, dist: 8 }); if (r(14) < 0.12) out.push({ prop: 'streetSign', x: side * 3.8, dist: 2 }); break;
           case 1: house(pick(), FRONT_X + 1.4 + r(1) * 0.8, (r(2) - 0.5) * 0.8); out.push({ prop: 'blossom', x: side * 4.9, dist: mod(i, 2) === 0 ? 3 + r(3) * 2 : 8 + r(4) * 2 }); out.push({ prop: 'swan', x: side * 3.95, dist: 6 }); break;
           case 2: house(pick(BRICK), FRONT_X + r(1) * 0.4, (r(2) - 0.5) * 0.6); cars(0.5); if (mod(i, 2) === 0) out.push({ prop: 'swan', x: side * 3.95, dist: 9 }); break;
           case 3: house(pick(SHOPS), FRONT_X - 0.4 + r(1) * 0.3, (r(2) - 0.5) * 0.6); cars(0.75); out.push({ prop: 'swan', x: side * 3.95, dist: 4 }); if (r(8) < 0.4) out.push({ prop: 'bollard', x: side * 5.4, dist: 9 }); break;
+          case 5:                                                                                            // art nouveau: ochre and white houses, green lanterns, bollards, parked cars
+            house(pick(ART), FRONT_X + r(1) * 0.4, (r(2) - 0.5) * 0.6); cars(0.55); out.push({ prop: 'lantern', x: side * 3.95, dist: mod(i, 2) ? 3 : 9 });
+            if (mod(i + (side > 0 ? 1 : 0), 3) === 1) out.push({ prop: 'posts', x: side * 3.9, dist: 6 }); break;
+          case 6:                                                                                            // market corner: canopies, hedges, steps, signs, scooters, a crossing
+            house(pick(), FRONT_X + 1.0 + r(1) * 0.5, (r(2) - 0.5) * 0.6); out.push({ prop: 'lantern', x: side * 3.95, dist: 8 });
+            { const e = r(9); if (e < 0.4) out.push({ prop: 'tent', x: side * 5.6, dist: 5 + r(10) * 2 }); else if (e < 0.7) out.push({ prop: 'hedge', x: side * 5.0, dist: 6 }); else out.push({ prop: 'steps', x: side * 4.6, dist: 6 }); }
+            if (r(11) < 0.5) out.push({ prop: 'streetSign', x: side * 3.8, dist: 2.5 }); if (r(13) < 0.4) out.push({ prop: 'scooter', x: side * 4.3, dist: 10 });
+            if (side > 0 && mod(i, 3) === 0) out.push({ prop: 'zebra', x: 0.01, dist: 6 }); break;
           default:
             if (par === 0) house(pick(), FRONT_X + 4.5, (r(2) - 0.5) * 1.2);
             out.push({ prop: 'cobbles', x: side * 5.15, dist: 6 }, { prop: 'blossom', x: side * (7.5 + r(3) * 2.5), dist: 3 + r(4) * 3 }, { prop: 'blossom', x: side * (7.5 + r(5) * 2.5), dist: 8 + r(6) * 3 });
             if (r(7) < 0.5) out.push({ prop: 'bench', x: side * 6.2, dist: 6 }); else out.push({ prop: 'bollard', x: side * 4.9, dist: 6 });
         }
-        if (lm) out.push({ prop: lm, x: side * (lm === 'tramStop' ? 4.5 : lm === 'polyclinique' ? FRONT_X + 0.3 : FRONT_X - 0.2), dist: 6 });
+        if (lm) out.push({ prop: lm, x: side * (lm === 'tramStop' ? 4.5 : lm === 'polyclinique' ? FRONT_X + 0.3 : lm === 'glassTower' ? FRONT_X + 15 : FRONT_X - 0.2), dist: 6 });
       }
       return out;
     },
