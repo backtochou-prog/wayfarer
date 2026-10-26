@@ -277,7 +277,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   T('the tram street is a district: biome tram through the whole segment, atmosphere fades in over the first 120 m and out over the last 120 m (no jumps), full strength in the middle, between the old town and the second fork (' + Ts.ids[0] + ')',
-    Ts.segs >= 2 && Ts.len >= 4000 && Ts.bad.length === 0 && Ts.maxStep < 0.1 && Ts.mid > 5 && Ts.ends > 0 && Ts.ids.every(x => /^cityRunB>tramRun>fork:forestB$/.test(x)) && Ts.name === 'TRAM STREET', JSON.stringify({ segs: Ts.segs, len: Ts.len, bad: Ts.bad.slice(0, 3), maxStep: +Ts.maxStep.toFixed(3), ids: Ts.ids.slice(0, 2), name: Ts.name }));
+    Ts.segs >= 2 && Ts.len >= 4000 && Ts.bad.length === 0 && Ts.maxStep < 0.1 && Ts.mid > 5 && Ts.ends > 0 && Ts.ids.every(x => /^cityRunB>tramRun>fork:forestB$/.test(x)) && Ts.name === 'SAINT-GILLES', JSON.stringify({ segs: Ts.segs, len: Ts.len, bad: Ts.bad.slice(0, 3), maxStep: +Ts.maxStep.toFixed(3), ids: Ts.ids.slice(0, 2), name: Ts.name }));
   T('the tram streets layout uses only props that exist, dresses every slot (2..14 props), has the wire over both rails in every slot, uses >= 14 kinds incl. the three landmarks, never repeats a house on the same side in consecutive slots; 2D palette and entrance marker exist',
     Ts.missing.length === 0 && Ts.layout.min >= 2 && Ts.layout.max <= 14 && Ts.kinds.length >= 14 && ['polyclinique', 'tramStop', 'cornerCafe', 'wire', 'pole', 'swan', 'plane', 'cobbles', 'carA', 'van'].every(k => Ts.kinds.includes(k)) && Ts.nb.n > 500 && Ts.nb.same === 0 && Ts.has2D && Ts.entrance,
     JSON.stringify({ missing: Ts.missing, layout: Ts.layout, kinds: Ts.kinds.length, nb: Ts.nb, has2D: Ts.has2D, entrance: Ts.entrance }));

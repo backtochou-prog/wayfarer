@@ -59,7 +59,7 @@ BIOMES.neon = {
 
 // sunset tram street (the 3D build's TRAM STREET district; the 2D game just gets a warm dusk palette so the shared track works)
 BIOMES.tram = {
-  name: 'TRAM STREET', skyline: 'city', props: 'city', density: 0.25, margin: 0.4,
+  name: 'SAINT-GILLES', skyline: 'city', props: 'city', density: 0.25, margin: 0.4,
   sky: ['#7b8fa6', '#b8a898', '#e8b080', '#f6c48c'],
   ground: ['#5a3c36', '#52362f'],
   road: ['#6a4a46', '#5e4140'],

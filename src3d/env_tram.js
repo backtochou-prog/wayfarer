@@ -97,7 +97,7 @@ window.ENV3D = window.ENV3D || {};
   const BRICK = [['rowA', 'rowE', 'rowC'], ['rowH', 'rowB']], SHOPS = [['rowE', 'rowG'], ['rowF', 'rowH']];
 
   ENV3D.tram = {
-    name: 'TRAM STREET',
+    name: 'SAINT-GILLES',
     sky: { top: '#7b8fa6', mid: '#d6c8b2', horizon: '#f8c48c' },
     sunDisc: { color: '#fff1c4', size: 10 },
     sunPos: [12, 15],                                                // where the sun sits relative to the camera at 250 m: a little right of the road, ~3.5 degrees above the horizon
