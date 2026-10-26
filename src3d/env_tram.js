@@ -1,5 +1,5 @@
 // TRAM STREET: a Brussels street at sunset, from the user's two street photos: a low orange sun at the end of the road, a pale blue-grey sky, warm haze, tram rails set in
-// dark cobbles, a cobbled parking strip with parked cars, brick and cream townhouses (bay windows, balconies, stepped gables), a dark tree, swan-neck lamps, poles with the overhead
+// dark cobbles, a cobbled parking strip with parked cars, brick and cream townhouses (bay windows, balconies, stepped gables), blossom trees (your photo), swan-neck lamps, poles with the overhead
 // tram wires, and the lettered signs (POLYCLINIQUE, VERHAEGEN, TRAM). Same shape as the other biomes (sky / fog / light colours, a road palette, a prop kit, a layout rule), so the
 // renderer and the track need nothing special: the track's `tramRun` segment is a `district` that fades in and out (World.bandsAt). The sun is placed low and ahead (`sunPos`),
 // with a soft glow (`sunGlow`), by Renderer3D. Everything is lit by one low orange light from ahead, so the facades are half in shadow, like the photos.
@@ -9,7 +9,7 @@ window.ENV3D = window.ENV3D || {};
   const mod = (a, n) => ((a % n) + n) % n;
   const T = { brick: '#a45a45', brickD: '#8a4a3c', brickL: '#b8704f', cream: '#e3d0b0', white: '#ece2d0', grey: '#b8aea2', stone: '#a8927e', slate: '#4a424c', roof: '#7a4a42',
               glass: '#2c2a3a', sun: '#e8975a', trim: '#f1e5cd', iron: '#2a2630', wire: '#26222c', warm: '#ffb870', cobble: '#55352f', cobbleA: '#6a4640', cobbleB: '#47302b',
-              leaf: ['#3c4228', '#2f3622', '#454a2c'], trunk: '#3b2e28', awnA: '#b23a3a', awnB: '#efe0c0' };
+              awnA: '#b23a3a', awnB: '#efe0c0' };
   const SLOT = SEG_LEN;
 
   // one townhouse (or half of a twin): facade plane at local x = 0, body toward +X, centred at z = zc
@@ -89,9 +89,6 @@ window.ENV3D = window.ENV3D || {};
     for (const sx of [-1, 1]) p.push(Kit.box(0.4, 0.14, 0.06, sx * 0.62, 0.62, L / 2 + 0.01, lit ? '#ff4a30' : '#8a2a2a', { glow: lit }));
     return Kit.merge(p);
   }
-  const tree = () => { const p = [Kit.cyl(0.24, 0.36, 3.6, 0, 0, 0, T.trunk, { seg: 6 })], K = [[1.35, 0, 4.4, 0], [1.2, 0.5, 5.6, 0.3], [1.2, -0.5, 5.4, -0.4], [1.0, 0.1, 6.8, 0.1], [0.75, 0, 7.8, 0]];   // a tall dark crown, narrow like the photo's tree
-    K.forEach(([r, x, y, z], n) => p.push(Kit.ico(r, x, y, z, T.leaf[n % 3], { detail: 0, sy: 1.25, sx: 0.85 }))); return Kit.merge(p); };
-
   // house types by slot parity (A C E G on even slots of a side, B D F H on odd ones), so two neighbouring houses are never the same whatever the stretch
   const ODD = ['rowB', 'rowD', 'rowF', 'rowH'], EVEN = ['rowA', 'rowC', 'rowE', 'rowG'];
   const BRICK = [['rowA', 'rowE', 'rowC'], ['rowH', 'rowB']], SHOPS = [['rowE', 'rowG'], ['rowF', 'rowH']];
@@ -111,7 +108,7 @@ window.ENV3D = window.ENV3D || {};
       asphalt: ['#5c4141', '#523a3a'], mark: '#cfc7c0', edge: '#8c7466', rails: true,
       curb: ['#a89484', '#9c8878'], curbFace: '#7e6a5e', walk: ['#8c6e62', '#826458'], court: '#5e403a', verge: ['#5c3f3a', '#563a36'],
     },
-    innerOk: new Set(['pole', 'swan', 'plane', 'cobbles']),
+    innerOk: new Set(['pole', 'swan', 'blossom', 'cobbles']),
 
     props: {
       rowA: build([{ F: 9, D: 8, H: 13.4, wall: T.brick, cols: 3, bay: true, seed: 1 }]),
@@ -130,7 +127,7 @@ window.ENV3D = window.ENV3D || {};
       swan: () => Kit.merge([
         Kit.box(0.3, 0.4, 0.3, 0, 0, 0, T.iron), Kit.cyl(0.07, 0.1, 4.8, 0, 0, 0, T.iron), Kit.box(1.3, 0.07, 0.07, -0.62, 4.8, 0, T.iron),
         Kit.box(0.55, 0.2, 0.34, -1.2, 4.58, 0, T.warm, { glow: true }), Kit.box(0.6, 0.06, 0.4, -1.2, 4.78, 0, T.iron)]),
-      plane: tree,
+      blossom: () => BlossomSprite.prop(7.5),                          // the user's blossom-tree photo, 7.5 m tall
       cobbles: () => { const p = [Kit.box(2.9, 0.03, SLOT - 0.4, 0, 0, 0, T.cobble)];                      // a cobbled parking strip with lighter setts
         for (let k = 0; k < 22; k++) p.push(Kit.box(0.55, 0.045, 0.4, -1.2 + rnd(k, 31) * 2.4, 0, -5 + rnd(k, 32) * 10, k % 2 ? T.cobbleA : T.cobbleB));
         return Kit.merge(p); },
@@ -157,7 +154,7 @@ window.ENV3D = window.ENV3D || {};
     // The street is built in stretches (Stretch.of), each with its own character, so the same few props are not repeated slot after slot. In every slot the overhead wire runs over both
     // rails, with a pole each side every third slot.
     //   0 terrace: a continuous row of townhouses, parked cars on cobbles on one side     3 shops: shop fronts with lettered fascias, parasols, cars
-    //   1 avenue: dark plane trees on the pavement, houses set back, swan-neck lamps        4 square: open, houses every other slot, trees, a bench, cobbles on both sides
+    //   1 avenue: blossom trees on the pavement, houses set back, swan-neck lamps        4 square: open, houses every other slot, trees, a bench, cobbles on both sides
     //   2 brick: tall brick houses with bay windows and stepped gables
     // A landmark (Polyclinique block / tram stop / corner cafe) replaces the house on its side of one slot per stretch (the tram stop stands on the pavement, the houses stay).
     layout(i, rnd) {
@@ -171,12 +168,12 @@ window.ENV3D = window.ENV3D || {};
         if (mod(i + (side > 0 ? 1 : 0), 3) === 0) out.push({ prop: 'pole', x: side * 4.0, dist: 2.5 });
         switch (S.variant) {
           case 0: house(pick(), FRONT_X + r(1) * 0.5, (r(2) - 0.5) * 0.8); cars(0.65); if (mod(i, 2) === (side > 0 ? 1 : 0)) out.push({ prop: 'swan', x: side * 3.95, dist: 8 }); break;
-          case 1: house(pick(), FRONT_X + 1.4 + r(1) * 0.8, (r(2) - 0.5) * 0.8); out.push({ prop: 'plane', x: side * 4.9, dist: mod(i, 2) === 0 ? 3 + r(3) * 2 : 8 + r(4) * 2 }); out.push({ prop: 'swan', x: side * 3.95, dist: 6 }); break;
+          case 1: house(pick(), FRONT_X + 1.4 + r(1) * 0.8, (r(2) - 0.5) * 0.8); out.push({ prop: 'blossom', x: side * 4.9, dist: mod(i, 2) === 0 ? 3 + r(3) * 2 : 8 + r(4) * 2 }); out.push({ prop: 'swan', x: side * 3.95, dist: 6 }); break;
           case 2: house(pick(BRICK), FRONT_X + r(1) * 0.4, (r(2) - 0.5) * 0.6); cars(0.5); if (mod(i, 2) === 0) out.push({ prop: 'swan', x: side * 3.95, dist: 9 }); break;
           case 3: house(pick(SHOPS), FRONT_X - 0.4 + r(1) * 0.3, (r(2) - 0.5) * 0.6); cars(0.75); out.push({ prop: 'swan', x: side * 3.95, dist: 4 }); if (r(8) < 0.4) out.push({ prop: 'bollard', x: side * 5.4, dist: 9 }); break;
           default:
             if (par === 0) house(pick(), FRONT_X + 4.5, (r(2) - 0.5) * 1.2);
-            out.push({ prop: 'cobbles', x: side * 5.15, dist: 6 }, { prop: 'plane', x: side * (7.5 + r(3) * 2.5), dist: 3 + r(4) * 3 }, { prop: 'plane', x: side * (7.5 + r(5) * 2.5), dist: 8 + r(6) * 3 });
+            out.push({ prop: 'cobbles', x: side * 5.15, dist: 6 }, { prop: 'blossom', x: side * (7.5 + r(3) * 2.5), dist: 3 + r(4) * 3 }, { prop: 'blossom', x: side * (7.5 + r(5) * 2.5), dist: 8 + r(6) * 3 });
             if (r(7) < 0.5) out.push({ prop: 'bench', x: side * 6.2, dist: 6 }); else out.push({ prop: 'bollard', x: side * 4.9, dist: 6 });
         }
         if (lm) out.push({ prop: lm, x: side * (lm === 'tramStop' ? 4.5 : lm === 'polyclinique' ? FRONT_X + 0.3 : FRONT_X - 0.2), dist: 6 });

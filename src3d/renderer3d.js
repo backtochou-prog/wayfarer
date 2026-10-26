@@ -63,7 +63,7 @@ class Renderer3D {
                   neonBlockD: 24, neonBlockE: 24, neonShopC: 24, neonBlade: 80, neonBanner: 40, neonBucket: 80, neonBottle: 60, neonHalo: 6,      // props made of the user's materials
                   neonSwirlR: 24, neonSwirlP: 24, neonSwirlG: 24, neonSwirlT: 24, neonStreetBlock: 24, neonDotsBlock: 24, neonRaysTower: 28, neonSwirlSign: 40, neonCapSign: 40, neonDotScreen: 28, neonLinesBanner: 40,
                   neonShopD: 24, neonCar: 40, neonBoardVortex: 6, neonBoardSphere: 6, neonBoardRings: 6, neonBoardSpiral: 6,
-                  rowA: 26, rowB: 26, rowC: 26, rowD: 26, rowE: 26, rowF: 26, rowG: 26, rowH: 26, pole: 24, wire: 36, swan: 40, plane: 60, cobbles: 44, carA: 20, carB: 20, carC: 20, van: 20,   // the tram street
+                  rowA: 26, rowB: 26, rowC: 26, rowD: 26, rowE: 26, rowF: 26, rowG: 26, rowH: 26, pole: 24, wire: 36, swan: 40, blossom: 60, cobbles: 44, carA: 20, carB: 20, carC: 20, van: 20,   // the tram street
                   polyclinique: 6, tramStop: 6, cornerCafe: 6, gateTram: 8 };                                                              // entrance markers where the biome changes
     this.props = {}; this.propUsed = {};
     for (const id of Object.keys(envs)) {
@@ -83,13 +83,14 @@ class Renderer3D {
     // upload the art textures to the GPU as soon as their images have loaded, so the first frames that show them do not hitch (a big atlas upload is a one-off spike)
     // and warm up once: compile every material variant and draw one frame with every pooled prop visible, so geometries, textures and shaders are all on the GPU before
     // the first prop of each kind comes into view (otherwise that first sight costs a one-off hitch of hundreds of ms in a software renderer)
-    let pending = 6;
+    let pending = 7;
     const warm = () => { const hid = []; this.scene.traverse(o => { if (!o.visible && o.parent) { hid.push(o); o.visible = true; } });
       try { this.renderer.compile(this.scene, this.camera); this.renderer.render(this.scene, this.camera); this.renderer.clear(); } catch (e) {}   // drawn on screen (that is the program variant that must be ready) and cleared in the same task: a canvas is only shown after the next game frame
       for (const o of hid) o.visible = false; };
-    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3(), () => TramArt.material(), () => this.sunGlow.material]) {
-      const tex = get().map, go = () => { try { this.renderer.initTexture(tex); } catch (e) {} if (--pending === 0) setTimeout(warm, 50); };
-      if (!(tex.image instanceof HTMLImageElement) || (tex.image.complete && tex.image.naturalWidth)) go();   // (a canvas texture, the tram signs, is ready at once) else tex.image.addEventListener('load', () => setTimeout(go, 0));
+    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3(), () => TramArt.material(), () => this.sunGlow.material, () => BlossomSprite.material()]) {
+      const tex = get().map, go = () => { tex.needsUpdate = true; try { this.renderer.initTexture(tex); } catch (e) {}   // (needsUpdate first: an image that was already decoded when checked has no upload version yet, and initTexture skips such a texture)
+      if (--pending === 0) setTimeout(warm, 50); };
+      if (!(tex.image instanceof HTMLImageElement) || (tex.image.complete && tex.image.naturalWidth)) go(); else tex.image.addEventListener('load', () => setTimeout(go, 0));   // (a canvas texture, the tram signs, is ready at once)
     }
     this.droppedBy = {}; this.dropped = 0;                 // props skipped because a pool was full (should stay 0)
     this.layouts = {}; for (const id of Object.keys(envs)) if (envs[id].layout) this.layouts[id] = new Map();   // per biome: slot -> cached placements
