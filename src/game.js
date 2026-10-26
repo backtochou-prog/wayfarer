@@ -66,7 +66,7 @@ class Game {
     let last = performance.now();
     const loop = now => {
       requestAnimationFrame(loop); // re-arm first so one bad frame can never freeze the game
-      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;   // never negative: the first frame's timestamp can precede the clock read at start-up, which used to send the game clock below zero (and hid the pickup sparkle, whose pool marks unused slots with t < 0)
       this.advance(dt); this.draw(dt);
     };
     requestAnimationFrame(loop);

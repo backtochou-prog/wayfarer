@@ -105,6 +105,31 @@ class World {
 
   pieceAt(z) { return this.pieces.find(p => z < p.z1) || this.pieces[this.pieces.length - 1]; }
 
+  // blend 0..1 of a district segment at z: in over its first `district` units, out over its last (an `opening` one is already fully in at the start)
+  districtT(P, z) {
+    const s = P.seg, d = s.district === true ? 0.3 * (P.z1 - P.z0) : s.district;
+    return ease(clamp(Math.min(s.opening ? d : z - P.z0, P.z1 - z) / d, 0, 1));
+  }
+
+  // DESCENT. A segment with `grade` (fall per unit of run, e.g. 0.07) slopes downhill along its length in proportion to its district blend, so the slope eases in and out with the
+  // atmosphere. Gameplay stays flat (the runner is always at height 0); only the drawing follows the slope. dropAt(z) is the fall, in units of run, from the start of the graded pieces held
+  // up to z: only differences between two z are meaningful (pieces behind the runner are pruned, which cancels out). gradeAt(z) is the slope at z.
+  dropAt(z) {
+    let d = 0;
+    for (const P of this.pieces) {
+      if (P.type !== 'seg' || !P.seg.grade || z <= P.z0) continue;
+      const tab = P.dropTab || (P.dropTab = this.dropTable(P)), k = (Math.min(z, P.z1) - P.z0) / 20, i = Math.min(tab.length - 2, Math.floor(k));
+      d += P.seg.grade * (tab[i] + (tab[i + 1] - tab[i]) * (k - i));
+    }
+    return d;
+  }
+  gradeAt(z) { const P = this.pieceAt(z); return P.type === 'seg' && P.seg.grade ? P.seg.grade * (P.seg.district ? this.districtT(P, z) : 1) : 0; }
+  dropTable(P) {                                        // running integral of the blend every 20 units (trapezoids)
+    const n = Math.ceil((P.z1 - P.z0) / 20) + 2, tab = new Float32Array(n); let prev = P.seg.district ? this.districtT(P, P.z0) : 1;
+    for (let j = 1; j < n; j++) { const t = P.seg.district ? this.districtT(P, Math.min(P.z1, P.z0 + j * 20)) : 1; tab[j] = tab[j - 1] + 20 * (prev + t) / 2; prev = t; }
+    return tab;
+  }
+
   // Road bands at depth z, each with a lateral range, a curve offset and its biome blend.
   // One band on normal road; two on a junction (they diverge, run parallel, then rejoin).
   bandsAt(z) {
@@ -112,7 +137,7 @@ class World {
     if (P.type === 'seg') {
       const s = P.seg, pv = P.prev;
       let to = s.biome, t = 0;
-      if (s.district) { const d = s.district === true ? 0.3 * (P.z1 - P.z0) : s.district; t = ease(clamp(Math.min(s.opening ? d : z - P.z0, P.z1 - z) / d, 0, 1)); }   // a district fades in over its first `district` units and out over its last (an `opening` one is already fully in at the start)
+      if (s.district) t = this.districtT(P, z);   // a district fades in over its first `district` units and out over its last (an `opening` one is already fully in at the start)
       if (pv && pv.type === 'fork' && pv.choice) { // fade out of the branch we just left
         to = T.segments[pv.fork[pv.choice].route].biome;
         t = clamp(1 - (z - pv.be) / (pv.fork.merge + 250), 0, 1);

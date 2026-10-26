@@ -272,6 +272,10 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const mat = TramArt.material(); out.cells = Object.keys(TramArt.cells).length; out.canvas = mat.map.image instanceof HTMLCanvasElement && mat.map.image.width === 512;
     out.signs = {}; for (const n of ['polyclinique', 'tramStop', 'rowE', 'rowF', 'rowG', 'rowH', 'cornerCafe', 'gateTram']) { const m = ENV3D.tram.props[n](); out.signs[n] = !!(m.sprite && m.material() === mat && m.merged); }
     out.signs.rowA = !ENV3D.tram.props.rowA().sprite;
+    // descent: the street falls 7 % along its length in proportion to its blend; flat everywhere else
+    { const P = w.pieces.find(q => q.type === 'seg' && q.id === 'tramRun'), B = w.pieces.find(q => q.type === 'seg' && q.id === 'cityRunB'); let mono = true, prev = -1;
+      for (let z = P.z0; z <= P.z1; z += 25) { const d = w.dropAt(z); if (d < prev - 1e-6) mono = false; prev = d; }
+      out.grade = { total: +(w.dropAt(P.z1) - w.dropAt(P.z0)).toFixed(1), expect: 0.07 * (P.z1 - P.z0 - P.seg.district), mono, mid: +w.gradeAt((P.z0 + P.z1) / 2).toFixed(3), ends: [w.gradeAt(P.z0 + 1), w.gradeAt(P.z1 - 1)].map(v => +v.toFixed(3)), city: w.dropAt(B.z1) - w.dropAt(B.z0), before: w.gradeAt(B.z0 + 10), afterRun: +(w.dropAt(P.z1 + 3000) - w.dropAt(P.z1)).toFixed(3) }; }
     // the sprite panel of the Polyclinique is the vertical blade sign: tall and narrow
     const pm = ENV3D.tram.props.polyclinique(); pm.sprite.computeBoundingBox(); const bb = pm.sprite.boundingBox; out.blade = { poly: TramArt.cells.poly.ar < 0.3, tall: bb.max.y > 9 };
     return out;
@@ -298,16 +302,23 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     // draw one real frame in the middle of the street and look at it: a bright warm sun low in the upper half, a dark warm street under it
     const mid = (P.z0 + P.z1) / 2; g.p.z = mid; g.world.extend(mid); g.world.items = []; const ah = g.world.playerBand(mid + 300, 0); g.bgTo = ah.to; g.bgT = ah.t; const pb2 = g.world.playerBand(mid, 0); g.camX = pb2.c; g.camOff = pb2.off; g.time += 0.01; r.atmoQ = -1; r.menu = 0;
     r.draw(g); r.renderer.render = realRender; r.draw(g);
+    // the scenery sits on the slope: every visible prop's height below the runner's level is the grade times its distance ahead (checked on the pooled prop meshes)
+    let nProp = 0, worst = 0; for (const k in r.props) for (let n = 0; n < r.propUsed[k]; n++) { const o = r.props[k][n]; if (o.position.z < -20 && o.position.z > -120) { nProp++; worst = Math.max(worst, Math.abs((o.position.y - 0.15) / o.position.z - 0.07)); } }
+    const slope = { nProp, worst: +worst.toFixed(3), pivot: +r.groundPivot.rotation.x.toFixed(3), expect: +(-Math.atan(0.07)).toFixed(3) };
     const cv = document.getElementById('gl'), url = cv.toDataURL('image/png'), img = new Image(); img.src = url; await img.decode();     // (read in the same task as the draw: the GL canvas does not keep its buffer)
     const c2 = document.createElement('canvas'); c2.width = cv.width; c2.height = cv.height; const cx = c2.getContext('2d'); cx.drawImage(img, 0, 0);
     const W = c2.width, H = c2.height, px = cx.getImageData(0, 0, W, H).data; let best = 0, bx = 0, by = 0, warm = 0, n = 0;
     for (let y = 0; y < H * 0.7; y += 2) for (let x = 0; x < W; x += 2) { const i = (y * W + x) * 4, L = px[i] + px[i + 1] + px[i + 2]; if (L > best) { best = L; bx = x; by = y; } }
     let hr = 0, hb = 0, hn = 0; for (let dy = -60; dy <= 60; dy += 6) for (let dx = -60; dx <= 60; dx += 6) { const d = Math.hypot(dx, dy); if (d < 28 || d > 60) continue; const x = bx + dx, y = by + dy; if (x < 0 || y < 0 || x >= W || y >= H) continue; const i = (y * W + x) * 4; hr += px[i]; hb += px[i + 2]; hn++; }   // the halo around the sun
     for (let y = Math.floor(H * 0.85); y < H; y += 4) for (let x = Math.floor(W * 0.3); x < W * 0.7; x += 4) { const i = (y * W + x) * 4; if (px[i] > 20 && px[i] >= px[i + 2]) warm++; n++; }
-    return { dropped: r.dropped, by: r.droppedBy, used, rows, wires, peak: +peak.toFixed(2), sun: { rgb: [...px.slice((by * W + bx) * 4, (by * W + bx) * 4 + 3)], x: +(bx / W).toFixed(2), y: +(by / H).toFixed(2) }, warmRoad: +(warm / n).toFixed(2), halo: [Math.round(hr / hn), Math.round(hb / hn)], bgTo: g.bgTo };
+    return { dropped: r.dropped, by: r.droppedBy, used, rows, wires, peak: +peak.toFixed(2), sun: { rgb: [...px.slice((by * W + bx) * 4, (by * W + bx) * 4 + 3)], x: +(bx / W).toFixed(2), y: +(by / H).toFixed(2) }, warmRoad: +(warm / n).toFixed(2), halo: [Math.round(hr / hn), Math.round(hb / hn)], slope, bgTo: g.bgTo };
   });
+  T('the street runs downhill (7 %): the fall over the segment is grade x run (' + Ts.grade.total + ' of ' + Ts.grade.expect + ' units), steady (never uphill), full 0.07 slope in the middle and none at the ends, flat on the neighbouring city piece and after the street',
+    Math.abs(Ts.grade.total - Ts.grade.expect) < 3 && Ts.grade.mono && Math.abs(Ts.grade.mid - 0.07) < 0.002 && Ts.grade.ends.every(v => v < 0.01) && Ts.grade.city === 0 && Ts.grade.before === 0, JSON.stringify(Ts.grade));
   T('driving through the whole tram street: nothing dropped from any pool (peak ' + Math.round(Tg.peak * 100) + ' %), the wire runs unbroken (both rails in every slot: ' + Tg.wires + ' spans), houses on every pass (' + Tg.rows + ')',
     Tg.dropped === 0 && Tg.peak <= 0.85 && Tg.wires >= 20 && Tg.rows > 100 && Tg.bgTo === 'tram', JSON.stringify({ dropped: Tg.dropped, by: Tg.by, peak: Tg.peak, wires: Tg.wires, rows: Tg.rows }));
+  T('in the middle of the street the scenery follows the slope (' + Tg.slope.nProp + ' props between 20 and 120 m ahead lie on the 7 % line, worst error ' + Tg.slope.worst + ') and the far ground tips down with it (' + Tg.slope.pivot + ' rad)',
+    Tg.slope.nProp > 15 && Tg.slope.worst < 0.012 && Math.abs(Tg.slope.pivot - Tg.slope.expect) < 0.003, JSON.stringify(Tg.slope));
   T('a real frame in the middle of the street: the brightest spot is the sun, low and ahead (upper half, near the middle), bright, in a warm orange halo (R >> B), over a warm road',
     Tg.sun.rgb[0] > 220 && Tg.halo[0] > Tg.halo[1] + 25 && Tg.sun.y < 0.5 && Tg.sun.y > 0.1 && Math.abs(Tg.sun.x - 0.5) < 0.2 && Tg.warmRoad > 0.9, JSON.stringify(Tg.sun) + ' halo ' + Tg.halo + ' warmRoad ' + Tg.warmRoad);
 

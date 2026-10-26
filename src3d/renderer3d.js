@@ -44,7 +44,10 @@ class Renderer3D {
     this.sunGlow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(gc), transparent: true, blending: THREE.AdditiveBlending, fog: false, depthWrite: false }));
     this.sunGlow.renderOrder = -1; this.sunGlow.visible = false; this.scene.add(this.sunGlow); this.sunOff = { x: -70, y: 28, glow: 0, size: base.sunDisc.size };
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.MeshLambertMaterial({ color: base.groundFar }));
-    ground.rotation.x = -Math.PI / 2; ground.position.y = -0.03; this.scene.add(ground);
+    // two halves of the far ground: behind the runner it stays flat; ahead it hangs from a pivot at the runner and tips down with the street's slope (see World.dropAt), so a descent never buries the road
+    ground.geometry = new THREE.PlaneGeometry(900, 450); ground.rotation.x = -Math.PI / 2; ground.position.set(0, 0, -225);
+    this.groundPivot = new THREE.Group(); this.groundPivot.position.y = -0.03; this.groundPivot.add(ground); this.scene.add(this.groundPivot);
+    const groundBack = new THREE.Mesh(new THREE.PlaneGeometry(900, 450), ground.material); groundBack.rotation.x = -Math.PI / 2; groundBack.position.set(0, -0.03, 225); this.scene.add(groundBack);
     this._c = [new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color()];   // scratch colours for blending
     this.atmoTo = ''; this.atmoQ = -1; this.atmoKey = ''; this.applyAtmosphere(this.baseId, 0);
 
@@ -182,6 +185,9 @@ class Renderer3D {
     this.ui.beatPulse = pulse;
 
     // ---- road ribbons (two roads at a fork)
+    // descent: how far below the runner's level a point z (design units) lies (0 on flat road); the slope of the far ground follows the steepest slope seen from here to 150 m ahead
+    const d0 = w.dropAt(p.z), dy = z => -(w.dropAt(z) - d0) * U.Z;
+    this.groundPivot.rotation.x = -Math.atan(Math.max(w.gradeAt(p.z), w.gradeAt(p.z + 1500)));
     this.road.update(w, rz, Lref);
 
     // ---- scenery: slots of SEG_LEN, per road and side; the biome of each side is chosen by the blend at that spot
@@ -208,12 +214,12 @@ class Renderer3D {
           if (c0 === null) { c0 = this.centreOf(sc.a, b.side) - Lref; c1 = this.centreOf(sc.b, b.side) - Lref; }
           // an entrance marker at the first slot of a new biome (only when the change is clean: the two slots before differ, the next one agrees)
           if (env.entrance && !inner && pick(i - 1) !== envId && pick(i - 2) !== envId && pick(i + 1) === envId)
-            this.place(env.entrance, c0 + (c1 - c0) * (1.5 / SL) + sg * 5.2, WALK_Y, rz - zs - 1.5, (sg < 0 ? Math.PI : 0) - Math.atan2(c1 - c0, SL));
+            this.place(env.entrance, c0 + (c1 - c0) * (1.5 / SL) + sg * 5.2, WALK_Y + dy((zs + 1.5) / U.Z), rz - zs - 1.5, (sg < 0 ? Math.PI : 0) - Math.atan2(c1 - c0, SL));
           for (const pl of this.layoutFor(envId, i)) {
             if ((pl.x < 0 ? -1 : 1) !== sg) continue;
             if (inner && (!env.innerOk.has(pl.prop) || Math.abs(pl.x) - hwM > avail - 0.8)) continue;
             const t = pl.dist / SL, cx = c0 + (c1 - c0) * t;
-            this.place(pl.prop, cx + pl.x, WALK_Y, rz - zs - pl.dist, (pl.x < 0 ? Math.PI : 0) + (pl.rotY || 0) - Math.atan2(c1 - c0, SL));
+            this.place(pl.prop, cx + pl.x, WALK_Y + dy((zs + pl.dist) / U.Z), rz - zs - pl.dist, (pl.x < 0 ? Math.PI : 0) + (pl.rotY || 0) - Math.atan2(c1 - c0, SL));
           }
         }
       }
@@ -227,8 +233,9 @@ class Renderer3D {
       if (it.taken || dz < -150 || dz > 1500) continue;         // design units: 15 m behind .. 150 m ahead
       if (it.offV !== w.ver) { it.off = w.bandNear(it.z, it.x).off; it.offV = w.ver; }   // road curve offset at the item, cached until the track changes
       const x = (it.x + it.off) * U.X - Lref, zr = -dz * U.Z;
-      if (it.kind === 'prop') { this.place(it.spr, x, WALK_Y, zr, 0); continue; }
-      if (it.kind === 'coin') this.items.place('coin', x, it.h * U.Y, zr); else this.items.place(it.kind, x, 0, zr);
+      const iy = dy(it.z);                                     // on a descent the item sits on the sloping road
+      if (it.kind === 'prop') { this.place(it.spr, x, WALK_Y + iy, zr, 0); continue; }
+      if (it.kind === 'coin') this.items.place('coin', x, it.h * U.Y + iy, zr); else this.items.place(it.kind, x, iy, zr);
     }
     for (const name in this.props) { const pool = this.props[name]; for (let n = this.propUsed[name]; n < pool.length; n++) pool[n].visible = false; }
     this.items.end(g.time);

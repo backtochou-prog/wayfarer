@@ -14,7 +14,7 @@ class Road3D {
   constructor(scene, envs, baseId) {
     const D = TRACK3D, N = this.N = D.SECTIONS, SC = this.SC = 15, VPS = this.VPS = SC * 2;
     this.baseId = baseId; this.envs = envs; this.pals = {};
-    this.P = new Float64Array(5); this.X = new Float64Array(12); this.Y = new Float64Array(12); this.C = new Array(11).fill(null);   // scratch for band()
+    this.P = new Float64Array(6); this.X = new Float64Array(12); this.Y = new Float64Array(12); this.C = new Array(11).fill(null);   // scratch for band()
     this.bc = []; for (let i = 0; i < N; i++) this.bc.push({ n: -1e9, ver: -1, bands: null });   // bands per section, reused until the track changes
     this.mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide });
     this.OUT = D.CURB_W + D.WALK_W + D.COURT_W + D.FAR;              // "unlimited" room beside an outer edge
@@ -55,7 +55,7 @@ class Road3D {
 
   update(w, rzm, Lref) {
     const N = this.N, DS = TRACK3D.SECTION, n0 = Math.floor((rzm - TRACK3D.BEHIND) / DS), E = this.edge, OUT = this.OUT, P = this.P, X = U3.X;
-    E.n0 = n0;
+    E.n0 = n0; const d0 = w.dropAt(rzm / U3.Z);                  // descent: each section sits lower by the fall between the runner and it (0 on flat road)
     for (let i = 0; i < N; i++) {
       const n = n0 + i, zm = n * DS, sz = rzm - zm, par = n & 1, dash = !par;
       const slot = this.bc[((n % N) + N) % N];
@@ -64,6 +64,7 @@ class Road3D {
       const loA = (bA.lo + bA.off) * X - Lref, hiA = (bA.hi + bA.off) * X - Lref;
       let palA = this.pal(bA.to, bA.t);
       E.z[i] = sz; E.two[i] = bB ? 1 : 0;
+      P[5] = -(w.dropAt(zm / U3.Z) - d0) * U3.Z;
       P[0] = sz;                                               // doubles travel through P, not through call arguments (avoids boxing)
       if (!bB) {
         E.loA[i] = loA; E.hiA[i] = hiA; E.loB[i] = E.hiB[i] = hiA;
@@ -99,9 +100,9 @@ class Road3D {
     const cwL = Math.min(D.CURB_W, availL); let q = availL - cwL; const wwL = Math.min(D.WALK_W, q); q -= wwL; const ctL = Math.min(D.COURT_W, q); q -= ctL; const vgL = Math.min(D.FAR, q);
     const cwR = Math.min(D.CURB_W, availR); q = availR - cwR; const wwR = Math.min(D.WALK_W, q); q -= wwR; const ctR = Math.min(D.COURT_W, q); q -= ctR; const vgR = Math.min(D.FAR, q);
     // column x / y, left to right: verge | court | walk | curb top | curb face | ROAD | curb face | curb top | walk | court | verge
-    const X = this.X, Y = this.Y, C = this.C, L1 = lo - cwL, L2 = L1 - wwL, L3 = L2 - ctL, R1 = hi + cwR, R2 = R1 + wwR, R3 = R2 + ctR;
+    const X = this.X, Y = this.Y, C = this.C, dy = P[5], L1 = lo - cwL, L2 = L1 - wwL, L3 = L2 - ctL, R1 = hi + cwR, R2 = R1 + wwR, R3 = R2 + ctR;
     X[0] = L3 - vgL; X[1] = L3; X[2] = L2; X[3] = L1; X[4] = lo; X[5] = lo; X[6] = hi; X[7] = hi; X[8] = R1; X[9] = R2; X[10] = R3; X[11] = R3 + vgR;
-    Y[0] = Y[1] = Y[2] = Y[3] = CH; Y[4] = cwL > 0.02 ? CH : 0; Y[5] = 0; Y[6] = 0; Y[7] = cwR > 0.02 ? CH : 0; Y[8] = Y[9] = Y[10] = Y[11] = CH;
+    Y[0] = Y[1] = Y[2] = Y[3] = CH; Y[4] = cwL > 0.02 ? CH : 0; Y[5] = 0; Y[6] = 0; Y[7] = cwR > 0.02 ? CH : 0; Y[8] = Y[9] = Y[10] = Y[11] = CH; for (let s = 0; s < 12; s++) Y[s] += dy;
     C[0] = pal.verge[par]; C[1] = pal.court; C[2] = pal.walk[par]; C[3] = pal.curb[par]; C[4] = pal.curbFace; C[5] = pal.asphalt[par];
     C[6] = pal.curbFace; C[7] = pal.curb[par]; C[8] = pal.walk[par]; C[9] = pal.court; C[10] = pal.verge[par];
     const R = this.rib[r], pos = R.pos, col = R.col, base = i * this.VPS * 3;
@@ -111,7 +112,7 @@ class Road3D {
       col[o] = c.r; col[o + 1] = c.g; col[o + 2] = c.b; col[o + 3] = c.r; col[o + 4] = c.g; col[o + 5] = c.b;
     }
     // markings: lane lines at the thirds (dashed), edge lines near each edge (continuous); zero width = nothing drawn
-    const w = hi - lo, my = 0.02, wide = w > 2.4, l1 = lo + w / 3, l2 = hi - w / 3, hw = wide && (dash || pal.rails) ? (pal.rails ? 0.09 : 0.06) : 0, ew = w > 0.8 ? 0.06 : 0;
+    const w = hi - lo, my = 0.02 + dy, wide = w > 2.4, l1 = lo + w / 3, l2 = hi - w / 3, hw = wide && (dash || pal.rails) ? (pal.rails ? 0.09 : 0.06) : 0, ew = w > 0.8 ? 0.06 : 0;
     const mk = pal.mark, ed = pal.edge, o = base + 11 * 6;
     pos[o] = l1 - hw; pos[o + 1] = my; pos[o + 2] = z; pos[o + 3] = l1 + hw; pos[o + 4] = my; pos[o + 5] = z;
     pos[o + 6] = l2 - hw; pos[o + 7] = my; pos[o + 8] = z; pos[o + 9] = l2 + hw; pos[o + 10] = my; pos[o + 11] = z;
