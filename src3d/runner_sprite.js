@@ -83,9 +83,9 @@ class RunnerSprite {
     g.add(Kit.mesh(Kit.merge([
       Kit.box(0.26, 0.05, 0.95, 0, 0.12, 0.02, LIME), Kit.box(0.2, 0.012, 0.8, 0, 0.17, 0.02, DARK),                                 // deck and grip tape
       Kit.box(0.14, 0.03, 0.3, 0, 0.3, 0.52, LIME),                                                                                   // rear fender
-      Kit.cyl(0.025, 0.03, 1.0, 0, 0.15, -0.54, LIME, { rx: 0.14, seg: 6 }), Kit.box(0.54, 0.04, 0.05, 0, 1.12, -0.6, DARK),           // stem and handlebar
+      Kit.cyl(0.025, 0.03, 1.0, 0, 0.15, -0.54, LIME, { rx: 0.14, seg: 6 }), Kit.box(0.54, 0.04, 0.05, 0, 1.12, -0.47, DARK),           // stem and handlebar
       Kit.box(0.025, 0.3, 0.04, -0.07, 0.1, -0.62, DARK), Kit.box(0.025, 0.3, 0.04, 0.07, 0.1, -0.62, DARK),                         // fork
-      Kit.box(0.1, 0.07, 0.04, 0, 0.9, -0.64, '#ffd27a', { glow: true }), Kit.box(0.12, 0.05, 0.03, 0, 0.31, 0.68, '#ff3a2a', { glow: true })])));
+      Kit.box(0.1, 0.07, 0.04, 0, 0.88, -0.555, '#ffd27a', { glow: true }), Kit.box(0.12, 0.05, 0.03, 0, 0.31, 0.68, '#ff3a2a', { glow: true })])));
     const wheel = z => { const w = Kit.mesh(Kit.merge([Kit.cyl(0.13, 0.13, 0.06, 0, -0.03, 0, DARK, { rz: Math.PI / 2, seg: 12 }), Kit.cyl(0.075, 0.075, 0.07, 0, -0.035, 0, LIME, { rz: Math.PI / 2, seg: 8 }),
       Kit.box(0.075, 0.22, 0.025, 0, -0.11, 0, PALE), Kit.box(0.075, 0.22, 0.025, 0, -0.11, 0, PALE, { rx: Math.PI / 2 })])); w.position.set(0, 0.13, z); g.add(w); return w; };   // (the pale spokes make the spin visible)
     g.userData.wheels = [wheel(-0.62), wheel(0.56)];

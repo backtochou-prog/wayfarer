@@ -65,7 +65,7 @@ class Renderer3D {
                   neonShopD: 24, neonCar: 40, neonBoardVortex: 6, neonBoardSphere: 6, neonBoardRings: 6, neonBoardSpiral: 6,
                   rowA: 26, rowB: 26, rowC: 26, rowD: 26, rowE: 26, rowF: 26, rowG: 26, rowH: 26, pole: 24, wire: 36, swan: 40, blossom: 60, cobbles: 44, carA: 20, carB: 20, carC: 20, van: 20,   // the tram street
                   polyclinique: 6, tramStop: 6, cornerCafe: 6, gateTram: 8, school: 6, glassTower: 6,
-                  rowI: 26, rowJ: 26, rowK: 26, rowL: 26, lantern: 40, posts: 40, streetSign: 24, hedge: 30, tent: 24, scooter: 24, steps: 24, zebra: 8 };                                                              // entrance markers where the biome changes
+                  rowI: 26, rowJ: 26, rowK: 26, rowL: 26, lantern: 40, posts: 40, streetSign: 24, hedge: 30, tent: 24, scooter: 40, steps: 24, zebra: 8, scooterDock: 10 };                                                              // entrance markers where the biome changes
     this.props = {}; this.propUsed = {};
     for (const id of Object.keys(envs)) {
       const props = envs[id].props; if (!props) continue;
@@ -101,6 +101,7 @@ class Renderer3D {
     this.runner = /[?&]avatar=(3d|model)\b/.test(location.search) ? new Runner3D() : new RunnerSprite();   // the user's retouched artwork by default; ?avatar=3d selects the 3D model
     this.scene.add(this.runner.group); this.scene.add(this.runner.shadow);
 
+    this.spots = []; this.usedSpots = new Set(); this._v = new THREE.Vector3();         // parked scooters / stations seen this frame; the ones already taken
     this.menu = 1; this.lookX = 0; this.heading = 0;                         // menu blend (1 = menu camera, 0 = chase) and smoothed look-ahead
     this.cam = new THREE.Vector3(); this.look = new THREE.Vector3();
     this.resize();
@@ -165,15 +166,35 @@ class Renderer3D {
   // game events (called by Game): a collected coin pops, a crash throws debris, a restart clears the effects
   onCoin(g, it) { const band = g.world.bandNear(it.z, it.x); this.fx.coinPop((it.x + band.off) * U3.X, it.h * U3.Y, it.z * U3.Z, g.time); }
   onDie(g) { const p = g.p, pb = g.world.playerBand(p.z, p.x); this.fx.crash((p.x + pb.off) * U3.X, p.jy * U3.Y + 0.9, p.z * U3.Z + 0.4, g.time); }
-  onReset() { this.fx.clear(); this.heading = 0; this.lastT = 0; }
+  onReset() { this.fx.clear(); this.heading = 0; this.lastT = 0; this.usedSpots.clear(); }
 
-  // does the runner ride the kick scooter? In Saint-Gilles by default (once the zone is mostly in); ?scooter=1 everywhere, ?scooter=0 nowhere
+  // does the runner ride the kick scooter? The player decides (Game.riding: tap the indicator over a parked scooter or a station, or press E; again to get off); ?scooter=1 rides
+  // everywhere and always, ?scooter=0 never (for testing)
   riding(g) {
     const m = (location.search.match(/[?&]scooter=(\w+)/) || [])[1];
     if (m === '1' || m === 'always') return true;
     if (m === '0' || m === 'never') return false;
-    return g.state !== 'title' && g.bgTo === 'tram' && g.bgT > 0.5;
+    return !!g.riding;
   }
+
+  // the indicator: the nearest parked scooter / station from 6 m behind to 70 m ahead, projected to the HUD's pixel grid (clamped to its edges); g.scooterHint is what the HUD draws and
+  // what a tap or a press of E takes. Nothing while riding or outside play. onScooter (called by Game when the player mounts) marks the spot as taken.
+  pickHint(g) {
+    g.scooterHint = null;
+    if (g.state !== 'play' || this.riding(g) || !this.spots.length) return;
+    const list = this.spots.filter(sp => sp.ahead >= -2 && sp.ahead <= 70).sort((p, q) => (p.ahead < 0 ? 100 - p.ahead : p.ahead) - (q.ahead < 0 ? 100 - q.ahead : q.ahead));      // the nearest ahead first; one just passed (up to 2 m) only if nothing is ahead
+    if (!list.length) return;
+    this.camera.updateMatrixWorld(true);
+    const cv = document.getElementById('screen'), rc = cv ? cv.getBoundingClientRect() : { left: 0, top: 0, width: innerWidth, height: innerHeight };
+    for (const sp of list) {
+      const v = this._v.set(sp.x, sp.y + (sp.dock ? 2.9 : 2.1), sp.z).project(this.camera);
+      if (v.z >= 1 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1) continue;                                          // not in view: look at the next one
+      const sx = (v.x + 1) / 2 * innerWidth, sy = (1 - v.y) / 2 * innerHeight, ux = (sx - rc.left) * VW / rc.width, uy = (sy - rc.top) * VH / rc.height;
+      g.scooterHint = { key: sp.key, dock: sp.dock, ahead: sp.ahead, x: Math.max(16, Math.min(VW - 16, ux)), y: Math.max(26, Math.min(VH - 36, uy)) };
+      return;
+    }
+  }
+  onScooter(g, hint) { if (hint) this.usedSpots.add(hint.key); }
 
   place(name, x, y, z, rotY) {
     const pool = this.props[name], n = this.propUsed[name];
@@ -202,6 +223,7 @@ class Renderer3D {
 
     // ---- scenery: slots of SEG_LEN, per road and side; the biome of each side is chosen by the blend at that spot
     for (const k in this.propUsed) this.propUsed[k] = 0;
+    this.spots.length = 0;
     const i0 = Math.floor(rz / SL) - 2, i1 = i0 + TRACK3D.SLOTS - 1;
     for (let i = i0; i <= i1; i++) {
       const zs = i * SL, sc = this.slotCache[((i % 20) + 20) % 20];
@@ -229,6 +251,11 @@ class Renderer3D {
             if ((pl.x < 0 ? -1 : 1) !== sg) continue;
             if (inner && (!env.innerOk.has(pl.prop) || Math.abs(pl.x) - hwM > avail - 0.8)) continue;
             const t = pl.dist / SL, cx = c0 + (c1 - c0) * t;
+            if (pl.prop === 'scooter' || pl.prop === 'scooterDock') {                    // a parked scooter or a scooter station: offered to the player (an indicator above it), unless it was already taken
+              const key = i + ':' + pl.prop + ':' + pl.x.toFixed(2);
+              if (this.usedSpots.has(key)) continue;
+              this.spots.push({ key, dock: pl.prop === 'scooterDock', x: cx + pl.x, y: WALK_Y + dy((zs + pl.dist) / U.Z), z: rz - zs - pl.dist, ahead: zs + pl.dist - rz });
+            }
             this.place(pl.prop, cx + pl.x, WALK_Y + dy((zs + pl.dist) / U.Z), rz - zs - pl.dist, (pl.x < 0 ? Math.PI : 0) + (pl.rotY || 0) - Math.atan2(c1 - c0, SL));
           }
         }
@@ -279,6 +306,7 @@ class Renderer3D {
     this.sunDisc.lookAt(this.camera.position);
     if (this.sunGlow.visible) { this.sunGlow.position.copy(this.sunDisc.position); this.sunGlow.position.z += 0.5; this.sunGlow.lookAt(this.camera.position); }
 
+    this.pickHint(g);
     this.renderer.render(this.scene, this.camera);
     this.uiCtx.clearRect(0, 0, VW, VH);
     this.ui.drawUI(g);

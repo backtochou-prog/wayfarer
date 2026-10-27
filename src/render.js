@@ -43,6 +43,7 @@ class Renderer {
     if (g.state === 'over' && g.flash > 0) { ctx.globalAlpha = 0.5; ctx.fillStyle = C.burg; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
     if (g.state !== 'title') this.drawHud(g);
     this.drawTouch(g);
+    if (g.state === 'play') this.drawScooterHint(g);
     if (g.state === 'title') this.drawTitle(g);
     else if (g.state === 'pause') this.drawPause(g);
     else if (g.state === 'over' && g.overT > 0.5) this.drawOver(g);
@@ -259,6 +260,12 @@ class Renderer {
     if (!this.touchImg && typeof TOUCH_ART !== 'undefined') { this.touchImg = new Image(); this.touchImg.src = TOUCH_ART.src; }
     const art = this.touchImg && this.touchImg.complete && this.touchImg.naturalWidth ? this.touchImg : null;
     for (const t of TOUCH) {
+      if (t.id === 'scooter') {                                                  // 'hop off': only while riding
+        if (!g.riding) continue;
+        c.globalAlpha = 0.85; c.fillStyle = C.ink; c.fillRect(t.x - 1, t.y - 1, t.w + 2, t.h + 2); c.fillStyle = on.has('scooter') ? C.burgD : C.plum; c.fillRect(t.x, t.y, t.w, t.h);
+        c.fillStyle = C.amberD; c.fillRect(t.x, t.y, t.w, 1); c.fillRect(t.x, t.y + t.h - 1, t.w, 1); c.globalAlpha = 1;
+        this.scooterGlyph(t.x + 4, t.y + 5, C.bone); this.txt('HOP OFF', t.x + 20, t.y + 8, C.bone, 1); continue;
+      }
       const hot = on.has(t.id), cx = t.x + (t.w >> 1), cy = t.y + (t.h >> 1);
       if (art) {
         const f = t.id === 'pause' ? TOUCH_ART.small : TOUCH_ART.big, k = hot ? 1.1 : 1, w = Math.round(f.w * k), h = Math.round(f.h * k);
@@ -281,6 +288,28 @@ class Renderer {
         }
       }
     }
+  }
+
+  // a tiny kick scooter in pixels (13 x 10), top-left at (x, y)
+  scooterGlyph(x, y, col) {
+    const c = this.ctx; c.fillStyle = col;
+    c.fillRect(x + 9, y, 1, 8); c.fillRect(x + 7, y, 4, 1);                  // stem and handlebar
+    c.fillRect(x + 1, y + 6, 9, 1);                                          // deck
+    c.fillRect(x, y + 7, 3, 3); c.fillRect(x + 9, y + 7, 3, 3);              // wheels
+  }
+
+  // the indicator over a parked scooter or a station (g.scooterHint, placed by Renderer3D): a bobbing plate with a scooter and what to press (E, or TAP on a touch device), a pointer down
+  // at the scooter. Pressing E or tapping / clicking it gets on (Game.mount). It fades in from 70 m and is clearest when close.
+  drawScooterHint(g) {
+    const h = g.scooterHint; if (!h || g.riding) return;
+    const c = this.ctx, bob = Math.round(Math.sin(g.time * 5) * 1.5), a = Math.max(0.55, Math.min(1, 1.3 - h.ahead / 90)), label = g.touch ? 'TAP' : 'E', w = 8 + 13 + 4 + textW(label, 1) + 2, hh = 14, x = Math.round(h.x - w / 2), y = Math.round(h.y - hh - 5) + bob;
+    c.globalAlpha = a;
+    c.fillStyle = C.ink; c.fillRect(x - 1, y - 1, w + 2, hh + 2); c.fillStyle = C.plum; c.fillRect(x, y, w, hh);
+    c.fillStyle = '#7ddc3a'; c.fillRect(x, y, w, 1); c.fillRect(x, y + hh - 1, w, 1);                       // lime rim: the scooters are lime
+    this.scooterGlyph(x + 4, y + 2, '#7ddc3a'); this.txt(label, x + 21, y + 5, C.bone, 1);
+    c.fillStyle = C.ink; for (let i = 0; i < 4; i++) c.fillRect(Math.round(h.x) - 3 + i, y + hh + 1 + i, 7 - 2 * i, 1);   // the pointer (shadow)
+    c.fillStyle = '#7ddc3a'; for (let i = 0; i < 3; i++) c.fillRect(Math.round(h.x) - 2 + i, y + hh + 1 + i, 5 - 2 * i, 1);
+    c.globalAlpha = 1;
   }
 
   drawHud(g) {

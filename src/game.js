@@ -15,6 +15,7 @@ const TOUCH = [
   { id: 'slide', x: 234, y: 142, w: 38, h: 32 },
   { id: 'jump',  x: 278, y: 142, w: 38, h: 32 },
   { id: 'pause', x: 148, y: 3,   w: 24, h: 14 },
+  { id: 'scooter', x: 132, y: 154, w: 56, h: 20 },       // 'hop off' (only while riding the scooter); getting on is a tap on the indicator over a parked scooter
 ];
 const GRAV = 900, JUMP_V = 268, SLIDE_T = 0.55, P_HW = 0.12;   // P_HW: runner half-width (0.43 m in the 3D build)
 
@@ -38,10 +39,12 @@ class Game {
     cv.addEventListener('pointermove', at);
     cv.addEventListener('pointerleave', () => { this.mouse.x = this.mouse.y = -1; this.mouse.down = false; });
     cv.addEventListener('contextmenu', e => e.preventDefault());
-    const zone = () => TOUCH.find(c => this.mouse.x >= c.x && this.mouse.x <= c.x + c.w && this.mouse.y >= c.y && this.mouse.y <= c.y + c.h);
+    const zone = () => TOUCH.find(c => (c.id !== 'scooter' || this.riding) && this.mouse.x >= c.x && this.mouse.x <= c.x + c.w && this.mouse.y >= c.y && this.mouse.y <= c.y + c.h);
+    const overHint = () => { const h = this.scooterHint, m = this.mouse; return !!h && !this.riding && Math.abs(m.x - h.x) <= 18 && Math.abs(m.y - h.y) <= 16; };      // the indicator over a parked scooter, with a generous touch area
     cv.addEventListener('pointerdown', e => {
       at(e); this.mouse.down = true;
       if (e.pointerType === 'touch') this.touch = true;
+      if (this.state === 'play' && overHint()) { this.mount(); return; }                      // a tap or click on the indicator gets on the scooter
       const c = this.state === 'play' && this.touch && zone();
       if (c) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} this.hold(e.pointerId, c.id, true); }
     });
@@ -93,6 +96,7 @@ class Game {
     const ahead0 = this.world.playerBand(300, 0);                                    // the atmosphere starts as the road ahead looks (the run opens in the neon quarter), not eased in from the base look
     this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0;
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
+    this.riding = false; this.scooterHint = null;                                     // on foot, no indicator
     this.carryC = 0; this.lean = 0; this.kick = null; this.sway = 0; this.prompt = null; this.banner = null;
     if (this.r.onReset) this.r.onReset(this);
   }
@@ -106,6 +110,9 @@ class Game {
   overButton(b) { const m = this.mouse; return m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h; }
 
   start() { this.resetRun(); this.state = 'play'; this.emit('start'); }
+  // the optional scooter: get on (the nearest parked scooter / station that has an indicator right now; it is taken) or off again, whenever the player wants. Drawing only: the rules are the same.
+  mount() { const h = this.scooterHint; if (this.state !== 'play' || this.riding || !h) return false; this.riding = true; this.scooterHint = null; if (this.r.onScooter) this.r.onScooter(this, h); this.emit('mount'); if (this.touch && navigator.vibrate) navigator.vibrate(30); return true; }
+  dismount() { if (this.state !== 'play' || !this.riding) return false; this.riding = false; this.emit('dismount'); return true; }
   emit(name, arg) { if (this.sfx) this.sfx.play(name, arg); }                       // a sound effect, if the front end has sound
 
   // which road the player would take if the junction line were crossed now: an explicit left/right input given inside the
@@ -127,7 +134,7 @@ class Game {
     if (id === null) delete this.held[pid]; else this.held[pid] = id;
     this.syncTouch();
     if (!fresh || this.state !== 'play') return;
-    if (id === 'jump') this.jump(); else if (id === 'slide') this.slideKey(); else if (id === 'pause') { this.state = 'pause'; this.releaseTouch(); }
+    if (id === 'jump') this.jump(); else if (id === 'slide') this.slideKey(); else if (id === 'scooter') this.dismount(); else if (id === 'pause') { this.state = 'pause'; this.releaseTouch(); }
   }
   syncTouch() { const h = Object.values(this.held); this.tleft = h.includes('left'); this.tright = h.includes('right'); }
   releaseTouch() { this.held = {}; this.syncTouch(); }
@@ -152,6 +159,7 @@ class Game {
     else if (s === 'play') {
       if (c === 'Space' || U) this.jump();
       else if (D) this.slideKey();
+      else if (c === 'KeyE' || k === 'e') { if (this.riding) this.dismount(); else this.mount(); }          // E: get on the scooter that has an indicator / get off
       else if (c === 'KeyP' || c === 'Escape') this.state = 'pause';
     } else if (s === 'pause' && (c === 'KeyP' || c === 'Escape')) this.state = 'play';
   }
@@ -162,6 +170,7 @@ class Game {
     if (this.sfx) this.sfx.tick(this, dt);                                          // beat clock, music volume and state-change sounds (also while paused)
     if (this.state === 'pause') return;
     this.time += dt;
+    if (this.riding && !(this.bgTo === 'tram' && this.bgT > 0.25)) this.riding = false;          // the scooters are Saint-Gilles's: getting out of the zone puts the runner back on foot
     this.updateFx(dt);
     if (this.state === 'play') this.step(dt);
     else if (this.state === 'title') {

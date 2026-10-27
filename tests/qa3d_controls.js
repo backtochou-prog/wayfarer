@@ -53,8 +53,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   });
   T('touch buttons: the neon ring picture (a 52 x 34 PNG sheet, data URI) loads; four big buttons are drawn 34 x 34 and the pause button 18 x 18, a held button grows to 37, nothing is drawn off touch devices or outside play',
     U.img[0] === 52 && U.img[1] === 34 && U.img[2] && U.idle.length === 5 && U.idle.filter(s => s[0] === 34).length === 4 && U.idle.filter(s => s[0] === 18).length === 1 && U.held[0] === 37 && U.noTouch === 0 && U.notPlay === 0, JSON.stringify({ img: U.img, idle: U.idle, held: U.held, noTouch: U.noTouch, notPlay: U.notPlay }));
-  T('touch buttons: the hit boxes are unchanged (left, right, slide, jump, pause) and, without the picture, the old plates are drawn instead',
-    U.boxes === 'left:4:142:38:32 right:46:142:38:32 slide:234:142:38:32 jump:278:142:38:32 pause:148:3:24:14' && U.fallback === 0, U.boxes + ' | fallback sheet draws ' + U.fallback);
+  T('touch buttons: the hit boxes are unchanged (left, right, slide, jump, pause) plus the HOP OFF button of the scooter (inert on foot) and, without the picture, the old plates are drawn instead',
+    U.boxes === 'left:4:142:38:32 right:46:142:38:32 slide:234:142:38:32 jump:278:142:38:32 pause:148:3:24:14 scooter:132:154:56:20' && U.fallback === 0, U.boxes + ' | fallback sheet draws ' + U.fallback);
 
   // ---------------------------------------------------------------- 3. menu text names the new keys
   const M = await pg.evaluate(() => {
