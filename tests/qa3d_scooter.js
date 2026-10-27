@@ -64,7 +64,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     { const c = document.createElement('canvas'); c.width = m.naturalWidth; c.height = m.naturalHeight; const x = c.getContext('2d'); x.drawImage(m, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; let clear = 0, solid = 0, soft = 0; for (let i = 3; i < d.length; i += 4) { if (d[i] < 8) clear++; else if (d[i] > 240) solid++; else soft++; }
       const n = d.length / 4, at = (px, py) => d[(py * c.width + px) * 4 + 3]; out.alpha = { clear: +(clear / n).toFixed(2), solid: +(solid / n).toFixed(2), soft: +(soft / n).toFixed(2), corner: at(0, 0), centre: at(c.width >> 1, c.height >> 1), edge: at(c.width >> 1, 2) }; }
     const run = () => { const o = { big: 0, imgs: [], alphas: [], scale: null }; const fr = ctx.fillRect.bind(ctx), di = ctx.drawImage.bind(ctx), fl = ctx.fill.bind(ctx), st = ctx.stroke.bind(ctx), sc = ctx.scale.bind(ctx);
-      ctx.fillRect = (x, y, w, h) => { if (w >= 12 || h >= 12) o.big++; return fr(x, y, w, h); }; ctx.drawImage = (...a) => { o.imgs.push([a[0] === ui.ringImg ? 'disc' : '?', +ctx.globalAlpha.toFixed(2), ctx.globalCompositeOperation]); return di(...a); }; ctx.scale = (x, y) => { o.scale = +y.toFixed(2); return sc(x, y); };
+      ctx.fillRect = (x, y, w, h) => { if (w >= 12 && h >= 6) o.big++; return fr(x, y, w, h); }; ctx.drawImage = (...a) => { o.imgs.push([a[0] === ui.ringImg ? 'disc' : '?', +ctx.globalAlpha.toFixed(2), ctx.globalCompositeOperation]); return di(...a); }; ctx.scale = (x, y) => { o.scale = +y.toFixed(2); return sc(x, y); };
       ctx.fill = (...a) => { o.alphas.push(+ctx.globalAlpha.toFixed(2)); return fl(...a); }; ctx.stroke = (...a) => { o.alphas.push(+ctx.globalAlpha.toFixed(2)); return st(...a); };
       ui.drawScooterHint(g); ctx.fillRect = fr; ctx.drawImage = di; ctx.fill = fl; ctx.stroke = st; ctx.scale = sc; return o; };
     out.withArt = run(); const keep = ui.ringImg; ui.ringImg = new Image(); out.noArt = run(); ui.ringImg = keep;
@@ -74,6 +74,20 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     X.loaded[0] === X.meta[0] && X.loaded[1] === X.meta[1] && X.single && X.alpha.corner === 0 && X.alpha.centre > 200 && X.alpha.edge < 200 && X.alpha.soft > 0.03 && X.alpha.solid > 0.1 && X.withArt.big === 0 && X.withArt.imgs.length === 1 && X.withArt.imgs[0][0] === 'disc' && X.withArt.imgs[0][1] <= 0.9 && X.withArt.imgs[0][2] === 'source-over' && X.withArt.scale > 0.2 && X.withArt.scale < 0.9, JSON.stringify({ withArt: X.withArt, alpha: X.alpha }));
   T('until the picture has loaded the disc is drawn with translucent ellipses instead (a disc and a ring, every alpha <= 0.75, no solid rectangle)',
     X.noArt.big === 0 && X.noArt.imgs.length === 0 && X.noArt.alphas.length >= 2 && Math.max(...X.noArt.alphas) <= 0.75, JSON.stringify(X.noArt));
+
+  const V = await pg.evaluate(() => {
+    const g = G, r = g.r, ui = r.ui, ctx = ui.ctx, out = {};
+    const probe = (mode, back, touch) => { goto(mode, back); g.touch = !!touch; frames(3); const h = g.scooterHint; const o = { kind: h.kind, ahead: Math.round(h.ahead), txt: [], glyphCols: [], disc: null, glyphRects: 0 }; const t0 = ui.txt.bind(ui), di = ctx.drawImage.bind(ctx), fr = ctx.fillRect.bind(ctx);
+      ui.txt = (s2, ...a) => { o.txt.push(s2); return t0(s2, ...a); }; ctx.drawImage = (...a) => { if (a[0] === ui.ringImg) o.disc = Math.round(a[3]); return di(...a); };
+      ctx.fillRect = (x, y, w, h2) => { const c = String(ctx.fillStyle); if (/^#(8ff04a|35e6ff|ff3a6a)$/.test(c)) { if (!o.glyphCols.includes(c)) o.glyphCols.push(c); o.glyphRects++; } return fr(x, y, w, h2); };
+      ui.drawScooterHint(g); ui.txt = t0; ctx.drawImage = di; ctx.fillRect = fr; return o; };
+    out.scooterFar = probe('clean', 125); out.scooterNear = probe('clean', 25); out.boardFar = probe('cleanboard', 125); out.boardNear = probe('cleanboard', 25);
+    out.touch = probe('cleanboard', 40, true).txt; g.touch = false;
+    return out;
+  });
+  T('the indicator is big and says what it is for: the disc is at least ' + Math.min(V.scooterFar.disc, V.boardFar.disc) + ' px across even from ' + V.scooterFar.ahead + ' m away (' + V.scooterNear.disc + ' px near), a floating drawing of the vehicle (lime scooter / cyan skateboard with a red glow) above it, and below it the key and RIDE SCOOTER / RIDE SKATEBOARD (TAP on touch)',
+    [V.scooterFar, V.boardFar].every(o => o.disc >= 36) && V.scooterNear.disc > V.scooterFar.disc + 6 && V.scooterFar.txt.includes('E') && V.scooterFar.txt.includes('RIDE SCOOTER') && !V.scooterFar.txt.includes('RIDE SKATEBOARD') && V.boardFar.txt.includes('RIDE SKATEBOARD') && !V.boardFar.txt.includes('RIDE SCOOTER')
+    && V.scooterFar.glyphCols.includes('#8ff04a') && !V.scooterFar.glyphCols.includes('#35e6ff') && V.boardFar.glyphCols.includes('#35e6ff') && V.boardFar.glyphCols.includes('#ff3a6a') && V.scooterFar.glyphRects >= 4 && V.boardFar.glyphRects >= 6 && V.touch.includes('TAP') && V.touch.includes('RIDE SKATEBOARD'), JSON.stringify(V));
 
   const W = await pg.evaluate(() => {
     const g = G, r = g.r, out = {}; out.slot = goto('clean', 120); frames(2); const first = g.scooterHint, keyAt = first.key;

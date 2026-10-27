@@ -40,7 +40,7 @@ class Game {
     cv.addEventListener('pointerleave', () => { this.mouse.x = this.mouse.y = -1; this.mouse.down = false; });
     cv.addEventListener('contextmenu', e => e.preventDefault());
     const zone = () => TOUCH.find(c => (c.id !== 'scooter' || this.riding) && this.mouse.x >= c.x && this.mouse.x <= c.x + c.w && this.mouse.y >= c.y && this.mouse.y <= c.y + c.h);
-    const overHint = () => { const h = this.scooterHint, m = this.mouse; return !!h && !this.riding && Math.abs(m.x - h.x) <= h.rx + 22 && m.y >= h.y - 60 && m.y <= h.y + h.ry + 18; };      // the ring under a parked scooter and the scooter above it, with a very generous touch area (it passes at running speed)
+    const overHint = () => { const h = this.scooterHint, m = this.mouse; return !!h && !this.riding && Math.abs(m.x - h.x) <= 14 + Math.min(36, h.rx * 1.4) + 24 && m.y >= h.y - 80 && m.y <= h.y + h.ry * 1.6 + 36; };      // the ring under a parked scooter and the scooter above it, with a very generous touch area (it passes at running speed)
     cv.addEventListener('pointerdown', e => {
       at(e); this.mouse.down = true;
       if (e.pointerType === 'touch') this.touch = true;

@@ -298,27 +298,47 @@ class Renderer {
     c.fillRect(x, y + 7, 3, 3); c.fillRect(x + 9, y + 7, 3, 3);              // wheels
   }
 
-  // the indicator for a parked scooter, board or station (g.scooterHint, placed by Renderer3D): not a sign, a translucent DISC on the ground right under it, made from the user's green swirl picture
-  // (RING_ART, reshaped into a round disc), small, squashed into the ground's perspective ellipse, turning slowly and breathing a little, with what to press (E, or TAP on a touch device) in faint
-  // letters below. Pressing E or tapping / clicking the disc (or the vehicle above it) gets on (Game.mount). It is armed from 140 m ahead to 60 m behind, and pinned low on its side once the
-  // vehicle is behind the camera. Until the picture has loaded (or without it) the disc is drawn with ellipses.
+  // a vehicle in pixels, to tell the player what the disc is for: a kick scooter (lime) or the electromagnetic skateboard (cyan deck, red engine ring), about 28 x 18, top-left at (x, y)
+  vehicleGlyph(kind, x, y, col) {
+    const c = this.ctx; c.fillStyle = col;
+    if (kind === 'board') {
+      c.fillRect(x + 3, y + 8, 22, 3); c.fillRect(x, y + 6, 4, 2); c.fillRect(x + 24, y + 6, 4, 2);                  // the deck with its kicked nose and tail
+      c.fillStyle = '#ff3a6a'; c.fillRect(x + 4, y + 11, 20, 1); c.fillRect(x + 8, y + 13, 12, 1);                       // the glow under it
+      c.fillStyle = col; c.fillRect(x + 11, y + 15, 2, 2); c.fillRect(x + 15, y + 15, 2, 2);                           // the magnetic pads
+    } else {
+      c.fillRect(x + 20, y, 2, 15); c.fillRect(x + 16, y, 9, 2);                                                       // stem and handlebar
+      c.fillRect(x + 3, y + 13, 19, 2);                                                                                 // deck
+      c.fillRect(x, y + 14, 6, 5); c.fillRect(x + 19, y + 14, 6, 5);                                                   // wheels
+    }
+  }
+
+  // the indicator for a parked scooter, skateboard or station (g.scooterHint, placed by Renderer3D): not a sign, a translucent DISC on the ground right under it, made from the user's green swirl
+  // picture (RING_ART, reshaped into a round disc), squashed into the ground's perspective ellipse, turning slowly and breathing a little. It is big enough to see from far away, and it says what it
+  // is for: a floating pixel drawing of the vehicle above it (lime scooter / cyan skateboard) and, below, the key (E, or TAP) and RIDE SCOOTER / RIDE SKATEBOARD. Pressing E or tapping / clicking
+  // the disc (or anything of it) gets on (Game.mount). It is armed from 140 m ahead to 60 m behind, and pinned low on its side once the vehicle is behind the camera. Until the picture has loaded
+  // (or without it) the disc is drawn with ellipses.
   drawScooterHint(g) {
     const h = g.scooterHint; if (!h || g.riding) return;
-    const c = this.ctx, a = Math.max(0.4, Math.min(1, 1.3 - Math.abs(h.ahead) / (h.ahead < 0 ? 80 : 130))), label = g.touch ? 'TAP' : 'E';
+    const c = this.ctx, a = Math.max(0.5, Math.min(1, 1.35 - Math.abs(h.ahead) / (h.ahead < 0 ? 90 : 150))), board = h.kind === 'board', label = g.touch ? 'TAP' : 'E', what = board ? 'RIDE SKATEBOARD' : 'RIDE SCOOTER';
     if (!this.ringImg && typeof RING_ART !== 'undefined') { this.ringImg = new Image(); this.ringImg.src = RING_ART.a; }
     const art = this.ringImg && this.ringImg.complete && this.ringImg.naturalWidth;
-    const rx = h.rx * 0.78, ry = Math.max(h.ry, h.rx * 0.45) * 0.78, k = 1 + 0.05 * Math.sin(g.time * 3);              // the disc's half axes on the ground
-    let bottom;
+    const rx = 14 + Math.min(36, h.rx * 1.4), ry = Math.max(h.ry * 1.25, rx * 0.42), k = 1 + 0.05 * Math.sin(g.time * 3);        // the disc's half axes on the ground (never small)
     if (art) {
-      c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.globalAlpha = (h.pinned ? 0.88 : 0.8) * a;
+      c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.globalAlpha = (h.pinned ? 0.9 : 0.82) * a;
       c.translate(h.x, h.y); c.scale(1, ry / rx); c.rotate(g.time * 0.7); c.drawImage(this.ringImg, -rx * k, -rx * k, 2 * rx * k, 2 * rx * k);          // (turned, then squashed: a disc seen at a slant)
-      c.restore(); bottom = h.y + ry * k;
+      c.restore();
     } else {
       c.save(); c.beginPath(); c.ellipse(h.x, h.y, rx, ry, 0, 0, 6.2832); c.fillStyle = '#7ddc3a'; c.globalAlpha = 0.22 * a; c.fill();
-      c.lineWidth = 1; c.strokeStyle = '#b6ff7a'; c.globalAlpha = 0.75 * a; c.beginPath(); c.ellipse(h.x, h.y, rx, ry, 0, 0, 6.2832); c.stroke(); c.restore(); bottom = h.y + ry;
+      c.lineWidth = 1; c.strokeStyle = '#b6ff7a'; c.globalAlpha = 0.75 * a; c.beginPath(); c.ellipse(h.x, h.y, rx, ry, 0, 0, 6.2832); c.stroke(); c.restore();
     }
-    const tx = Math.round(h.x - textW(label, 2) / 2), ty = Math.min(VH - 12, Math.round(bottom + 2));
-    c.globalAlpha = 0.8 * a; this.txt(label, tx, ty, '#d8ffb0', 2); c.globalAlpha = 1;
+    // the vehicle floating above the disc, bobbing, in its own colour with a dark edge (translucent, no plate)
+    const bob = Math.round(Math.sin(g.time * 4) * 2), gx = Math.round(h.x - 14), gy = Math.round(h.y - ry - 28) + bob, col = board ? '#35e6ff' : '#8ff04a';
+    c.globalAlpha = 0.55 * a; this.vehicleGlyph(h.kind, gx + 1, gy + 1, C.ink); c.globalAlpha = 0.92 * a; this.vehicleGlyph(h.kind, gx, gy, col);
+    // what to press, and for what
+    const ty = Math.min(VH - 24, Math.round(h.y + ry + 2));
+    c.globalAlpha = 0.95 * a; this.txt(label, Math.round(h.x - textW(label, 2) / 2), ty, '#d8ffb0', 2);
+    c.globalAlpha = 0.9 * a; this.txt(what, Math.round(h.x - textW(what, 1) / 2), ty + 12, board ? '#9ff4ff' : '#d8ffb0', 1);
+    c.globalAlpha = 1;
   }
 
   drawHud(g) {

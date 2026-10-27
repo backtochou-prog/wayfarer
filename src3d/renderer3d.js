@@ -196,11 +196,11 @@ class Renderer3D {
     this.camera.updateMatrixWorld(true);
     const cv = document.getElementById('screen'), rc = cv ? cv.getBoundingClientRect() : { left: 0, top: 0, width: innerWidth, height: innerHeight };
     const to = (x, y, z) => { const v = this._v.set(x, y, z).project(this.camera); return v.z >= 1 ? null : { nx: v.x, ny: v.y, x: ((v.x + 1) / 2 * innerWidth - rc.left) * VW / rc.width, y: ((1 - v.y) / 2 * innerHeight - rc.top) * VH / rc.height }; };
-    const c = to(sp.x, sp.y, sp.z), R = sp.dock ? 2.0 : 0.95;
+    const c = to(sp.x, sp.y, sp.z), R = sp.dock ? 3.2 : 2.2;
     if (c && c.y < VH + 40) {                                                                                       // in front of the camera: on the ground under the scooter (clamped to the HUD)
       const ex = to(sp.x + R, sp.y, sp.z), ez = to(sp.x, sp.y, sp.z - R), rx = ex ? Math.abs(ex.x - c.x) : 8, ry = ez ? Math.abs(ez.y - c.y) : 3;
-      g.scooterHint = { key: sp.key, dock: sp.dock, kind: sp.kind, ahead: sp.ahead, pinned: c.y > VH - 30, x: Math.max(16, Math.min(VW - 16, c.x)), y: Math.max(24, Math.min(VH - 30, c.y)), rx: Math.max(12, Math.min(60, rx)), ry: Math.max(4, Math.min(24, ry)) };
-    } else g.scooterHint = { key: sp.key, dock: sp.dock, kind: sp.kind, ahead: sp.ahead, pinned: true, x: sp.x < 0 ? 112 : 208, y: VH - 30, rx: 16, ry: 5 };     // behind the camera: pinned low on its side
+      g.scooterHint = { key: sp.key, dock: sp.dock, kind: sp.kind, ahead: sp.ahead, pinned: c.y > VH - 44, x: Math.max(16, Math.min(VW - 16, c.x)), y: Math.max(40, Math.min(VH - 44, c.y)), rx: Math.max(3, Math.min(60, rx)), ry: Math.max(1.5, Math.min(30, ry)) };
+    } else g.scooterHint = { key: sp.key, dock: sp.dock, kind: sp.kind, ahead: sp.ahead, pinned: true, x: sp.x < 0 ? 112 : 208, y: VH - 44, rx: 18, ry: 7 };     // behind the camera: pinned low on its side
   }
   onScooter(g, hint) { if (hint) { this.usedSpots.add(hint.key); this.armedSpot = null; } }
 
