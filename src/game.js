@@ -89,7 +89,17 @@ class Game {
     this.cv.style.width = VW * s + 'px'; this.cv.style.height = VH * s + 'px';
   }
 
+  // The route order of a run: seed 0 is the canonical order (the first lap goes forest / market, then seeded laps), what automated browsers (navigator.webdriver) and ?seed=0 get so tests
+  // are reproducible; any other seed varies the order of the destinations from the first fork on. A real player gets a fresh random seed every run, ?seed=N pins one.
+  static runSeed() {
+    const m = (typeof location !== 'undefined' && location.search.match(/[?&]seed=(\d+)/)) || null;
+    if (m) return +m[1];
+    if (typeof navigator !== 'undefined' && navigator.webdriver) return 0;
+    return 1 + Math.floor(Math.random() * 1e6);
+  }
+
   resetRun() {
+    this.world.seed = Game.runSeed();
     this.world.reset();
     this.p = { x: 0, z: 0, vx: 0, jy: 0, vy: 0, slide: 0, speed: BASE_SPEED };
     this.coins = 0; this.camX = 0; this.camOff = 0; this.camRel = 0; this.camErr = 0; this.prevTgt = 0;

@@ -92,7 +92,7 @@ window.ENV3D = window.ENV3D || {};
       asphalt: ['#0e1626', '#0b1220'], mark: '#ff4fe0', edge: '#6bff3a',
       curb: ['#3a2466', '#321e5a'], curbFace: '#1a0f33', walk: ['#18213a', '#141c32'], court: '#0e1526', verge: ['#0b111e', '#090e1a'],
     },
-    innerOk: new Set(['neonLampM', 'neonLampC', 'stripM', 'stripG', 'neonBucket', 'neonBottle', 'neonCar', 'neonCapSign']),
+    innerOk: new Set(['neonWire', 'neonPole', 'neonPuddle', 'neonLampM', 'neonLampC', 'stripM', 'stripG', 'neonBucket', 'neonBottle', 'neonCar', 'neonCapSign']),
     entrance: 'gateNeon',
 
     props: {
@@ -252,13 +252,23 @@ window.ENV3D = window.ENV3D || {};
         Kit.box(0.14, 2.8, 0.14, 1.35, 0.08, -3.4, N.post), Kit.box(0.14, 2.8, 0.14, 1.35, 0.08, 3.4, N.post), Kit.box(0.1, 0.1, 6.9, 1.35, 2.9, 0, N.teal, { glow: true }), Kit.box(0.08, 0.08, 6.9, 1.35, 2.6, 0, N.mag, { glow: true })], sp = [];   // an arch of light tubes
       for (let k = 0; k < 4; k++) hoverBoard(p, sp, 0.6, -2.4 + k * 1.6, 0.1); return { merged: Kit.merge(p), sprite: BoardArt.join(sp), material: () => BoardArt.material() }; },
   });
+  // ---- overhead cables and reflective road details (the Neon District's identity, also in the Quarter): cables span the road on poles every third slot, with small lit beads; wet-looking patches
+  // on the road reflect the signs (a dark glossy slab with a magenta and a cyan streak, low enough to be a decal; hazards and coins pass over them).
+  Object.assign(ENV3D.neon.props, {
+    neonWire: () => { const p = [Kit.box(0.05, 0.05, SEG_LEN + 0.6, 0, 6.4, 0, '#1b1f38')]; for (let k = 0; k < 4; k++) p.push(Kit.box(0.14, 0.14, 0.14, 0, 6.28, -4.5 + k * 3, k % 2 ? N.mag : N.teal, { glow: true })); return Kit.merge(p); },
+    neonPole: () => Kit.merge([Kit.box(0.4, 0.4, 0.4, 0, 0, 0, N.post), Kit.cyl(0.09, 0.13, 6.6, 0, 0, 0, N.post), Kit.box(3.2, 0.1, 0.1, -1.6, 6.3, 0, N.post), Kit.box(0.14, 0.14, 0.14, -3.1, 6.1, 0, N.mag, { glow: true }), Kit.box(0.5, 0.1, 0.1, -0.3, 6.5, 0, N.teal, { glow: true })]),
+    neonPuddle: () => Kit.merge([Kit.box(2.6, 0.02, 3.6, 0, -0.13, 0, '#0a0e2a'), Kit.box(1.9, 0.025, 0.14, 0.1, -0.12, -0.7, N.mag, { glow: true }), Kit.box(1.5, 0.025, 0.1, -0.2, -0.12, 0.5, N.teal, { glow: true }), Kit.box(0.8, 0.025, 0.08, 0.4, -0.12, 1.2, N.yellow, { glow: true })]),
+  });
   // ... placed by wrapping the layout: a board on about one side of seven of the slots, a station on about one in fourteen, a lamp on about one in eight (never on a landmark's side)
   const layout0 = ENV3D.neon.layout, LMX = /^(neonRing|neonSpire|neonBillboard|neonHalo|neonBoardVortex|neonBoardSphere|neonBoardRings|neonBoardSpiral)$/;
   ENV3D.neon.layout = (i, rnd) => {
     const out = layout0(i, rnd);
     for (const side of [-1, 1]) {
-      if (out.some(q => LMX.test(q.prop) && Math.sign(q.x) === side)) continue;
       const k = i * 2 + (side > 0 ? 1 : 0), e = rnd(k, 70);
+      out.push({ prop: 'neonWire', x: side * 1.3, dist: 6 });                                                                // the two cables over the road (one each side of the centre line)
+      if (mod(i, 3) === (side > 0 ? 1 : 0)) out.push({ prop: 'neonPole', x: side * 4.1, dist: 3 });
+      if (rnd(k, 75) < 0.22) out.push({ prop: 'neonPuddle', x: side * (0.9 + rnd(k, 76) * 1.4), dist: 2 + rnd(k, 77) * 8 });
+      if (out.some(q => LMX.test(q.prop) && Math.sign(q.x) === side)) continue;
       if (e < 0.07) out.push({ prop: 'neonHoverDock', x: side * 4.9, dist: 6 }); else if (e < 0.21) out.push({ prop: 'neonHover', x: side * 5.3, dist: 9.5 }); else if (e < 0.33) out.push({ prop: LAMPS[Math.floor(rnd(k, 71) * LAMPS.length)], x: side * 5.1, dist: 4.5 + rnd(k, 72) * 2 });      // a lamp of the fourth set
     }
     return out;

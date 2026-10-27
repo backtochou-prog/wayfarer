@@ -43,11 +43,12 @@ class Renderer3D {
     gr.addColorStop(0, 'rgba(255,214,140,0.95)'); gr.addColorStop(0.18, 'rgba(255,170,90,0.55)'); gr.addColorStop(0.5, 'rgba(255,120,60,0.16)'); gr.addColorStop(1, 'rgba(255,100,50,0)'); gx.fillStyle = gr; gx.fillRect(0, 0, 128, 128);
     this.sunGlow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(gc), transparent: true, blending: THREE.AdditiveBlending, fog: false, depthWrite: false }));
     this.sunGlow.renderOrder = -1; this.sunGlow.visible = false; this.scene.add(this.sunGlow); this.sunOff = { x: -70, y: 28, glow: 0, size: base.sunDisc.size };
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.MeshLambertMaterial({ color: base.groundFar }));
+    this.groundMat = new THREE.MeshLambertMaterial({ color: base.groundFar });                                  // (its colour is blended per biome in applyAtmosphere)
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), this.groundMat);
     // two halves of the far ground: behind the runner it stays flat; ahead it hangs from a pivot at the runner and tips down with the street's slope (see World.dropAt), so a descent never buries the road
     ground.geometry = new THREE.PlaneGeometry(900, 450); ground.rotation.x = -Math.PI / 2; ground.position.set(0, 0, -225);
     this.groundPivot = new THREE.Group(); this.groundPivot.position.y = -0.03; this.groundPivot.add(ground); this.scene.add(this.groundPivot);
-    const groundBack = new THREE.Mesh(new THREE.PlaneGeometry(900, 450), ground.material); groundBack.rotation.x = -Math.PI / 2; groundBack.position.set(0, -0.03, 225); this.scene.add(groundBack);
+    const groundBack = new THREE.Mesh(new THREE.PlaneGeometry(900, 450), this.groundMat); groundBack.rotation.x = -Math.PI / 2; groundBack.position.set(0, -0.03, 225); this.scene.add(groundBack);
     this._c = [new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color()];   // scratch colours for blending
     this.atmoTo = ''; this.atmoQ = -1; this.atmoKey = ''; this.applyAtmosphere(this.baseId, 0);
 
@@ -66,6 +67,9 @@ class Renderer3D {
                   rowA: 26, rowB: 26, rowC: 26, rowD: 26, rowE: 26, rowF: 26, rowG: 26, rowH: 26, pole: 24, wire: 36, swan: 40, blossom: 60, cobbles: 44, carA: 20, carB: 20, carC: 20, van: 20,   // the tram street
                   polyclinique: 6, tramStop: 6, cornerCafe: 6, gateTram: 8, school: 6, glassTower: 6,
                   rowI: 26, rowJ: 26, rowK: 26, rowL: 26, lantern: 40, posts: 40, streetSign: 24, hedge: 30, tent: 24, scooter: 40, steps: 24, zebra: 8, scooterDock: 10, board: 40, boardDock: 12, neonHover: 40, neonHoverDock: 14, neonShopF: 24, neonShopG: 24, neonShopH: 24, neonShopI: 24,
+                  neonWire: 40, neonPole: 24, neonPuddle: 30,                                                   // the neon district's cables, poles and wet road
+                  seaStrip: 36, cottageA: 24, cottageB: 24, cottageC: 24, cottageD: 24, seaFence: 70, tuft: 80, tuftBig: 50, driftwood: 30, dune: 30, cliff: 24, boat: 24, buoy: 40, crates: 30, lampSea: 40, lighthouse: 6, pier: 6, gateCoast: 8,   // the sunset coast
+                  wallLow: 40, wallHigh: 40, wallLowB: 40, column: 60, columnLow: 60, columnTall: 20, archHalf: 24, lantern: 50, blocks: 40, ivy: 50, patchA: 40, patchB: 40, ruinTemple: 6, obelisk: 6, gateRuins: 8,   // the mossy ruins
                   neonHotel: 6, neonMoroccanLamp: 80, neonPendantLamp: 50, neonLanternPierced: 50, neonPillarLamp: 50, neonLightbox: 30 };                                                              // entrance markers where the biome changes
     this.props = {}; this.propUsed = {};
     for (const id of Object.keys(envs)) {
@@ -129,7 +133,7 @@ class Renderer3D {
     this.scene.background.copy(this.scene.fog.color);
     lerpTo(this.hemi.color, a.hemi.sky, b.hemi.sky); lerpTo(this.hemi.groundColor, a.hemi.ground, b.hemi.ground); this.hemiBase = a.hemi.intensity + (b.hemi.intensity - a.hemi.intensity) * q; this.hemi.intensity = this.hemiBase;
     lerpTo(this.sun.color, a.sun.color, b.sun.color); this.sun.intensity = a.sun.intensity + (b.sun.intensity - a.sun.intensity) * q;
-    lerpTo(this.sunDisc.material.color, a.sunDisc.color, b.sunDisc.color);
+    lerpTo(this.sunDisc.material.color, a.sunDisc.color, b.sunDisc.color); lerpTo(this.groundMat.color, a.groundFar, b.groundFar);
     { const pa = a.sunPos || [-70, 28], pb = b.sunPos || [-70, 28], so = this.sunOff;
       so.x = pa[0] + (pb[0] - pa[0]) * q; so.y = pa[1] + (pb[1] - pa[1]) * q; so.glow = (a.sunGlow || 0) + ((b.sunGlow || 0) - (a.sunGlow || 0)) * q; so.size = a.sunDisc.size + (b.sunDisc.size - a.sunDisc.size) * q;
       this.sunDisc.scale.setScalar(250 * Math.tan(so.size * Math.PI / 360)); this.sunGlow.scale.setScalar(250 * Math.tan(so.size * Math.PI / 360) * 7); this.sunGlow.material.opacity = Math.min(1, so.glow); this.sunGlow.visible = so.glow > 0.02; }

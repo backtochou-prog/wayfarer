@@ -188,6 +188,10 @@ function buildSprites() {
     for (let i = 0; i < 8; i++) r(i % 2 ? C.amber : C.burgL, 9 + i * 2, 4, 2, 5);
     r(C.ink, 9, 9, 1, 8); r(C.ink, 24, 9, 1, 8); r(C.earth, 10, 12, 14, 5); r(C.amberL, 13, 10, 3, 2); r(C.mossL, 18, 10, 3, 2);
   }, 'MARKET');
+  // the signs of the new destinations (2D): a sun over waves, a stone arch, a neon ring
+  SPR.signCoast = sign(r => { r(C.amberL, 12, 5, 10, 5); r(C.amber, 10, 7, 14, 3); r(C.tealL, 5, 12, 24, 2); r(C.teal, 5, 14, 24, 2); r(C.tealL, 9, 17, 6, 1); r(C.tealL, 19, 17, 6, 1); }, 'COAST');
+  SPR.signRuins = sign(r => { r(C.stoneL, 9, 6, 3, 11); r(C.stoneL, 22, 6, 3, 11); r(C.stone, 9, 4, 16, 3); r(C.stoneD, 12, 7, 10, 2); r(C.mossL, 9, 15, 3, 2); r(C.mossL, 22, 12, 3, 2); r(C.moss, 13, 8, 8, 1); }, 'RUINS');
+  SPR.signNeon = sign(r => { r('#ff2fd0', 9, 5, 16, 2); r('#ff2fd0', 9, 14, 16, 2); r('#ff2fd0', 9, 7, 2, 7); r('#ff2fd0', 23, 7, 2, 7); r('#22e0e8', 13, 9, 8, 3); r('#22e0e8', 15, 8, 4, 5); }, 'NEON');
   // ---- market street furniture
   SPR.stall = mk(40, 34, r => {
     r(C.earthD, 3, 10, 3, 24); r(C.earthD, 34, 10, 3, 24);

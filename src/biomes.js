@@ -69,6 +69,28 @@ BIOMES.tram = {
   scenery: ['homeA', 'lamp', 'homeB', 'shopSign', 'lamp', 'homeA', 'fenceC', 'homeB', 'lamp', 'tower'],
 };
 
+// the two new destinations (the 3D build's SUNSET COAST and MOSSY RUINS; the 2D game just gets a palette for each so the shared track works; the Neon District branch uses BIOMES.neon)
+BIOMES.coast = {
+  name: 'SUNSET COAST', skyline: 'city', props: 'city', density: 0.12, margin: 0.4,
+  sky: ['#4a5c9a', '#b8687e', '#f0946a', '#ffc780'],
+  ground: ['#c9a979', '#d3b384'],
+  road: ['#9a8c80', '#8f8176'],
+  curb: ['#efe0b8', '#e3d0a0'],
+  line: '#fff1d0',
+  layers: ['#7a4a6a', '#c26a5a', '#9a5a60'], detail: 'dirt',
+  scenery: ['homeA', 'fenceC', 'lamp', 'homeB', 'fenceC', 'lamp', 'bench', 'fenceC', 'homeA', 'lamp'],
+};
+BIOMES.ruins = {
+  name: 'MOSSY RUINS', skyline: 'forest', props: 'forest', density: 0.12, margin: 0.3, deep: true,
+  sky: ['#0b1f1c', '#1b4236', '#3f7a5c', '#9fd6a4'],
+  ground: ['#2f4f2f', '#2a472b'],
+  road: ['#4b5a48', '#44523f'],
+  curb: ['#7f8a76', '#747f6c'],
+  line: '#7a8f6a',
+  layers: ['#173a30', '#1d4a3a', '#10302a'], detail: 'dirt',
+  scenery: ['rock', 'conifer', 'fenceW', 'rock', 'broad', 'bush', 'rock', 'conifer', 'fenceW', 'bush'],
+};
+
 const _rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 function lerpHex(a, b, t) {
   if (t <= 0) return a;

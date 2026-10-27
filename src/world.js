@@ -21,24 +21,30 @@ class World {
   constructor(track) { this.track = track; this.reset(); }
 
   reset() {
-    this.pieces = []; this.items = []; this.cursor = {}; this.lastPat = {}; this.seqIdx = 0; this.uid = 0; this.ver = (this.ver || 0) + 1;   // ver only ever increases; it changes whenever bandsAt() results could change (pieces added/dropped, a route chosen)
+    this.pieces = []; this.items = []; this.cursor = {}; this.lastPat = {}; this.seqIdx = 0; this.seqCount = 0; this.picked = {}; this.pickLap = {}; this.pickLast = {}; this.uid = 0; this.ver = (this.ver || 0) + 1;   // ver only ever increases; it changes whenever bandsAt() results could change (pieces added/dropped, a route chosen)
     this.baseBiome = this.track.base || this.track.segments[this.track.sequence[0].seg].biome;
     this.extend(0);
   }
 
-  nextSpec() {
+  // The piece sequence repeats from `loopFrom`. A `{ pick: 'A' }` entry is a fork slot: it takes one of the pairs of TRACK.picks.A, a different one on each lap (never the same twice in a row).
+  // `this.seed` 0 (the default, and what the tests use) is the canonical order: the first lap takes the first pair (forest / market), later laps are seeded picks; any other seed (a real run:
+  // see Game.runSeed) varies the order from the very first fork. The choice is a pure function of (seed, slot, lap), resolved once and kept, so peekSpec and nextSpec always agree.
+  specAt(i) {
     const T = this.track, n = T.sequence.length;
-    let i = this.seqIdx++;
     if (i >= n) i = T.loopFrom + ((i - n) % (n - T.loopFrom));
-    return T.sequence[i];
+    const sp = T.sequence[i];
+    if (!sp.pick) return sp;
+    const key = this.seqCount;                                          // the absolute index of the piece being resolved
+    if (this.picked[key]) return this.picked[key];
+    const opts = T.picks[sp.pick], lap = this.pickLap[sp.pick] || 0, seed = this.seed || 0, h = hashStr(sp.pick);
+    let k = lap === 0 && !seed ? 0 : Math.floor(rnd(seed * 31 + lap, h) * opts.length);
+    const prev = this.pickLast[sp.pick];
+    if (prev !== undefined && opts.length > 1 && k === prev) k = (k + 1 + Math.floor(rnd(seed * 17 + lap, h + 1) * (opts.length - 1))) % opts.length;
+    this.pickLap[sp.pick] = lap + 1; this.pickLast[sp.pick] = k;
+    return (this.picked[key] = { fork: opts[k] });
   }
-
-  // the piece after the one being built (the sequence loops), without consuming it
-  peekSpec() {
-    const T = this.track, n = T.sequence.length; let i = this.seqIdx;
-    if (i >= n) i = T.loopFrom + ((i - n) % (n - T.loopFrom));
-    return T.sequence[i];
-  }
+  nextSpec() { this.seqCount = this.seqIdx; const sp = this.specAt(this.seqIdx); this.seqIdx++; return sp; }
+  peekSpec() { this.seqCount = this.seqIdx; return this.specAt(this.seqIdx); }
 
   extend(z) {
     for (;;) {

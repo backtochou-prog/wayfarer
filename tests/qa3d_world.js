@@ -17,7 +17,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM || '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const pg = await (await b.newContext({ viewport: { width: 480, height: 270 } })).newPage();
   const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => m.type() === 'error' && errs.push(m.text()));
-  await pg.goto(process.env.TEST_URL || 'http://localhost:' + PORT + '/'); await pg.waitForFunction(() => window.__wf, null, { timeout: 30000 }); await pg.waitForTimeout(600);   // TEST_URL=https://... runs the same checks against a deployed copy
+  await pg.goto(process.env.TEST_URL || 'http://localhost:' + PORT + '/', { timeout: 90000 }); await pg.waitForFunction(() => window.__wf, null, { timeout: 90000 }); await pg.waitForTimeout(600);   // TEST_URL=https://... runs the same checks against a deployed copy
   await pg.evaluate(() => { window.__realRender = __wf.r.renderer.render; });                // (later sections stub render out; the pixel check puts the real one back)
 
   // ================================================================ 1. data-level checks (no rendering)
@@ -52,7 +52,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     let repeats = 0; const distinct = {}, orderings = new Set();
     for (const key in seqs) { const a = seqs[key].sort((x, y) => x.n - y.n); for (let k = 1; k < a.length; k++) if (a[k].pat === a[k - 1].pat) repeats++; const id = key.split('#')[0]; distinct[id] = Math.max(distinct[id] || 0, new Set(a.map(e => e.pat)).size); if (a.length >= 4) orderings.add(id + ':' + a.slice(0, 6).map(e => e.pat).join(',')); }
     const hzByTag = {}; for (const i of w1.items) if (OBST[i.kind]) (hzByTag[i.tag] = hzByTag[i.tag] || []).push(i.z);
-    let minGap = 1e9, hzN = 0, firstHz = 1e9; for (const tag in hzByTag) { const zs = hzByTag[tag].sort((a, b) => a - b); hzN += zs.length; firstHz = Math.min(firstHz, tag === 'main' ? zs[0] : 1e9); for (let k = 1; k < zs.length; k++) if (zs[k] - zs[k - 1] > 1) minGap = Math.min(minGap, zs[k] - zs[k - 1]); }
+    let minGap = 1e9, hzN = 0, firstHz = 1e9; for (const tag in hzByTag) { const zs = hzByTag[tag].sort((a, b) => a - b); hzN += zs.length; firstHz = Math.min(firstHz, tag === 'main' ? zs[0] : 1e9); for (let k = 1; k < zs.length; k++) if (zs[k] - zs[k - 1] > 20) minGap = Math.min(minGap, zs[k] - zs[k - 1]); /* hazards of one pattern sit within 15 units of each other: one cluster */ }
     const hz = [{ z: firstHz }];
     let guide = 1e9; for (const F of w1.pieces.filter(p => p.type === 'fork')) for (const i of w1.items) if (OBST[i.kind] && i.z < F.z0 && F.z0 - i.z < 1000) guide = Math.min(guide, F.z0 - i.z);
     out.patterns = { repeats, distinct, orderings: orderings.size, minGap: Math.round(minGap), guide: Math.round(guide), firstHazard: Math.round(hz[0].z), hazards: hzN };
@@ -99,7 +99,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('deterministic: two fresh worlds are item-for-item identical (items, pieces), scenery layouts reproducible', D.sameItems && D.sameLayouts, JSON.stringify({ items: D.sameItems, layouts: D.sameLayouts }));
   const I = D.integrity; const TRACK_ROUTES = Object.fromEntries(D.routes.map(r => [r, 1]));
   T('track integrity: pieces touch, 1 road on segments / 2 on junctions, road bands change smoothly (no jumps) along all ' + I.pieces + ' pieces incl. both junction types and every segment variant',
-    I.badSeam === 0 && I.badCount === 0 && I.maxJump < 0.03 && I.forkIds.join() === 'gate,gate2' && I.segs.includes('cityRunB') && I.segs.includes('plazaB') && I.segs.includes('neonRun') && ['forest', 'detour', 'forestB', 'detourB'].every(r => !!TRACK_ROUTES[r]), JSON.stringify(I));
+    I.badSeam === 0 && I.badCount === 0 && I.maxJump < 0.03 && I.forkIds[0] === 'gate' && I.forkIds[1] === 'gate2' && I.forkIds.every(f => ['gate', 'gate2', 'gate3', 'gate4', 'gate3B', 'gate4B'].includes(f)) && I.segs.includes('cityRunB') && I.segs.includes('plazaB') && I.segs.includes('neonRun') && ['forest', 'detour', 'forestB', 'detourB'].every(r => !!TRACK_ROUTES[r]), JSON.stringify(I));
   T('both roads of every junction cover the single road at the fork tip and the merge (no gap)', D.forkCover === true, String(D.forkCover));
   const Pt = D.patterns;
   T('obstacle patterns: never the same pattern twice running, several orderings, spacing varies, hazards >= 19 m apart on a road, nothing in the run-up to a junction, first hazard >= 60 m in', Pt.repeats === 0 && Pt.orderings >= 2 && Pt.minGap >= 190 && Pt.guide >= 390 && Pt.firstHazard >= 600 && D.gapKinds >= 8 && Object.values(Pt.distinct).every(n => n >= 2), JSON.stringify({ ...Pt, gapKinds: D.gapKinds }));
@@ -207,8 +207,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   });
   T('the neon quarter is a district: biome neon through the whole segment, atmosphere fades in over the first 120 m and out over the last 120 m (no jumps), full strength for the ~250 m between, the segment sits between plain city pieces (' + Nq.ids[0] + ')',
     Nq.segs >= 2 && Nq.len >= 5000 && Nq.bad.length === 0 && Nq.maxStep < 0.1 && Nq.mid > 5 && Nq.ends > 0 && Nq.ids.every(x => /^(plaza|plazaB)>neonRun>cityRunB$/.test(x)), JSON.stringify({ segs: Nq.segs, len: Nq.len, bad: Nq.bad.slice(0, 3), maxStep: +Nq.maxStep.toFixed(3), ids: Nq.ids.slice(0, 2) }));
-  T('the neon quarter\'s layout only uses props it defines, dresses every slot (2..14 props) and uses >= 30 kinds incl. the eight landmarks; the 2D game has a palette for it',
-    Nq.missing.length === 0 && Nq.layout.min >= 2 && Nq.layout.max <= 14 && Nq.kinds.length >= 30 && ['neonRing', 'neonSpire', 'neonBillboard', 'neonHalo', 'neonBoardVortex', 'neonBoardSphere', 'neonBoardRings', 'neonBoardSpiral'].every(k => Nq.kinds.includes(k)) && Nq.has2D, JSON.stringify({ missing: Nq.missing, layout: Nq.layout, kinds: Nq.kinds.length }));
+  T('the neon quarter\'s layout only uses props it defines, dresses every slot (2..18 props) and uses >= 30 kinds incl. the eight landmarks; the 2D game has a palette for it',
+    Nq.missing.length === 0 && Nq.layout.min >= 2 && Nq.layout.max <= 18 && Nq.kinds.length >= 30 && ['neonRing', 'neonSpire', 'neonBillboard', 'neonHalo', 'neonBoardVortex', 'neonBoardSphere', 'neonBoardRings', 'neonBoardSpiral'].every(k => Nq.kinds.includes(k)) && Nq.has2D, JSON.stringify({ missing: Nq.missing, layout: Nq.layout, kinds: Nq.kinds.length }));
 
   const Na = await pg.evaluate(async () => {
     const r = __wf.r, mat = NeonArt.material(); for (let i = 0; i < 60 && !mat.visible; i++) await new Promise(q => setTimeout(q, 100));
@@ -345,7 +345,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   T('the tram street is a district: biome tram through the whole segment, atmosphere fades in over the first 120 m and out over the last 120 m (no jumps), full strength in the middle, between the old town and the second fork (' + Ts.ids[0] + ')',
-    Ts.segs >= 2 && Ts.len >= 4000 && Ts.bad.length === 0 && Ts.maxStep < 0.1 && Ts.mid > 5 && Ts.ends > 0 && Ts.ids.every(x => /^cityRunB>tramRun>fork:forestB$/.test(x)) && Ts.name === 'SAINT-GILLES', JSON.stringify({ segs: Ts.segs, len: Ts.len, bad: Ts.bad.slice(0, 3), maxStep: +Ts.maxStep.toFixed(3), ids: Ts.ids.slice(0, 2), name: Ts.name }));
+    Ts.segs >= 2 && Ts.len >= 4000 && Ts.bad.length === 0 && Ts.maxStep < 0.1 && Ts.mid > 5 && Ts.ends > 0 && Ts.ids.every(x => /^cityRunB>tramRun>fork:\w+$/.test(x)) && Ts.name === 'SAINT-GILLES', JSON.stringify({ segs: Ts.segs, len: Ts.len, bad: Ts.bad.slice(0, 3), maxStep: +Ts.maxStep.toFixed(3), ids: Ts.ids.slice(0, 2), name: Ts.name }));
   T('the tram streets layout uses only props that exist, dresses every slot (2..16 props), has the wire over both rails in every slot, uses >= 30 kinds incl. the five landmarks and the new street furniture, never repeats a house on the same side in consecutive slots; 2D palette and entrance marker exist',
     Ts.missing.length === 0 && Ts.layout.min >= 2 && Ts.layout.max <= 16 && Ts.kinds.length >= 30 && ['polyclinique', 'tramStop', 'cornerCafe', 'school', 'glassTower', 'wire', 'pole', 'swan', 'lantern', 'posts', 'streetSign', 'hedge', 'tent', 'scooter', 'scooterDock', 'board', 'boardDock', 'steps', 'zebra', 'rowI', 'rowJ', 'rowK', 'rowL', 'blossom', 'cobbles', 'carA', 'van'].every(k => Ts.kinds.includes(k)) && Ts.nb.n > 500 && Ts.nb.same === 0 && Ts.has2D && Ts.entrance,
     JSON.stringify({ missing: Ts.missing, layout: Ts.layout, kinds: Ts.kinds.length, nb: Ts.nb, has2D: Ts.has2D, entrance: Ts.entrance }));

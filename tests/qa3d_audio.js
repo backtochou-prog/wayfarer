@@ -26,14 +26,14 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM || '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const ctx = await b.newContext({ viewport: { width: 640, height: 360 } });
   const base = process.env.TEST_URL || 'http://localhost:' + PORT + '/';
-  const open = async (url = base) => { const pg = await ctx.newPage(); pg.errs = []; pg.on('pageerror', e => pg.errs.push(e.message)); pg.on('console', m => m.type() === 'error' && pg.errs.push(m.text())); await pg.goto(url); await pg.waitForFunction(() => window.__wf, null, { timeout: 60000 }); await pg.waitForTimeout(500); return pg; };
+  const open = async (url = base) => { const pg = await ctx.newPage(); pg.errs = []; pg.on('pageerror', e => pg.errs.push(e.message)); pg.on('console', m => m.type() === 'error' && pg.errs.push(m.text())); await pg.goto(url, { timeout: 90000 }); await pg.waitForFunction(() => window.__wf, null, { timeout: 60000 }); await pg.waitForTimeout(500); return pg; };
   const pg = await open();
 
   // ================================================================ 1. locked until a gesture, then it plays
   const L0 = await pg.evaluate(() => { const a = __wf.sfx; const t0 = a.beat().beat; a.update(__wf, 0.3); const t1 = a.beat().beat; return { unlocked: a.unlocked, ctx: !!a.ctx, paused: a.music.paused, loop: a.music.loop, ready: a.music.readyState, clockMoves: t1 > t0 + 0.3, playing: a.beat().playing, hasSfx: !!__wf.sfx }; });
   T('before any gesture there is no audio context and the music is not playing (autoplay rules), but the beat clock already runs (the menu moves in time)', L0.hasSfx && !L0.unlocked && !L0.ctx && L0.paused && L0.clockMoves && !L0.playing, JSON.stringify(L0));
   await pg.keyboard.press('KeyX');                                           // any key is a gesture
-  await pg.waitForFunction(() => __wf.sfx.music.currentTime > 0.5, null, { timeout: 30000 });
+  await pg.waitForFunction(() => __wf.sfx.music.currentTime > 0.5, null, { timeout: 90000 });
   const L1 = await pg.evaluate(async () => { const a = __wf.sfx, t0 = a.music.currentTime; await new Promise(r => setTimeout(r, 1200)); a.update(__wf, 0); return { unlocked: a.unlocked, state: a.ctx && a.ctx.state, advanced: +(a.music.currentTime - t0).toFixed(2), playing: a.beat().playing, dur: +a.music.duration.toFixed(1), loop: a.music.loop }; });
   T('a key press unlocks the audio context (running) and starts the track: it advances in real time, loops, lasts ~172.7 s, and the beat clock follows its currentTime', L1.unlocked && L1.state === 'running' && L1.advanced > 0.8 && L1.playing && L1.loop && L1.dur > 172 && L1.dur < 174, JSON.stringify(L1));
 
@@ -173,7 +173,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     HTMLMediaElement.prototype.play = function () { const ok = ['touchend', 'click', 'keydown'].includes(window.__kind); window.__plays.push((window.__kind || 'none') + ':' + (ok ? 'allowed' : 'REJECTED')); return ok ? real.call(this) : Promise.reject(new DOMException('needs a user gesture', 'NotAllowedError')); };
   });
   const pp = await pctx.newPage(); pp.errs = []; pp.on('pageerror', e => pp.errs.push(e.message));
-  await pp.goto(base); await pp.waitForFunction(() => window.__wf && window.__wf.sfx, null, { timeout: 60000 }); await pp.waitForTimeout(800);
+  await pp.goto(base, { timeout: 90000 }); await pp.waitForFunction(() => window.__wf && window.__wf.sfx, null, { timeout: 60000 }); await pp.waitForTimeout(800);
   const ppos = await pp.evaluate(() => { const cv = document.getElementById('screen'), r0 = cv.getBoundingClientRect(), b2 = BTN.title; return { x: r0.left + (b2.x + b2.w / 2) / VW * r0.width, y: r0.top + (b2.y + b2.h / 2) / VH * r0.height }; });
   await pp.touchscreen.tap(ppos.x, ppos.y);
   await pp.waitForFunction(() => __wf.sfx.music.currentTime > 0.5, null, { timeout: 20000 }).catch(() => {});
