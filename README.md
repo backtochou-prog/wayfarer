@@ -41,6 +41,10 @@ A third set of 17 pictures (`src3d/neon_assets3.js`, one alpha atlas) adds 17 mo
 
 ![board](docs/screenshots/board.jpg)
 
+**The beds round the trees are mixed** (`src3d/flower_assets.js`, `src3d/tree_sprite.js`): your own flower disc is still there, but drawn at **0.62 of its old size** and with fewer upright flowers (`TreeSprite.BED_K`), and mixed with flowers cut from your two photos of Brussels flowers: a ring of small ground patches (red geraniums, yellow marigolds, white and pink lobelia, a red and green mix) lying round it, and upright cornflower heads (pink, blue, lilac, white) standing in it, on a second textured panel set with its own material (`FlowerArt`, one 512 x 256 WebP, 8 cells, only cropped, scaled and feathered round). All six kinds of tree get it, each with a few more patches and heads the bigger it is. The tree atlas itself is untouched.
+
+![mixed tree beds](docs/screenshots/tree-beds.jpg)
+
 **Neon Quarter, fourth set of your pictures** (`src3d/neon_assets4.js`, made by `tools/make_neon_assets4.py`: one WebP atlas of 1024 x 1844 cut from six of your pictures; the pictures are only cropped and scaled, never recoloured or redrawn; the lamp and the vault are cut out along their outlines). As you asked, **the outlined ones are DOORS**: the two teal tile rooms, the blue backlit panel and the teal tile wall are the doors of the shops and buildings of the quarter (22 of them: every tower, block, shop and picture block gets one, as an extra textured panel next to the prop's own; `ENV3D.neon.doors`) and **the rest are LAMPS**: six street lamps along the kerb, each a picture lit on a post (the filigree lamp, the hanging glass drops, the pierced screen as a lantern, the chandelier, the pink panel as a pillar, the lit restaurant front as a light box), in a new stretch of lamps and scattered through the others. Two new stretch characters in all (lamps, and doors), ten now.
 
 **The hotel** (`neonHotel`, a landmark): one of the quarter's towers, a blue glass door at its foot, over the entrance **the vault**: your photo with the rose, cut along the red line you drew (the burlap arch and everything under it, the rose, the leaves and the stones; the wall above the line and the red marker removed: an earlier cut kept only the burlap and removed the inside, the wrong way round), and over it a neon HOTEL sign (drawn in code).
@@ -123,7 +127,7 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 index.html (3D game), 2d.html (classic 2D), 3d.html (redirect to index.html), style.css
 src/audio.js    sound: the music track + beat clock, synthesised effects, mute
 assets/         music.mp3 (the track)
-src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market/neon/tram (+ neon_art / neon_assets, tram_art, blossom_sprite + blossom_assets, board_art + board_assets, neon_shops), runner_sprite + avatar_assets (the artwork avatar), tree_sprite + tree_assets (the artwork trees), ui_assets (the menu-panel artwork), runner3d (the 3D model), items3d, fx3d, signs3d, renderer3d, main3d
+src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market/neon/tram (+ neon_art / neon_assets, tram_art, blossom_sprite + blossom_assets, board_art + board_assets, neon_shops, flower_assets), runner_sprite + avatar_assets (the artwork avatar), tree_sprite + tree_assets (the artwork trees), ui_assets (the menu-panel artwork), runner3d (the 3D model), items3d, fx3d, signs3d, renderer3d, main3d
 vendor/         three.min.js (Three.js r186)
 tools/preview3d.html  dev page that renders one 3D module in isolation
 tests/qa3d_coins.js   regression test: coin pickup (coins vanish at once, count once, can't be re-collected, pool reuse, both branches, restart)

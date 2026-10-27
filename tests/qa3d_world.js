@@ -244,6 +244,18 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('the third set of materials (17 pictures in one alpha atlas, 1024 px wide) loads and is on 17 new neon props sharing one material; every one of them is placed by the street layout',
     M3.loaded && M3.cells === 17 && M3.mats === 2 && Object.entries(M3.props).every(([n, c]) => c === (M3.doors[n] ? 2 : 1)) && M3.unused.length === 0, JSON.stringify(M3));
 
+  // ================================================================ 3b4. the beds of the trees: the user's disc made smaller and mixed with flowers from two photos
+  const Fl = await pg.evaluate(async () => {
+    const out = {}, m = FlowerArt.material(); for (let i = 0; i < 80 && !m.visible; i++) await new Promise(q => setTimeout(q, 100));
+    out.loaded = m.visible && m.map.image.naturalWidth === FLOWER_ASSETS.w && m.map.image.naturalHeight === FLOWER_ASSETS.h; out.webp = FLOWER_ASSETS.src.startsWith('data:image/webp;base64,');
+    const cv = document.createElement('canvas'); cv.width = FLOWER_ASSETS.w; cv.height = FLOWER_ASSETS.h; const x = cv.getContext('2d'); x.drawImage(m.map.image, 0, 0); const px = (cx, cy) => x.getImageData(cx * 128 + 64, cy * 128 + 64, 1, 1).data, cor = (cx, cy) => x.getImageData(cx * 128 + 2, cy * 128 + 2, 1, 1).data[3];
+    out.cells = [0, 1, 2, 3, 4, 5, 6, 7].map(c => [px(c % 4, Math.floor(c / 4))[3], cor(c % 4, Math.floor(c / 4))]);      // opaque in the middle, transparent at the corner of every cell
+    out.trees = {}; for (const n of ['tree', 'pine', 'oak', 'giantOak']) { const f = ENV3D.city.props[n] || ENV3D.forest.props[n], pr = f(), g = pr.sprite, e = pr.extra && pr.extra[0]; out.trees[n] = { bed: +g.userData.bedRadius.toFixed(2), old: +(((n === 'tree' ? 4.6 : n === 'pine' ? 5.5 : n === 'oak' ? 6 : 12) * 0.23 + 0.4)).toFixed(2), patches: e && e.sprite.userData.patches, heads: e && e.sprite.userData.heads, mat: !!e && e.material() === m, verts: e && e.sprite.attributes.position.count }; }
+    return out;
+  });
+  T('the beds of the trees: the user flower disc is 0.62 of its old radius (and has fewer upright flowers), mixed with ground patches (geraniums, marigolds, lobelia) and cornflower heads cut from two of their photos (a 512 x 256 WebP, 8 cells, opaque in the middle and clear at the corners), on a second shared material',
+    Fl.loaded && Fl.webp && Fl.cells.every(c => c[0] > 200 && c[1] < 10) && Object.values(Fl.trees).every(t => Math.abs(t.bed / t.old - 0.62) < 0.02 && t.patches >= 5 && t.heads >= 4 && t.mat && t.verts < 400), JSON.stringify({ loaded: Fl.loaded, cells: Fl.cells, trees: Fl.trees }));
+
   // ================================================================ 3b3. the fourth set of the user's materials: doors, lamps and the hotel with its vault
   const N4 = await pg.evaluate(async () => {
     const out = {}, mat = NeonArt.material4(); for (let i = 0; i < 80 && !mat.visible; i++) await new Promise(q => setTimeout(q, 100));
@@ -388,8 +400,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.mats = out.mats.size; out.pools = names.map(n => r.props[n].length);
     return out;
   });
-  T('all six tree kinds are the artwork (two crossed planes + a flat round bed + a ring of upright flowers, one shared material), the image loads, heights differ (tree 4.6 .. giant oak 12 m) and the beds grow with the tree',
-    Tr.loaded && ['tree', 'pine', 'pineTall', 'oak', 'birch', 'giantOak'].every(n => Tr.kinds[n]) && Tr.mats === 1 && ['tree', 'pine', 'pineTall', 'oak', 'birch', 'giantOak'].every(n => Tr.kinds[n + 'V'] === 12 + 8 * Tr.kinds[n + 'F'] && Tr.kinds[n + 'F'] >= 8 && Tr.kinds[n + 'F'] <= 30 && Tr.kinds[n + 'bed'] && Tr.kinds[n + 'R'] >= 1.4) && Tr.kinds.giantOakR > Tr.kinds.treeR && Tr.kinds.giantOakF > Tr.kinds.treeF && Tr.kinds.treeH > 4 && Tr.kinds.giantOakH > 11 && Tr.kinds.giantOakH > Tr.kinds.pineTallH && Tr.kinds.pineTallH > Tr.kinds.pineH, JSON.stringify(Tr));
+  T('all six tree kinds are the artwork (two crossed planes + a flat round bed + a ring of upright flowers, one shared material), the image loads, heights differ (tree 4.6 .. giant oak 12 m) and the beds grow with the tree (the user disc is now 0.62 of its old size, mixed with other flowers)',
+    Tr.loaded && ['tree', 'pine', 'pineTall', 'oak', 'birch', 'giantOak'].every(n => Tr.kinds[n]) && Tr.mats === 1 && ['tree', 'pine', 'pineTall', 'oak', 'birch', 'giantOak'].every(n => Tr.kinds[n + 'V'] === 12 + 8 * Tr.kinds[n + 'F'] && Tr.kinds[n + 'F'] >= 4 && Tr.kinds[n + 'F'] <= 30 && Tr.kinds[n + 'bed'] && Tr.kinds[n + 'R'] >= 0.85 && Tr.kinds[n + 'R'] <= 2.1) && Tr.kinds.giantOakR > Tr.kinds.treeR && Tr.kinds.giantOakF > Tr.kinds.treeF && Tr.kinds.treeH > 4 && Tr.kinds.giantOakH > 11 && Tr.kinds.giantOakH > Tr.kinds.pineTallH && Tr.kinds.pineTallH > Tr.kinds.pineH, JSON.stringify(Tr));
 
   T('no JS errors during the whole session', errs.length === 0, errs.slice(0, 2).join('|'));
   console.log('\n' + res.filter(Boolean).length + '/' + res.length + ' passed');
