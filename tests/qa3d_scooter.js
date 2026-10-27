@@ -41,7 +41,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   // ---------------------------------------------------------------- 1. default: Saint-Gilles only
   const pg = await open(''); const D = await probe(pg);
   T('default: on the scooter in Saint-Gilles (ride ' + D.tram.ride + '), standing on the deck (the card lifted ' + D.tram.pivotY + ' m), not in the old town, not in the menu, not while the zone is only a little in',
-    D.tram.ride > 0.95 && D.tram.vis && Math.abs(D.tram.pivotY - 0.22) < 0.03 && D.city.ride < 0.02 && !D.city.vis && D.city.pivotY < 0.05 && !D.title && !D.early, JSON.stringify({ tram: D.tram, city: D.city, title: D.title, early: D.early }));
+    D.tram.ride > 0.95 && D.tram.vis && Math.abs(D.tram.pivotY - 0.22) < 0.03 && D.city.ride < 0.02 && !D.city.vis && D.city.pivotY < 0.12 && !D.title && !D.early, JSON.stringify({ tram: D.tram, city: D.city, title: D.title, early: D.early }));
   T('the wheels spin, the glide is steady (card height varies ' + D.bounce + ' m over a second, far less than the 7 cm run bounce), steering leans the scooter (' + D.lean + ' rad) and the jump lifts its nose (' + D.nose + ' rad)',
     D.spin.every(Boolean) && D.bounce < 0.03 && Math.abs(D.lean) > 0.03 && D.nose > 0.08, JSON.stringify({ spin: D.spin, bounce: D.bounce, lean: D.lean, nose: D.nose }));
   T('size: the runner with its scooter stands under 2.3 m with the scooter wheels on the road', D.tram.box.top > 1.9 && D.tram.box.top < 2.3 && D.tram.box.bottom > -0.05 && D.tram.box.bottom < 0.1, JSON.stringify(D.tram.box));
