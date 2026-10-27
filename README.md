@@ -147,7 +147,7 @@ tools/preview3d.html  dev page that renders one 3D module in isolation
 tests/qa3d_coins.js   regression test: coin pickup (coins vanish at once, count once, can't be re-collected, pool reuse, both branches, restart)
 tests/qa3d_world.js   regression test: world variety, track integrity, pools, six junctions played
 tests/qa3d_audio.js   regression test: sound and music (locked until a gesture, the track and its beat grid checked against the decoded mp3, every event's effect, offline-rendered effects, mute, animation on the beat)
-tests/qa3d_dest.js     regression test: the five destinations (routes, order by seed, forks, signs, identity patterns at top speed, pools over repeated route cycles)
+tests/qa3d_dest.js     regression test: the five destinations (routes, order by seed, forks, signs, identity patterns at top speed, a whole run through the coast, ruins and neon branches with road and camera checked, pools over repeated route cycles)
 tests/qa3d_scooter.js  regression test: the optional scooter of Saint-Gilles (indicator, E / click / HOP OFF, ends with the zone, glide, wheels, lean, size, gameplay untouched, ?scooter=1/0)
 tests/qa3d_controls.js regression test: keyboard bindings (arrows, WASD, ZQSD / AZERTY), the neon-ring touch buttons and the menu key text
 tests/qa3d_ui.js      regression test: both menu-panel artworks load, are drawn, controls text legible (with a fallback to the drawn panels)

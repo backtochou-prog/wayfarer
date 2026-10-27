@@ -178,6 +178,44 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('every fork type, both choices (12 runs), played through at the top speed by a hazard-avoiding bot: it survives past the merge, collects coins on the branch, takes the chosen route, nothing runs backwards, nothing is dropped from any pool (peak ' + Math.round(Pl.peak * 100) + ' %)',
     Pl.runs.length === 12 && Pl.runs.every(x => x.alive && x.reached && x.coins > 5 && x.route === x.want && x.back === 0) && Pl.dropped === 0 && Pl.peak <= 0.85, JSON.stringify(Pl.runs.map(x => [x.id, x.want, x.alive, x.coins, x.routes])));
 
+  // ---------------------------------------------------------------- 5b. a whole run through the new destinations (real play, camera and road checked every few frames)
+  const Run = await pg.evaluate(() => {
+    const g = __wf, r = g.r, orig = Game.runSeed;
+    // a seed whose first six forks offer the coast, the ruins and the neon district; at each fork the run takes a new destination if one is offered (else alternates left / right)
+    let seed = -1, want6 = [], wants = [];
+    for (let sd = 1; sd < 200 && seed < 0; sd++) {
+      const w = new World(TRACK); w.seed = sd; w.reset(); w.extend(90000); const fk = w.pieces.filter(p => p.type === 'fork').slice(0, 6), got = new Set(), ws = [], bs = [];
+      fk.forEach((F, k) => { const L = TRACK.segments[F.fork.left.route].biome, R2 = TRACK.segments[F.fork.right.route].biome, fresh = b => ['coast', 'ruins', 'neon'].includes(b) && !got.has(b); const side = fresh(L) ? 'left' : fresh(R2) ? 'right' : (k % 2 ? 'right' : 'left'); got.add(side === 'left' ? L : R2); ws.push(side); bs.push(side === 'left' ? L : R2); });
+      if (['coast', 'ruins', 'neon'].every(b => got.has(b))) { seed = sd; want6 = bs; wants = ws; }
+    }
+    Game.runSeed = () => seed; g.start(); g.world.items = []; g.start();
+    const out = { seed, want6, picks: [], biomes: [], offRoad: 0, otherRoad: 0, backwards: 0, maxEdge: 0, maxCamDx: 0, maxCamDy: 0, deaths: 0 };
+    const key = c => g.onKey({ code: c, key: c === 'Space' ? ' ' : c, repeat: false, preventDefault() {} }, true);
+    let zP = 0, cP = 0, scP = 0, camP = null, nFork = 0, want = null, lastUid = -1, f = 0; const seenUid = new Set();
+    while (out.picks.length < 6 && f < 60 * 60 * 10 && g.state === 'play') {
+      const p = g.p, w = g.world, F = w.openFork();
+      if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = wants[nFork++]; }
+      g.keys.left = g.keys.right = false; if (F && want && p.z > F.z0 - 500 && p.z < F.z0 - 400) g.keys[want] = true;
+      let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * 0.5) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
+      if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && p.slide <= 0) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
+      g.advance(1 / 60); f++;
+      for (const P of w.pieces) if (P.type === 'fork' && P.choice && !seenUid.has(P.uid)) { seenUid.add(P.uid); out.picks.push(P.choice); out.biomes.push(TRACK.segments[P.fork[P.choice].route].biome); }
+      if (g.p.z < zP) out.backwards++; if (g.coins < cP) out.backwards++; if (g.score() < scP) out.backwards++; zP = g.p.z; cP = g.coins; scP = g.score();
+      const bs = w.bandsAt(g.p.z), ch = bs.find(q => q.chosen) || (bs.length === 1 ? bs[0] : null);
+      if (ch && (g.p.x < ch.lo - 0.02 || g.p.x > ch.hi + 0.02)) out.offRoad++;
+      if (bs.length === 2 && ch && bs.some(q => !q.chosen) && g.p.z > 0) { const o = bs.find(q => !q.chosen); if (o.hi < ch.lo - 0.1 || o.lo > ch.hi + 0.1) { if (g.p.x > o.lo && g.p.x < o.hi) out.otherRoad++; } }
+      if (f % 3 === 0) {
+        r.draw(g); const E = r.road.edge; for (let i = 0; i < r.road.N - 1; i++) { out.maxEdge = Math.max(out.maxEdge, Math.abs(E.loA[i + 1] - E.loA[i]), Math.abs(E.hiB[i + 1] - E.hiB[i])); if (E.two[i] && E.two[i + 1]) out.maxEdge = Math.max(out.maxEdge, Math.abs(E.hiA[i + 1] - E.hiA[i]), Math.abs(E.loB[i + 1] - E.loB[i])); }
+        const cp = { x: r.look.x, y: r.camera.position.y }; if (camP) { out.maxCamDx = Math.max(out.maxCamDx, Math.abs(cp.x - camP.x)); out.maxCamDy = Math.max(out.maxCamDy, Math.abs(cp.y - camP.y)); } camP = cp;
+      }
+    }
+    Game.runSeed = orig; out.state = g.state; out.dist = Math.round(g.p.z / 10); out.coins = g.coins; out.dropped = r.dropped + r.items.dropped; return out;
+  });
+  T('a whole run through the new destinations (seed ' + Run.seed + ': ' + Run.biomes.join(' > ') + '): six junctions, at each one a new destination taken when offered, every choice reaches the intended road, still running at ' + Run.dist + ' m; the runner never leaves its road nor enters the other one; distance, score and coins never go back',
+    Run.seed > 0 && Run.state === 'play' && Run.picks.length === 6 && Run.biomes.join() === Run.want6.join() && ['coast', 'ruins', 'neon'].every(b => Run.biomes.includes(b)) && Run.offRoad === 0 && Run.otherRoad === 0 && Run.backwards === 0 && Run.coins > 30, JSON.stringify({ seed: Run.seed, biomes: Run.biomes, want: Run.want6, state: Run.state, dist: Run.dist, off: Run.offRoad, other: Run.otherRoad, back: Run.backwards, coins: Run.coins }));
+  T('and its road and camera are continuous at every junction and merge (max edge step ' + Run.maxEdge.toFixed(2) + ' m between sections, look-at step ' + Run.maxCamDx.toFixed(2) + ' m, camera height step ' + Run.maxCamDy.toFixed(2) + ' m per 3 frames), nothing dropped from a pool',
+    Run.maxEdge < 1.6 && Run.maxCamDx < 1.0 && Run.maxCamDy < 0.3 && Run.dropped === 0, JSON.stringify({ edge: +Run.maxEdge.toFixed(2), dx: +Run.maxCamDx.toFixed(2), dy: +Run.maxCamDy.toFixed(2), dropped: Run.dropped }));
+
   // ---------------------------------------------------------------- 6. pools bounded over repeated route cycles (all five destinations, several seeds)
   const Pool = await pg.evaluate(() => {
     const g = __wf, r = g.r; r.renderer.render = () => {}; const out = { dropped: 0, peak: 0, peakName: '', drift: 0, frames: 0, seen: new Set(), laps: 0 }; let geo0 = -1, kids0 = r.scene.children.length, n = 0;
