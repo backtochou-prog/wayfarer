@@ -27,9 +27,9 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
         g.start(); g.world.items = []; g.world.reset(); g.start(); g.world.extend(9000); for (let n = 9000; !g.world.pieces.find(p => p.type === 'seg' && p.id === 'tramRun') && n < 90000; n += 4000) g.world.extend(n);
         const P = g.world.pieces.find(p => p.type === 'seg' && p.id === 'tramRun'); g.state = 'play'; g.world.items = []; let slot = null, seen = 0;
         if (!window.__L0) window.__L0 = ENV3D.tram.layout; ENV3D.tram.layout = window.__L0; for (const m of Object.values(r.layouts)) m.clear();      // (the real layout, unless 'clean')
-        for (let i = Math.ceil((P.z0 + 1800) * 0.1 / 12); i < (P.z1 - 1500) * 0.1 / 12; i++) if (want !== 'clean' && ENV3D.tram.layout(i, rnd).some(q => q.prop === want) && seen++ >= nth) { slot = i; break; }
-        if (want === 'clean') {                                                                           // a street with exactly one scooter, 20 slots into the zone, so nothing else competes for the ring
-          slot = Math.ceil((P.z0 + 1800) * 0.1 / 12) + 6; const S = slot; ENV3D.tram.layout = (i, rn) => { const L = window.__L0(i, rn).filter(q => !/^scooter/.test(q.prop)); if (i === S) L.push({ prop: 'scooter', x: 4.3, dist: 6 }); return L; };
+        for (let i = Math.ceil((P.z0 + 1800) * 0.1 / 12); i < (P.z1 - 1500) * 0.1 / 12; i++) if (!/^clean/.test(want) && ENV3D.tram.layout(i, rnd).some(q => q.prop === want) && seen++ >= nth) { slot = i; break; }
+        if (/^clean/.test(want)) {                                                                        // a street with exactly one scooter (or board), 20 slots into the zone, so nothing else competes for the ring
+          slot = Math.ceil((P.z0 + 1800) * 0.1 / 12) + 6; const S = slot, prop = want === 'cleanboard' ? 'board' : 'scooter'; ENV3D.tram.layout = (i, rn) => { const L = window.__L0(i, rn).filter(q => !/^(scooter|board)/.test(q.prop)); if (i === S) L.push({ prop, x: 4.3, dist: 6 }); return L; };
         }
         if (slot === null) return null;
         g.p.z = (slot * 12 + 6 - back) / 0.1; g.p.x = 0; g.world.extend(g.p.z); g.world.items = [];
@@ -138,6 +138,34 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     r.ui.txt = t0; return out;
   });
   T('the plate says TAP on a touch device and E on a keyboard', D.tapLabel && D.keyLabel, JSON.stringify(D));
+
+  // ---------------------------------------------------------------- 2b. the electromagnetic skateboard, next to the scooter
+  const B = await pg.evaluate(async () => {
+    const g = G, r = g.r, rn = r.runner, out = {}; r.renderer.render = () => {};
+    const kinds = {}; for (let i = 0; i < 3000; i++) for (const q of ENV3D.tram.layout(i, rnd)) if (/^board/.test(q.prop)) kinds[q.prop] = (kinds[q.prop] || 0) + 1; out.kinds = kinds;
+    const mat = BoardArt.material(); for (let i = 0; i < 60 && !mat.visible; i++) await new Promise(q => setTimeout(q, 100)); out.art = { loaded: mat.visible && mat.map.image.naturalWidth === BOARD_ART.w && mat.map.image.naturalHeight === BOARD_ART.h, size: [BOARD_ART.w, BOARD_ART.h], webp: BOARD_ART.src.startsWith('data:image/webp;base64,'), alpha: mat.transparent && mat.alphaTest > 0 };
+    // parked boards are textured props (one shared material) and carry the same indicator
+    const pb = ENV3D.tram.props.board(), pd = ENV3D.tram.props.boardDock(); pd.sprite.computeBoundingBox(); out.props = { board: !!pb.sprite && pb.material() === mat && !!pb.merged, dock: pd.material() === mat && pd.sprite.attributes.position.count === 16 };
+    goto('cleanboard', 30); frames(3); out.hint = g.scooterHint && { kind: g.scooterHint.kind, dock: g.scooterHint.dock };
+    g.onKey({ code: 'KeyE', key: 'e', repeat: false, preventDefault() {} }, true); frames(70);
+    const box = () => { rn.group.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(rn.group); return { top: +bb.max.y.toFixed(2), bottom: +bb.min.y.toFixed(2) }; };
+    out.board = { riding: g.riding, vehicle: g.vehicle, boardVis: rn.board.visible, scooterVis: rn.scooter.visible, deck: +rn.pivot.position.y.toFixed(3), box: box(), rear: !!rn.board.userData.rear && rn.board.userData.rear.material === mat, ride: +rn.ride.toFixed(2) };
+    // the board hovers (bobs) and leans / lifts its nose like the scooter
+    let lo = 9, hi = -9; for (let i = 0; i < 90; i++) { frames(1); lo = Math.min(lo, rn.board.position.y); hi = Math.max(hi, rn.board.position.y); } out.bob = +(hi - lo).toFixed(3);
+    g.p.vx = 200; frames(40); out.lean = +rn.board.rotation.z.toFixed(3); g.p.vx = 0; g.p.jy = 40; g.p.vy = 100; frames(40); out.nose = +rn.board.rotation.x.toFixed(3); g.p.jy = 0; g.p.vy = 0;
+    // get off, then get on a scooter: the other vehicle
+    g.onKey({ code: 'KeyE', key: 'e', repeat: false, preventDefault() {} }, true); frames(80); out.off = !g.riding && !rn.board.visible && !rn.scooter.visible;
+    goto('clean', 30); frames(3); out.hint2 = g.scooterHint && g.scooterHint.kind; g.onKey({ code: 'KeyE', key: 'e', repeat: false, preventDefault() {} }, true); frames(70);
+    out.scooter = { vehicle: g.vehicle, boardVis: rn.board.visible, scooterVis: rn.scooter.visible };
+    g.start(); out.reset = !g.riding && g.vehicle === 'scooter';
+    return out;
+  });
+  T('the electromagnetic skateboard is the other vehicle: stations and single boards on the pavement (' + JSON.stringify(B.kinds) + ' in 3000 slots) carry the same disc (' + JSON.stringify(B.hint) + '); the user picture of its rear (' + B.art.size.join(' x ') + ' WebP) is on a shared textured material, on the parked boards and as the engine ring behind the ridden one',
+    B.kinds.board > 15 && B.kinds.boardDock > 8 && B.art.loaded && B.art.webp && B.art.alpha && B.props.board && B.props.dock && B.hint && B.hint.kind === 'board', JSON.stringify({ kinds: B.kinds, art: B.art, props: B.props, hint: B.hint }));
+  T('riding the board: the nearest one is the one you get (vehicle ' + B.board.vehicle + ', the scooter hidden), the card stands on its deck (lifted ' + B.board.deck + ' m, ' + B.board.box.top + ' m tall), the engine ring is behind it, it hovers (bobs ' + B.bob + ' m), leans (' + B.lean + ' rad) and lifts its nose (' + B.nose + ' rad)',
+    B.board.riding && B.board.vehicle === 'board' && B.board.boardVis && !B.board.scooterVis && B.board.rear && Math.abs(B.board.deck - 0.27) < 0.04 && B.board.box.top > 1.9 && B.board.box.top < 2.3 && B.bob > 0.02 && B.bob < 0.08 && Math.abs(B.lean) > 0.03 && B.nose > 0.08, JSON.stringify(B.board));
+  T('E gets off, then a scooter disc gives the scooter (the board hidden); a restart puts the runner back on foot',
+    B.off && B.hint2 === 'scooter' && B.scooter.vehicle === 'scooter' && B.scooter.scooterVis && !B.scooter.boardVis && B.reset, JSON.stringify({ off: B.off, hint2: B.hint2, scooter: B.scooter, reset: B.reset }));
 
   // ---------------------------------------------------------------- 3. it ends with the zone and with a restart; riding is drawing only
   const Z = await pg.evaluate(() => {

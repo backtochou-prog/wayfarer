@@ -96,7 +96,7 @@ class Game {
     const ahead0 = this.world.playerBand(300, 0);                                    // the atmosphere starts as the road ahead looks (the run opens in the neon quarter), not eased in from the base look
     this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0;
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
-    this.riding = false; this.scooterHint = null;                                     // on foot, no indicator
+    this.riding = false; this.vehicle = 'scooter'; this.scooterHint = null;                                     // on foot, no indicator
     this.carryC = 0; this.lean = 0; this.kick = null; this.sway = 0; this.prompt = null; this.banner = null;
     if (this.r.onReset) this.r.onReset(this);
   }
@@ -111,7 +111,7 @@ class Game {
 
   start() { this.resetRun(); this.state = 'play'; this.emit('start'); }
   // the optional scooter: get on (the nearest parked scooter / station that has an indicator right now; it is taken) or off again, whenever the player wants. Drawing only: the rules are the same.
-  mount() { const h = this.scooterHint; if (this.state !== 'play' || this.riding || !h) return false; this.riding = true; this.scooterHint = null; if (this.r.onScooter) this.r.onScooter(this, h); this.emit('mount'); if (this.touch && navigator.vibrate) navigator.vibrate(30); return true; }
+  mount() { const h = this.scooterHint; if (this.state !== 'play' || this.riding || !h) return false; this.riding = true; this.vehicle = h.kind || 'scooter'; this.scooterHint = null; if (this.r.onScooter) this.r.onScooter(this, h); this.emit('mount'); if (this.touch && navigator.vibrate) navigator.vibrate(30); return true; }
   dismount() { if (this.state !== 'play' || !this.riding) return false; this.riding = false; this.emit('dismount'); return true; }
   emit(name, arg) { if (this.sfx) this.sfx.play(name, arg); }                       // a sound effect, if the front end has sound
 

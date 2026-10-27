@@ -110,6 +110,16 @@ window.ENV3D = window.ENV3D || {};
     for (const q of mine) { q.geo.applyMatrix4(m); parts.push(q); }
   }
 
+  // the electromagnetic skateboard as static parts, floating `lift` m above its pad, nose toward -z, at (x, z): same shape as the one the runner rides (RunnerSprite.buildBoard); its rear plane (the
+  // user's picture) is added by the caller from `rearAt`
+  function boardParts(parts, x, z, lift) {
+    const DARK = '#16161e', RED = '#ff1f5a', CY = '#35e6ff', y = lift;
+    parts.push(Kit.box(0.32, 0.05, 1.15, x, 0.16 + y, z, DARK), Kit.box(0.26, 0.012, 0.95, x, 0.21 + y, z, '#0a0a10'), Kit.box(0.3, 0.04, 0.2, x, 0.18 + y, z - 0.62, DARK, { rx: -0.35 }), Kit.box(0.3, 0.04, 0.2, x, 0.18 + y, z + 0.62, DARK, { rx: 0.35 }),
+      Kit.box(0.02, 0.03, 1.15, x - 0.17, 0.17 + y, z, RED, { glow: true }), Kit.box(0.02, 0.03, 1.15, x + 0.17, 0.17 + y, z, RED, { glow: true }), Kit.box(0.28, 0.02, 1.0, x, 0.12 + y, z, RED, { glow: true }));
+    for (const dx of [-0.1, 0.1]) for (const dz of [-0.42, 0.42]) parts.push(Kit.box(0.06, 0.03, 0.08, x + dx, 0.09 + y, z + dz, CY, { glow: true }));
+  }
+  const rearAt = (x, z, lift) => BoardArt.plane(x, lift + 0.2, z + 0.7, 0.5);                                // the engine ring behind a board
+
   ENV3D.tram = {
     name: 'SAINT-GILLES',
     sky: { top: '#7b8fa6', mid: '#d6c8b2', horizon: '#f8c48c' },
@@ -184,6 +194,11 @@ window.ENV3D = window.ENV3D || {};
       scooter: () => { const p = []; scooterParts(p, 0, 0, 0, 0.1); return Kit.merge(p); },        // a lime kick scooter parked on the pavement (leaning a little); the game offers a ride on it
       scooterDock: () => { const p = [Kit.box(1.5, 0.08, 6.2, 0.75, 0, 0, '#5a5560'), Kit.box(0.14, 1.5, 0.5, 1.45, 0.08, -3.4, '#2c3d34'), Kit.box(0.1, 0.1, 0.34, 1.4, 1.2, -3.4, '#3dff72', { glow: true })];   // a scooter station: a platform with a charging post and four scooters in a row
         for (let k = 0; k < 4; k++) scooterParts(p, 0.75, -2.1 + k * 1.4, Math.PI / 2, 0); return Kit.merge(p); },
+      board: () => { const p = [Kit.cyl(0.5, 0.55, 0.04, 0, 0, 0, '#2a2a34', { seg: 12 }), Kit.cyl(0.42, 0.42, 0.012, 0, 0.04, 0, '#ff1f5a', { seg: 12, glow: true })]; boardParts(p, 0, 0, 0.1);      // an electromagnetic skateboard floating over a glowing pad
+        return { merged: Kit.merge(p), sprite: rearAt(0, 0, 0.1), material: () => BoardArt.material() }; },
+      boardDock: () => { const p = [Kit.box(1.5, 0.08, 6.6, 0.75, 0, 0, '#2a2a34'), Kit.box(0.04, 0.02, 6.4, 0.2, 0.08, 0, '#ff1f5a', { glow: true }), Kit.box(0.04, 0.02, 6.4, 1.3, 0.08, 0, '#ff1f5a', { glow: true })], sp = [];   // a board station: a platform, four boards floating in a row
+        for (let k = 0; k < 4; k++) { const z = -2.4 + k * 1.6; boardParts(p, 0.75, z, 0.1); sp.push(rearAt(0.75, z, 0.1)); }
+        return { merged: Kit.merge(p), sprite: BoardArt.join(sp), material: () => BoardArt.material() }; },
       steps: () => Kit.merge([0, 1, 2, 3].map(k => Kit.box(0.9, 0.15 * (k + 1), 5.2, 0.5 + k * 0.9, 0, 0, k % 2 ? '#a39d94' : '#b3aca1'))),   // stone steps up from the pavement
       zebra: () => Kit.merge([-3, -2, -1, 0, 1, 2, 3].map(k => Kit.box(0.5, 0.17, 2.4, k * 0.9, -0.14, 0, '#e9e2d2'))),            // a pedestrian crossing painted on the road (sunk so its top is 3 cm above it)
       school: () => { const sp = [], p = [Kit.box(9, 10.4, 15, 4.5, 0, 0, '#9a463a'), Kit.box(9.1, 0.7, 15.1, 4.5, 0, 0, T.stone), Kit.box(0.36, 0.3, 15.4, -0.08, 10.1, 0, T.stoneL), Kit.box(0.14, 0.2, 15, -0.03, 6.9, 0, T.stoneL), Kit.box(0.14, 0.2, 15, -0.03, 2.2, 0, T.stoneL)];
@@ -213,13 +228,13 @@ window.ENV3D = window.ENV3D || {};
         const cars = (p = 0.6) => { if (!park) return; out.push({ prop: 'cobbles', x: side * 5.15, dist: 6 }); if (r(5) < p) out.push({ prop: ['carA', 'carB', 'carC', 'van'][Math.floor(r(6) * 4)], x: side * 5.15, dist: 3.2 + r(7) * 5 }); };
         if (mod(i + (side > 0 ? 1 : 0), 3) === 0) out.push({ prop: 'pole', x: side * 4.0, dist: 2.5 });
         switch (S.variant) {
-          case 0: house(pick(), FRONT_X + r(1) * 0.5, (r(2) - 0.5) * 0.8); cars(0.65); if (mod(i, 2) === (side > 0 ? 1 : 0)) out.push({ prop: mod(i, 4) < 2 ? 'swan' : 'lantern', x: side * 3.95, dist: 8 }); if (r(14) < 0.12) out.push({ prop: 'streetSign', x: side * 3.8, dist: 2 }); else if (r(18) < 0.12) out.push({ prop: 'scooter', x: side * 4.4, dist: 4 }); break;
+          case 0: house(pick(), FRONT_X + r(1) * 0.5, (r(2) - 0.5) * 0.8); cars(0.65); if (mod(i, 2) === (side > 0 ? 1 : 0)) out.push({ prop: mod(i, 4) < 2 ? 'swan' : 'lantern', x: side * 3.95, dist: 8 }); if (r(14) < 0.12) out.push({ prop: 'streetSign', x: side * 3.8, dist: 2 }); else if (r(18) < 0.12) out.push({ prop: 'scooter', x: side * 4.4, dist: 4 }); else if (r(19) < 0.16) out.push({ prop: 'board', x: side * 4.5, dist: 4 }); break;
           case 1: house(pick(), FRONT_X + 1.4 + r(1) * 0.8, (r(2) - 0.5) * 0.8); out.push({ prop: 'blossom', x: side * 4.9, dist: mod(i, 2) === 0 ? 3 + r(3) * 2 : 8 + r(4) * 2 }); out.push({ prop: 'swan', x: side * 3.95, dist: 6 }); if (r(16) < 0.12) out.push({ prop: 'scooterDock', x: side * 4.7, dist: 9 }); break;
-          case 2: house(pick(BRICK), FRONT_X + r(1) * 0.4, (r(2) - 0.5) * 0.6); cars(0.5); if (mod(i, 2) === 0) out.push({ prop: 'swan', x: side * 3.95, dist: 9 }); break;
+          case 2: house(pick(BRICK), FRONT_X + r(1) * 0.4, (r(2) - 0.5) * 0.6); cars(0.5); if (mod(i, 2) === 0) out.push({ prop: 'swan', x: side * 3.95, dist: 9 }); if (r(20) < 0.2) out.push({ prop: 'board', x: side * 4.5, dist: 3 }); else if (r(21) < 0.1) out.push({ prop: 'boardDock', x: side * 4.6, dist: 8 }); break;
           case 3: house(pick(SHOPS), FRONT_X - 0.4 + r(1) * 0.3, (r(2) - 0.5) * 0.6); cars(0.75); out.push({ prop: 'swan', x: side * 3.95, dist: 4 }); if (r(8) < 0.4) out.push({ prop: 'bollard', x: side * 5.4, dist: 9 }); else if (r(17) < 0.25) out.push({ prop: 'scooter', x: side * 4.4, dist: 3 }); break;
           case 5:                                                                                            // art nouveau: ochre and white houses, green lanterns, bollards, parked cars
             house(pick(ART), FRONT_X + r(1) * 0.4, (r(2) - 0.5) * 0.6); cars(0.55); out.push({ prop: 'lantern', x: side * 3.95, dist: mod(i, 2) ? 3 : 9 });
-            if (mod(i + (side > 0 ? 1 : 0), 3) === 1) out.push({ prop: 'posts', x: side * 3.9, dist: 6 }); break;
+            if (mod(i + (side > 0 ? 1 : 0), 3) === 1) out.push({ prop: 'posts', x: side * 3.9, dist: 6 }); if (r(23) < 0.18) out.push({ prop: 'board', x: side * 4.5, dist: 10 }); break;
           case 6:                                                                                            // market corner: canopies, hedges, steps, signs, scooters, a crossing
             house(pick(), FRONT_X + 1.0 + r(1) * 0.5, (r(2) - 0.5) * 0.6); out.push({ prop: 'lantern', x: side * 3.95, dist: 8 });
             { const e = r(9); if (e < 0.4) out.push({ prop: 'tent', x: side * 5.6, dist: 5 + r(10) * 2 }); else if (e < 0.7) out.push({ prop: 'hedge', x: side * 5.0, dist: 6 }); else out.push({ prop: 'steps', x: side * 4.6, dist: 6 }); }
@@ -228,7 +243,7 @@ window.ENV3D = window.ENV3D || {};
           default:
             if (par === 0) house(pick(), FRONT_X + 4.5, (r(2) - 0.5) * 1.2);
             out.push({ prop: 'cobbles', x: side * 5.15, dist: 6 }, { prop: 'blossom', x: side * (7.5 + r(3) * 2.5), dist: 3 + r(4) * 3 }, { prop: 'blossom', x: side * (7.5 + r(5) * 2.5), dist: 8 + r(6) * 3 });
-            if (r(7) < 0.5) out.push({ prop: 'bench', x: side * 6.2, dist: 6 }); else out.push({ prop: 'bollard', x: side * 4.9, dist: 6 });
+            if (r(7) < 0.5) out.push({ prop: 'bench', x: side * 6.2, dist: 6 }); else out.push({ prop: 'bollard', x: side * 4.9, dist: 6 }); if (r(22) < 0.3) out.push({ prop: 'boardDock', x: side * 4.6, dist: 9 });
         }
         if (lm) out.push({ prop: lm, x: side * (lm === 'tramStop' ? 4.5 : lm === 'polyclinique' ? FRONT_X + 0.3 : lm === 'glassTower' ? FRONT_X + 15 : FRONT_X - 0.2), dist: 6 });
       }

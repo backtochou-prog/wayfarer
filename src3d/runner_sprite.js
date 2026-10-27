@@ -11,6 +11,7 @@
 // States: 'play' run / jump / slide, 'over' trip, 'pause' hold, 'title' a looping showcase for the main menu.
 class RunnerSprite {
   static get SC() { return 1.3; }                            // the scooter is drawn 1.3 x its modelled size (a chunkier, easier to read scooter under a 1.9 m runner)
+  static get BOARD_DECK() { return 0.21 * 1.3; }              // the floating board's deck top
   static get DECK() { return 0.17 * 1.3; }                   // height of the deck's top: the card's feet stand here while riding
   constructor() {
     this.menuView = (location.search.match(/[?&]menu=(side|back)\b/) || [])[1] || 'back';   // which artwork the menu shows: the back view (default, wider and matching the game) or the side view (?menu=side)
@@ -30,7 +31,8 @@ class RunnerSprite {
     this.shadow = new THREE.Mesh(new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }));
     this.shadow.renderOrder = 1; this.shadow.scale.set(0.5, 1, 0.42);
     this.scooter = RunnerSprite.buildScooter(); this.scooter.visible = false; this.group.add(this.scooter);   // the kick scooter (shown while riding)
-    this.ride = 0; this.wheelA = 0;                            // 0..1: how far the runner is on the scooter (eased); the wheels' spin angle
+    this.board = RunnerSprite.buildBoard(); this.board.visible = false; this.group.add(this.board);                    // the electromagnetic skateboard (the other vehicle)
+    this.vehicle = 'scooter'; this.ride = 0; this.wheelA = 0;                            // 0..1: how far the runner is on the scooter (eased); the wheels' spin angle
     this.phase = 0;
     this.cur = { y: 0, rx: 0, rz: 0, sx: 1, sy: 1 };           // rx = pitch of the card (0 upright, + leaning back, - tipped forward)
     this.tgt = Object.assign({}, this.cur);
@@ -61,17 +63,21 @@ class RunnerSprite {
     } else {                                                   // run cycle: bounce, squash-and-stretch, sway and a steering lean
       t.y = Math.abs(sn) * 0.07; t.sy = 1 + 0.025 * Math.sin(2 * this.phase); t.sx = 1 / t.sy; t.rz = -s.lean * 0.14 + 0.03 * sn;
     }
-    const R = this.ride += ((s.scooter ? 1 : 0) - this.ride) * (1 - Math.exp(-6 * dt));    // on the scooter: a steady glide instead of the run bounce, squash and sway
+    if (s.scooter) this.vehicle = s.vehicle || 'scooter';                                  // which one the runner is on (kept while it fades out)
+    const R = this.ride += ((s.scooter ? 1 : 0) - this.ride) * (1 - Math.exp(-6 * dt)), board = this.vehicle === 'board';    // on a vehicle: a steady glide instead of the run bounce, squash and sway
     if (R > 0.01 && s.state === 'play' && !s.sliding && !s.airborne) { const k = Math.min(1, R * 1.5); t.y = t.y * (1 - k) + 0.012 * (1 + sn) * k; t.sy += (1 - t.sy) * k; t.sx += (1 - t.sx) * k; t.rz = t.rz * (1 - k) + (-s.lean * 0.14) * k; }
     if (s.beat > 0 && s.state !== 'over') { const m = s.state === 'title' ? 1 : 0.4; t.y += 0.1 * m * s.beat; t.sy += 0.05 * m * s.beat; t.sx -= 0.03 * m * s.beat; }   // bounces on the beat of the music (more in the menu)
     const k = 1 - Math.exp(-(s.sliding ? 60 : 15) * dt);       // the slide pose is near-instant: the game counts a slide from the first frame
     for (const key in c) c[key] += (t[key] - c[key]) * k;
     if (view !== this.view) { this.cards.back.visible = view === 'back'; this.cards.side.visible = view === 'side'; this.view = view; }
-    this.pivot.position.y = c.y + RunnerSprite.DECK * Math.min(1, R * 1.5);               // the feet stand on the deck
-    const sc = this.scooter; sc.visible = R > 0.02; sc.scale.setScalar(Math.min(1, R * 1.4) * RunnerSprite.SC); sc.position.y = 0;
-    if (sc.visible) {
-      this.wheelA += dt * s.runRate * 9; for (const w of sc.userData.wheels) w.rotation.x = -this.wheelA;
-      const k = 1 - Math.exp(-10 * dt); sc.rotation.z += (-s.lean * 0.1 - sc.rotation.z) * k; sc.rotation.x += ((s.airborne ? 0.14 : 0) - sc.rotation.x) * k;     // leans into the steering, nose up in the air
+    const hover = board ? 0.02 * Math.sin(T * 3) : 0;                                      // the board floats, with a gentle bob
+    this.pivot.position.y = c.y + (board ? RunnerSprite.BOARD_DECK : RunnerSprite.DECK) * Math.min(1, R * 1.5) + hover * R;   // the feet stand on the deck
+    const sc = this.scooter, bd = this.board, v = board ? bd : sc, o = board ? sc : bd; o.visible = false;
+    v.visible = R > 0.02; v.scale.setScalar(Math.min(1, R * 1.4) * RunnerSprite.SC); v.position.y = hover * R;
+    if (v.visible) {
+      if (!board) { this.wheelA += dt * s.runRate * 9; for (const w of sc.userData.wheels) w.rotation.x = -this.wheelA; }
+      else if (bd.userData.rear) bd.userData.rear.scale.setScalar(1 + 0.1 * (s.beat || 0));        // the engine ring swells on the beat
+      const k2 = 1 - Math.exp(-10 * dt); v.rotation.z += (-s.lean * 0.1 - v.rotation.z) * k2; v.rotation.x += ((s.airborne ? 0.14 : 0) - v.rotation.x) * k2;     // leans into the steering, nose up in the air
     }
     this.pivot.rotation.set(c.rx, -this.group.rotation.y + face + spin, c.rz, 'YXZ');   // cancel the renderer's yaw: the card always faces the camera (plus the showcase spin)
     this.pivot.scale.set(c.sx, c.sy, 1);
@@ -89,6 +95,17 @@ class RunnerSprite {
     const wheel = z => { const w = Kit.mesh(Kit.merge([Kit.cyl(0.13, 0.13, 0.06, 0, -0.03, 0, DARK, { rz: Math.PI / 2, seg: 12 }), Kit.cyl(0.075, 0.075, 0.07, 0, -0.035, 0, LIME, { rz: Math.PI / 2, seg: 8 }),
       Kit.box(0.075, 0.22, 0.025, 0, -0.11, 0, PALE), Kit.box(0.075, 0.22, 0.025, 0, -0.11, 0, PALE, { rx: Math.PI / 2 })])); w.position.set(0, 0.13, z); g.add(w); return w; };   // (the pale spokes make the spin visible)
     g.userData.wheels = [wheel(-0.62), wheel(0.56)];
+    return g;
+  }
+
+  // the electromagnetic skateboard: a dark deck floating on a red glow, magnetic pads, glowing edges, and at the back the user's picture of its rear (the engine ring), facing the chase camera
+  static buildBoard() {
+    const DARK = '#16161e', RED = '#ff1f5a', CY = '#35e6ff', g = new THREE.Group();
+    const parts = [Kit.box(0.32, 0.05, 1.15, 0, 0.16, 0, DARK), Kit.box(0.26, 0.012, 0.95, 0, 0.21, 0, '#0a0a10'), Kit.box(0.3, 0.04, 0.2, 0, 0.18, -0.62, DARK, { rx: -0.35 }), Kit.box(0.3, 0.04, 0.2, 0, 0.18, 0.62, DARK, { rx: 0.35 }),
+      Kit.box(0.02, 0.03, 1.15, -0.17, 0.17, 0, RED, { glow: true }), Kit.box(0.02, 0.03, 1.15, 0.17, 0.17, 0, RED, { glow: true }), Kit.box(0.28, 0.02, 1.0, 0, 0.12, 0, RED, { glow: true })];
+    for (const x of [-0.1, 0.1]) for (const z of [-0.42, 0.42]) parts.push(Kit.box(0.06, 0.03, 0.08, x, 0.09, z, CY, { glow: true }));
+    g.add(Kit.mesh(Kit.merge(parts)));
+    if (typeof BoardArt !== 'undefined' && typeof BOARD_ART !== 'undefined') { const rear = new THREE.Mesh(BoardArt.plane(0, -0.25, 0, 0.5), BoardArt.material()); rear.position.set(0, 0.45, 0.7); g.add(rear); g.userData.rear = rear; }
     return g;
   }
 }

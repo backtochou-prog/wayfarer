@@ -65,7 +65,7 @@ class Renderer3D {
                   neonShopD: 24, neonCar: 40, neonBoardVortex: 6, neonBoardSphere: 6, neonBoardRings: 6, neonBoardSpiral: 6,
                   rowA: 26, rowB: 26, rowC: 26, rowD: 26, rowE: 26, rowF: 26, rowG: 26, rowH: 26, pole: 24, wire: 36, swan: 40, blossom: 60, cobbles: 44, carA: 20, carB: 20, carC: 20, van: 20,   // the tram street
                   polyclinique: 6, tramStop: 6, cornerCafe: 6, gateTram: 8, school: 6, glassTower: 6,
-                  rowI: 26, rowJ: 26, rowK: 26, rowL: 26, lantern: 40, posts: 40, streetSign: 24, hedge: 30, tent: 24, scooter: 40, steps: 24, zebra: 8, scooterDock: 10 };                                                              // entrance markers where the biome changes
+                  rowI: 26, rowJ: 26, rowK: 26, rowL: 26, lantern: 40, posts: 40, streetSign: 24, hedge: 30, tent: 24, scooter: 40, steps: 24, zebra: 8, scooterDock: 10, board: 40, boardDock: 12 };                                                              // entrance markers where the biome changes
     this.props = {}; this.propUsed = {};
     for (const id of Object.keys(envs)) {
       const props = envs[id].props; if (!props) continue;
@@ -84,11 +84,11 @@ class Renderer3D {
     // upload the art textures to the GPU as soon as their images have loaded, so the first frames that show them do not hitch (a big atlas upload is a one-off spike)
     // and warm up once: compile every material variant and draw one frame with every pooled prop visible, so geometries, textures and shaders are all on the GPU before
     // the first prop of each kind comes into view (otherwise that first sight costs a one-off hitch of hundreds of ms in a software renderer)
-    let pending = 7;
+    let pending = 8;
     const warm = () => { const hid = []; this.scene.traverse(o => { if (!o.visible && o.parent) { hid.push(o); o.visible = true; } });
       try { this.renderer.compile(this.scene, this.camera); this.renderer.render(this.scene, this.camera); this.renderer.clear(); } catch (e) {}   // drawn on screen (that is the program variant that must be ready) and cleared in the same task: a canvas is only shown after the next game frame
       for (const o of hid) o.visible = false; };
-    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3(), () => TramArt.material(), () => this.sunGlow.material, () => BlossomSprite.material()]) {
+    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3(), () => TramArt.material(), () => this.sunGlow.material, () => BlossomSprite.material(), () => BoardArt.material()]) {
       const tex = get().map, go = () => { tex.needsUpdate = true; try { this.renderer.initTexture(tex); } catch (e) {}   // (needsUpdate first: an image that was already decoded when checked has no upload version yet, and initTexture skips such a texture)
       if (--pending === 0) setTimeout(warm, 50); };
       if (!(tex.image instanceof HTMLImageElement) || (tex.image.complete && tex.image.naturalWidth)) go(); else tex.image.addEventListener('load', () => setTimeout(go, 0));   // (a canvas texture, the tram signs, is ready at once)
@@ -187,11 +187,11 @@ class Renderer3D {
     const U = U3, rz = g.p.z * U.Z, Lref = (g.camX + g.camOff) * U.X, w = g.world, d0 = w.dropAt(g.p.z);
     let sp = null;
     const kept = this.armedSpot && !this.usedSpots.has(this.armedSpot.key) && this.armedSpot.zAbs - rz >= -60 ? this.armedSpot : null;     // the scooter already offered stays offered until it is 60 m behind (a newer one nearer ahead does not take over: no chasing a moving target)
-    if (kept) { const ahead = kept.zAbs - rz; sp = { key: kept.key, dock: kept.dock, ahead, x: kept.xAbs - Lref, y: WALK_Y - (w.dropAt(kept.zAbs / U.Z) - d0) * U.Z, z: -ahead }; }
+    if (kept) { const ahead = kept.zAbs - rz; sp = { key: kept.key, dock: kept.dock, kind: kept.kind, ahead, x: kept.xAbs - Lref, y: WALK_Y - (w.dropAt(kept.zAbs / U.Z) - d0) * U.Z, z: -ahead }; }
     else {
       sp = this.spots.filter(q => q.ahead >= -20 && q.ahead <= 140 && !this.usedSpots.has(q.key)).sort((p, q) => (p.ahead < 0 ? 1000 - p.ahead : p.ahead) - (q.ahead < 0 ? 1000 - q.ahead : q.ahead))[0];          // else the nearest one ahead (or, if none, the one just passed)
       if (!sp) { this.armedSpot = null; return; }
-      this.armedSpot = { key: sp.key, dock: sp.dock, xAbs: sp.x + Lref, zAbs: rz + sp.ahead };                       // remembered by its absolute place: the street scenery is only built ~25 m behind the runner
+      this.armedSpot = { key: sp.key, dock: sp.dock, kind: sp.kind, xAbs: sp.x + Lref, zAbs: rz + sp.ahead };                       // remembered by its absolute place: the street scenery is only built ~25 m behind the runner
     }
     this.camera.updateMatrixWorld(true);
     const cv = document.getElementById('screen'), rc = cv ? cv.getBoundingClientRect() : { left: 0, top: 0, width: innerWidth, height: innerHeight };
@@ -199,8 +199,8 @@ class Renderer3D {
     const c = to(sp.x, sp.y, sp.z), R = sp.dock ? 2.0 : 0.95;
     if (c && c.y < VH + 40) {                                                                                       // in front of the camera: on the ground under the scooter (clamped to the HUD)
       const ex = to(sp.x + R, sp.y, sp.z), ez = to(sp.x, sp.y, sp.z - R), rx = ex ? Math.abs(ex.x - c.x) : 8, ry = ez ? Math.abs(ez.y - c.y) : 3;
-      g.scooterHint = { key: sp.key, dock: sp.dock, ahead: sp.ahead, pinned: c.y > VH - 30, x: Math.max(16, Math.min(VW - 16, c.x)), y: Math.max(24, Math.min(VH - 30, c.y)), rx: Math.max(12, Math.min(60, rx)), ry: Math.max(4, Math.min(24, ry)) };
-    } else g.scooterHint = { key: sp.key, dock: sp.dock, ahead: sp.ahead, pinned: true, x: sp.x < 0 ? 112 : 208, y: VH - 30, rx: 16, ry: 5 };     // behind the camera: pinned low on its side
+      g.scooterHint = { key: sp.key, dock: sp.dock, kind: sp.kind, ahead: sp.ahead, pinned: c.y > VH - 30, x: Math.max(16, Math.min(VW - 16, c.x)), y: Math.max(24, Math.min(VH - 30, c.y)), rx: Math.max(12, Math.min(60, rx)), ry: Math.max(4, Math.min(24, ry)) };
+    } else g.scooterHint = { key: sp.key, dock: sp.dock, kind: sp.kind, ahead: sp.ahead, pinned: true, x: sp.x < 0 ? 112 : 208, y: VH - 30, rx: 16, ry: 5 };     // behind the camera: pinned low on its side
   }
   onScooter(g, hint) { if (hint) { this.usedSpots.add(hint.key); this.armedSpot = null; } }
 
@@ -259,10 +259,10 @@ class Renderer3D {
             if ((pl.x < 0 ? -1 : 1) !== sg) continue;
             if (inner && (!env.innerOk.has(pl.prop) || Math.abs(pl.x) - hwM > avail - 0.8)) continue;
             const t = pl.dist / SL, cx = c0 + (c1 - c0) * t;
-            if (pl.prop === 'scooter' || pl.prop === 'scooterDock') {                    // a parked scooter or a scooter station: offered to the player (an indicator above it), unless it was already taken
+            if (/^(scooter|board)/.test(pl.prop)) {                    // a parked scooter or a scooter station: offered to the player (an indicator above it), unless it was already taken
               const key = i + ':' + pl.prop + ':' + pl.x.toFixed(2);
               if (this.usedSpots.has(key)) continue;
-              this.spots.push({ key, dock: pl.prop === 'scooterDock', x: cx + pl.x, y: WALK_Y + dy((zs + pl.dist) / U.Z), z: rz - zs - pl.dist, ahead: zs + pl.dist - rz });
+              this.spots.push({ key, dock: /Dock$/.test(pl.prop), kind: /^board/.test(pl.prop) ? 'board' : 'scooter', x: cx + pl.x, y: WALK_Y + dy((zs + pl.dist) / U.Z), z: rz - zs - pl.dist, ahead: zs + pl.dist - rz });
             }
             this.place(pl.prop, cx + pl.x, WALK_Y + dy((zs + pl.dist) / U.Z), rz - zs - pl.dist, (pl.x < 0 ? Math.PI : 0) + (pl.rotY || 0) - Math.atan2(c1 - c0, SL));
           }
@@ -299,7 +299,7 @@ class Renderer3D {
     this.heading += (-Math.atan(slope) - this.heading) * (1 - Math.exp(-10 * dt));
     this.runner.group.rotation.y = Math.PI * mm + this.heading * (1 - mm);
     this.runner.update(dt, { beat: pulse, faceYaw: Math.atan2(this.cam.x - relX, this.cam.z), time: g.time, runRate: 2.3 + p.speed / 340 * 1.1, airborne: p.jy > 0, vy: p.vy, sliding: p.slide > 0,
-                             lean: Math.max(-1, Math.min(1, p.vx / STEER)), state: g.state, scooter: this.riding(g) });
+                             lean: Math.max(-1, Math.min(1, p.vx / STEER)), state: g.state, scooter: this.riding(g), vehicle: g.vehicle || 'scooter' });
 
     // ---- camera: chase (behind and above, centred on the 2D camera) blended with the menu showcase orbit; looks down the active route
     const orbit = Math.sin(g.time * 0.35) * 0.5;                  // menu camera drifts around the character
