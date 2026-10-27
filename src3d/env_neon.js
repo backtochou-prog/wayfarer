@@ -182,10 +182,10 @@ window.ENV3D = window.ENV3D || {};
             if (r(5) < 0.5) out.push({ prop: 'neonBottle', x: side * 5.0, dist: 3 }); break;
           case 8:                                                                       // lanterns: the lamps of the fourth set along the kerb, two to a slot, calm blocks behind
             bld(TOW[mod(i + S.b + (side > 0 ? 4 : 0), TOW.length)], FRONT_X + 1.5 + r(1) * 0.8, (r(2) - 0.5) * 0.8);
-            out.push({ prop: LAMPS[mod(i * 2 + (side > 0 ? 1 : 0) + S.b, 6)], x: side * 5.0, dist: 3 + r(3) * 2 }, { prop: LAMPS[mod(i * 2 + (side > 0 ? 4 : 3) + S.b, 6)], x: side * 5.0, dist: 9 + r(4) * 1.5 }, { prop: strip, x: side * 3.9, dist: 6 }); break;
+            out.push({ prop: LAMPS[mod(i * 2 + (side > 0 ? 1 : 0) + S.b, LAMPS.length)], x: side * 5.0, dist: 3 + r(3) * 2 }, { prop: LAMPS[mod(i * 2 + (side > 0 ? 4 : 3) + S.b, LAMPS.length)], x: side * 5.0, dist: 9 + r(4) * 1.5 }, { prop: strip, x: side * 3.9, dist: 6 }); break;
           case 9:                                                                       // doors: blocks and towers, each with its door; one lamp
             bld(['neonBlockA', 'neonBlockB', 'neonBlockD', 'neonTowerA', 'neonBlockC'][mod(i * 2 + (side > 0 ? 1 : 0) + S.b, 5)], 7.0 + r(1) * 0.5, (r(2) - 0.5) * 0.8);
-            out.push({ prop: strip, x: side * 3.9, dist: 6 }, { prop: lamp, x: side * 4.4, dist: 2.5 }, { prop: LAMPS[mod(i + S.b + (side > 0 ? 2 : 0), 6)], x: side * 5.0, dist: 9 }); break;
+            out.push({ prop: strip, x: side * 3.9, dist: 6 }, { prop: lamp, x: side * 4.4, dist: 2.5 }, { prop: LAMPS[mod(i + S.b + (side > 0 ? 2 : 0), LAMPS.length)], x: side * 5.0, dist: 9 }); break;
           default:
             if (mod(i + (side > 0 ? 1 : 0), 3) === 1) bld(TOW[mod(i + S.b + (side > 0 ? 3 : 0), TOW.length)], 15 + r(1) * 4, (r(2) - 0.5) * 2);
             out.push({ prop: strip, x: side * 3.9, dist: 6 }); if (mod(i + (side > 0 ? 1 : 0), 2) === 0) out.push({ prop: lamp, x: side * 4.4, dist: 4 + r(3) * 4 });
@@ -200,7 +200,7 @@ window.ENV3D = window.ENV3D || {};
 
   // ---- the fourth set of the user's materials (NEON_ASSETS4, from six more pictures; tools/make_neon_assets4.py), as the user asked:
   //   DOORS of the shops and buildings of the quarter: the two teal tile rooms (tiles, tiles2), the blue backlit panel (panelBlue) and the teal tile wall (tilewall), one on every building, and on the shops;
-  //   LAMPS: the rest: the filigree lamp, the hanging glass drops, the pierced screen, the chandelier, the pink panel and the lit restaurant front, as street lamps along the kerb;
+  //   LAMPS: the rest: the filigree lamp, the hanging glass drops, the pierced screen, the pink panel and the lit restaurant front, as street lamps along the kerb;
   //   and the HOTEL: one of the quarter's towers, with the burlap arch (from the photo with the rose) as the vault over its entrance and a neon HOTEL sign.
   const A4 = c => NEON_ASSETS4[c], gold = '#ffb347', mat4 = () => NeonArt.material4();
   const art4 = (merged, sprites) => ({ merged: Kit.merge(merged), sprite: sprites.length > 1 ? TramArt.join(sprites) : sprites[0], material: mat4 });
@@ -233,10 +233,10 @@ window.ENV3D = window.ENV3D || {};
     const door = NeonArt.panel4('panelBlue', -0.36, -1.7, 0.1, 0.15, 3.4), vault = NeonArt.panel4('vault', -BD - 0.03, BZ - vw / 2, BZ + vw / 2, BY + 0.28, BY + 0.28 + vh), sign = NeonArt.panel4('hotel', -0.4, -sw / 2, sw / 2, BY + 0.28 + vh + 0.6, BY + 0.28 + vh + 0.6 + sh);
     return { merged: m, sprite: TramArt.join([door, vault, sign]), material: mat4 };
   };
-  const LAMPS = ['neonMoroccanLamp', 'neonPendantLamp', 'neonLanternPierced', 'neonChandLamp', 'neonPillarLamp', 'neonLightbox'];
+  const LAMPS = ['neonMoroccanLamp', 'neonPendantLamp', 'neonLanternPierced', 'neonPillarLamp', 'neonLightbox'];            // (the chandelier lamp was removed at the user's request)
   Object.assign(ENV3D.neon.props, {
     neonHotel: hotel,
-    neonMoroccanLamp: postLamp('lamp', 1.9, 0.9, gold, 0), neonPendantLamp: postLamp('pendants', 2.4, 2.1, gold, 0), neonLanternPierced: postLamp('pierced', 1.7, 2.5, N.warm, 0), neonChandLamp: postLamp('chandelier', 2.6, 2.0, gold, 0), neonPillarLamp: postLamp('panelPink', 3.2, 0.4, N.mag, 0),
+    neonMoroccanLamp: postLamp('lamp', 1.9, 0.9, gold, 0), neonPendantLamp: postLamp('pendants', 2.4, 2.1, gold, 0), neonLanternPierced: postLamp('pierced', 1.7, 2.5, N.warm, 0), neonPillarLamp: postLamp('panelPink', 3.2, 0.4, N.mag, 0),
     neonLightbox: () => board4('facade', 5.2, 2.4, gold),                                                                          // the lit restaurant front as a light box on posts
   });
 

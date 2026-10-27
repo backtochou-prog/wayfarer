@@ -266,12 +266,12 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.doorsOk = names.every(n => { const m = ENV3D.neon.props[n](); const sp = m.extra && m.extra.length ? m.extra[m.extra.length - 1] : m; return sp.sprite && sp.material() === mat && sp.sprite.attributes.position.count === 4; });
     out.noDoorOnSigns = ['neonBillboard', 'neonRing', 'neonSpire', 'neonCar', 'neonLampM'].every(n => !D[n]);
     // lamps: six, each two crossed planes of its picture on a post
-    const LAMPS = ['neonMoroccanLamp', 'neonPendantLamp', 'neonLanternPierced', 'neonChandLamp', 'neonPillarLamp', 'neonLightbox']; out.lamps = LAMPS.map(n => { const m = ENV3D.neon.props[n](); return [n, m.sprite.attributes.position.count, m.material() === mat]; });
+    const LAMPS = ['neonMoroccanLamp', 'neonPendantLamp', 'neonLanternPierced', 'neonPillarLamp', 'neonLightbox']; out.lamps = LAMPS.map(n => { const m = ENV3D.neon.props[n](); return [n, m.sprite.attributes.position.count, m.material() === mat]; });
     // the hotel: a tower with a blue glass door, the burlap vault above it and the neon HOTEL sign
     { const hh = ENV3D.neon.props.neonHotel(); const q = hh.sprite.attributes.position.array; let vx = 9; for (let i = 0; i < hh.sprite.attributes.position.count; i += 4) vx = Math.min(vx, q[i * 3]); hh.merged.lit.computeBoundingBox(); out.balcony = { reach: +(-hh.merged.lit.boundingBox.min.x).toFixed(2), pictureX: +vx.toFixed(2) }; }
     const h = ENV3D.neon.props.neonHotel(); out.hotel = { quads: h.sprite.attributes.position.count / 4, shared: h.material() === mat, merged: !!h.merged, vaultAr: +NEON_ASSETS4.vault.ar.toFixed(2), hotelAr: +NEON_ASSETS4.hotel.ar.toFixed(2) };
     // the street places them: all lamps, the hotel (as a landmark), and never a door-less wrapped building
-    const used = new Set(); for (let i = 0; i < 4000; i++) for (const q of ENV3D.neon.layout(i, rnd)) used.add(q.prop); out.usedLamps = LAMPS.filter(n => used.has(n)).length; out.usedHotel = used.has('neonHotel');
+    const used = new Set(); for (let i = 0; i < 4000; i++) for (const q of ENV3D.neon.layout(i, rnd)) used.add(q.prop); out.usedLamps = LAMPS.filter(n => used.has(n)).length; out.chandGone = !ENV3D.neon.props.neonChandLamp && !used.has('neonChandLamp'); out.usedHotel = used.has('neonHotel');
     // the vault really is cut out of its photo: transparent corners, opaque rose and stones
     const c2 = document.createElement('canvas'); c2.width = im.naturalWidth; c2.height = im.naturalHeight; const x2 = c2.getContext('2d'); x2.drawImage(im, 0, 0); const V = NEON_ASSETS4.vault, px = (u, v) => x2.getImageData(Math.round(u * c2.width), Math.round((1 - v) * c2.height), 1, 1).data;
     out.vaultCorner = px(V.u0 + 0.004, V.v1 - 0.004)[3]; out.vaultMid = px((V.u0 + V.u1) / 2, (V.v0 + V.v1) / 2 - 0.02)[3]; out.vaultBottom = px((V.u0 + V.u1) / 2, V.v0 + 0.004)[3];
@@ -281,8 +281,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     N4.loaded && N4.webp && N4.cells.length === 12 && ['lamp', 'pendants', 'pierced', 'panelPink', 'chandelier', 'facade', 'tiles', 'tiles2', 'panelBlue', 'tilewall', 'vault', 'hotel'].every(c => N4.cells.includes(c)), JSON.stringify({ size: N4.size, cells: N4.cells }));
   T('DOORS: the four door pictures (tile room, tile room, blue panel, tile wall) are the doors of ' + N4.doorProps + ' shops and buildings of the quarter, all four used, each one a textured panel of the fourth atlas; not on signs, rings, cars or lamps',
     N4.doorProps >= 20 && N4.doorCells.join() === 'panelBlue,tiles,tiles2,tilewall' && N4.doorsOk && N4.noDoorOnSigns, JSON.stringify({ n: N4.doorProps, cells: N4.doorCells, ok: N4.doorsOk }));
-  T('LAMPS: the rest of the pictures are six street lamps (filigree lamp, hanging glass drops, pierced lantern, chandelier, pink pillar, lit restaurant front), each a picture lit on a post, all placed by the street',
-    N4.lamps.length === 6 && N4.lamps.every(l => l[1] >= 4 && l[2]) && N4.usedLamps === 6, JSON.stringify({ lamps: N4.lamps, used: N4.usedLamps }));
+  T('LAMPS: the rest of the pictures are five street lamps (filigree lamp, hanging glass drops, pierced lantern, pink pillar, lit restaurant front; the chandelier lamp was removed), each a picture lit on a post, all placed by the street',
+    N4.lamps.length === 5 && N4.lamps.every(l => l[1] >= 4 && l[2]) && N4.usedLamps === 5 && N4.chandGone, JSON.stringify({ lamps: N4.lamps, used: N4.usedLamps }));
   T('the vault is 3D: the LOUNGE picture is the front of a low balcony that comes ' + N4.balcony.reach + ' m out of the hotel wall (slab, side walls, parapet, pillars), the picture standing on its front edge ' + N4.balcony.pictureX + ' m from the wall',
     N4.balcony.reach >= 2.4 && N4.balcony.pictureX <= -2.5, JSON.stringify(N4.balcony));
   T('the HOTEL: a tower of the quarter with a blue glass door, the vault (your burlap and plaster LOUNGE picture, already cut out, aspect ' + N4.hotel.vaultAr + ') over the entrance and a neon HOTEL sign (' + N4.hotel.hotelAr + '); a landmark of the street; the vault is transparent at its corner and opaque in the middle',
