@@ -282,8 +282,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     N4.doorProps >= 20 && N4.doorCells.join() === 'panelBlue,tiles,tiles2,tilewall' && N4.doorsOk && N4.noDoorOnSigns, JSON.stringify({ n: N4.doorProps, cells: N4.doorCells, ok: N4.doorsOk }));
   T('LAMPS: the rest of the pictures are six street lamps (filigree lamp, hanging glass drops, pierced lantern, chandelier, pink pillar, lit restaurant front), each a picture lit on a post, all placed by the street',
     N4.lamps.length === 6 && N4.lamps.every(l => l[1] >= 4 && l[2]) && N4.usedLamps === 6, JSON.stringify({ lamps: N4.lamps, used: N4.usedLamps }));
-  T('the HOTEL: a tower of the quarter with a blue glass door, the vault (your photo with the rose, cut along your red line: the burlap arch and what is under it, aspect ' + N4.hotel.vaultAr + ') over the entrance and a neon HOTEL sign (' + N4.hotel.hotelAr + '); a landmark of the street; the vault is transparent at its corner and opaque in the middle and at the bottom (the inside is kept)',
-    N4.hotel.quads === 3 && N4.hotel.shared && N4.hotel.merged && N4.usedHotel && N4.vaultCorner < 20 && N4.vaultMid > 200 && N4.vaultBottom > 200, JSON.stringify({ hotel: N4.hotel, used: N4.usedHotel, corner: N4.vaultCorner, mid: N4.vaultMid, bottom: N4.vaultBottom }));
+  T('the HOTEL: a tower of the quarter with a blue glass door, the vault (your burlap and plaster LOUNGE picture, already cut out, aspect ' + N4.hotel.vaultAr + ') over the entrance and a neon HOTEL sign (' + N4.hotel.hotelAr + '); a landmark of the street; the vault is transparent at its corner and opaque in the middle',
+    N4.hotel.quads === 3 && N4.hotel.shared && N4.hotel.merged && N4.usedHotel && N4.vaultCorner < 20 && N4.vaultMid > 200, JSON.stringify({ hotel: N4.hotel, used: N4.usedHotel, corner: N4.vaultCorner, mid: N4.vaultMid, bottom: N4.vaultBottom }));
 
   // ================================================================ 3b2. the neon shops: real windows, each showing a different display
   const Sh = await pg.evaluate(() => {

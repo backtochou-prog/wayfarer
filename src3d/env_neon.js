@@ -221,7 +221,7 @@ window.ENV3D = window.ENV3D || {};
   }
   // the hotel: a tower of the quarter, its entrance under the burlap vault (the arch of the user's photo with the rose), a neon HOTEL sign over it, a blue glass door (the blue panel)
   const hotel = () => {
-    const F = 11, D = 9, H = 30, m = tower(F, D, H, 3), vw = 6.2, vh = vw / A4('vault').ar, sw = 6.4, sh = sw / A4('hotel').ar;
+    const F = 11, D = 9, H = 30, m = tower(F, D, H, 3), vw = 7.4, vh = vw / A4("vault").ar, sw = 6.4, sh = sw / A4('hotel').ar;
     const door = NeonArt.panel4('panelBlue', -0.36, -1.7, 0.1, 0.15, 3.4), vault = NeonArt.panel4('vault', -0.6, -vw / 2 - 0.8, vw / 2 - 0.8, 3.3, 3.3 + vh), sign = NeonArt.panel4('hotel', -0.4, -sw / 2, sw / 2, 3.3 + vh + 0.5, 3.3 + vh + 0.5 + sh);
     return { merged: m, sprite: TramArt.join([door, vault, sign]), material: mat4 };
   };
