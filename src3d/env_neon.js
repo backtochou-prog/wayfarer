@@ -37,11 +37,25 @@ window.ENV3D = window.ENV3D || {};
     p.push(Kit.box(D * 0.8, 0.4, F * 0.9, D / 2, H, 0, N.base));
     return Kit.merge(p);
   }
-  // a low shop with a big glowing front and a stripe above
-  function shop(F, D, H, col, col2) {
-    const p = [Kit.box(D, H, F, D / 2, 0, 0, N.bodyB), Kit.box(0.14, H * 0.55, F * 0.8, -0.04, 0.5, 0, col, { glow: true }), Kit.box(0.16, 0.2, F * 0.9, -0.05, H * 0.62, 0, col2, { glow: true }),
-               Kit.box(0.14, H * 0.3, F * 0.8, -0.04, H * 0.66, 0, N.base), Kit.box(0.5, 0.12, F * 0.85, -0.3, H * 0.6 + 0.25, 0, col2, { glow: true, rz: 0.3 })];
-    return Kit.merge(p);
+  // a low shop. The front is a row of glass windows (NeonShopArt: 16 different displays), each a different one: a pane's display is listed for each shop, so the panes of a shop are never the same, no two shops are alike, and
+  // together the six shops show all sixteen; a neon frame round each pane, mullions between them, a lit door at one end, a coloured stripe and an awning above.
+  const PANES = {};                                                                                  // shop prop name -> the display index of each of its panes (for the tests)
+  function shop(name, F, D, H, col, col2, cells) {
+    const n = Math.max(3, Math.round((F - 2.2) / 2.2)), z0 = -F / 2 + 0.35, z1 = F / 2 - 1.8, gap = 0.22, w = (z1 - z0 - gap * (n - 1)) / n, y0 = 0.7, y1 = 3.2;
+    PANES[name] = cells;                                                                               // one display per pane (cells.length === n)
+    return () => {                                                                                      // (built when the renderer first asks for the prop)
+      const p = [Kit.box(D, H, F, D / 2, 0, 0, N.bodyB)], sp = [];
+      p.push(Kit.box(0.12, y1 - y0 + 0.5, z1 - z0 + 0.3, -0.03, y0 - 0.2, (z0 + z1) / 2, N.base));                                // the dark back of the window band
+      for (let k = 0; k < n; k++) {
+        const za = z0 + k * (w + gap), zb = za + w;
+        sp.push(NeonShopArt.pane(cells[k], -0.1, za, zb, y0, y1));
+        p.push(Kit.box(0.1, 0.07, w + 0.1, -0.07, y0 - 0.07, (za + zb) / 2, col, { glow: true }), Kit.box(0.1, 0.07, w + 0.1, -0.07, y1, (za + zb) / 2, col, { glow: true }),    // the neon frame of the pane
+               Kit.box(0.1, y1 - y0, 0.06, -0.07, y0, za - 0.03, col, { glow: true }), Kit.box(0.1, y1 - y0, 0.06, -0.07, y0, zb + 0.03, col, { glow: true }));
+      }
+      p.push(Kit.box(0.14, 2.7, 1.1, -0.05, 0.5, F / 2 - 0.95, N.base), Kit.box(0.16, 2.6, 0.06, -0.08, 0.5, F / 2 - 1.5, col2, { glow: true }), Kit.box(0.16, 2.6, 0.06, -0.08, 0.5, F / 2 - 0.4, col2, { glow: true }), Kit.box(0.16, 0.06, 1.2, -0.08, 3.1, F / 2 - 0.95, col2, { glow: true }));   // the lit door
+      p.push(Kit.box(0.16, 0.2, F * 0.9, -0.05, H * 0.62 + 0.1, 0, col2, { glow: true }), Kit.box(0.14, H * 0.28, F * 0.9, -0.04, H * 0.68 + 0.1, 0, N.base), Kit.box(0.5, 0.12, F * 0.85, -0.3, H * 0.6 + 0.2, 0, col2, { glow: true, rz: 0.3 }));
+      return { merged: Kit.merge(p), sprite: NeonShopArt.join(sp), material: () => NeonShopArt.material() };
+    };
   }
   // props made of the user's materials (NeonArt, second atlas). A block / shop with a picture panel on its facade; free-standing cut-outs; posts with a banner or a glowing tube.
   const art2 = (merged, sprite) => ({ merged: Kit.merge(merged), sprite, material: () => NeonArt.material2() });
@@ -83,7 +97,8 @@ window.ENV3D = window.ENV3D || {};
     props: {
       neonTowerA: () => artTower(7, 6.5, 19, 1, 'towA'), neonTowerB: () => artTower(6.4, 6, 24, 2, 'towB'),
       neonBlockA: () => block(9.6, 7, 11.5, 3, N.mag), neonBlockB: () => block(9, 7.5, 14.5, 4, N.teal), neonBlockC: () => block(10, 6.5, 9, 5, N.green),
-      neonShopA: () => shop(8.5, 6, 5.2, N.mag, N.yellow), neonShopB: () => shop(9, 6, 5.6, N.teal, N.green),
+      neonShopA: shop('neonShopA', 8.5, 6, 5.2, N.mag, N.yellow, [0, 5, 11]), neonShopB: shop('neonShopB', 9, 6, 5.6, N.teal, N.green, [3, 8, 14]),
+      neonShopF: shop('neonShopF', 9.6, 6, 5.4, N.yellow, N.mag, [6, 2, 13]), neonShopG: shop('neonShopG', 8.2, 6, 5.0, N.green, N.teal, [9, 12, 4]), neonShopH: shop('neonShopH', 9.2, 6, 5.8, N.red, N.yellow, [1, 7, 10]), neonShopI: shop('neonShopI', 8.8, 6, 5.3, N.purple, N.teal, [15, 4, 13]),
       neonLampM: lampOf(N.mag), neonLampC: lampOf(N.teal),
       // the third set: picture facades (the swirl on four grounds, a lit window, red dots, light rays), boards (landmarks), signs, a screen, a banner, a boutique and a parked car
       neonSwirlR: () => facadeBlock('swirlR', 9.4, 6.5, 12, N.red), neonSwirlP: () => facadeBlock('swirlP', 9.4, 6.5, 14, N.purple), neonSwirlG: () => facadeBlock('swirlG', 9.4, 6.5, 11, N.green), neonSwirlT: () => facadeBlock('swirlT', 9.4, 6.5, 15, N.teal),
@@ -130,7 +145,7 @@ window.ENV3D = window.ENV3D || {};
     //   7 screens: floating cyan dots, light-ray towers, a striped boutique, green-line banners, cap signs
     // A landmark (neon ring / spire / billboard / halo / the four pictures on posts: vortex, sphere, rings, spiral) replaces the building on its side of one slot per stretch.
     layout(i, rnd) {
-      const out = [], LMS = ['neonRing', 'neonSpire', 'neonBillboard', 'neonHalo', 'neonBoardVortex', 'neonBoardSphere', 'neonBoardRings', 'neonBoardSpiral'], S = Stretch.of(i, 120, 8, LMS), TOW = ['neonTowerA', 'neonBlockA', 'neonTowerB', 'neonBlockD', 'neonBlockB', 'neonBlockE', 'neonBlockC'], SH = ['neonShopA', 'neonShopB'];
+      const out = [], LMS = ['neonRing', 'neonSpire', 'neonBillboard', 'neonHalo', 'neonBoardVortex', 'neonBoardSphere', 'neonBoardRings', 'neonBoardSpiral'], S = Stretch.of(i, 120, 8, LMS), TOW = ['neonTowerA', 'neonBlockA', 'neonTowerB', 'neonBlockD', 'neonBlockB', 'neonBlockE', 'neonBlockC'], SH = ['neonShopA', 'neonShopB', 'neonShopF', 'neonShopG', 'neonShopH', 'neonShopI'];
       for (const side of [-1, 1]) {
         const k = i * 2 + (side > 0 ? 1 : 0), r = n => rnd(k, n), lm = S.lm && S.lm.slot === i && S.lm.side === side ? S.lm.kind : null;
         const bld = (prop, x, dz) => { if (!lm) out.push({ prop, x: side * x, dist: 6 + dz }); };
@@ -145,11 +160,11 @@ window.ENV3D = window.ENV3D || {};
             out.push({ prop: mod(i + (side > 0 ? 1 : 0), 2) ? 'neonSignA' : 'neonSignB', x: side * 5.6, dist: 3 + r(3) * 5 }, { prop: 'neonBollard', x: side * 4.5, dist: 9 }, { prop: strip, x: side * 3.9, dist: 6 });
             if (r(4) < 0.5) out.push({ prop: lamp, x: side * 4.4, dist: 11 }); break;
           case 2:
-            bld(SH[mod(i + (side > 0 ? 1 : 0) + S.b, 2)], 6.9 + r(1) * 0.5, (r(2) - 0.5) * 0.8);
+            bld(SH[mod(i + (side > 0 ? 1 : 0) + S.b, SH.length)], 6.9 + r(1) * 0.5, (r(2) - 0.5) * 0.8);
             out.push({ prop: strip, x: side * 3.9, dist: 6 }, { prop: lamp, x: side * 4.4, dist: 2.5 });
             if (r(3) < 0.5) out.push({ prop: 'neonBollard', x: side * 4.8, dist: 9 }); if (r(4) < 0.35) out.push({ prop: 'neonSignB', x: side * 5.6, dist: 9.5 }); break;
           case 4:                                                                       // boutiques: low striped shops, buckets and bottle lamps along the kerb, banners, orange light blades
-            bld(mod(i + (side > 0 ? 1 : 0) + S.b, 3) === 0 ? 'neonShopC' : SH[mod(i + S.b, 2)], 7.0 + r(1) * 0.5, (r(2) - 0.5) * 0.8);
+            bld(mod(i + (side > 0 ? 1 : 0) + S.b, 3) === 0 ? 'neonShopC' : SH[mod(i + S.b, SH.length)], 7.0 + r(1) * 0.5, (r(2) - 0.5) * 0.8);
             out.push({ prop: strip, x: side * 3.9, dist: 6 }, { prop: 'neonBucket', x: side * 4.9, dist: 3 + r(3) * 2 }, { prop: r(4) < 0.5 ? 'neonBottle' : 'neonBucket', x: side * 5.0, dist: 9 + r(5) * 2 });
             if (mod(i + (side > 0 ? 1 : 0), 2) === 0) out.push({ prop: 'neonBanner', x: side * 4.6, dist: 6.5 }); else out.push({ prop: 'neonBlade', x: side * 4.5, dist: 6 }); break;
           case 5:                                                                       // lounge: blocks with picture facades, light blades and bottle lamps
@@ -173,6 +188,8 @@ window.ENV3D = window.ENV3D || {};
       return out;
     },
   };
+
+  ENV3D.neon.shopPanes = PANES;                                                                   // the display shown by each pane of each shop (tests)
 
   // ---- the electromagnetic skateboard in the Neon Quarter: single boards floating over a neon pad with a hologram pylon, and stations (a platform, four boards in a row, an arch of light tubes).
   // The boards are the same sophisticated ones the runner rides (RunnerSprite.boardParts, here in magenta and cyan); the user's picture of the rear (BoardArt) is the engine ring behind each.

@@ -41,6 +41,12 @@ A third set of 17 pictures (`src3d/neon_assets3.js`, one alpha atlas) adds 17 mo
 
 ![board](docs/screenshots/board.jpg)
 
+**Neon shop windows** (`src3d/neon_shops.js`, `src3d/env_neon.js`): the low shops of the Neon Quarter used to have one big coloured glowing slab for a front. They now have real glass windows: three panes in a neon frame with mullions, a lit door, the stripe and the awning above, and **every pane shows a different display** (16 in all: a dress on a mannequin, sneakers on a pedestal, a shelf of bottles, a plant, cupcakes, a retro TV, vinyl records, sunglasses, cocktails, a ramen bowl, a fish tank, a floor lamp, books, balloons, a vintage camera, hats), each drawn at start-up on one small canvas atlas (no image file, none of your pictures). Six shop designs (`neonShopA/B/F/G/H/I`) with different colours, widths and displays, so no two panes of a shop are alike, no two shops are alike, and the street never puts the same shop twice in a row on a side. The shops made from your pictures (`neonShopC`, `neonShopD`) are untouched.
+
+![neon shops](docs/screenshots/neon-shops.jpg)
+
+![the sixteen displays](docs/screenshots/neon-shop-displays.jpg)
+
 **In the Neon Quarter** the electromagnetic skateboard is there too, in neon colours: single boards floating over a magenta and cyan pad with a hologram pylon (two floating rings) and stations (a platform with edge lights, four boards in a row, an arch of light tubes), placed on about one side in seven and one in fourteen of the slots (`neonHover`, `neonHoverDock` in `src3d/env_neon.js`), with the same disc. The board itself was made more sophisticated for both zones (`RunnerSprite.boardParts`: a carbon deck with kicked nose and tail, light bars along the edges, a guide line and chevrons, two lit side fins, a front sensor, three levitation coils under the deck, an underglow slab, a rear engine block with two nozzles) and a ridden board floats on a **magnetic field**: a soft glowing disc on the road, a cyan ring that breathes and swells on the beat, a fading light trail behind. The vehicles belong to Saint-Gilles and the Neon Quarter: leaving them puts the runner back on foot. ![board in the neon quarter](docs/screenshots/board-neon.jpg)
 
 None of your uploaded pictures was changed: the board's rear, the swirl disc, the trees, the avatar and the rest are used as they were.
@@ -109,7 +115,7 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 index.html (3D game), 2d.html (classic 2D), 3d.html (redirect to index.html), style.css
 src/audio.js    sound: the music track + beat clock, synthesised effects, mute
 assets/         music.mp3 (the track)
-src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market/neon/tram (+ neon_art / neon_assets, tram_art, blossom_sprite + blossom_assets, board_art + board_assets), runner_sprite + avatar_assets (the artwork avatar), tree_sprite + tree_assets (the artwork trees), ui_assets (the menu-panel artwork), runner3d (the 3D model), items3d, fx3d, signs3d, renderer3d, main3d
+src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market/neon/tram (+ neon_art / neon_assets, tram_art, blossom_sprite + blossom_assets, board_art + board_assets, neon_shops), runner_sprite + avatar_assets (the artwork avatar), tree_sprite + tree_assets (the artwork trees), ui_assets (the menu-panel artwork), runner3d (the 3D model), items3d, fx3d, signs3d, renderer3d, main3d
 vendor/         three.min.js (Three.js r186)
 tools/preview3d.html  dev page that renders one 3D module in isolation
 tests/qa3d_coins.js   regression test: coin pickup (coins vanish at once, count once, can't be re-collected, pool reuse, both branches, restart)

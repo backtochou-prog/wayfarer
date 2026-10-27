@@ -244,6 +244,26 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('the third set of materials (17 pictures in one alpha atlas, 1024 px wide) loads and is on 17 new neon props sharing one material; every one of them is placed by the street layout',
     M3.loaded && M3.cells === 17 && M3.mats === 1 && Object.values(M3.props).every(n => n === 1) && M3.unused.length === 0, JSON.stringify(M3));
 
+  // ================================================================ 3b2. the neon shops: real windows, each showing a different display
+  const Sh = await pg.evaluate(() => {
+    const out = {}, P = ENV3D.neon.shopPanes, names = Object.keys(P); out.names = names; out.panes = P;
+    out.unique = names.every(n => new Set(P[n]).size === P[n].length && P[n].length >= 3);                       // no two panes of a shop show the same display
+    const sets = names.map(n => P[n].join()); out.differentShops = new Set(sets).size === names.length;
+    const all = new Set(); for (const n of names) for (const c of P[n]) all.add(c); out.displaysUsed = all.size;
+    const mat = NeonShopArt.material(), cv = mat.map.image; out.atlas = { canvas: cv instanceof HTMLCanvasElement, w: cv.width, h: cv.height, cells: NeonShopArt.DISPLAYS.length };
+    // each shop is textured panes (one quad per pane on one shared material) plus lit parts; the panes carry the intended cell of the atlas
+    out.props = {}; for (const n of names) { const m = ENV3D.neon.props[n](); const uv = m.sprite.attributes.uv.array, cells = []; for (let q = 0; q < uv.length; q += 8) { const col = Math.floor(uv[q] * 4), row = 3 - Math.floor(uv[q + 1] * 4); cells.push(row * 4 + col); } out.props[n] = { quads: cells.length, matches: cells.join() === P[n].join(), shared: m.material() === mat, merged: !!m.merged }; }
+    // the street uses all of the shops, never the same one twice in a row on a side
+    const used = new Set(); let same = 0, pairs = 0, prev = { '-1': null, '1': null };
+    for (let i = 0; i < 4000; i++) { for (const side of [-1, 1]) { const q = ENV3D.neon.layout(i, rnd).find(x => names.includes(x.prop) && Math.sign(x.x) === side); if (q) { used.add(q.prop); if (prev[side]) { pairs++; if (prev[side] === q.prop) same++; } prev[side] = q.prop; } else prev[side] = null; } }
+    out.used = [...used].sort(); out.same = same; out.pairs = pairs;
+    return out;
+  });
+  T('the neon shops have real windows, each pane a different display: ' + Sh.names.length + ' shops, 3-4 panes each, no two panes of a shop alike, no two shops alike, ' + Sh.displaysUsed + ' of the 16 displays used (dress, sneakers, bottles, plant, cupcakes, TV, vinyl, sunglasses, cocktails, ramen, fish tank, lamp, books, balloons, camera, hats)',
+    Sh.names.length >= 6 && Sh.unique && Sh.differentShops && Sh.displaysUsed === 16, JSON.stringify({ panes: Sh.panes, used: Sh.displaysUsed }));
+  T('the displays are drawn at start-up on one canvas atlas (' + Sh.atlas.w + ' x ' + Sh.atlas.h + ', ' + Sh.atlas.cells + ' cells, no image file); each shop is one textured quad per pane on the shared material, showing the intended display; the street uses every shop and never the same one twice in a row on a side (' + Sh.same + ' of ' + Sh.pairs + ')',
+    Sh.atlas.canvas && Sh.atlas.w === 512 && Sh.atlas.h === 640 && Sh.atlas.cells === 16 && Object.values(Sh.props).every(p => p.matches && p.shared && p.merged && p.quads >= 3) && Sh.used.length === Sh.names.length && Sh.same === 0 && Sh.pairs > 20, JSON.stringify({ props: Sh.props, used: Sh.used, same: Sh.same, pairs: Sh.pairs }));
+
   // ================================================================ 3c. the tram street: a sunset district from the user's street photos
   const Ts = await pg.evaluate(async () => {
     const out = { bad: [], maxStep: 0, mid: 0, ends: 0, ids: [] }, w = new World(TRACK); w.extend(70000);
