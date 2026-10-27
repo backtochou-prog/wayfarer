@@ -298,18 +298,17 @@ class Renderer {
     c.fillRect(x, y + 7, 3, 3); c.fillRect(x + 9, y + 7, 3, 3);              // wheels
   }
 
-  // the indicator over a parked scooter or a station (g.scooterHint, placed by Renderer3D): a bobbing plate with a scooter and what to press (E, or TAP on a touch device), a pointer down
-  // at the scooter. Pressing E or tapping / clicking it gets on (Game.mount). It fades in from 70 m and is clearest when close.
+  // the indicator for a parked scooter or a station (g.scooterHint, placed by Renderer3D): not a sign, just a translucent lime ring on the ground right under it, rippling outwards, with what to
+  // press (E, or TAP on a touch device) in faint letters below. Pressing E or tapping / clicking the ring (or the scooter above it) gets on (Game.mount). It is armed from 140 m ahead to 60 m behind, and pinned low on its side once the scooter is behind the camera.
   drawScooterHint(g) {
     const h = g.scooterHint; if (!h || g.riding) return;
-    const c = this.ctx, bob = Math.round(Math.sin(g.time * 5) * 1.5), a = Math.max(0.55, Math.min(1, 1.3 - h.ahead / 90)), label = g.touch ? 'TAP' : 'E', w = 8 + 13 + 4 + textW(label, 1) + 2, hh = 14, x = Math.round(h.x - w / 2), y = Math.round(h.y - hh - 5) + bob;
-    c.globalAlpha = a;
-    c.fillStyle = C.ink; c.fillRect(x - 1, y - 1, w + 2, hh + 2); c.fillStyle = C.plum; c.fillRect(x, y, w, hh);
-    c.fillStyle = '#7ddc3a'; c.fillRect(x, y, w, 1); c.fillRect(x, y + hh - 1, w, 1);                       // lime rim: the scooters are lime
-    this.scooterGlyph(x + 4, y + 2, '#7ddc3a'); this.txt(label, x + 21, y + 5, C.bone, 1);
-    c.fillStyle = C.ink; for (let i = 0; i < 4; i++) c.fillRect(Math.round(h.x) - 3 + i, y + hh + 1 + i, 7 - 2 * i, 1);   // the pointer (shadow)
-    c.fillStyle = '#7ddc3a'; for (let i = 0; i < 3; i++) c.fillRect(Math.round(h.x) - 2 + i, y + hh + 1 + i, 5 - 2 * i, 1);
-    c.globalAlpha = 1;
+    const c = this.ctx, a = Math.max(0.4, Math.min(1, 1.3 - Math.abs(h.ahead) / (h.ahead < 0 ? 80 : 130))), label = g.touch ? 'TAP' : 'E', t = (g.time * 0.9) % 1;
+    c.save(); c.beginPath(); c.ellipse(h.x, h.y, h.rx, h.ry, 0, 0, 6.2832); c.fillStyle = '#7ddc3a'; c.globalAlpha = (h.pinned ? 0.3 : 0.22) * a; c.fill();                          // a soft disc
+    c.lineWidth = 1; c.strokeStyle = '#b6ff7a'; c.globalAlpha = 0.75 * a; c.beginPath(); c.ellipse(h.x, h.y, h.rx, h.ry, 0, 0, 6.2832); c.stroke();             // the ring
+    for (let k = 0; k < 2; k++) { const u = (t + k * 0.5) % 1; c.globalAlpha = 0.6 * a * (1 - u); c.beginPath(); c.ellipse(h.x, h.y, h.rx * (0.4 + 0.9 * u), h.ry * (0.4 + 0.9 * u), 0, 0, 6.2832); c.stroke(); }   // two ripples going out
+    c.restore();
+    const tx = Math.round(h.x - textW(label, 2) / 2), ty = Math.round(h.y + h.ry + 3);
+    c.globalAlpha = 0.8 * a; this.txt(label, tx, ty, '#d8ffb0', 2); c.globalAlpha = 1;
   }
 
   drawHud(g) {

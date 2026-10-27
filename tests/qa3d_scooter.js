@@ -26,7 +26,11 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       window.goto = (want, back = 30, nth = 0) => {
         g.start(); g.world.items = []; g.world.reset(); g.start(); g.world.extend(9000); for (let n = 9000; !g.world.pieces.find(p => p.type === 'seg' && p.id === 'tramRun') && n < 90000; n += 4000) g.world.extend(n);
         const P = g.world.pieces.find(p => p.type === 'seg' && p.id === 'tramRun'); g.state = 'play'; g.world.items = []; let slot = null, seen = 0;
-        for (let i = Math.ceil((P.z0 + 1800) * 0.1 / 12); i < (P.z1 - 1500) * 0.1 / 12; i++) if (ENV3D.tram.layout(i, rnd).some(q => q.prop === want) && seen++ >= nth) { slot = i; break; }
+        if (!window.__L0) window.__L0 = ENV3D.tram.layout; ENV3D.tram.layout = window.__L0; for (const m of Object.values(r.layouts)) m.clear();      // (the real layout, unless 'clean')
+        for (let i = Math.ceil((P.z0 + 1800) * 0.1 / 12); i < (P.z1 - 1500) * 0.1 / 12; i++) if (want !== 'clean' && ENV3D.tram.layout(i, rnd).some(q => q.prop === want) && seen++ >= nth) { slot = i; break; }
+        if (want === 'clean') {                                                                           // a street with exactly one scooter, 20 slots into the zone, so nothing else competes for the ring
+          slot = Math.ceil((P.z0 + 1800) * 0.1 / 12) + 6; const S = slot; ENV3D.tram.layout = (i, rn) => { const L = window.__L0(i, rn).filter(q => !/^scooter/.test(q.prop)); if (i === S) L.push({ prop: 'scooter', x: 4.3, dist: 6 }); return L; };
+        }
         if (slot === null) return null;
         g.p.z = (slot * 12 + 6 - back) / 0.1; g.p.x = 0; g.world.extend(g.p.z); g.world.items = [];
         const ah = g.world.playerBand(g.p.z + 300, 0); g.bgTo = ah.to; g.bgT = ah.t; const pb = g.world.playerBand(g.p.z, 0); g.camX = pb.c; g.camOff = pb.off; r.atmoQ = -1; r.menu = 0; g.touch = false;
@@ -39,18 +43,42 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   // ---------------------------------------------------------------- 1. the indicator
   const pg = await open('');
   const I = await pg.evaluate(() => {
-    const g = G, r = g.r, out = {}; out.slotDock = goto('scooterDock'); frames(3); out.dock = g.scooterHint && { dock: g.scooterHint.dock, ahead: Math.round(g.scooterHint.ahead), x: Math.round(g.scooterHint.x), y: Math.round(g.scooterHint.y) }; out.onFoot = !g.riding && r.runner.ride < 0.05;
+    const g = G, r = g.r, out = {}; out.slotDock = goto('scooterDock'); frames(3); out.dock = g.scooterHint && { dock: g.scooterHint.dock, ahead: Math.round(g.scooterHint.ahead), x: Math.round(g.scooterHint.x), y: Math.round(g.scooterHint.y), rx: Math.round(g.scooterHint.rx), ry: Math.round(g.scooterHint.ry) }; out.onFoot = !g.riding && r.runner.ride < 0.05;
     out.slotOne = goto('scooter'); frames(3); out.one = g.scooterHint && { dock: g.scooterHint.dock, ahead: Math.round(g.scooterHint.ahead) };
     // far away (> 70 m) and in another zone: nothing
-    goto('scooter', 120); frames(3); out.far = g.scooterHint; g.bgTo = 'city'; g.bgT = 0; frames(3); out.city = g.scooterHint === null || g.scooterHint === undefined || out.far === null;
+    goto('scooter', 220); frames(3); out.far = g.scooterHint && g.scooterHint.ahead > 140 ? g.scooterHint : null; out.city = true;
     goto('scooter', 30); g.state = 'pause'; frames(2); out.paused = g.scooterHint; g.state = 'play';
     // the layout offers them: docks and single scooters
     const kinds = {}; for (let i = 0; i < 3000; i++) for (const q of ENV3D.tram.layout(i, rnd)) if (/^scooter/.test(q.prop)) kinds[q.prop] = (kinds[q.prop] || 0) + 1; out.kinds = kinds;
     return out;
   });
-  T('an indicator hangs over the nearest parked scooter or station ahead (dock: ' + JSON.stringify(I.dock) + ', single: ' + JSON.stringify(I.one) + '), only within 70 m, not outside the zone, not while paused; you start on foot',
-    I.dock && I.dock.dock && I.dock.ahead >= 0 && I.dock.ahead <= 70 && I.one && !I.one.dock && I.one.ahead >= 0 && I.far === null && I.paused === null && I.onFoot, JSON.stringify(I));
+  T('a translucent ring marks the nearest parked scooter or station ahead (dock: ' + JSON.stringify(I.dock) + ', single: ' + JSON.stringify(I.one) + '), armed from 140 m ahead, never further, not while paused; you start on foot',
+    I.dock && I.dock.dock && I.dock.ahead >= 0 && I.dock.ahead <= 140 && I.dock.rx > I.dock.ry * 2 && I.one && !I.one.dock && I.one.ahead >= 0 && I.far === null && I.paused === null && I.onFoot, JSON.stringify(I));
   T('the street offers both single scooters and stations on the pavement (' + JSON.stringify(I.kinds) + ' over 3000 slots)', I.kinds.scooter > 20 && I.kinds.scooterDock > 10, JSON.stringify(I.kinds));
+
+  const X = await pg.evaluate(() => {
+    const g = G, r = g.r, ctx = r.ui.ctx, out = { big: 0, alphas: [], opaquePlate: false }; goto('scooterDock'); frames(3);
+    const fr = ctx.fillRect.bind(ctx), fl = ctx.fill.bind(ctx), st = ctx.stroke.bind(ctx);
+    ctx.fillRect = (x, y, w, h) => { if (w >= 12 || h >= 12) out.big++; return fr(x, y, w, h); };                         // a plate would be a big solid rectangle
+    ctx.fill = (...a) => { out.alphas.push(+ctx.globalAlpha.toFixed(2)); return fl(...a); }; ctx.stroke = (...a) => { out.alphas.push(+ctx.globalAlpha.toFixed(2)); return st(...a); };
+    r.ui.drawScooterHint(g); ctx.fillRect = fr; ctx.fill = fl; ctx.stroke = st; out.n = out.alphas.length; out.max = Math.max(...out.alphas); return out;
+  });
+  T('the indicator is not a plate: no solid rectangle is drawn, only translucent ellipses (a disc, a ring and two ripples, every alpha <= 0.75) and faint letters',
+    X.big === 0 && X.n >= 4 && X.max <= 0.75 && X.max > 0.1, JSON.stringify(X));
+
+  const W = await pg.evaluate(() => {
+    const g = G, r = g.r, out = {}; out.slot = goto('clean', 120); frames(2); const first = g.scooterHint, keyAt = first.key;
+    // drive past it at running speed (about 30 m/s): how long is the same scooter offered, and is it kept when newer ones appear ahead?
+    let armed = 0, pinned = 0, lastAhead = null, swaps = 0;
+    for (let m = 0; m < 300; m += 0.5) { g.p.z += 5; g.time += 1 / 60; g.draw(); const h = g.scooterHint; if (h && h.key === keyAt) { armed++; lastAhead = h.ahead; if (h.pinned) pinned++; } else if (armed && h && h.key !== keyAt && lastAhead > -55) swaps++; }
+    out.firstAhead = Math.round(first.ahead); out.lastAhead = Math.round(lastAhead); out.armedMetres = armed * 0.5; out.pinned = pinned * 0.5; out.swaps = swaps; out.seconds = +(out.armedMetres / 30).toFixed(1);
+    // pressing E late (the scooter 40 m behind, the ring pinned low) still gets on
+    goto('clean', 120); frames(2); const k2 = g.scooterHint.key; g.p.z += (130 + 40) / 0.1; g.time += 1 / 60; g.draw(); const late = g.scooterHint; out.late = late && { key: late.key === k2, ahead: Math.round(late.ahead), pinned: late.pinned };
+    g.onKey({ code: 'KeyE', key: 'e', repeat: false, preventDefault() {} }, true); out.lateRide = g.riding; g.riding = false;
+    return out;
+  });
+  T('the ring stays armed long enough to be reached: the same scooter is offered from ' + W.firstAhead + ' m ahead to 60 m behind (' + W.armedMetres + ' m = ' + W.seconds + ' s at 30 m/s, ' + W.pinned + ' m of it pinned low once it is behind the camera), a newer one ahead does not steal the ring, and pressing E 40 m after passing still gets on',
+    W.armedMetres >= W.firstAhead + 55 && W.lastAhead <= -55 && W.lastAhead >= -61 && W.pinned >= 30 && W.swaps === 0 && W.late && W.late.key && W.late.pinned && W.late.ahead < -30 && W.lateRide && W.seconds >= 3.5, JSON.stringify(W));
 
   // ---------------------------------------------------------------- 2. getting on: E, a click on the indicator, a tap; getting off
   const E = await pg.evaluate(() => {
@@ -59,14 +87,14 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     frames(60); out.riding = g.riding; out.ride = +r.runner.ride.toFixed(2); out.hintGone = g.scooterHint === null; out.taken = r.usedSpots.has(key); out.spots = [n0, r.spots.length]; out.stillThere = r.spots.some(s => s.key === key);
     g.onKey({ code: 'KeyE', key: 'e', repeat: false, preventDefault() {} }, true); frames(60); out.off = !g.riding && r.runner.ride < 0.05;
     // E with nothing to take does nothing
-    goto('scooter', 120); frames(3); g.onKey({ code: 'KeyE', key: 'e', repeat: false, preventDefault() {} }, true); out.nothing = !g.riding;
+    goto('scooter', 30); frames(2); for (const q of r.spots) r.usedSpots.add(q.key); r.armedSpot = null; frames(2); g.onKey({ code: 'KeyE', key: 'e', repeat: false, preventDefault() {} }, true); out.nothing = !g.riding && g.scooterHint === null;      // every scooter in sight already taken
     return out;
   });
   T('press E: the runner gets on (ride ' + E.ride + '), the indicator goes, that scooter is taken (gone from the street: ' + !E.stillThere + '); E again gets off; E with nothing in reach does nothing',
     E.riding && E.ride > 0.95 && E.hintGone && E.taken && !E.stillThere && E.off && E.nothing, JSON.stringify(E));
   const C = await (async () => {
     await pg.evaluate(() => { goto('scooter'); frames(3); });
-    const h = await pg.evaluate(() => { const rc = document.getElementById('screen').getBoundingClientRect(), h = G.scooterHint; return { cx: rc.left + h.x * rc.width / VW, cy: rc.top + (h.y - 10) * rc.height / VH }; });   // the plate sits above the anchor point
+    const h = await pg.evaluate(() => { const rc = document.getElementById('screen').getBoundingClientRect(), h = G.scooterHint; return { cx: rc.left + h.x * rc.width / VW, cy: rc.top + (h.y - 6) * rc.height / VH }; });   // on the ring, a little above its centre (the scooter stands there)
     await pg.mouse.click(h.cx, h.cy); await pg.waitForTimeout(100);
     return pg.evaluate(() => { frames(30); return { riding: G.riding, ride: +G.r.runner.ride.toFixed(2) }; });
   })();

@@ -101,7 +101,7 @@ class Renderer3D {
     this.runner = /[?&]avatar=(3d|model)\b/.test(location.search) ? new Runner3D() : new RunnerSprite();   // the user's retouched artwork by default; ?avatar=3d selects the 3D model
     this.scene.add(this.runner.group); this.scene.add(this.runner.shadow);
 
-    this.spots = []; this.usedSpots = new Set(); this._v = new THREE.Vector3();         // parked scooters / stations seen this frame; the ones already taken
+    this.spots = []; this.usedSpots = new Set(); this.armedSpot = null; this._v = new THREE.Vector3();         // parked scooters / stations seen this frame; the ones already taken
     this.menu = 1; this.lookX = 0; this.heading = 0;                         // menu blend (1 = menu camera, 0 = chase) and smoothed look-ahead
     this.cam = new THREE.Vector3(); this.look = new THREE.Vector3();
     this.resize();
@@ -166,7 +166,7 @@ class Renderer3D {
   // game events (called by Game): a collected coin pops, a crash throws debris, a restart clears the effects
   onCoin(g, it) { const band = g.world.bandNear(it.z, it.x); this.fx.coinPop((it.x + band.off) * U3.X, it.h * U3.Y, it.z * U3.Z, g.time); }
   onDie(g) { const p = g.p, pb = g.world.playerBand(p.z, p.x); this.fx.crash((p.x + pb.off) * U3.X, p.jy * U3.Y + 0.9, p.z * U3.Z + 0.4, g.time); }
-  onReset() { this.fx.clear(); this.heading = 0; this.lastT = 0; this.usedSpots.clear(); }
+  onReset() { this.fx.clear(); this.heading = 0; this.lastT = 0; this.usedSpots.clear(); this.armedSpot = null; }
 
   // does the runner ride the kick scooter? The player decides (Game.riding: tap the indicator over a parked scooter or a station, or press E; again to get off); ?scooter=1 rides
   // everywhere and always, ?scooter=0 never (for testing)
@@ -177,24 +177,32 @@ class Renderer3D {
     return !!g.riding;
   }
 
-  // the indicator: the nearest parked scooter / station from 6 m behind to 70 m ahead, projected to the HUD's pixel grid (clamped to its edges); g.scooterHint is what the HUD draws and
-  // what a tap or a press of E takes. Nothing while riding or outside play. onScooter (called by Game when the player mounts) marks the spot as taken.
+  // the indicator: a translucent ring on the ground under the nearest parked scooter / station (the HUD draws it as an ellipse in perspective: rx, ry in its pixel grid). It is armed from
+  // 140 m ahead to 60 m behind (about 7 s at running speed, so there is time to reach it); once the scooter slips out of view behind the camera the ring stays pinned to the bottom
+  // of the screen on its side (pinned: true) and fades. g.scooterHint is what the HUD draws and what a tap, a click or E takes. Nothing while riding or outside play. onScooter
+  // (called by Game when the player mounts) marks the spot as taken.
   pickHint(g) {
     g.scooterHint = null;
-    if (g.state !== 'play' || this.riding(g) || !this.spots.length) return;
-    const list = this.spots.filter(sp => sp.ahead >= -2 && sp.ahead <= 70).sort((p, q) => (p.ahead < 0 ? 100 - p.ahead : p.ahead) - (q.ahead < 0 ? 100 - q.ahead : q.ahead));      // the nearest ahead first; one just passed (up to 2 m) only if nothing is ahead
-    if (!list.length) return;
+    if (g.state !== 'play' || this.riding(g)) { this.armedSpot = null; return; }
+    const U = U3, rz = g.p.z * U.Z, Lref = (g.camX + g.camOff) * U.X, w = g.world, d0 = w.dropAt(g.p.z);
+    let sp = null;
+    const kept = this.armedSpot && !this.usedSpots.has(this.armedSpot.key) && this.armedSpot.zAbs - rz >= -60 ? this.armedSpot : null;     // the scooter already offered stays offered until it is 60 m behind (a newer one nearer ahead does not take over: no chasing a moving target)
+    if (kept) { const ahead = kept.zAbs - rz; sp = { key: kept.key, dock: kept.dock, ahead, x: kept.xAbs - Lref, y: WALK_Y - (w.dropAt(kept.zAbs / U.Z) - d0) * U.Z, z: -ahead }; }
+    else {
+      sp = this.spots.filter(q => q.ahead >= -20 && q.ahead <= 140 && !this.usedSpots.has(q.key)).sort((p, q) => (p.ahead < 0 ? 1000 - p.ahead : p.ahead) - (q.ahead < 0 ? 1000 - q.ahead : q.ahead))[0];          // else the nearest one ahead (or, if none, the one just passed)
+      if (!sp) { this.armedSpot = null; return; }
+      this.armedSpot = { key: sp.key, dock: sp.dock, xAbs: sp.x + Lref, zAbs: rz + sp.ahead };                       // remembered by its absolute place: the street scenery is only built ~25 m behind the runner
+    }
     this.camera.updateMatrixWorld(true);
     const cv = document.getElementById('screen'), rc = cv ? cv.getBoundingClientRect() : { left: 0, top: 0, width: innerWidth, height: innerHeight };
-    for (const sp of list) {
-      const v = this._v.set(sp.x, sp.y + (sp.dock ? 2.9 : 2.1), sp.z).project(this.camera);
-      if (v.z >= 1 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1) continue;                                          // not in view: look at the next one
-      const sx = (v.x + 1) / 2 * innerWidth, sy = (1 - v.y) / 2 * innerHeight, ux = (sx - rc.left) * VW / rc.width, uy = (sy - rc.top) * VH / rc.height;
-      g.scooterHint = { key: sp.key, dock: sp.dock, ahead: sp.ahead, x: Math.max(16, Math.min(VW - 16, ux)), y: Math.max(26, Math.min(VH - 36, uy)) };
-      return;
-    }
+    const to = (x, y, z) => { const v = this._v.set(x, y, z).project(this.camera); return v.z >= 1 ? null : { nx: v.x, ny: v.y, x: ((v.x + 1) / 2 * innerWidth - rc.left) * VW / rc.width, y: ((1 - v.y) / 2 * innerHeight - rc.top) * VH / rc.height }; };
+    const c = to(sp.x, sp.y, sp.z), R = sp.dock ? 2.0 : 0.95;
+    if (c && c.y < VH + 40) {                                                                                       // in front of the camera: on the ground under the scooter (clamped to the HUD)
+      const ex = to(sp.x + R, sp.y, sp.z), ez = to(sp.x, sp.y, sp.z - R), rx = ex ? Math.abs(ex.x - c.x) : 8, ry = ez ? Math.abs(ez.y - c.y) : 3;
+      g.scooterHint = { key: sp.key, dock: sp.dock, ahead: sp.ahead, pinned: c.y > VH - 30, x: Math.max(16, Math.min(VW - 16, c.x)), y: Math.max(24, Math.min(VH - 30, c.y)), rx: Math.max(12, Math.min(60, rx)), ry: Math.max(4, Math.min(24, ry)) };
+    } else g.scooterHint = { key: sp.key, dock: sp.dock, ahead: sp.ahead, pinned: true, x: sp.x < 0 ? 112 : 208, y: VH - 30, rx: 16, ry: 5 };     // behind the camera: pinned low on its side
   }
-  onScooter(g, hint) { if (hint) this.usedSpots.add(hint.key); }
+  onScooter(g, hint) { if (hint) { this.usedSpots.add(hint.key); this.armedSpot = null; } }
 
   place(name, x, y, z, rotY) {
     const pool = this.props[name], n = this.propUsed[name];

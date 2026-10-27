@@ -40,12 +40,12 @@ class Game {
     cv.addEventListener('pointerleave', () => { this.mouse.x = this.mouse.y = -1; this.mouse.down = false; });
     cv.addEventListener('contextmenu', e => e.preventDefault());
     const zone = () => TOUCH.find(c => (c.id !== 'scooter' || this.riding) && this.mouse.x >= c.x && this.mouse.x <= c.x + c.w && this.mouse.y >= c.y && this.mouse.y <= c.y + c.h);
-    const overHint = () => { const h = this.scooterHint, m = this.mouse; return !!h && !this.riding && Math.abs(m.x - h.x) <= 18 && Math.abs(m.y - h.y) <= 16; };      // the indicator over a parked scooter, with a generous touch area
+    const overHint = () => { const h = this.scooterHint, m = this.mouse; return !!h && !this.riding && Math.abs(m.x - h.x) <= h.rx + 22 && m.y >= h.y - 60 && m.y <= h.y + h.ry + 18; };      // the ring under a parked scooter and the scooter above it, with a very generous touch area (it passes at running speed)
     cv.addEventListener('pointerdown', e => {
       at(e); this.mouse.down = true;
       if (e.pointerType === 'touch') this.touch = true;
-      if (this.state === 'play' && overHint()) { this.mount(); return; }                      // a tap or click on the indicator gets on the scooter
       const c = this.state === 'play' && this.touch && zone();
+      if (!c && this.state === 'play' && overHint()) { this.mount(); return; }                // a tap or click on the ring gets on the scooter (the touch buttons keep priority)
       if (c) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} this.hold(e.pointerId, c.id, true); }
     });
     cv.addEventListener('pointermove', e => { // sliding a finger between left and right keeps steering
