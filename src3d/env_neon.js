@@ -11,7 +11,7 @@ window.ENV3D = window.ENV3D || {};
   const STRIPES = [N.yellow, N.purple, N.teal, N.mag, N.blue, N.red];
 
   // a tall slab: facade plane at local x = 0, body toward +X, centred at z = zc; vertical glowing colour strips of different heights, like the towers of the picture
-  function tower(F, D, H, seed) {
+  function tower(F, D, H, seed, more) {
     const p = [Kit.box(D, H, F, D / 2, 0, 0, seed % 2 ? N.body : N.bodyB), Kit.box(D + 0.1, 0.5, F + 0.1, D / 2, 0, 0, N.base)];
     const n = 5, w = F / n;
     for (let i = 0; i < n; i++) {
@@ -21,6 +21,7 @@ window.ENV3D = window.ENV3D || {};
     }
     p.push(Kit.box(0.2, H * 0.98, 0.14, -0.04, 0, -F / 2 + 0.05, N.mag, { glow: true }), Kit.box(0.2, H * 0.98, 0.14, -0.04, 0, F / 2 - 0.05, N.teal, { glow: true }));  // lit corners
     p.push(Kit.box(D * 0.7, 0.3, F * 0.8, D / 2, H, 0, N.base), Kit.box(0.14, 0.14, F * 0.8, 0.0, H + 0.1, 0, N.mag, { glow: true }));   // roof cap with a magenta rim
+    if (more) for (const q of more) p.push(q);
     return Kit.merge(p);
   }
   // a tower whose facade carries a panel of the user's picture (in front of the glowing strips, between the lit corners)
@@ -221,8 +222,15 @@ window.ENV3D = window.ENV3D || {};
   }
   // the hotel: a tower of the quarter, its entrance under the burlap vault (the arch of the user's photo with the rose), a neon HOTEL sign over it, a blue glass door (the blue panel)
   const hotel = () => {
-    const F = 11, D = 9, H = 30, m = tower(F, D, H, 3), vw = 7.4, vh = vw / A4("vault").ar, sw = 6.4, sh = sw / A4('hotel').ar;
-    const door = NeonArt.panel4('panelBlue', -0.36, -1.7, 0.1, 0.15, 3.4), vault = NeonArt.panel4('vault', -0.6, -vw / 2 - 0.8, vw / 2 - 0.8, 3.3, 3.3 + vh), sign = NeonArt.panel4('hotel', -0.4, -sw / 2, sw / 2, 3.3 + vh + 0.5, 3.3 + vh + 0.5 + sh);
+    // the LOUNGE picture is no longer a flat sign: it is the front of a low BALCONY that comes out of the wall above the hotel's door (a plaster slab 2.6 m deep, side walls, a low parapet behind the
+    // picture, the picture standing on the front edge, a lit underside), so it is seen in depth as the street goes by
+    const F = 11, D = 9, H = 30, vw = 6.4, vh = vw / A4('vault').ar, sw = 6.4, sh = sw / A4('hotel').ar, BD = 2.6, BY = 3.5, BZ = -0.8, PLASTER = '#e6e0d2', PLASTER_D = '#b9b1a0';
+    const bal = [Kit.box(BD, 0.28, vw + 0.5, -BD / 2, BY, BZ, PLASTER), Kit.box(BD - 0.1, 0.06, vw + 0.4, -BD / 2, BY - 0.07, BZ, gold, { glow: true }),                               // the slab and a lit underside
+      Kit.box(0.3, 1.2, vw + 0.5, -BD + 0.15, BY + 0.28, BZ, PLASTER_D), Kit.box(BD, 1.2, 0.3, -BD / 2, BY + 0.28, BZ - vw / 2 - 0.1, PLASTER), Kit.box(BD, 1.2, 0.3, -BD / 2, BY + 0.28, BZ + vw / 2 + 0.1, PLASTER),   // front (behind the picture) and side walls
+      Kit.box(BD + 0.1, 0.12, 0.42, -BD / 2, BY + 1.48, BZ - vw / 2 - 0.1, PLASTER_D), Kit.box(BD + 0.1, 0.12, 0.42, -BD / 2, BY + 1.48, BZ + vw / 2 + 0.1, PLASTER_D), Kit.box(0.42, 0.12, vw + 0.6, -BD + 0.15, BY + 1.48, BZ, PLASTER_D),   // the coping
+      Kit.box(0.3, 3.5, 0.3, -BD + 0.4, 0, BZ - vw / 2 + 0.4, PLASTER_D), Kit.box(0.3, 3.5, 0.3, -BD + 0.4, 0, BZ + vw / 2 - 0.4, PLASTER_D)];                              // two pillars under it
+    const m = tower(F, D, H, 3, bal);
+    const door = NeonArt.panel4('panelBlue', -0.36, -1.7, 0.1, 0.15, 3.4), vault = NeonArt.panel4('vault', -BD - 0.03, BZ - vw / 2, BZ + vw / 2, BY + 0.28, BY + 0.28 + vh), sign = NeonArt.panel4('hotel', -0.4, -sw / 2, sw / 2, BY + 0.28 + vh + 0.6, BY + 0.28 + vh + 0.6 + sh);
     return { merged: m, sprite: TramArt.join([door, vault, sign]), material: mat4 };
   };
   const LAMPS = ['neonMoroccanLamp', 'neonPendantLamp', 'neonLanternPierced', 'neonChandLamp', 'neonPillarLamp', 'neonLightbox'];
