@@ -170,7 +170,7 @@ class Game {
     if (this.sfx) this.sfx.tick(this, dt);                                          // beat clock, music volume and state-change sounds (also while paused)
     if (this.state === 'pause') return;
     this.time += dt;
-    if (this.riding && !(this.bgTo === 'tram' && this.bgT > 0.25)) this.riding = false;          // the scooters are Saint-Gilles's: getting out of the zone puts the runner back on foot
+    if (this.riding && !((this.bgTo === 'tram' || this.bgTo === 'neon') && this.bgT > 0.25)) this.riding = false;          // the vehicles belong to Saint-Gilles and the Neon Quarter: getting out of those zones puts the runner back on foot
     this.updateFx(dt);
     if (this.state === 'play') this.step(dt);
     else if (this.state === 'title') {

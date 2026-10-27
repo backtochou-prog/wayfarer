@@ -173,4 +173,28 @@ window.ENV3D = window.ENV3D || {};
       return out;
     },
   };
+
+  // ---- the electromagnetic skateboard in the Neon Quarter: single boards floating over a neon pad with a hologram pylon, and stations (a platform, four boards in a row, an arch of light tubes).
+  // The boards are the same sophisticated ones the runner rides (RunnerSprite.boardParts, here in magenta and cyan); the user's picture of the rear (BoardArt) is the engine ring behind each.
+  const hoverPal = { glow: N.mag, accent: N.teal };
+  const hoverBoard = (parts, sp, x, z, lift) => { for (const q of RunnerSprite.boardParts(x, lift, z, hoverPal)) parts.push(q); sp.push(BoardArt.plane(x, lift + 0.2, z + 0.7, 0.5)); };
+  Object.assign(ENV3D.neon.props, {
+    neonHover: () => { const p = [Kit.cyl(0.55, 0.6, 0.05, 0, 0, 0, N.base, { seg: 12 }), Kit.cyl(0.5, 0.5, 0.012, 0, 0.05, 0, N.mag, { seg: 12, glow: true }), Kit.cyl(0.38, 0.38, 0.012, 0, 0.062, 0, N.teal, { seg: 12, glow: true }),
+        Kit.box(0.06, 1.7, 0.06, 0.95, 0, 0, N.post), Kit.box(0.1, 0.1, 0.1, 0.95, 1.7, 0, N.teal, { glow: true }), Kit.cyl(0.32, 0.32, 0.01, 0.95, 1.95, 0, N.mag, { seg: 10, glow: true }), Kit.cyl(0.2, 0.2, 0.01, 0.95, 2.1, 0, N.teal, { seg: 10, glow: true })], sp = [];   // (a hologram pylon: two floating rings)
+      hoverBoard(p, sp, 0, 0, 0.1); return { merged: Kit.merge(p), sprite: BoardArt.join(sp), material: () => BoardArt.material() }; },
+    neonHoverDock: () => { const p = [Kit.box(1.5, 0.08, 6.6, 0.75, 0, 0, N.base), Kit.box(0.05, 0.02, 6.4, 0.2, 0.08, 0, N.mag, { glow: true }), Kit.box(0.05, 0.02, 6.4, 1.3, 0.08, 0, N.teal, { glow: true }),
+        Kit.box(0.14, 2.8, 0.14, 1.35, 0.08, -3.4, N.post), Kit.box(0.14, 2.8, 0.14, 1.35, 0.08, 3.4, N.post), Kit.box(0.1, 0.1, 6.9, 1.35, 2.9, 0, N.teal, { glow: true }), Kit.box(0.08, 0.08, 6.9, 1.35, 2.6, 0, N.mag, { glow: true })], sp = [];   // an arch of light tubes
+      for (let k = 0; k < 4; k++) hoverBoard(p, sp, 0.6, -2.4 + k * 1.6, 0.1); return { merged: Kit.merge(p), sprite: BoardArt.join(sp), material: () => BoardArt.material() }; },
+  });
+  // ... placed by wrapping the layout: a board on about one side of seven of the slots, a station on about one in fourteen (never on a landmark's side)
+  const layout0 = ENV3D.neon.layout, LMX = /^(neonRing|neonSpire|neonBillboard|neonHalo|neonBoardVortex|neonBoardSphere|neonBoardRings|neonBoardSpiral)$/;
+  ENV3D.neon.layout = (i, rnd) => {
+    const out = layout0(i, rnd);
+    for (const side of [-1, 1]) {
+      if (out.some(q => LMX.test(q.prop) && Math.sign(q.x) === side)) continue;
+      const k = i * 2 + (side > 0 ? 1 : 0), e = rnd(k, 70);
+      if (e < 0.07) out.push({ prop: 'neonHoverDock', x: side * 4.9, dist: 6 }); else if (e < 0.21) out.push({ prop: 'neonHover', x: side * 5.3, dist: 9.5 });
+    }
+    return out;
+  };
 })();

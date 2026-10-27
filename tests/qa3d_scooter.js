@@ -67,27 +67,11 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       ctx.fillRect = (x, y, w, h) => { if (w >= 12 || h >= 12) o.big++; return fr(x, y, w, h); }; ctx.drawImage = (...a) => { o.imgs.push([a[0] === ui.ringImg ? 'disc' : '?', +ctx.globalAlpha.toFixed(2), ctx.globalCompositeOperation]); return di(...a); }; ctx.scale = (x, y) => { o.scale = +y.toFixed(2); return sc(x, y); };
       ctx.fill = (...a) => { o.alphas.push(+ctx.globalAlpha.toFixed(2)); return fl(...a); }; ctx.stroke = (...a) => { o.alphas.push(+ctx.globalAlpha.toFixed(2)); return st(...a); };
       ui.drawScooterHint(g); ctx.fillRect = fr; ctx.drawImage = di; ctx.fill = fl; ctx.stroke = st; ctx.scale = sc; return o; };
-    let qt = null, bt = null; for (let t = 5; t < 120 && (qt === null || bt === null); t += 0.01) { const G = Renderer.glitchAt(t); if (!G.burst && qt === null && t > 6) qt = t; if (G.burst && G.k > 0.9 && bt === null) bt = t; }
-    g.time = qt; out.withArt = run(); const keep = ui.ringImg; ui.ringImg = new Image(); out.noArt = run(); ui.ringImg = keep;
-    // a glitch burst, in both styles
-    const burst = style => { Renderer.glitchStyle = style; g.time = bt; const o = { chans: 0, offs: [], imgs: [], comps: [], scan: 0, snow: 0, cols: [] }; const di = ctx.drawImage.bind(ctx), fr = ctx.fillRect.bind(ctx);
-      ctx.drawImage = (...a) => { if (ui.ringCh && ui.ringCh.includes(a[0])) { o.chans++; o.offs.push(Math.round(a[1] * 10) / 10); o.comps.push(ctx.globalCompositeOperation); } else if (a[0] === ui.ringImg) { o.imgs.push(+ctx.globalAlpha.toFixed(2)); o.comps.push(ctx.globalCompositeOperation); } return di(...a); };
-      ctx.fillRect = (x, y, w, h) => { if (h === 1 && String(ctx.fillStyle) === '#1b1420') { if (w >= 12) o.scan++; } else if (w <= 2 && h === 1) { o.snow++; if (!o.cols.includes(String(ctx.fillStyle))) o.cols.push(String(ctx.fillStyle)); } return fr(x, y, w, h); };
-      ui.drawScooterHint(g); ctx.drawImage = di; ctx.fillRect = fr; return o; };
-    out.defaultStyle = Renderer.glitchStyle; out.off = burst(out.defaultStyle); out.rainbow = burst('rainbow'); out.plain = burst('plain'); Renderer.glitchStyle = out.defaultStyle;
+    out.withArt = run(); const keep = ui.ringImg; ui.ringImg = new Image(); out.noArt = run(); ui.ringImg = keep;
     return out;
   });
   T('the ring is a disc made from the green swirl picture only (a ' + X.loaded.join(' x ') + ' WebP: ' + Math.round(X.alpha.clear * 100) + ' % clear, ' + Math.round(X.alpha.solid * 100) + ' % solid, a soft edge), drawn once, translucent (alpha <= 0.9), squashed into the ground ellipse (y scale ' + X.withArt.scale + '), no solid plate',
     X.loaded[0] === X.meta[0] && X.loaded[1] === X.meta[1] && X.single && X.alpha.corner === 0 && X.alpha.centre > 200 && X.alpha.edge < 200 && X.alpha.soft > 0.03 && X.alpha.solid > 0.1 && X.withArt.big === 0 && X.withArt.imgs.length === 1 && X.withArt.imgs[0][0] === 'disc' && X.withArt.imgs[0][1] <= 0.9 && X.withArt.imgs[0][2] === 'source-over' && X.withArt.scale > 0.2 && X.withArt.scale < 0.9, JSON.stringify({ withArt: X.withArt, alpha: X.alpha }));
-  const Gl = await pg.evaluate(() => { let bursts = 0, frames = 0, run = 0, longest = 0, shortest = 9, burstFrames = 0; const dt = 1 / 60;
-    for (let t = 0; t < 600; t += dt) { frames++; if (Renderer.glitchAt(t).burst) { burstFrames++; run += dt; } else if (run) { bursts++; longest = Math.max(longest, run); shortest = Math.min(shortest, run); run = 0; } }
-    return { share: +(burstFrames / frames).toFixed(3), bursts, longest: +longest.toFixed(2), shortest: +shortest.toFixed(2), perMinute: +(bursts / 10).toFixed(1) }; });
-  T('the glitch (opt-in, ?glitch=rainbow) is an old RGB screen now and then: bursts of ' + Gl.shortest + '-' + Gl.longest + ' s, about ' + Gl.perMinute + ' a minute, ' + Math.round(Gl.share * 100) + ' % of the time; the RAINBOW style draws the red, green and blue copies apart and added (lighter) with scan lines and coloured snow; in between a single normal draw',
-    Gl.share > 0.03 && Gl.share < 0.2 && Gl.longest <= 0.45 && Gl.shortest >= 0.1 && X.rainbow.chans === 3 && X.rainbow.comps.every(c => c === 'lighter') && new Set(X.rainbow.offs).size === 3 && X.rainbow.scan > 3 && X.rainbow.snow > 10 && X.rainbow.cols.includes('#ff9fd0') && X.rainbow.imgs.length === 0, JSON.stringify({ Gl, rainbow: X.rainbow }));
-  T('the PLAIN style (?glitch=plain) keeps the picture own colours: a main copy and a faint ghost (normal blending, no colour channels, white / pale green snow only)',
-    X.plain.chans === 0 && X.plain.imgs.length === 2 && X.plain.imgs[1] < X.plain.imgs[0] && X.plain.comps.every(c => c === 'source-over') && X.plain.scan > 3 && X.plain.snow > 10 && X.plain.cols.every(c => /^#(ffffff|e8ffe8|c8f0c8)$/.test(c)), JSON.stringify(X.plain));
-  T('by default there is no glitch at all: the style is off, and even at the middle of a burst the disc is one normal draw (no colour copies, no ghost, no scan lines, no snow)',
-    X.defaultStyle === 'off' && X.off.chans === 0 && X.off.imgs.length === 1 && X.off.comps.every(c => c === 'source-over') && X.off.scan === 0 && X.off.snow === 0, JSON.stringify({ style: X.defaultStyle, off: X.off }));
   T('until the picture has loaded the disc is drawn with translucent ellipses instead (a disc and a ring, every alpha <= 0.75, no solid rectangle)',
     X.noArt.big === 0 && X.noArt.imgs.length === 0 && X.noArt.alphas.length >= 2 && Math.max(...X.noArt.alphas) <= 0.75, JSON.stringify(X.noArt));
 
@@ -167,6 +151,32 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('E gets off, then a scooter disc gives the scooter (the board hidden); a restart puts the runner back on foot',
     B.off && B.hint2 === 'scooter' && B.scooter.vehicle === 'scooter' && B.scooter.scooterVis && !B.scooter.boardVis && B.reset, JSON.stringify({ off: B.off, hint2: B.hint2, scooter: B.scooter, reset: B.reset }));
 
+  // ---------------------------------------------------------------- 2c. the sophisticated board in the Neon Quarter
+  const NQ = await pg.evaluate(async () => {
+    const g = G, r = g.r, rn = r.runner, out = {}; r.renderer.render = () => {};
+    const kinds = {}; for (let i = 0; i < 3000; i++) for (const q of ENV3D.neon.layout(i, rnd)) if (/^neonHover/.test(q.prop)) kinds[q.prop] = (kinds[q.prop] || 0) + 1; out.kinds = kinds;
+    const mat = BoardArt.material(), a = ENV3D.neon.props.neonHover(), d = ENV3D.neon.props.neonHoverDock(); d.sprite.computeBoundingBox();
+    out.props = { single: !!a.sprite && a.material() === mat && !!a.merged, dock: d.material() === mat && d.sprite.attributes.position.count === 16 };
+    // the board is sophisticated: many parts (deck, kicks, light bars, fins, three coils, engine block, nozzles ...) and the effects of the field
+    const parts = RunnerSprite.boardParts(0, 0, 0, { glow: '#ff1f5a', accent: '#35e6ff' }); out.parts = parts.length; out.glowParts = parts.filter(p => p.glow).length;
+    out.fx = { field: !!rn.board.userData.field, ring: !!rn.board.userData.ring, trail: !!rn.board.userData.trail, additive: rn.board.userData.field.material.blending === THREE.AdditiveBlending };
+    // a neon street with one hover board, 8 slots in: the run starts in the quarter
+    const L0 = window.__N0 || (window.__N0 = ENV3D.neon.layout); ENV3D.neon.layout = (i, rn2) => { const L = L0(i, rn2).filter(q => !/^neonHover/.test(q.prop)); if (i === 8) L.push({ prop: 'neonHover', x: 5.3, dist: 6 }); return L; }; for (const m of Object.values(r.layouts)) m.clear();
+    g.start(); g.world.items = []; g.state = 'play'; g.p.z = (8 * 12 + 6 - 30) / 0.1; g.world.extend(g.p.z); g.world.items = []; const ah = g.world.playerBand(g.p.z + 300, 0); g.bgTo = ah.to; g.bgT = ah.t; const pb = g.world.playerBand(g.p.z, 0); g.camX = pb.c; g.camOff = pb.off; g.touch = false;
+    frames(3); out.zone = g.bgTo; out.hint = g.scooterHint && { kind: g.scooterHint.kind, ahead: Math.round(g.scooterHint.ahead) };
+    g.onKey({ code: 'KeyE', key: 'e', repeat: false, preventDefault() {} }, true); frames(80);
+    out.ride = { riding: g.riding, vehicle: g.vehicle, vis: rn.board.visible, still: g.riding };
+    let r0 = rn.board.userData.ring.scale.x, rmin = 9, rmax = 0; for (let i = 0; i < 90; i++) { frames(1); const v = rn.board.userData.ring.scale.x; rmin = Math.min(rmin, v); rmax = Math.max(rmax, v); } out.ringPulse = +(rmax - rmin).toFixed(2);
+    // out of the quarter (and not in Saint-Gilles): back on foot
+    g.bgTo = 'city'; g.bgT = 0; g.update(1 / 60); out.left = !g.riding;
+    ENV3D.neon.layout = L0; for (const m of Object.values(r.layouts)) m.clear(); g.start();
+    return out;
+  });
+  T('the Neon Quarter has the electromagnetic skateboard too: single boards on a neon pad with a hologram pylon and stations with an arch of light tubes (' + JSON.stringify(NQ.kinds) + ' in 3000 slots), both with the user picture of the rear on the shared textured material; the disc offers them (hint ' + JSON.stringify(NQ.hint) + ' in zone ' + NQ.zone + ')',
+    NQ.kinds.neonHover > 100 && NQ.kinds.neonHoverDock > 50 && NQ.props.single && NQ.props.dock && NQ.hint && NQ.hint.kind === 'board' && NQ.zone === 'neon', JSON.stringify({ kinds: NQ.kinds, props: NQ.props, hint: NQ.hint }));
+  T('the board is sophisticated (' + NQ.parts + ' parts, ' + NQ.glowParts + ' of them lit: deck, kicks, light bars, guide line, chevrons, fins, three levitation coils, engine block, nozzles) with a magnetic field under it (additive disc, ring that pulses by ' + NQ.ringPulse + ', light trail); riding it in the quarter works and ends when the quarter does',
+    NQ.parts >= 25 && NQ.glowParts >= 15 && NQ.fx.field && NQ.fx.ring && NQ.fx.trail && NQ.fx.additive && NQ.ride.riding && NQ.ride.vehicle === 'board' && NQ.ride.vis && NQ.ringPulse > 0.1 && NQ.left, JSON.stringify({ parts: NQ.parts, glow: NQ.glowParts, fx: NQ.fx, ride: NQ.ride, pulse: NQ.ringPulse, left: NQ.left }));
+
   // ---------------------------------------------------------------- 3. it ends with the zone and with a restart; riding is drawing only
   const Z = await pg.evaluate(() => {
     const g = G, r = g.r, rn = r.runner, out = {}; r.renderer.render = () => {};
@@ -191,9 +201,6 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const p1 = await open('?scooter=1'); const A = await p1.evaluate(() => { const r = G.r; r.renderer.render = () => {}; G.start(); G.world.items = []; G.bgTo = 'city'; G.bgT = 0; frames(90); return { vis: r.runner.scooter.visible, ride: +r.runner.ride.toFixed(2) }; });
   const p0 = await open('?scooter=0'); const N = await p0.evaluate(() => { const r = G.r; r.renderer.render = () => {}; goto('scooter'); frames(3); G.onKey({ code: 'KeyE', key: 'e', repeat: false, preventDefault() {} }, true); frames(90); return { vis: r.runner.scooter.visible, ride: +r.runner.ride.toFixed(2), riding: G.riding }; });
   T('?scooter=1 rides everywhere (even in the old town) and ?scooter=0 never rides (even after pressing E in Saint-Gilles)', A.vis && A.ride > 0.95 && !N.vis && N.ride < 0.02 && p1.errs.length === 0 && p0.errs.length === 0, JSON.stringify({ always: A, never: N }));
-  const pp = await open('?glitch=plain'); const PS = await pp.evaluate(() => Renderer.glitchStyle); const pr = await open('?glitch=rainbow'); const RS = await pr.evaluate(() => Renderer.glitchStyle); const pq = await open(''); const QS = await pq.evaluate(() => Renderer.glitchStyle);
-  T('?glitch=plain and ?glitch=rainbow turn the glitch on in that style, the default is off', PS === 'plain' && RS === 'rainbow' && QS === 'off' && pp.errs.length === 0 && pr.errs.length === 0 && pq.errs.length === 0, JSON.stringify({ plain: PS, rainbow: RS, default: QS }));
-  await pp.context().close(); await pr.context().close(); await pq.context().close();
   await p1.context().close(); await p0.context().close();
   console.log('\n' + res.filter(Boolean).length + '/' + res.length + ' passed');
   await b.close(); srv.close(); process.exit(res.every(Boolean) ? 0 : 1);

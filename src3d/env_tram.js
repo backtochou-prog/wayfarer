@@ -110,14 +110,8 @@ window.ENV3D = window.ENV3D || {};
     for (const q of mine) { q.geo.applyMatrix4(m); parts.push(q); }
   }
 
-  // the electromagnetic skateboard as static parts, floating `lift` m above its pad, nose toward -z, at (x, z): same shape as the one the runner rides (RunnerSprite.buildBoard); its rear plane (the
-  // user's picture) is added by the caller from `rearAt`
-  function boardParts(parts, x, z, lift) {
-    const DARK = '#16161e', RED = '#ff1f5a', CY = '#35e6ff', y = lift;
-    parts.push(Kit.box(0.32, 0.05, 1.15, x, 0.16 + y, z, DARK), Kit.box(0.26, 0.012, 0.95, x, 0.21 + y, z, '#0a0a10'), Kit.box(0.3, 0.04, 0.2, x, 0.18 + y, z - 0.62, DARK, { rx: -0.35 }), Kit.box(0.3, 0.04, 0.2, x, 0.18 + y, z + 0.62, DARK, { rx: 0.35 }),
-      Kit.box(0.02, 0.03, 1.15, x - 0.17, 0.17 + y, z, RED, { glow: true }), Kit.box(0.02, 0.03, 1.15, x + 0.17, 0.17 + y, z, RED, { glow: true }), Kit.box(0.28, 0.02, 1.0, x, 0.12 + y, z, RED, { glow: true }));
-    for (const dx of [-0.1, 0.1]) for (const dz of [-0.42, 0.42]) parts.push(Kit.box(0.06, 0.03, 0.08, x + dx, 0.09 + y, z + dz, CY, { glow: true }));
-  }
+  // the electromagnetic skateboard as static parts (RunnerSprite.boardParts: the same sophisticated board the runner rides), floating `lift` m above its pad, nose toward -z, at (x, z)
+  function boardParts(parts, x, z, lift) { for (const q of RunnerSprite.boardParts(x, lift, z, { glow: '#ff1f5a', accent: '#35e6ff' })) parts.push(q); }
   const rearAt = (x, z, lift) => BoardArt.plane(x, lift + 0.2, z + 0.7, 0.5);                                // the engine ring behind a board
 
   ENV3D.tram = {

@@ -76,7 +76,10 @@ class RunnerSprite {
     v.visible = R > 0.02; v.scale.setScalar(Math.min(1, R * 1.4) * RunnerSprite.SC); v.position.y = hover * R;
     if (v.visible) {
       if (!board) { this.wheelA += dt * s.runRate * 9; for (const w of sc.userData.wheels) w.rotation.x = -this.wheelA; }
-      else if (bd.userData.rear) bd.userData.rear.scale.setScalar(1 + 0.1 * (s.beat || 0));        // the engine ring swells on the beat
+      else {
+        const u = bd.userData, bt = s.beat || 0; if (u.rear) u.rear.scale.setScalar(1 + 0.1 * bt);                      // the engine ring swells on the beat
+        u.ring.scale.setScalar(1 + 0.12 * Math.sin(T * 4) + 0.25 * bt); u.field.scale.setScalar(1 + 0.05 * Math.sin(T * 3)); u.trail.scale.y = 0.8 + 0.2 * Math.sin(T * 7);   // the magnetic field breathes
+      }
       const k2 = 1 - Math.exp(-10 * dt); v.rotation.z += (-s.lean * 0.1 - v.rotation.z) * k2; v.rotation.x += ((s.airborne ? 0.14 : 0) - v.rotation.x) * k2;     // leans into the steering, nose up in the air
     }
     this.pivot.rotation.set(c.rx, -this.group.rotation.y + face + spin, c.rz, 'YXZ');   // cancel the renderer's yaw: the card always faces the camera (plus the showcase spin)
@@ -98,13 +101,38 @@ class RunnerSprite {
     return g;
   }
 
-  // the electromagnetic skateboard: a dark deck floating on a red glow, magnetic pads, glowing edges, and at the back the user's picture of its rear (the engine ring), facing the chase camera
+  // the electromagnetic skateboard's parts (Kit parts, nose toward -z), centred on (x, z) and floating `y` m up; `pal` = { glow, accent }: the colour of its underglow and edge lights and of its
+  // magnetic coils and guide lines (red / cyan on the pavements of Saint-Gilles, magenta / cyan in the Neon Quarter). A carbon deck with kicked nose and tail, light bars along both edges, a
+  // guide line and chevrons on top, two side fins with lit edges, a front sensor, three levitation coils under the deck (a dark housing, a glowing ring, a glowing core), an underglow slab,
+  // and a rear engine block with two glowing nozzles. (The user's picture of the rear, BoardArt, is a separate textured panel placed behind it by the caller.)
+  static boardParts(x, y, z, pal) {
+    const DARK = '#16161e', P = [];
+    P.push(Kit.box(0.34, 0.045, 1.2, x, 0.16 + y, z, DARK), Kit.box(0.28, 0.01, 1.0, x, 0.205 + y, z, '#0b0b12'),
+      Kit.box(0.32, 0.04, 0.2, x, 0.185 + y, z - 0.64, DARK, { rx: -0.35 }), Kit.box(0.32, 0.04, 0.2, x, 0.185 + y, z + 0.64, DARK, { rx: 0.35 }),
+      Kit.box(0.02, 0.03, 1.2, x - 0.18, 0.17 + y, z, pal.glow, { glow: true }), Kit.box(0.02, 0.03, 1.2, x + 0.18, 0.17 + y, z, pal.glow, { glow: true }),
+      Kit.box(0.012, 0.004, 0.8, x, 0.212 + y, z, pal.accent, { glow: true }), Kit.box(0.3, 0.012, 1.06, x, 0.1 + y, z, pal.glow, { glow: true }),
+      Kit.box(0.18, 0.02, 0.03, x, 0.2 + y, z - 0.6, '#ffffff', { glow: true }));
+    for (let k = 0; k < 3; k++) P.push(Kit.box(0.1 - k * 0.02, 0.004, 0.02, x, 0.213 + y, z - 0.3 + k * 0.1, pal.accent, { glow: true }));                                   // chevrons
+    for (const sx of [-1, 1]) P.push(Kit.box(0.07, 0.018, 0.4, x + sx * 0.215, 0.19 + y, z, DARK, { rz: sx * 0.35 }), Kit.box(0.012, 0.012, 0.4, x + sx * 0.248, 0.2 + y, z, pal.accent, { glow: true, rz: sx * 0.35 }));   // fins
+    for (const dz of [-0.38, 0, 0.38]) P.push(Kit.cyl(0.1, 0.1, 0.03, x, 0.1 + y, z + dz, '#23232e', { seg: 10 }), Kit.cyl(0.108, 0.108, 0.008, x, 0.088 + y, z + dz, pal.accent, { seg: 10, glow: true }), Kit.cyl(0.07, 0.07, 0.006, x, 0.082 + y, z + dz, pal.glow, { seg: 10, glow: true }));   // coils
+    P.push(Kit.box(0.26, 0.1, 0.14, x, 0.13 + y, z + 0.58, '#1c1c26'));
+    for (const sx of [-1, 1]) P.push(Kit.cyl(0.035, 0.04, 0.05, x + sx * 0.07, 0.15 + y, z + 0.67, pal.accent, { seg: 8, glow: true, rx: Math.PI / 2 }));                    // exhaust nozzles
+    return P;
+  }
+
+  // the board the runner rides: boardParts floating on a magnetic field (a soft glowing disc on the road, a ring that swells on the beat, a fading light trail behind), and the user's picture of its
+  // rear as the engine ring at the back, facing the chase camera
   static buildBoard() {
-    const DARK = '#16161e', RED = '#ff1f5a', CY = '#35e6ff', g = new THREE.Group();
-    const parts = [Kit.box(0.32, 0.05, 1.15, 0, 0.16, 0, DARK), Kit.box(0.26, 0.012, 0.95, 0, 0.21, 0, '#0a0a10'), Kit.box(0.3, 0.04, 0.2, 0, 0.18, -0.62, DARK, { rx: -0.35 }), Kit.box(0.3, 0.04, 0.2, 0, 0.18, 0.62, DARK, { rx: 0.35 }),
-      Kit.box(0.02, 0.03, 1.15, -0.17, 0.17, 0, RED, { glow: true }), Kit.box(0.02, 0.03, 1.15, 0.17, 0.17, 0, RED, { glow: true }), Kit.box(0.28, 0.02, 1.0, 0, 0.12, 0, RED, { glow: true })];
-    for (const x of [-0.1, 0.1]) for (const z of [-0.42, 0.42]) parts.push(Kit.box(0.06, 0.03, 0.08, x, 0.09, z, CY, { glow: true }));
-    g.add(Kit.mesh(Kit.merge(parts)));
+    const g = new THREE.Group(), pal = { glow: '#ff1f5a', accent: '#35e6ff' };
+    g.add(Kit.mesh(Kit.merge(RunnerSprite.boardParts(0, 0, 0, pal))));
+    if (!RunnerSprite._fx) {                                                                                       // shared by the board's effects: an additive material, a gradient for the trail
+      const cv = document.createElement('canvas'); cv.width = 8; cv.height = 64; const x = cv.getContext('2d'), gr = x.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, 'rgba(255,60,110,0.55)'); gr.addColorStop(1, 'rgba(255,60,110,0)'); x.fillStyle = gr; x.fillRect(0, 0, 8, 64);
+      const add = o => new THREE.MeshBasicMaterial(Object.assign({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }, o));
+      RunnerSprite._fx = { field: add({ color: 0xff2a5a, opacity: 0.3 }), ring: add({ color: 0x35e6ff, opacity: 0.55 }), trail: add({ map: new THREE.CanvasTexture(cv), opacity: 1 }) };
+    }
+    const fx = RunnerSprite._fx, field = new THREE.Mesh(new THREE.CircleGeometry(0.6, 24), fx.field), ring = new THREE.Mesh(new THREE.RingGeometry(0.44, 0.5, 32), fx.ring), trail = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 2.4), fx.trail);
+    for (const m of [field, ring]) { m.rotation.x = -Math.PI / 2; m.position.y = 0.025; g.add(m); } trail.rotation.x = -Math.PI / 2; trail.position.set(0, 0.03, 1.9); g.add(trail);
+    g.userData.field = field; g.userData.ring = ring; g.userData.trail = trail;
     if (typeof BoardArt !== 'undefined' && typeof BOARD_ART !== 'undefined') { const rear = new THREE.Mesh(BoardArt.plane(0, -0.25, 0, 0.5), BoardArt.material()); rear.position.set(0, 0.45, 0.7); g.add(rear); g.userData.rear = rear; }
     return g;
   }
