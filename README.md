@@ -41,6 +41,14 @@ A third set of 17 pictures (`src3d/neon_assets3.js`, one alpha atlas) adds 17 mo
 
 ![board](docs/screenshots/board.jpg)
 
+**Neon Quarter, fourth set of your pictures** (`src3d/neon_assets4.js`, made by `tools/make_neon_assets4.py`: one WebP atlas of 1024 x 1844 cut from six of your pictures; the pictures are only cropped and scaled, never recoloured or redrawn; the lamp and the vault are cut out along their outlines). As you asked, **the outlined ones are DOORS**: the two teal tile rooms, the blue backlit panel and the teal tile wall are the doors of the shops and buildings of the quarter (22 of them: every tower, block, shop and picture block gets one, as an extra textured panel next to the prop's own; `ENV3D.neon.doors`) and **the rest are LAMPS**: six street lamps along the kerb, each a picture lit on a post (the filigree lamp, the hanging glass drops, the pierced screen as a lantern, the chandelier, the pink panel as a pillar, the lit restaurant front as a light box), in a new stretch of lamps and scattered through the others. Two new stretch characters in all (lamps, and doors), ten now.
+
+**The hotel** (`neonHotel`, a landmark): one of the quarter's towers, a blue glass door at its foot, over the entrance **the vault**: your photo with the rose, cut along the red line you drew (the burlap arch and everything under it, the rose, the leaves and the stones; the wall above the line and the red marker removed: an earlier cut kept only the burlap and removed the inside, the wrong way round), and over it a neon HOTEL sign (drawn in code).
+
+![the hotel and its vault](docs/screenshots/neon-hotel.jpg)
+
+![the lamps](docs/screenshots/neon-lamps.jpg)
+
 **Neon shop windows** (`src3d/neon_shops.js`, `src3d/env_neon.js`): the low shops of the Neon Quarter used to have one big coloured glowing slab for a front. They now have real glass windows: three panes in a neon frame with mullions, a lit door, the stripe and the awning above, and **every pane shows a different display** (16 in all: a dress on a mannequin, sneakers on a pedestal, a shelf of bottles, a plant, cupcakes, a retro TV, vinyl records, sunglasses, cocktails, a ramen bowl, a fish tank, a floor lamp, books, balloons, a vintage camera, hats), each drawn at start-up on one small canvas atlas (no image file, none of your pictures). Six shop designs (`neonShopA/B/F/G/H/I`) with different colours, widths and displays, so no two panes of a shop are alike, no two shops are alike, and the street never puts the same shop twice in a row on a side. The shops made from your pictures (`neonShopC`, `neonShopD`) are untouched.
 
 ![neon shops](docs/screenshots/neon-shops.jpg)

@@ -221,7 +221,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.mats = out.mats.size; return out;
   });
   T('the neon billboard and the two neon towers carry the user\'s pictures (one textured panel each, one shared unlit atlas that loads; billboard square ~7.4 m like its picture, towers ~0.9 of their height)',
-    Na.loaded && Na.mats === 1 && ['neonTowerA', 'neonTowerB', 'neonBillboard'].every(n => Na.cells[n].textured === 1 && Na.cells[n].meshes >= 2) && Math.abs(Na.cells.neonBillboard.w - Na.cells.neonBillboard.h) < 0.5 && Na.cells.neonBillboard.w > 7 && Na.cells.neonTowerB.h > Na.cells.neonTowerA.h, JSON.stringify(Na));
+    Na.loaded && Na.mats === 2 && ['neonTowerA', 'neonTowerB'].every(n => Na.cells[n].textured === 2 && Na.cells[n].meshes >= 2) && Na.cells.neonBillboard.textured === 1 && Na.cells.neonBillboard.meshes >= 2 && Math.abs(Na.cells.neonBillboard.w - Na.cells.neonBillboard.h) < 0.5 && Na.cells.neonBillboard.w > 7 && Na.cells.neonTowerB.h > Na.cells.neonTowerA.h, JSON.stringify(Na));
 
   const M2 = await pg.evaluate(async () => {
     const r = __wf.r, mat = NeonArt.material2(); for (let i = 0; i < 60 && !mat.visible; i++) await new Promise(q => setTimeout(q, 100));
@@ -231,7 +231,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.mats = out.mats.size; return out;
   });
   T('the second set of materials (8 pictures in one alpha atlas, 1024 x 744) loads and is on 8 new neon props sharing one material; every one of them is placed by the street layout',
-    M2.loaded && M2.cells === 8 && M2.mats === 1 && Object.values(M2.props).every(n => n === 1) && M2.unused.length === 0, JSON.stringify(M2));
+    M2.loaded && M2.cells === 8 && M2.mats === 2 && Object.entries(M2.props).every(([n, c]) => c === ({ neonBlockD: 2, neonBlockE: 2, neonShopC: 2 }[n] || 1)) && M2.unused.length === 0, JSON.stringify(M2));
 
   const M3 = await pg.evaluate(async () => {
     const r = __wf.r, mat = NeonArt.material3(); for (let i = 0; i < 80 && !mat.visible; i++) await new Promise(q => setTimeout(q, 100));
@@ -239,10 +239,39 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const out = { loaded: mat.visible && mat.map.image.naturalWidth === 1024 && mat.map.image.naturalHeight > 1000, props: {}, mats: new Set(), cells: Object.keys(NEON_ASSETS3).filter(k => k !== 'src').length };
     for (const n of NAMES) { const g = r.props[n] && r.props[n][0], tex = g ? g.children.filter(c => c.isMesh && c.material.map) : []; out.props[n] = tex.length; tex.forEach(m => out.mats.add(m.material.uuid)); }
     const used = new Set(); for (let i = -3; i < 4000; i++) for (const q of ENV3D.neon.layout(i, rnd)) used.add(q.prop); out.unused = NAMES.filter(n => !used.has(n));
-    out.mats = out.mats.size; return out;
+    out.doors = Object.assign({}, ENV3D.neon.doors); out.mats = out.mats.size; return out;
   });
   T('the third set of materials (17 pictures in one alpha atlas, 1024 px wide) loads and is on 17 new neon props sharing one material; every one of them is placed by the street layout',
-    M3.loaded && M3.cells === 17 && M3.mats === 1 && Object.values(M3.props).every(n => n === 1) && M3.unused.length === 0, JSON.stringify(M3));
+    M3.loaded && M3.cells === 17 && M3.mats === 2 && Object.entries(M3.props).every(([n, c]) => c === (M3.doors[n] ? 2 : 1)) && M3.unused.length === 0, JSON.stringify(M3));
+
+  // ================================================================ 3b3. the fourth set of the user's materials: doors, lamps and the hotel with its vault
+  const N4 = await pg.evaluate(async () => {
+    const out = {}, mat = NeonArt.material4(); for (let i = 0; i < 80 && !mat.visible; i++) await new Promise(q => setTimeout(q, 100));
+    const cv = document.createElement('canvas'), im = mat.map.image; out.loaded = mat.visible && im.naturalWidth === 1024 && im.naturalHeight > 1500; out.size = [im.naturalWidth, im.naturalHeight];
+    out.cells = Object.keys(NEON_ASSETS4).filter(k => k !== 'src').sort(); out.webp = NEON_ASSETS4.src.startsWith('data:image/webp;base64,');
+    // doors: the four door pictures (the two tile rooms, the blue panel, the tile wall) on the buildings and shops of the quarter, each an extra textured panel (or the prop's panel) of the fourth atlas
+    const D = ENV3D.neon.doors, names = Object.keys(D); out.doorProps = names.length; out.doorCells = [...new Set(Object.values(D))].sort();
+    out.doorsOk = names.every(n => { const m = ENV3D.neon.props[n](); const sp = m.extra && m.extra.length ? m.extra[m.extra.length - 1] : m; return sp.sprite && sp.material() === mat && sp.sprite.attributes.position.count === 4; });
+    out.noDoorOnSigns = ['neonBillboard', 'neonRing', 'neonSpire', 'neonCar', 'neonLampM'].every(n => !D[n]);
+    // lamps: six, each two crossed planes of its picture on a post
+    const LAMPS = ['neonMoroccanLamp', 'neonPendantLamp', 'neonLanternPierced', 'neonChandLamp', 'neonPillarLamp', 'neonLightbox']; out.lamps = LAMPS.map(n => { const m = ENV3D.neon.props[n](); return [n, m.sprite.attributes.position.count, m.material() === mat]; });
+    // the hotel: a tower with a blue glass door, the burlap vault above it and the neon HOTEL sign
+    const h = ENV3D.neon.props.neonHotel(); out.hotel = { quads: h.sprite.attributes.position.count / 4, shared: h.material() === mat, merged: !!h.merged, vaultAr: +NEON_ASSETS4.vault.ar.toFixed(2), hotelAr: +NEON_ASSETS4.hotel.ar.toFixed(2) };
+    // the street places them: all lamps, the hotel (as a landmark), and never a door-less wrapped building
+    const used = new Set(); for (let i = 0; i < 4000; i++) for (const q of ENV3D.neon.layout(i, rnd)) used.add(q.prop); out.usedLamps = LAMPS.filter(n => used.has(n)).length; out.usedHotel = used.has('neonHotel');
+    // the vault really is cut out of its photo: transparent corners, opaque rose and stones
+    const c2 = document.createElement('canvas'); c2.width = im.naturalWidth; c2.height = im.naturalHeight; const x2 = c2.getContext('2d'); x2.drawImage(im, 0, 0); const V = NEON_ASSETS4.vault, px = (u, v) => x2.getImageData(Math.round(u * c2.width), Math.round((1 - v) * c2.height), 1, 1).data;
+    out.vaultCorner = px(V.u0 + 0.004, V.v1 - 0.004)[3]; out.vaultMid = px((V.u0 + V.u1) / 2, (V.v0 + V.v1) / 2 - 0.02)[3]; out.vaultBottom = px((V.u0 + V.u1) / 2, V.v0 + 0.004)[3];
+    return out;
+  });
+  T('the fourth set of the user materials (' + N4.size.join(' x ') + ' WebP, ' + N4.cells.length + ' cells: lamp, pendants, pierced, panelPink, chandelier, facade, tiles, tiles2, panelBlue, tilewall, vault, hotel) loads on a shared material',
+    N4.loaded && N4.webp && N4.cells.length === 12 && ['lamp', 'pendants', 'pierced', 'panelPink', 'chandelier', 'facade', 'tiles', 'tiles2', 'panelBlue', 'tilewall', 'vault', 'hotel'].every(c => N4.cells.includes(c)), JSON.stringify({ size: N4.size, cells: N4.cells }));
+  T('DOORS: the four door pictures (tile room, tile room, blue panel, tile wall) are the doors of ' + N4.doorProps + ' shops and buildings of the quarter, all four used, each one a textured panel of the fourth atlas; not on signs, rings, cars or lamps',
+    N4.doorProps >= 20 && N4.doorCells.join() === 'panelBlue,tiles,tiles2,tilewall' && N4.doorsOk && N4.noDoorOnSigns, JSON.stringify({ n: N4.doorProps, cells: N4.doorCells, ok: N4.doorsOk }));
+  T('LAMPS: the rest of the pictures are six street lamps (filigree lamp, hanging glass drops, pierced lantern, chandelier, pink pillar, lit restaurant front), each a picture lit on a post, all placed by the street',
+    N4.lamps.length === 6 && N4.lamps.every(l => l[1] >= 4 && l[2]) && N4.usedLamps === 6, JSON.stringify({ lamps: N4.lamps, used: N4.usedLamps }));
+  T('the HOTEL: a tower of the quarter with a blue glass door, the vault (your photo with the rose, cut along your red line: the burlap arch and what is under it, aspect ' + N4.hotel.vaultAr + ') over the entrance and a neon HOTEL sign (' + N4.hotel.hotelAr + '); a landmark of the street; the vault is transparent at its corner and opaque in the middle and at the bottom (the inside is kept)',
+    N4.hotel.quads === 3 && N4.hotel.shared && N4.hotel.merged && N4.usedHotel && N4.vaultCorner < 20 && N4.vaultMid > 200 && N4.vaultBottom > 200, JSON.stringify({ hotel: N4.hotel, used: N4.usedHotel, corner: N4.vaultCorner, mid: N4.vaultMid, bottom: N4.vaultBottom }));
 
   // ================================================================ 3b2. the neon shops: real windows, each showing a different display
   const Sh = await pg.evaluate(() => {

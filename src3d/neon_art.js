@@ -37,12 +37,37 @@ const NeonArt = {
     }
     return this._mat3;
   },
+  // the fourth atlas (NEON_ASSETS4): the filigree lamp, hanging glass drops, the chandelier, the hotel front, the teal tile rooms, the burlap vault ... (see tools/make_neon_assets4.py)
+  _mat4: null,
+  material4() {
+    if (!this._mat4) {
+      const img = new Image(), tex = new THREE.Texture(img);
+      tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; tex.generateMipmaps = true; tex.minFilter = THREE.LinearMipmapLinearFilter;
+      const mat = new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.3, side: THREE.DoubleSide });
+      mat.visible = false; img.onload = () => { tex.needsUpdate = true; mat.visible = true; }; img.src = NEON_ASSETS4.src;
+      this._mat4 = mat;
+    }
+    return this._mat4;
+  },
+  panel4(cell, x, z0, z1, y0, y1) { return this.panel(cell, x, z0, z1, y0, y1, NEON_ASSETS4); },
   panel3(cell, x, z0, z1, y0, y1) { return this.panel(cell, x, z0, z1, y0, y1, NEON_ASSETS3); },
   // same as panel(), for a cell of the second atlas
   panel2(cell, x, z0, z1, y0, y1) { return this.panel(cell, x, z0, z1, y0, y1, NEON_ASSETS2); },
   // two crossed vertical planes (a free-standing cut-out seen from any side) of a cell of the second atlas, h metres tall, standing on y0, centred on the origin
   cross(cell, h, y0 = 0) {
     const c = NEON_ASSETS2[cell], w = h * c.ar, pos = [], uv = [], idx = [];
+    for (const ang of [Math.PI / 4, -Math.PI / 4]) {
+      const cs = Math.cos(ang), sn = Math.sin(ang), o = pos.length / 3;
+      for (const [u, v] of [[0, 0], [1, 0], [1, 1], [0, 1]]) { const x = (u - 0.5) * w; pos.push(x * cs, y0 + v * h, -x * sn); uv.push(c.u0 + u * (c.u1 - c.u0), c.v0 + v * (c.v1 - c.v0)); }
+      idx.push(o, o + 1, o + 2, o, o + 2, o + 3);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeBoundingSphere(); g.computeBoundingBox();
+    return g;
+  },
+  // like cross(), for any atlas `set`: two crossed vertical planes of `cell` (a free-standing picture seen from any side), h metres tall, standing on y0, centred on the origin
+  crossSet(set, cell, h, y0 = 0) {
+    const c = set[cell], w = h * c.ar, pos = [], uv = [], idx = [];
     for (const ang of [Math.PI / 4, -Math.PI / 4]) {
       const cs = Math.cos(ang), sn = Math.sin(ang), o = pos.length / 3;
       for (const [u, v] of [[0, 0], [1, 0], [1, 1], [0, 1]]) { const x = (u - 0.5) * w; pos.push(x * cs, y0 + v * h, -x * sn); uv.push(c.u0 + u * (c.u1 - c.u0), c.v0 + v * (c.v1 - c.v0)); }
