@@ -306,7 +306,7 @@ class Renderer {
 
   // the indicator for a parked scooter or a station (g.scooterHint, placed by Renderer3D): not a sign, a translucent DISC on the ground right under it, made from the user's green swirl picture
   // (RING_ART, reshaped into a round disc), small, squashed into the ground's perspective ellipse, turning slowly and breathing a little, with what to press (E, or TAP on a touch device) in faint
-  // letters below. Now and then it glitches like an old RGB screen (glitchAt): the red, green and blue copies slip apart sideways, the disc flickers and jumps, scan lines and a snowy haze cross it.
+  // letters below. Now and then it glitches like an old screen (glitchAt), in the picture's own colours: the disc flickers and jumps, a faint ghost slips sideways, scan lines and a snowy haze cross it.
   // Pressing E or tapping / clicking the disc (or the scooter above it) gets on (Game.mount). It is armed from 140 m ahead to 60 m behind, and pinned low on its side once the scooter is behind
   // the camera. Until the picture has loaded (or without it) the disc is drawn with ellipses.
   drawScooterHint(g) {
@@ -314,24 +314,21 @@ class Renderer {
     const c = this.ctx, a = Math.max(0.4, Math.min(1, 1.3 - Math.abs(h.ahead) / (h.ahead < 0 ? 80 : 130))), label = g.touch ? 'TAP' : 'E';
     if (!this.ringImg && typeof RING_ART !== 'undefined') { this.ringImg = new Image(); this.ringImg.src = RING_ART.a; }
     const art = this.ringImg && this.ringImg.complete && this.ringImg.naturalWidth;
-    if (art && !this.ringCh) this.ringCh = [0, 1, 2].map(ch => {                                                      // the picture's red, green and blue channels, one canvas each (for the glitch)
-      const cv = document.createElement('canvas'); cv.width = this.ringImg.naturalWidth; cv.height = this.ringImg.naturalHeight; const x = cv.getContext('2d'); x.drawImage(this.ringImg, 0, 0);
-      const im = x.getImageData(0, 0, cv.width, cv.height), d = im.data; for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) if (k !== ch) d[i + k] = 0; x.putImageData(im, 0, 0); return cv; });
     const rx = h.rx * 0.78, ry = Math.max(h.ry, h.rx * 0.45) * 0.78, k = 1 + 0.05 * Math.sin(g.time * 3), G = Renderer.glitchAt(g.time), fr = Math.floor(g.time * 30);   // the disc's half axes on the ground
     let bottom;
     if (art) {
       const base = (h.pinned ? 0.88 : 0.8) * a, flick = G.burst ? (rnd(fr, 63) > 0.3 ? 1 : 0.12) : 1, sz = 2 * rx * k;
       c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
       c.translate(h.x + (G.burst ? (rnd(fr, 64) - 0.5) * 6 * G.k : 0), h.y); c.scale(1, ry / rx); c.rotate(g.time * 0.7);
-      if (G.burst && this.ringCh) {                                                                                  // the three colour copies slip apart sideways (the glitch), added back together
-        c.globalCompositeOperation = 'lighter'; const sp = (1.5 + 2.5 * G.k) * (0.6 + rnd(fr, 65));
-        for (let ch = 0; ch < 3; ch++) { c.globalAlpha = Math.min(1, base * flick * 1.1); c.drawImage(this.ringCh[ch], -rx * k + (ch - 1) * sp, -rx * k, sz, sz); }
+      if (G.burst) {                                                                                                  // the glitch keeps the picture's own colours: a flickering main copy and a faint ghost slipped sideways (like a CRT's double image)
+        c.globalAlpha = base * flick; c.drawImage(this.ringImg, -rx * k, -rx * k, sz, sz);
+        c.globalAlpha = base * 0.35 * G.k; c.drawImage(this.ringImg, -rx * k + (3 + 4 * G.k) * (0.6 + rnd(fr, 65)), -rx * k, sz, sz);
       } else { c.globalAlpha = base * flick; c.drawImage(this.ringImg, -rx * k, -rx * k, sz, sz); }                   // (turned, then squashed: a disc seen at a slant)
       c.restore(); bottom = h.y + ry * k;
       if (G.burst) {                                                                                                  // scan lines and snow
         c.save(); c.globalAlpha = 0.22 * G.k * a; c.fillStyle = C.ink; for (let y = Math.round(h.y - ry); y < h.y + ry; y += 2) { const half = rx * Math.sqrt(Math.max(0, 1 - ((y - h.y) / ry) ** 2)); c.fillRect(Math.round(h.x - half), y, Math.round(2 * half), 1); }
         c.globalAlpha = 0.14 * G.k * a; c.fillStyle = '#e8ffe8'; c.beginPath(); c.ellipse(h.x, h.y, rx * 1.15, ry * 1.15, 0, 0, 6.2832); c.fill();      // a faint haze
-        for (let i = 0; i < 28; i++) { c.globalAlpha = (0.3 + 0.5 * rnd(fr, 300 + i)) * G.k * a; c.fillStyle = ['#ffffff', '#9fffa8', '#ff9fd0'][i % 3]; c.fillRect(Math.round(h.x + (rnd(fr, 100 + i) * 2 - 1) * rx * 1.1), Math.round(h.y + (rnd(fr, 200 + i) * 2 - 1) * ry * 1.1), 1 + (i & 1), 1); }
+        for (let i = 0; i < 28; i++) { c.globalAlpha = (0.3 + 0.5 * rnd(fr, 300 + i)) * G.k * a; c.fillStyle = ['#ffffff', '#e8ffe8', '#c8f0c8'][i % 3]; c.fillRect(Math.round(h.x + (rnd(fr, 100 + i) * 2 - 1) * rx * 1.1), Math.round(h.y + (rnd(fr, 200 + i) * 2 - 1) * ry * 1.1), 1 + (i & 1), 1); }
         c.restore();
       }
     } else {

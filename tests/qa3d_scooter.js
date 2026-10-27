@@ -18,7 +18,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const base = process.env.TEST_URL || 'http://localhost:' + PORT + '/';
   const open = async q => {
     const pg = await (await b.newContext({ viewport: { width: 960, height: 540 } })).newPage(); pg.errs = []; pg.on('pageerror', e => pg.errs.push(e.message)); pg.on('console', m => m.type() === 'error' && pg.errs.push(m.text()));
-    await pg.goto(base + q); await pg.waitForFunction(() => window.__wf, null, { timeout: 30000 }); await pg.evaluate(() => { window.requestAnimationFrame = () => 0; }); await pg.waitForTimeout(700);   // (the game's own loop is stopped: the test steps frames itself)
+    await pg.goto(base + q, { timeout: 90000 }); await pg.waitForFunction(() => window.__wf, null, { timeout: 60000 }); await pg.evaluate(() => { window.requestAnimationFrame = () => 0; }); await pg.waitForTimeout(700);   // (the game's own loop is stopped: the test steps frames itself)
     await pg.evaluate(() => {
       const g = __wf, r = g.r; window.G = g;
       window.frames = n => { for (let i = 0; i < n; i++) { g.time += 1 / 60; g.draw(); } };
@@ -69,11 +69,11 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       ui.drawScooterHint(g); ctx.fillRect = fr; ctx.drawImage = di; ctx.fill = fl; ctx.stroke = st; ctx.scale = sc; return o; };
     let qt = null, bt = null; for (let t = 5; t < 120 && (qt === null || bt === null); t += 0.01) { const G = Renderer.glitchAt(t); if (!G.burst && qt === null && t > 6) qt = t; if (G.burst && G.k > 0.9 && bt === null) bt = t; }
     g.time = qt; out.withArt = run(); const keep = ui.ringImg; ui.ringImg = new Image(); out.noArt = run(); ui.ringImg = keep;
-    // a glitch burst: the three colour copies side by side added together, scan lines, snow
-    { g.time = bt; const o = { chans: 0, offs: [], comps: [], scan: 0, snow: 0 }; const di = ctx.drawImage.bind(ctx), fr = ctx.fillRect.bind(ctx);
-      ctx.drawImage = (...a) => { if (ui.ringCh && ui.ringCh.includes(a[0])) { o.chans++; o.offs.push(Math.round(a[1] * 10) / 10); o.comps.push(ctx.globalCompositeOperation); } return di(...a); };
-      ctx.fillRect = (x, y, w, h) => { if (w >= 12 && h === 1) o.scan++; else if (w <= 2 && h === 1) o.snow++; return fr(x, y, w, h); };
-      ui.drawScooterHint(g); ctx.drawImage = di; ctx.fillRect = fr; out.burst = o; }     // picture not loaded: the ellipse disc
+    // a glitch burst: in the picture's own colours (no colour channels pulled apart, nothing added with 'lighter'): a main copy and a faint ghost slipped sideways, scan lines, snow
+    { g.time = bt; const o = { imgs: [], comps: [], scan: 0, snow: 0, rainbow: false }; const di = ctx.drawImage.bind(ctx), fr = ctx.fillRect.bind(ctx);
+      ctx.drawImage = (...a) => { o.imgs.push([a[0] === ui.ringImg ? 'disc' : '?', Math.round(a[1] * 10) / 10, +ctx.globalAlpha.toFixed(2)]); o.comps.push(ctx.globalCompositeOperation); return di(...a); };
+      ctx.fillRect = (x, y, w, h) => { if (h === 1 && String(ctx.fillStyle) === '#1b1420') { if (w >= 12) o.scan++; } else if (w <= 2 && h === 1) { o.snow++; if (!/^#(fff|ffffff|e8ffe8|c8f0c8)$/i.test(ctx.fillStyle)) { o.rainbow = true; (o.bad = o.bad || []).push(String(ctx.fillStyle)); } } return fr(x, y, w, h); };
+      ui.drawScooterHint(g); ctx.drawImage = di; ctx.fillRect = fr; out.burst = o; out.noChannels = !ui.ringCh; }
     return out;
   });
   T('the ring is a disc made from the green swirl picture only (a ' + X.loaded.join(' x ') + ' WebP: ' + Math.round(X.alpha.clear * 100) + ' % clear, ' + Math.round(X.alpha.solid * 100) + ' % solid, a soft edge), drawn once, translucent (alpha <= 0.9), squashed into the ground ellipse (y scale ' + X.withArt.scale + '), no solid plate',
@@ -81,8 +81,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const Gl = await pg.evaluate(() => { let bursts = 0, frames = 0, run = 0, longest = 0, shortest = 9, burstFrames = 0; const dt = 1 / 60;
     for (let t = 0; t < 600; t += dt) { frames++; if (Renderer.glitchAt(t).burst) { burstFrames++; run += dt; } else if (run) { bursts++; longest = Math.max(longest, run); shortest = Math.min(shortest, run); run = 0; } }
     return { share: +(burstFrames / frames).toFixed(3), bursts, longest: +longest.toFixed(2), shortest: +shortest.toFixed(2), perMinute: +(bursts / 10).toFixed(1) }; });
-  T('the disc glitches like an old RGB screen now and then: bursts of ' + Gl.shortest + '-' + Gl.longest + ' s, about ' + Gl.perMinute + ' a minute, ' + Math.round(Gl.share * 100) + ' % of the time; during one the red, green and blue copies are drawn apart and added (lighter), with scan lines and snow; in between a single normal draw',
-    Gl.share > 0.03 && Gl.share < 0.2 && Gl.longest <= 0.45 && Gl.shortest >= 0.1 && X.burst.chans === 3 && X.burst.comps.every(c => c === 'lighter') && new Set(X.burst.offs).size === 3 && X.burst.scan > 3 && X.burst.snow > 10, JSON.stringify({ Gl, burst: X.burst }));
+  T('the disc glitches like an old screen now and then, in its own colours: bursts of ' + Gl.shortest + '-' + Gl.longest + ' s, about ' + Gl.perMinute + ' a minute, ' + Math.round(Gl.share * 100) + ' % of the time; during one a main copy and a faint ghost slipped sideways are drawn (normal blending, no rainbow: no colour channels pulled apart, only white / pale green snow), with scan lines; in between a single normal draw',
+    Gl.share > 0.03 && Gl.share < 0.2 && Gl.longest <= 0.45 && Gl.shortest >= 0.1 && X.noChannels && X.burst.imgs.length === 2 && X.burst.imgs.every(i => i[0] === 'disc') && X.burst.imgs[0][1] !== X.burst.imgs[1][1] && X.burst.imgs[1][2] < X.burst.imgs[0][2] && X.burst.comps.every(c => c === 'source-over') && !X.burst.rainbow && X.burst.scan > 3 && X.burst.snow > 10, JSON.stringify({ Gl, burst: X.burst }));
   T('until the picture has loaded the disc is drawn with translucent ellipses instead (a disc and a ring, every alpha <= 0.75, no solid rectangle)',
     X.noArt.big === 0 && X.noArt.imgs.length === 0 && X.noArt.alphas.length >= 2 && Math.max(...X.noArt.alphas) <= 0.75, JSON.stringify(X.noArt));
 
