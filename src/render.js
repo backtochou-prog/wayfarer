@@ -298,16 +298,28 @@ class Renderer {
     c.fillRect(x, y + 7, 3, 3); c.fillRect(x + 9, y + 7, 3, 3);              // wheels
   }
 
-  // the indicator for a parked scooter or a station (g.scooterHint, placed by Renderer3D): not a sign, just a translucent lime ring on the ground right under it, rippling outwards, with what to
-  // press (E, or TAP on a touch device) in faint letters below. Pressing E or tapping / clicking the ring (or the scooter above it) gets on (Game.mount). It is armed from 140 m ahead to 60 m behind, and pinned low on its side once the scooter is behind the camera.
+  // the indicator for a parked scooter or a station (g.scooterHint, placed by Renderer3D): not a sign, a translucent ring on the ground right under it, made from the user's swirl pictures
+  // (RING_ART: the colourful one as the steady ring, breathing a little, and the white / cyan / pink one laid over it as a shimmer growing and fading), with what to press (E, or TAP on a touch
+  // device) in faint letters below. Pressing E or tapping / clicking the ring (or the scooter above it) gets on (Game.mount). It is armed from 140 m ahead to 60 m behind, and pinned low on its
+  // side once the scooter is behind the camera. Until the pictures have loaded (or without them) the ring is drawn with ellipses.
   drawScooterHint(g) {
     const h = g.scooterHint; if (!h || g.riding) return;
     const c = this.ctx, a = Math.max(0.4, Math.min(1, 1.3 - Math.abs(h.ahead) / (h.ahead < 0 ? 80 : 130))), label = g.touch ? 'TAP' : 'E', t = (g.time * 0.9) % 1;
-    c.save(); c.beginPath(); c.ellipse(h.x, h.y, h.rx, h.ry, 0, 0, 6.2832); c.fillStyle = '#7ddc3a'; c.globalAlpha = (h.pinned ? 0.3 : 0.22) * a; c.fill();                          // a soft disc
-    c.lineWidth = 1; c.strokeStyle = '#b6ff7a'; c.globalAlpha = 0.75 * a; c.beginPath(); c.ellipse(h.x, h.y, h.rx, h.ry, 0, 0, 6.2832); c.stroke();             // the ring
-    for (let k = 0; k < 2; k++) { const u = (t + k * 0.5) % 1; c.globalAlpha = 0.6 * a * (1 - u); c.beginPath(); c.ellipse(h.x, h.y, h.rx * (0.4 + 0.9 * u), h.ry * (0.4 + 0.9 * u), 0, 0, 6.2832); c.stroke(); }   // two ripples going out
-    c.restore();
-    const tx = Math.round(h.x - textW(label, 2) / 2), ty = Math.round(h.y + h.ry + 3);
+    if (!this.ringImgs && typeof RING_ART !== 'undefined') { this.ringImgs = [new Image(), new Image()]; this.ringImgs[0].src = RING_ART.a; this.ringImgs[1].src = RING_ART.b; }
+    const art = this.ringImgs && this.ringImgs.every(i => i.complete && i.naturalWidth);
+    let bottom;
+    if (art) {
+      const R = RING_ART, w = Math.max(30, Math.min(150, h.rx * 2.5)), hh = w * (R.h / R.w) * Math.max(0.45, Math.min(1, h.ry / h.rx * 2.2)), br = 1 + 0.04 * Math.sin(g.time * 3);
+      const put = (img, k, alpha, comp) => { c.globalAlpha = alpha; c.globalCompositeOperation = comp; c.drawImage(img, h.x - w * k * R.eyeX, h.y - hh * k * R.eyeY, w * k, hh * k); };      // the swirl's eye on the ground under the scooter
+      c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+      put(this.ringImgs[0], br, (h.pinned ? 0.85 : 0.78) * a, 'source-over');
+      put(this.ringImgs[1], 0.8 + 0.4 * t, 0.3 * a * Math.sin(Math.PI * t), 'lighter');                              // one shimmer growing and fading (a faint add, so the colours of the ring stay)
+      c.restore(); bottom = h.y + hh * (1 - R.eyeY) * br;
+    } else {
+      c.save(); c.beginPath(); c.ellipse(h.x, h.y, h.rx, h.ry, 0, 0, 6.2832); c.fillStyle = '#7ddc3a'; c.globalAlpha = 0.22 * a; c.fill();
+      c.lineWidth = 1; c.strokeStyle = '#b6ff7a'; c.globalAlpha = 0.75 * a; c.beginPath(); c.ellipse(h.x, h.y, h.rx, h.ry, 0, 0, 6.2832); c.stroke(); c.restore(); bottom = h.y + h.ry;
+    }
+    const tx = Math.round(h.x - textW(label, 2) / 2), ty = Math.min(VH - 12, Math.round(bottom + 2));
     c.globalAlpha = 0.8 * a; this.txt(label, tx, ty, '#d8ffb0', 2); c.globalAlpha = 1;
   }
 

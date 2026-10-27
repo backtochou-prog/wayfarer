@@ -56,15 +56,23 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     I.dock && I.dock.dock && I.dock.ahead >= 0 && I.dock.ahead <= 140 && I.dock.rx > I.dock.ry * 2 && I.one && !I.one.dock && I.one.ahead >= 0 && I.far === null && I.paused === null && I.onFoot, JSON.stringify(I));
   T('the street offers both single scooters and stations on the pavement (' + JSON.stringify(I.kinds) + ' over 3000 slots)', I.kinds.scooter > 20 && I.kinds.scooterDock > 10, JSON.stringify(I.kinds));
 
-  const X = await pg.evaluate(() => {
-    const g = G, r = g.r, ctx = r.ui.ctx, out = { big: 0, alphas: [], opaquePlate: false }; goto('scooterDock'); frames(3);
-    const fr = ctx.fillRect.bind(ctx), fl = ctx.fill.bind(ctx), st = ctx.stroke.bind(ctx);
-    ctx.fillRect = (x, y, w, h) => { if (w >= 12 || h >= 12) out.big++; return fr(x, y, w, h); };                         // a plate would be a big solid rectangle
-    ctx.fill = (...a) => { out.alphas.push(+ctx.globalAlpha.toFixed(2)); return fl(...a); }; ctx.stroke = (...a) => { out.alphas.push(+ctx.globalAlpha.toFixed(2)); return st(...a); };
-    r.ui.drawScooterHint(g); ctx.fillRect = fr; ctx.fill = fl; ctx.stroke = st; out.n = out.alphas.length; out.max = Math.max(...out.alphas); return out;
+  const X = await pg.evaluate(async () => {
+    const g = G, r = g.r, ui = r.ui, ctx = ui.ctx, out = {}; goto('scooterDock'); frames(3);
+    for (let i = 0; i < 80 && !(ui.ringImgs && ui.ringImgs.every(m => m.complete && m.naturalWidth)); i++) await new Promise(q => setTimeout(q, 50));
+    out.loaded = ui.ringImgs.map(m => [m.naturalWidth, m.naturalHeight]); out.meta = [RING_ART.w, RING_ART.h];
+    // the pictures really are cut out: transparent corners, opaque rings (read back through a canvas)
+    out.alpha = ui.ringImgs.map(m => { const c = document.createElement('canvas'); c.width = m.naturalWidth; c.height = m.naturalHeight; const x = c.getContext('2d'); x.drawImage(m, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; let clear = 0, solid = 0; for (let i = 3; i < d.length; i += 4) { if (d[i] < 8) clear++; else if (d[i] > 240) solid++; } return { clear: +(clear / (d.length / 4)).toFixed(2), solid: +(solid / (d.length / 4)).toFixed(2), corner: d[3] }; });
+    const run = () => { const o = { big: 0, imgs: [], alphas: [] }; const fr = ctx.fillRect.bind(ctx), di = ctx.drawImage.bind(ctx), fl = ctx.fill.bind(ctx), st = ctx.stroke.bind(ctx);
+      ctx.fillRect = (x, y, w, h) => { if (w >= 12 || h >= 12) o.big++; return fr(x, y, w, h); }; ctx.drawImage = (...a) => { o.imgs.push([a[0] === ui.ringImgs[0] ? 'a' : a[0] === ui.ringImgs[1] ? 'b' : '?', +ctx.globalAlpha.toFixed(2), ctx.globalCompositeOperation]); return di(...a); };
+      ctx.fill = (...a) => { o.alphas.push(+ctx.globalAlpha.toFixed(2)); return fl(...a); }; ctx.stroke = (...a) => { o.alphas.push(+ctx.globalAlpha.toFixed(2)); return st(...a); };
+      ui.drawScooterHint(g); ctx.fillRect = fr; ctx.drawImage = di; ctx.fill = fl; ctx.stroke = st; return o; };
+    out.withArt = run(); const keep = ui.ringImgs; ui.ringImgs = [new Image(), new Image()]; out.noArt = run(); ui.ringImgs = keep;     // pictures not loaded: the ellipse ring
+    return out;
   });
-  T('the indicator is not a plate: no solid rectangle is drawn, only translucent ellipses (a disc, a ring and two ripples, every alpha <= 0.75) and faint letters',
-    X.big === 0 && X.n >= 4 && X.max <= 0.75 && X.max > 0.1, JSON.stringify(X));
+  T('the ring is made from the two swirl pictures (' + X.loaded.map(l => l.join('x')).join(' and ') + ' WebP cut out of their backdrop: ' + Math.round(X.alpha[0].clear * 100) + ' % clear, ' + Math.round(X.alpha[0].solid * 100) + ' % solid): the colourful one as the steady ring, the white / cyan one as a faint shimmer over it, translucent (alpha <= 0.85), no solid plate',
+    X.loaded.every(l => l[0] === X.meta[0] && l[1] === X.meta[1]) && X.alpha.every(a => a.clear > 0.3 && a.solid > 0.1 && a.corner === 0) && X.withArt.big === 0 && X.withArt.imgs.length === 2 && X.withArt.imgs[0][0] === 'a' && X.withArt.imgs[1][0] === 'b' && X.withArt.imgs.every(i => i[1] <= 0.85) && X.withArt.imgs[1][2] === 'lighter', JSON.stringify({ withArt: X.withArt, alpha: X.alpha }));
+  T('until the pictures have loaded the ring is drawn with translucent ellipses instead (a disc and a ring, every alpha <= 0.75, no solid rectangle)',
+    X.noArt.big === 0 && X.noArt.imgs.length === 0 && X.noArt.alphas.length >= 2 && Math.max(...X.noArt.alphas) <= 0.75, JSON.stringify(X.noArt));
 
   const W = await pg.evaluate(() => {
     const g = G, r = g.r, out = {}; out.slot = goto('clean', 120); frames(2); const first = g.scooterHint, keyAt = first.key;
