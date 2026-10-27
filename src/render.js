@@ -298,26 +298,24 @@ class Renderer {
     c.fillRect(x, y + 7, 3, 3); c.fillRect(x + 9, y + 7, 3, 3);              // wheels
   }
 
-  // the indicator for a parked scooter or a station (g.scooterHint, placed by Renderer3D): not a sign, a translucent ring on the ground right under it, made from the user's swirl pictures
-  // (RING_ART: the colourful one as the steady ring, breathing a little, and the white / cyan / pink one laid over it as a shimmer growing and fading), with what to press (E, or TAP on a touch
-  // device) in faint letters below. Pressing E or tapping / clicking the ring (or the scooter above it) gets on (Game.mount). It is armed from 140 m ahead to 60 m behind, and pinned low on its
-  // side once the scooter is behind the camera. Until the pictures have loaded (or without them) the ring is drawn with ellipses.
+  // the indicator for a parked scooter or a station (g.scooterHint, placed by Renderer3D): not a sign, a translucent DISC on the ground right under it, made from the user's green swirl picture
+  // (RING_ART, reshaped into a round disc), squashed into the ground's perspective ellipse, turning slowly and breathing a little, with what to press (E, or TAP on a touch device) in faint
+  // letters below. Pressing E or tapping / clicking the disc (or the scooter above it) gets on (Game.mount). It is armed from 140 m ahead to 60 m behind, and pinned low on its side once the
+  // scooter is behind the camera. Until the picture has loaded (or without it) the disc is drawn with ellipses.
   drawScooterHint(g) {
     const h = g.scooterHint; if (!h || g.riding) return;
-    const c = this.ctx, a = Math.max(0.4, Math.min(1, 1.3 - Math.abs(h.ahead) / (h.ahead < 0 ? 80 : 130))), label = g.touch ? 'TAP' : 'E', t = (g.time * 0.9) % 1;
-    if (!this.ringImgs && typeof RING_ART !== 'undefined') { this.ringImgs = [new Image(), new Image()]; this.ringImgs[0].src = RING_ART.a; this.ringImgs[1].src = RING_ART.b; }
-    const art = this.ringImgs && this.ringImgs.every(i => i.complete && i.naturalWidth);
+    const c = this.ctx, a = Math.max(0.4, Math.min(1, 1.3 - Math.abs(h.ahead) / (h.ahead < 0 ? 80 : 130))), label = g.touch ? 'TAP' : 'E';
+    if (!this.ringImg && typeof RING_ART !== 'undefined') { this.ringImg = new Image(); this.ringImg.src = RING_ART.a; }
+    const art = this.ringImg && this.ringImg.complete && this.ringImg.naturalWidth;
+    const rx = h.rx * 1.3, ry = Math.max(h.ry, h.rx * 0.45) * 1.3, k = 1 + 0.05 * Math.sin(g.time * 3);              // the disc's half axes on the ground
     let bottom;
     if (art) {
-      const R = RING_ART, w = Math.max(30, Math.min(150, h.rx * 2.5)), hh = w * (R.h / R.w) * Math.max(0.45, Math.min(1, h.ry / h.rx * 2.2)), br = 1 + 0.04 * Math.sin(g.time * 3);
-      const put = (img, k, alpha, comp) => { c.globalAlpha = alpha; c.globalCompositeOperation = comp; c.drawImage(img, h.x - w * k * R.eyeX, h.y - hh * k * R.eyeY, w * k, hh * k); };      // the swirl's eye on the ground under the scooter
-      c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
-      put(this.ringImgs[0], br, (h.pinned ? 0.85 : 0.78) * a, 'source-over');
-      put(this.ringImgs[1], 0.8 + 0.4 * t, 0.3 * a * Math.sin(Math.PI * t), 'lighter');                              // one shimmer growing and fading (a faint add, so the colours of the ring stay)
-      c.restore(); bottom = h.y + hh * (1 - R.eyeY) * br;
+      c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.globalAlpha = (h.pinned ? 0.88 : 0.8) * a;
+      c.translate(h.x, h.y); c.scale(1, ry / rx); c.rotate(g.time * 0.7); c.drawImage(this.ringImg, -rx * k, -rx * k, 2 * rx * k, 2 * rx * k);          // (turned, then squashed: a disc seen at a slant)
+      c.restore(); bottom = h.y + ry * k;
     } else {
-      c.save(); c.beginPath(); c.ellipse(h.x, h.y, h.rx, h.ry, 0, 0, 6.2832); c.fillStyle = '#7ddc3a'; c.globalAlpha = 0.22 * a; c.fill();
-      c.lineWidth = 1; c.strokeStyle = '#b6ff7a'; c.globalAlpha = 0.75 * a; c.beginPath(); c.ellipse(h.x, h.y, h.rx, h.ry, 0, 0, 6.2832); c.stroke(); c.restore(); bottom = h.y + h.ry;
+      c.save(); c.beginPath(); c.ellipse(h.x, h.y, rx, ry, 0, 0, 6.2832); c.fillStyle = '#7ddc3a'; c.globalAlpha = 0.22 * a; c.fill();
+      c.lineWidth = 1; c.strokeStyle = '#b6ff7a'; c.globalAlpha = 0.75 * a; c.beginPath(); c.ellipse(h.x, h.y, rx, ry, 0, 0, 6.2832); c.stroke(); c.restore(); bottom = h.y + ry;
     }
     const tx = Math.round(h.x - textW(label, 2) / 2), ty = Math.min(VH - 12, Math.round(bottom + 2));
     c.globalAlpha = 0.8 * a; this.txt(label, tx, ty, '#d8ffb0', 2); c.globalAlpha = 1;

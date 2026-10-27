@@ -52,26 +52,27 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const kinds = {}; for (let i = 0; i < 3000; i++) for (const q of ENV3D.tram.layout(i, rnd)) if (/^scooter/.test(q.prop)) kinds[q.prop] = (kinds[q.prop] || 0) + 1; out.kinds = kinds;
     return out;
   });
-  T('a translucent ring marks the nearest parked scooter or station ahead (dock: ' + JSON.stringify(I.dock) + ', single: ' + JSON.stringify(I.one) + '), armed from 140 m ahead, never further, not while paused; you start on foot',
+  T('a translucent disc marks the nearest parked scooter or station ahead (dock: ' + JSON.stringify(I.dock) + ', single: ' + JSON.stringify(I.one) + '), armed from 140 m ahead, never further, not while paused; you start on foot',
     I.dock && I.dock.dock && I.dock.ahead >= 0 && I.dock.ahead <= 140 && I.dock.rx > I.dock.ry * 2 && I.one && !I.one.dock && I.one.ahead >= 0 && I.far === null && I.paused === null && I.onFoot, JSON.stringify(I));
   T('the street offers both single scooters and stations on the pavement (' + JSON.stringify(I.kinds) + ' over 3000 slots)', I.kinds.scooter > 20 && I.kinds.scooterDock > 10, JSON.stringify(I.kinds));
 
   const X = await pg.evaluate(async () => {
     const g = G, r = g.r, ui = r.ui, ctx = ui.ctx, out = {}; goto('scooterDock'); frames(3);
-    for (let i = 0; i < 80 && !(ui.ringImgs && ui.ringImgs.every(m => m.complete && m.naturalWidth)); i++) await new Promise(q => setTimeout(q, 50));
-    out.loaded = ui.ringImgs.map(m => [m.naturalWidth, m.naturalHeight]); out.meta = [RING_ART.w, RING_ART.h];
-    // the pictures really are cut out: transparent corners, opaque rings (read back through a canvas)
-    out.alpha = ui.ringImgs.map(m => { const c = document.createElement('canvas'); c.width = m.naturalWidth; c.height = m.naturalHeight; const x = c.getContext('2d'); x.drawImage(m, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; let clear = 0, solid = 0; for (let i = 3; i < d.length; i += 4) { if (d[i] < 8) clear++; else if (d[i] > 240) solid++; } return { clear: +(clear / (d.length / 4)).toFixed(2), solid: +(solid / (d.length / 4)).toFixed(2), corner: d[3] }; });
-    const run = () => { const o = { big: 0, imgs: [], alphas: [] }; const fr = ctx.fillRect.bind(ctx), di = ctx.drawImage.bind(ctx), fl = ctx.fill.bind(ctx), st = ctx.stroke.bind(ctx);
-      ctx.fillRect = (x, y, w, h) => { if (w >= 12 || h >= 12) o.big++; return fr(x, y, w, h); }; ctx.drawImage = (...a) => { o.imgs.push([a[0] === ui.ringImgs[0] ? 'a' : a[0] === ui.ringImgs[1] ? 'b' : '?', +ctx.globalAlpha.toFixed(2), ctx.globalCompositeOperation]); return di(...a); };
+    for (let i = 0; i < 80 && !(ui.ringImg && ui.ringImg.complete && ui.ringImg.naturalWidth); i++) await new Promise(q => setTimeout(q, 50));
+    const m = ui.ringImg; out.loaded = [m.naturalWidth, m.naturalHeight]; out.meta = [RING_ART.w, RING_ART.h]; out.single = !RING_ART.b && !ui.ringImgs;          // just the green picture
+    // the picture really is a cut-out disc: transparent corners, a soft edge, solid rings in the middle (read back through a canvas)
+    { const c = document.createElement('canvas'); c.width = m.naturalWidth; c.height = m.naturalHeight; const x = c.getContext('2d'); x.drawImage(m, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; let clear = 0, solid = 0, soft = 0; for (let i = 3; i < d.length; i += 4) { if (d[i] < 8) clear++; else if (d[i] > 240) solid++; else soft++; }
+      const n = d.length / 4, at = (px, py) => d[(py * c.width + px) * 4 + 3]; out.alpha = { clear: +(clear / n).toFixed(2), solid: +(solid / n).toFixed(2), soft: +(soft / n).toFixed(2), corner: at(0, 0), centre: at(c.width >> 1, c.height >> 1), edge: at(c.width >> 1, 2) }; }
+    const run = () => { const o = { big: 0, imgs: [], alphas: [], scale: null }; const fr = ctx.fillRect.bind(ctx), di = ctx.drawImage.bind(ctx), fl = ctx.fill.bind(ctx), st = ctx.stroke.bind(ctx), sc = ctx.scale.bind(ctx);
+      ctx.fillRect = (x, y, w, h) => { if (w >= 12 || h >= 12) o.big++; return fr(x, y, w, h); }; ctx.drawImage = (...a) => { o.imgs.push([a[0] === ui.ringImg ? 'disc' : '?', +ctx.globalAlpha.toFixed(2), ctx.globalCompositeOperation]); return di(...a); }; ctx.scale = (x, y) => { o.scale = +y.toFixed(2); return sc(x, y); };
       ctx.fill = (...a) => { o.alphas.push(+ctx.globalAlpha.toFixed(2)); return fl(...a); }; ctx.stroke = (...a) => { o.alphas.push(+ctx.globalAlpha.toFixed(2)); return st(...a); };
-      ui.drawScooterHint(g); ctx.fillRect = fr; ctx.drawImage = di; ctx.fill = fl; ctx.stroke = st; return o; };
-    out.withArt = run(); const keep = ui.ringImgs; ui.ringImgs = [new Image(), new Image()]; out.noArt = run(); ui.ringImgs = keep;     // pictures not loaded: the ellipse ring
+      ui.drawScooterHint(g); ctx.fillRect = fr; ctx.drawImage = di; ctx.fill = fl; ctx.stroke = st; ctx.scale = sc; return o; };
+    out.withArt = run(); const keep = ui.ringImg; ui.ringImg = new Image(); out.noArt = run(); ui.ringImg = keep;     // picture not loaded: the ellipse disc
     return out;
   });
-  T('the ring is made from the two swirl pictures (' + X.loaded.map(l => l.join('x')).join(' and ') + ' WebP cut out of their backdrop: ' + Math.round(X.alpha[0].clear * 100) + ' % clear, ' + Math.round(X.alpha[0].solid * 100) + ' % solid): the colourful one as the steady ring, the white / cyan one as a faint shimmer over it, translucent (alpha <= 0.85), no solid plate',
-    X.loaded.every(l => l[0] === X.meta[0] && l[1] === X.meta[1]) && X.alpha.every(a => a.clear > 0.3 && a.solid > 0.1 && a.corner === 0) && X.withArt.big === 0 && X.withArt.imgs.length === 2 && X.withArt.imgs[0][0] === 'a' && X.withArt.imgs[1][0] === 'b' && X.withArt.imgs.every(i => i[1] <= 0.85) && X.withArt.imgs[1][2] === 'lighter', JSON.stringify({ withArt: X.withArt, alpha: X.alpha }));
-  T('until the pictures have loaded the ring is drawn with translucent ellipses instead (a disc and a ring, every alpha <= 0.75, no solid rectangle)',
+  T('the ring is a disc made from the green swirl picture only (a ' + X.loaded.join(' x ') + ' WebP: ' + Math.round(X.alpha.clear * 100) + ' % clear, ' + Math.round(X.alpha.solid * 100) + ' % solid, a soft edge), drawn once, translucent (alpha <= 0.9), squashed into the ground ellipse (y scale ' + X.withArt.scale + '), no solid plate',
+    X.loaded[0] === X.meta[0] && X.loaded[1] === X.meta[1] && X.single && X.alpha.corner === 0 && X.alpha.centre > 200 && X.alpha.edge < 200 && X.alpha.soft > 0.03 && X.alpha.solid > 0.1 && X.withArt.big === 0 && X.withArt.imgs.length === 1 && X.withArt.imgs[0][0] === 'disc' && X.withArt.imgs[0][1] <= 0.9 && X.withArt.imgs[0][2] === 'source-over' && X.withArt.scale > 0.2 && X.withArt.scale < 0.9, JSON.stringify({ withArt: X.withArt, alpha: X.alpha }));
+  T('until the picture has loaded the disc is drawn with translucent ellipses instead (a disc and a ring, every alpha <= 0.75, no solid rectangle)',
     X.noArt.big === 0 && X.noArt.imgs.length === 0 && X.noArt.alphas.length >= 2 && Math.max(...X.noArt.alphas) <= 0.75, JSON.stringify(X.noArt));
 
   const W = await pg.evaluate(() => {
