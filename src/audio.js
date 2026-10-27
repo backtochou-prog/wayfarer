@@ -2,23 +2,27 @@
 //  - MUSIC: the user's track (assets/music.mp3, played by an <audio> element, looped) plus a precomputed beat map (MUSIC_BEATS) that gives the animation a beat clock
 //    (`beat()`), read from the audio's currentTime; with no audio yet (browsers only allow sound after a first tap / key press) the same clock runs from the page time at the same
 //    tempo, so the menu already moves in time.
+//    A SECOND track (assets/music_coast.mp3, MUSIC_BEATS_COAST) belongs to the Sunset Coast: it crossfades with the main one as the road enters and leaves the coast (the weight is the
+//    game's biome blend, g.bgTo === 'coast' ? g.bgT : 0), starts from its beginning on every entry, and the beat clock follows whichever track is louder.
 //  - EFFECTS: short sounds synthesised with the Web Audio API (no sound files): jump, land, slide, coin (the pitch climbs with a streak), crash, game-over, fork prompt / choice,
 //    start, pause / resume. Every voice is a pure function of (ctx, out, time, arg), so tests can render them offline.
 // Sound is allowed from the first user gesture; M toggles mute (remembered); the game pauses it with the tab. The Game just calls `g.sfx.play(name)` where things happen and
 // `g.sfx.tick(g, dt)` once per frame. Without a GameAudio (the 2D page) nothing changes.
 class GameAudio {
   constructor(opts = {}) {
-    this.src = opts.src || 'assets/music.mp3';
+    this.src = opts.src || 'assets/music.mp3'; this.srcCoast = opts.srcCoast || 'assets/music_coast.mp3';
     this.beats = opts.beats || (typeof MUSIC_BEATS !== 'undefined' ? MUSIC_BEATS : null);
+    this.beatsCoast = opts.beatsCoast || (typeof MUSIC_BEATS_COAST !== 'undefined' ? MUSIC_BEATS_COAST : null); this.coastW = 0;      // coastW: 0..1, how much of the coast track is heard
     this.counts = {};                       // how many times each effect was requested (also while muted / locked: tests and the HUD can read it)
     this.muted = false; try { this.muted = localStorage.getItem('wayfarer.sound') === '0'; } catch (e) {}
     this.ctx = null; this.master = null; this.unlocked = false; this.active = 0; this.nodesMade = 0;
     this.musicVol = 0; this.streak = 0; this.streakT = -9; this.lastState = ''; this.clock = 0; this.b = { t: 0, beat: 0, phase: 0, pulse: 0, energy: 0, kick: 0, playing: false };
     this.music = null; this.musicBlocked = false; this.musicTries = 0;
     try { const a = new Audio(); a.loop = true; a.preload = 'auto'; a.src = this.src; a.volume = 0; a.muted = this.muted; this.music = a; } catch (e) {}
+    this.musicCoast = null; try { const c = new Audio(); c.loop = true; c.preload = 'none'; c.src = this.srcCoast; c.volume = 0; c.muted = this.muted; this.musicCoast = c; } catch (e) {}      // (fetched only when the coast is first approached)
     // Every gesture (re)tries to start the music until it is really playing. Browsers on phones do not count a touch's pointerdown as a user gesture (touchend / click are), so
     // the first attempt there is rejected and a later one succeeds; a single attempt at the first event left the music silent while the effects worked.
-    const go = () => { this.unlock(); this.startMusic(); };
+    const go = () => { this.unlock(); this.startMusic(); this.unlockCoast(); };
     for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(ev, go, { passive: true });
     document.addEventListener('visibilitychange', () => this.visibility());
   }
@@ -36,6 +40,13 @@ class GameAudio {
     this.resume();
     this.startMusic();
   }
+  // Some browsers (iOS Safari) only let a media element play later, from game code, if it has been played once from a user gesture: so on the first gesture that works the coast track is started
+  // silently (volume 0) and stopped again at once. (Chrome needs nothing of the kind; the cost is that the file is fetched at the first tap.)
+  unlockCoast() {
+    const c = this.musicCoast; if (!this.unlocked || !c || this.coastUnlocked || this.coastUnlocking || document.hidden) return;
+    this.coastUnlocking = true;
+    try { c.volume = 0; const p = c.play(); if (p && p.then) p.then(() => { if (!this.coastOn) { try { c.pause(); c.currentTime = 0; } catch (e) {} } this.coastUnlocked = true; this.coastUnlocking = false; }, () => { this.coastUnlocking = false; }); else { this.coastUnlocking = false; } } catch (e) { this.coastUnlocking = false; }
+  }
   // start the track if it is not playing (a rejected attempt is remembered in musicBlocked and simply tried again on the next gesture)
   startMusic() {
     const a = this.music; if (!this.unlocked || !a || !a.paused || document.hidden) return;
@@ -45,7 +56,7 @@ class GameAudio {
   resume() { try { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); } catch (e) {} }
   visibility() {
     if (!this.unlocked) return;
-    if (document.hidden) { try { this.music.pause(); if (this.ctx) this.ctx.suspend(); } catch (e) {} }
+    if (document.hidden) { try { this.music.pause(); if (this.musicCoast) this.musicCoast.pause(); if (this.ctx) this.ctx.suspend(); } catch (e) {} }
     else { this.resume(); this.startMusic(); }
   }
 
@@ -54,6 +65,7 @@ class GameAudio {
     this.muted = !!m; try { localStorage.setItem('wayfarer.sound', this.muted ? '0' : '1'); } catch (e) {}
     if (this.master) this.master.gain.value = this.muted ? 0 : 0.8;
     if (this.music) this.music.muted = this.muted;
+    if (this.musicCoast) this.musicCoast.muted = this.muted;
     if (!this.muted) { this.unlock(); this.play('click'); }
   }
   toggle() { this.setMuted(!this.muted); }
@@ -61,12 +73,13 @@ class GameAudio {
   // ---- the beat clock, read by the animation. beat = beats since the first kick; phase = 0..1 within the beat; pulse = 1 on the kick, decaying to 0; energy / kick = 0..1 loudness
   beat() { return this.b; }
   update(g, dt) {
-    const B = this.beats, a = this.music, playing = !!(a && this.unlocked && !a.paused && a.readyState >= 2);
+    const w = this.coastW, c = this.musicCoast, useCoast = !!(c && this.beatsCoast && w > 0.5 && this.unlocked && !c.paused && c.readyState >= 2);       // the coast track leads the clock once it is the louder
+    const a = useCoast ? c : this.music, B = useCoast ? this.beatsCoast : this.beats, playing = !!(a && this.unlocked && !a.paused && a.readyState >= 2);
     this.clock += dt; const t = playing ? a.currentTime : this.clock;
     const period = B ? B.beat : 60 / 118, first = B ? B.first : 0, beat = (t - first) / period, phase = beat - Math.floor(beat);
     let energy = 0.6, kick = 0.6;
     if (B && playing) { const i = Math.min(B.energy.length - 1, Math.max(0, Math.floor(t * B.fps))); energy = B.energy[i] / 255; kick = B.kick[i] / 255; }
-    this.b = { t, beat, phase, pulse: Math.exp(-phase * 5.5), energy, kick, playing };
+    this.b = { t, beat, phase, pulse: Math.exp(-phase * 5.5), energy, kick, playing, track: useCoast ? 'coast' : 'main' };
   }
 
   // ---- once per frame: beat clock, music volume by state, state-change sounds
@@ -75,7 +88,17 @@ class GameAudio {
     const s = g.state, a = this.music;
     if (a) {
       const target = { title: 0.55, play: 0.85, pause: 0.22, over: 0.3 }[s] || 0.5;
-      this.musicVol += (target - this.musicVol) * Math.min(1, dt * 4); try { a.volume = Math.max(0, Math.min(1, this.musicVol)); } catch (e) {}
+      this.musicVol += (target - this.musicVol) * Math.min(1, dt * 4);
+      // the coast crossfade: the weight follows the biome blend of the road ahead (g.bgTo / g.bgT) and is only heard while playing or paused on that road
+      const want = g.bgTo === 'coast' && s !== 'title' ? Math.max(0, Math.min(1, g.bgT)) : 0, c = this.musicCoast;
+      this.coastW += (want - this.coastW) * Math.min(1, dt * 6);
+      if (this.coastW < 0.004 && want === 0) this.coastW = 0;
+      if (c) {
+        if (this.coastW > 0.01 && c.paused && this.unlocked && !document.hidden && !this.coastBlocked) { if (!this.coastOn) { try { c.currentTime = 0; } catch (e) {} } this.coastOn = true; try { const p = c.play(); if (p && p.then) p.then(() => { this.coastBlocked = false; }, e => { this.coastBlocked = true; setTimeout(() => { this.coastBlocked = false; }, 1500); }); } catch (e) {} }
+        else if (this.coastW === 0 && !c.paused) { try { c.pause(); } catch (e) {} this.coastOn = false; }
+        try { c.volume = Math.max(0, Math.min(1, this.musicVol * this.coastW)); } catch (e) {}
+      }
+      try { a.volume = Math.max(0, Math.min(1, this.musicVol * (1 - this.coastW))); } catch (e) {}
     }
     if (s !== this.lastState) {
       if (this.lastState === 'play' && s === 'pause') this.play('pause');

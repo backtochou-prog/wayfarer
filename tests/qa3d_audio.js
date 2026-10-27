@@ -38,9 +38,9 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('a key press unlocks the audio context (running) and starts the track: it advances in real time, loops, lasts ~172.7 s, and the beat clock follows its currentTime', L1.unlocked && L1.state === 'running' && L1.advanced > 0.8 && L1.playing && L1.loop && L1.dur > 172 && L1.dur < 174, JSON.stringify(L1));
 
   // ================================================================ 2. the beat map against the real audio
-  const BM = await pg.evaluate(async () => {
-    const B = MUSIC_BEATS, out = { bpm: B.bpm, first: B.first, frames: B.energy.length, fps: B.fps, dur: B.duration };
-    const buf = await (await fetch('assets/music.mp3')).arrayBuffer(); out.bytes = buf.byteLength; const ac = new OfflineAudioContext(1, 1, 44100); const au = await ac.decodeAudioData(buf), x = au.getChannelData(0), sr = au.sampleRate;
+  const beatMap = which => pg.evaluate(async which => {
+    const B = which === 'coast' ? MUSIC_BEATS_COAST : MUSIC_BEATS, url = which === 'coast' ? 'assets/music_coast.mp3' : 'assets/music.mp3', out = { bpm: B.bpm, first: B.first, frames: B.energy.length, fps: B.fps, dur: B.duration };
+    const buf = await (await fetch(url)).arrayBuffer(); out.bytes = buf.byteLength; const ac = new OfflineAudioContext(1, 1, 44100); const au = await ac.decodeAudioData(buf), x = au.getChannelData(0), sr = au.sampleRate;
     out.decDur = +au.duration.toFixed(2);
     // kick onsets: the 40-200 Hz band (two poles below 200 Hz minus one pole below 40 Hz), its 4 ms RMS envelope, and the rise over the previous 32 ms (sustained bass notes do not count)
     const lp = f => 1 - Math.exp(-2 * Math.PI * f / sr), a2 = lp(200), a1 = lp(40), H = Math.round(0.004 * sr), M = Math.floor(x.length / H), env = new Float32Array(M);
@@ -55,8 +55,9 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       out.seg[name] = { bestPhase: +best[0].toFixed(3), onVsOff: +(peakOn / Math.max(1e-9, peakOff)).toFixed(2) };
     }
     return out;
-  });
-  const ph = Object.values(BM.seg).map(s => s.bestPhase);
+  }, which);
+  const BM = await beatMap('main'), BMC = await beatMap('coast');
+  const ph = Object.values(BM.seg).map(s => s.bestPhase), phc = Object.values(BMC.seg).map(s => s.bestPhase);
   T('the beat map is the track\'s: ~117.7 BPM, 25 frames per second for the whole ' + BM.dur + ' s (' + BM.frames + ' frames), the same length as the decoded mp3 (' + BM.decDur + ' s)', Math.abs(BM.bpm - 117.7) < 0.3 && BM.fps === 25 && Math.abs(BM.frames - BM.dur * 25) < 3 && Math.abs(BM.decDur - BM.dur) < 0.3 && BM.bytes === 2764657, JSON.stringify({ bpm: BM.bpm, frames: BM.frames, dur: BM.dur, decDur: BM.decDur, bytes: BM.bytes }));
   T('the beat grid matches the decoded audio at the start, middle and end of the track (the kick onsets peak within 25 ms of the grid in each, and the three positions agree within 20 ms: no drift) and the kick onsets are clearly stronger on the beat than half a beat later',
     ph.every(p => Math.abs(p) <= 0.025) && Math.max(...ph) - Math.min(...ph) <= 0.02 && Object.values(BM.seg).every(s => s.onVsOff > 1.5), JSON.stringify(BM.seg));
@@ -124,6 +125,46 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   T('M mutes: master gain 0, the music element muted, the choice stored; muted effects build no audio nodes but are still counted; M again restores it', MU.unmutedNodes > 0 && MU.afterM.muted && MU.afterM.gain === 0 && MU.afterM.mediaMuted && MU.afterM.stored === '0' && MU.mutedNodes === 0 && MU.mutedCounted === 1 && !MU.afterM2.muted && Math.abs(MU.afterM2.gain - 0.8) < 1e-6 && !MU.afterM2.mediaMuted && MU.afterM2.stored === '1', JSON.stringify(MU));
+  T('the Sunset Coast track (assets/music_coast.mp3) has its own beat map: ~120.7 BPM, 25 frames per second for its whole ' + BMC.dur + ' s (' + BMC.frames + ' frames), the same length as the decoded mp3 (' + BMC.decDur + ' s)', Math.abs(BMC.bpm - 120.7) < 0.3 && BMC.fps === 25 && Math.abs(BMC.frames - BMC.dur * 25) < 3 && Math.abs(BMC.decDur - BMC.dur) < 0.3 && BMC.bytes === 2739999, JSON.stringify({ bpm: BMC.bpm, frames: BMC.frames, dur: BMC.dur, decDur: BMC.decDur, bytes: BMC.bytes }));
+  T('its beat grid matches the decoded audio at the start, middle and end (kick onsets within 40 ms of the grid in each, positions agreeing within 40 ms: a steady tempo) and the onsets are stronger on the beat than half a beat later',
+    phc.every(p => Math.abs(p) <= 0.04) && Math.max(...phc) - Math.min(...phc) <= 0.04 && Object.values(BMC.seg).every(s => s.onVsOff > 1.2), JSON.stringify(BMC.seg));
+  const CF = await pg.evaluate(async () => {
+    const g = __wf, a = g.sfx, c = a.musicCoast, out = {}, keep = { s: g.state, to: g.bgTo, t: g.bgT }, adv = g.advance; g.advance = () => {};       // (the game loop is held still: it would put its own state and biome back during the waits)
+    g.state = 'play'; a.lastState = 'play'; g.bgTo = 'city'; g.bgT = 0;
+    for (let i = 0; i < 60; i++) a.tick(g, 0.05);
+    out.before = { w: a.coastW, coastPaused: c.paused, ready: c.readyState, mainVol: +a.music.volume.toFixed(2), coastVol: +c.volume.toFixed(2), track: a.beat().track };
+    g.bgTo = 'coast'; g.bgT = 1; const vm = [], vc = [];                                     // enter the coast: the crossfade
+    for (let i = 0; i < 40; i++) { a.tick(g, 0.05); vm.push(a.music.volume); vc.push(c.volume); if (i === 2) await new Promise(r => setTimeout(r, 700)); }
+    for (let i = 0; i < 40; i++) a.tick(g, 0.05); await new Promise(r => setTimeout(r, 900)); a.tick(g, 0.05); a.update(g, 0);
+    out.mono = vm.every((v, i) => i === 0 || v <= vm[i - 1] + 1e-9) && vc.every((v, i) => i === 0 || v >= vc[i - 1] - 1e-9);
+    out.inCoast = { w: +a.coastW.toFixed(2), coastPaused: c.paused, t: +c.currentTime.toFixed(2), mainVol: +a.music.volume.toFixed(3), coastVol: +c.volume.toFixed(2), track: a.beat().track, beatT: +a.beat().t.toFixed(2) };
+    out.sum = vm.map((v, i) => +(v + vc[i]).toFixed(2));                                       // the two together never exceed the music volume (no jump in loudness)
+    g.state = 'title'; a.lastState = 'title'; for (let i = 0; i < 40; i++) a.tick(g, 0.05); out.title = { w: a.coastW, coastPaused: c.paused };             // the menu: the main track only
+    g.state = 'play'; a.lastState = 'play'; g.bgTo = 'coast'; g.bgT = 1; for (let i = 0; i < 40; i++) a.tick(g, 0.05); await new Promise(r => setTimeout(r, 500)); out.again = { t: +c.currentTime.toFixed(2), paused: c.paused };   // entering again starts from the beginning
+    g.bgTo = 'neon'; g.bgT = 1; for (let i = 0; i < 60; i++) a.tick(g, 0.05); a.update(g, 0);       // leave: back to the main track
+    out.after = { w: a.coastW, coastPaused: c.paused, mainVol: +a.music.volume.toFixed(2), coastVol: +c.volume.toFixed(2), track: a.beat().track };
+    a.setMuted(true); out.muted = c.muted && a.music.muted; a.setMuted(false); out.unmuted = !c.muted && !a.music.muted;
+    g.state = keep.s; a.lastState = keep.s; g.bgTo = keep.to; g.bgT = keep.t; g.advance = adv; return out;
+  });
+  T('the Sunset Coast has its own music: before the coast the track is silent (paused, volume 0; it was started silently once at the first gesture so that browsers such as iOS Safari let game code play it later); entering the coast crossfades smoothly (the main track falls, the coast one rises, never louder together than the music volume), the coast track starts from its beginning (t=' + CF.inCoast.t + ' s) and the beat clock follows it',
+    CF.before.w === 0 && CF.before.coastPaused && CF.before.coastVol === 0 && CF.before.track === 'main' && CF.mono && CF.inCoast.w > 0.97 && !CF.inCoast.coastPaused && CF.inCoast.t > 0.5 && CF.inCoast.t < 6 && CF.inCoast.mainVol < 0.01 && CF.inCoast.coastVol > 0.5 && CF.inCoast.track === 'coast' && Math.abs(CF.inCoast.beatT - CF.inCoast.t) < 0.3 && Math.max(...CF.sum) <= 0.9, JSON.stringify({ before: CF.before, inCoast: CF.inCoast, mono: CF.mono, sumMax: Math.max(...CF.sum) }));
+  T('leaving the coast brings the main track back and stops the coast one; the menu never plays it; entering again restarts it; mute and unmute cover both tracks',
+    CF.title.w === 0 && CF.title.coastPaused && CF.again.t < 4 && !CF.again.paused && CF.after.w === 0 && CF.after.coastPaused && CF.after.mainVol > 0.5 && CF.after.coastVol === 0 && CF.after.track === 'main' && CF.muted && CF.unmuted, JSON.stringify({ title: CF.title, again: CF.again, after: CF.after, muted: CF.muted, unmuted: CF.unmuted }));
+  const CP = await pg.evaluate(async () => {                                                   // the real run: a bot takes the coast branch of a fork at the top speed; the loop is stepped by hand
+    const g = __wf, a = g.sfx, orig = Game.runSeed, keep = g.advance, out = { log: [] }; Game.runSeed = () => 1; g.start(); Game.runSeed = orig;
+    const key = c => g.onKey({ code: c, key: c, repeat: false, preventDefault() {} }, true), w = g.world; w.extend(90000);
+    const F = w.pieces.find(p => p.type === 'fork' && p.fork.left.route === 'coastRun'); g.p.z = F.z0 - 1500; g.p.speed = 340; w.extend(g.p.z); w.items = w.items.filter(i => i.z > g.p.z + 700);
+    let f = 0; while (f < 60 * 70 && g.state === 'play' && g.p.z < F.z1 + 1500) {
+      const p = g.p, Fo = w.openFork(); g.keys.left = g.keys.right = false; if (Fo && p.z > Fo.z0 - 500 && p.z < Fo.z0 - 400) g.keys.left = true;
+      let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * 0.5) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
+      if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && p.slide <= 0) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
+      g.p.speed = 340; g.advance(1 / 60); f++; if (f % 30 === 0) { await new Promise(r => setTimeout(r, 30)); out.log.push({ at: Math.round((g.p.z - F.z0) / 10), to: g.bgTo, w: a.coastW, main: a.music.volume, coast: a.musicCoast.volume, paused: a.musicCoast.paused, track: a.beat().track }); }
+    }
+    out.state = g.state; g.state = 'title'; return out;
+  });
+  const inB = CP.log.filter(x => x.at > 85 && x.at < 150), before = CP.log.filter(x => x.at < -40), afterB = CP.log.filter(x => x.at > 300);
+  T('in a real run the coast branch plays the coast track: before the fork only the main one (coast paused, weight 0), inside the branch the coast track is on top (weight > 0.95, main volume < 0.05, coast > 0.7, the beat clock on it), the crossfade lasts a few seconds each way, and after the merge the main track is back',
+    CP.state === 'play' && before.length > 2 && before.every(x => x.w === 0 && x.paused && x.track === 'main') && inB.length > 3 && inB.every(x => x.w > 0.95 && x.main < 0.05 && x.coast > 0.7 && !x.paused && x.track === 'coast') && afterB.length > 2 && afterB.every(x => x.w === 0 && x.paused && x.main > 0.3), JSON.stringify({ state: CP.state, log: CP.log.map(x => [x.at, x.to, +x.w.toFixed(2), +x.main.toFixed(2), +x.coast.toFixed(2), x.track].join(' ')) }));
   const VOL = await pg.evaluate(() => { const g = __wf, a = g.sfx, out = {}, keep = g.state; for (const s of ['title', 'play', 'pause', 'over']) { g.state = s; a.lastState = s; for (let i = 0; i < 60; i++) a.tick(g, 0.1); out[s] = +a.music.volume.toFixed(2); } g.state = keep; return out; });
   T('the music volume follows the state: loud while playing, softer in the menu, ducked on pause and after a crash', VOL.play > VOL.title && VOL.title > VOL.over && VOL.over > VOL.pause && VOL.pause > 0.1 && VOL.play <= 1, JSON.stringify(VOL));
   const LK = await pg.evaluate(async () => { const a = __wf.sfx; for (let i = 0; i < 12; i++) a.play(['coin', 'jump', 'land', 'slide', 'crash', 'click'][i % 6]); const peak = a.active; await new Promise(r => setTimeout(r, 1900)); return { peak, after: a.active }; });
