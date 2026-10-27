@@ -167,6 +167,14 @@ class Renderer3D {
   onDie(g) { const p = g.p, pb = g.world.playerBand(p.z, p.x); this.fx.crash((p.x + pb.off) * U3.X, p.jy * U3.Y + 0.9, p.z * U3.Z + 0.4, g.time); }
   onReset() { this.fx.clear(); this.heading = 0; this.lastT = 0; }
 
+  // does the runner ride the kick scooter? In Saint-Gilles by default (once the zone is mostly in); ?scooter=1 everywhere, ?scooter=0 nowhere
+  riding(g) {
+    const m = (location.search.match(/[?&]scooter=(\w+)/) || [])[1];
+    if (m === '1' || m === 'always') return true;
+    if (m === '0' || m === 'never') return false;
+    return g.state !== 'title' && g.bgTo === 'tram' && g.bgT > 0.5;
+  }
+
   place(name, x, y, z, rotY) {
     const pool = this.props[name], n = this.propUsed[name];
     if (!pool || n >= pool.length) { this.dropped++; this.droppedBy[name] = (this.droppedBy[name] || 0) + 1; return; }
@@ -256,7 +264,7 @@ class Renderer3D {
     this.heading += (-Math.atan(slope) - this.heading) * (1 - Math.exp(-10 * dt));
     this.runner.group.rotation.y = Math.PI * mm + this.heading * (1 - mm);
     this.runner.update(dt, { beat: pulse, faceYaw: Math.atan2(this.cam.x - relX, this.cam.z), time: g.time, runRate: 2.3 + p.speed / 340 * 1.1, airborne: p.jy > 0, vy: p.vy, sliding: p.slide > 0,
-                             lean: Math.max(-1, Math.min(1, p.vx / STEER)), state: g.state });
+                             lean: Math.max(-1, Math.min(1, p.vx / STEER)), state: g.state, scooter: this.riding(g) });
 
     // ---- camera: chase (behind and above, centred on the 2D camera) blended with the menu showcase orbit; looks down the active route
     const orbit = Math.sin(g.time * 0.35) * 0.5;                  // menu camera drifts around the character
