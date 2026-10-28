@@ -37,6 +37,8 @@ window.ENV3D = window.ENV3D || {};
   // THE STRAWBERRY BEACH CLUB: a terrace on a wooden deck beside the road (one slot, 12 m, on the land side, about twice a coastal zone): white railings with surfboards leaning on them, tables under pink and
   // white parasols, a low bar, string lights, a pink canopy with a scalloped fringe, and, as the BACKDROP of the terrace, the user's 'STRAWBERRY WEEKEND' picture stretched wide (a 11.5 x 4.55 m panel
   // for a square picture: 2.5 times wider than it was), under a neon name board; at the entrance, on two posts, the user's 'EL MEDITERRANEOS' sign, facing the runner coming along the road.
+  // the anchor sign stands apart from the strawberry backdrop (which spans z -5.75 .. 5.75): 3.45 m beyond its far end, nearer the road, so that from the road it never covers the picture
+  const SIGN_Z = -9.2;
   const club = () => {
     const p = [], L = SLOT + 0.2, WOOD = '#c9a56a', WOODD = '#8a6a3c', PINK = '#ff4fa8', WH = '#f4eee0', IRON = '#2a2630';
     p.push(Kit.box(6.2, 0.35, L, 3.1, 0, 0, WOOD), Kit.box(6.3, 0.06, L + 0.1, 3.15, 0.35, 0, '#d8b67c'));
@@ -51,8 +53,8 @@ window.ENV3D = window.ENV3D || {};
     const um = (x, z, c) => p.push(Kit.cyl(0.04, 0.04, 2.4, x, 0.35, z, IRON, { seg: 4 }), Kit.cone(1.2, 0.5, x, 2.7, z, c, { seg: 8 }), Kit.cyl(0.42, 0.42, 0.05, x, 1.1, z, WH, { seg: 8 }), Kit.cyl(0.04, 0.04, 0.75, x, 0.35, z, WH, { seg: 4 }));
     [[2.2, -3.4, PINK], [2.2, 0.2, WH], [2.2, 3.6, PINK]].forEach(([x, z, c]) => { um(x, z, c); for (const [dx, dz] of [[-0.6, 0], [0.6, 0], [0, -0.6], [0, 0.6]]) p.push(Kit.box(0.36, 0.05, 0.36, x + dx, 0.8, z + dz, '#7a5230'), Kit.box(0.34, 0.4, 0.05, x + dx, 0.8, z + dz + (dz ? (dz < 0 ? -0.18 : 0.18) : 0), '#7a5230')); });
     p.push(Kit.box(0.7, 1.1, 3.2, 5.3, 0.35, 3.3, WOODD), Kit.box(0.9, 0.06, 3.4, 5.25, 1.45, 3.3, '#e8d2a0')); for (const z of [2.2, 3.3, 4.4]) p.push(Kit.cyl(0.18, 0.18, 0.06, 4.55, 0.95, z, PINK, { seg: 8 }), Kit.cyl(0.03, 0.03, 0.6, 4.55, 0.35, z, IRON, { seg: 4 }));   // the bar and its stools
-    for (const x of [0.75, 2.95]) p.push(Kit.cyl(0.06, 0.06, 2.6, x, 0.35, 5.0, WOODD, { seg: 6 }));                                       // the two posts of the entrance sign
-    const sp = CoastArt.join([CoastArt.panel('strawberry', 6.15, -5.75, 5.75, 0.55, 5.1), CoastArt.blade('anchor', 5.0, 0.5, 3.2, 2.5, 5.2)]);                // the stretched backdrop, the club's sign
+    for (const x of [0.75, 2.95]) p.push(Kit.cyl(0.06, 0.06, 2.95, x, -0.25, SIGN_Z, WOODD, { seg: 6 }));                                  // the two posts of the anchor sign, planted in the ground
+    const sp = CoastArt.join([CoastArt.panel('strawberry', 6.15, -5.75, 5.75, 0.55, 5.1), CoastArt.blade('anchor', SIGN_Z, 0.5, 3.2, 2.5, 5.2)]);                // the stretched backdrop, the club's sign
     return { merged: Kit.merge(p), sprite: sp, material: () => CoastArt.material(), extra: [{ sprite: CoastArt.signPanel(6.1, -4.5, 4.5, 5.55, 6.675), material: () => CoastArt.signMaterial() }] };
   };
 
