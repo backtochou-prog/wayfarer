@@ -4,8 +4,8 @@
 // then the tall narrow gabled houses (step, bell, neck, spout gables, white window frames, hoist beams). Props follow the same contract as the other zones (a Kit part list per prop, local
 // +X pointing away from the road, local Z along it, one SEG_LEN slot each); the water, the wharf and the street are props, so the ribbon needs no change except its palette.
 // Cross-section from the canal's axis (metres): water |x| < 3.3 | wharf deck 3.5 .. 6.2 (y 1.0) | cellar wall 6.2 .. 7.4 (to y 3.5) | street 6.2 .. 12.9 (y 3.5) | house fronts at 12.9.
-// Everything here is original low-poly, drawn from how the real place is built, except four pictures from the user's own Utrecht photos (src3d/utrecht_assets.js: the 1905 and 1912 houses above their shops,
-// the Choorstraat house, a shop window with raffia shoes), used as flat facade panels (only cropped, never recoloured). The street vocabulary (black square lanterns, herringbone paving, plane trees, painted
+// Everything here is original low-poly, drawn from how the real place is built, except seven pictures and the canal water from the user's own Utrecht photos (src3d/utrecht_assets.js, 28 photos in all) (src3d/utrecht_assets.js: the 1905 and 1912 houses above their shops,
+// the Choorstraat house, a shop window with raffia shoes, a white facade with arched windows, the brick house with Utrecht's red and white shutters, the Dom tower under scaffolding), used as flat panels (only cropped, never recoloured). The street vocabulary (black square lanterns, herringbone paving, plane trees, painted
 // shopfronts in mint and burgundy, fruit crates with plants, the cheese cart, beige parasols, green bistro chairs, orange brick bands and red arches) is taken from those photos.
 window.ENV3D = window.ENV3D || {};
 
@@ -14,7 +14,7 @@ window.ENV3D = window.ENV3D || {};
   const U = { brick: '#92503f', brickD: '#6e3a30', brickL: '#ab6650', ochre: '#c98f58', cream: '#dccbab', nouv: '#d9c796', blue: '#6f8796', sage: '#7e9482', white: '#ece6d8', cream2: '#e8dcc0', stone: '#a29686', stoneD: '#6c655d', slab: '#8f857a',
               street: '#4e413e', slate: '#3c3a48', roof: '#5a4046', glass: '#222a3c', warm: '#ffbd70', iron: '#202228', green: '#2f4a3c', oxblood: '#5c2a2c', water: '#34565f',
               leaf: '#4d7a45', leafD: '#355d3a', trunk: '#4e3a30', dom: '#b9a78e', domD: '#8d7c68',
-              mint: '#8fe0b0', burg: '#6a1f2c', chair: '#1f5a3a', beige: '#d9cdb0', blueFrame: '#2a4466', archRed: '#b0442c', orange: '#cd8a30', banner: '#8a1c24' };
+              mint: '#8fe0b0', burg: '#6a1f2c', chair: '#1f5a3a', beige: '#d9cdb0', blueFrame: '#2a4466', archRed: '#b0442c', orange: '#cd8a30', banner: '#8a1c24', blueUm: '#1d4fb8', greyUm: '#3a3a40', redUm: '#c0282c', wicker: '#6a4a34', boat: '#dfe2dc', pileW: '#ececec', pile: '#5a4a3a' };
   const SLOT = SEG_LEN, WH = 1.0, ST = 3.5, FRONT = 12.9;           // slot length (12 m), wharf height, street height above the water, x of the house fronts from the canal's axis
   const EDGE = 3.5;                                                  // x of the water's edge (the ribbon's curb): quay props sit here, local x = 0 at the water edge, so the street is local 2.7 .. 9.4
 
@@ -33,7 +33,8 @@ window.ENV3D = window.ENV3D || {};
   };
   const lamp = (p, x, z, y0 = ST) => { p.push(Kit.cyl(0.14, 0.17, 0.5, x, y0, z, U.iron, { seg: 8 }), Kit.cyl(0.05, 0.08, 2.9, x, y0 + 0.5, z, U.iron, { seg: 8 }), Kit.box(0.2, 0.1, 0.2, x, y0 + 3.35, z, U.iron)); lantern(p, x, y0 + 3.45, z, 1.1); };
   const wallLantern = (p, y, z) => { p.push(Kit.box(0.7, 0.06, 0.06, -0.38, y, z, U.iron), Kit.box(0.06, 0.3, 0.06, -0.7, y - 0.3, z, U.iron)); lantern(p, -0.7, y - 0.05, z, 0.9); };
-  const rail = (p, x, len, y0 = ST) => { p.push(Kit.box(0.06, 0.06, len, x, y0 + 1.0, 0, U.iron)); for (let z = -len / 2 + 0.2; z < len / 2; z += 1.6) p.push(Kit.box(0.05, 1.0, 0.05, x, y0, z, U.iron)); };
+  const rail = (p, x, len, y0 = ST) => { p.push(Kit.box(0.06, 0.06, len, x, y0 + 1.0, 0, U.iron), Kit.box(0.05, 0.05, len, x, y0 + 0.55, 0, U.iron)); for (let z = -len / 2 + 0.2; z < len / 2; z += 1.6) p.push(Kit.box(0.1, 1.0, 0.1, x, y0, z, U.iron), Kit.ico(0.085, x, y0 + 1.06, z, U.iron)); };       // posts with ball finials, two rails
+  const pile = (p, x, z, y0 = -0.2, h = 1.5) => p.push(Kit.cyl(0.11, 0.12, h, x, y0, z, U.pile, { seg: 6 }), Kit.cyl(0.115, 0.115, 0.2, x, y0 + h, z, U.pileW, { seg: 6 }));      // a mooring pile with a white cap
   const crates = (p, x, z, y0 = ST) => {                             // wooden fruit crates stacked beside a shop door with potted plants on and in them
     p.push(Kit.box(0.5, 0.34, 0.8, x, y0, z, '#6a4a30'), Kit.box(0.5, 0.34, 0.8, x, y0 + 0.34, z, '#7a5638'), Kit.box(0.5, 0.34, 0.8, x + 0.05, y0 + 0.68, z + 0.05, '#6a4a30'));
     for (const [dz, c, r] of [[-0.25, U.leaf, 0.2], [0.05, '#5d9a50', 0.24], [0.3, U.leafD, 0.18]]) p.push(Kit.ico(r, x, y0 + 1.15, z + dz, c), Kit.cyl(0.1, 0.08, 0.16, x, y0 + 1.02, z + dz, '#a8583c', { seg: 6 }));
@@ -46,10 +47,12 @@ window.ENV3D = window.ENV3D || {};
     for (let k = 0; k < 8; k++) p.push(Kit.box(0.9, 0.04, 0.14, x - 0.1, y0 + 2.24 - Math.abs(k - 3.5) * 0.0, z - 0.6 + k * 0.17, k % 2 ? '#f2e6e2' : '#c8483c', { rz: 0.3 }));
     p.push(Kit.cyl(0.26, 0.26, 0.12, x, y0 + 1.0, z - 0.3, '#e8b830', { seg: 8 }), Kit.cyl(0.26, 0.26, 0.12, x, y0 + 1.0, z + 0.25, '#e8b830', { seg: 8 }), Kit.cyl(0.24, 0.24, 0.1, x, y0 + 1.12, z - 0.3, '#e8c870', { seg: 8 }), Kit.cyl(0.22, 0.22, 0.1, x, y0 + 1.12, z + 0.25, '#d9a838', { seg: 8 }));
   };
-  const parasol = (p, x, y, z, r = 1.25) => p.push(Kit.cyl(0.04, 0.04, 0.75, x, y, z, U.iron, { seg: 4 }), Kit.cyl(0.03, 0.03, 2.5, x, y, z, U.iron, { seg: 4 }), Kit.cone(r, 0.5, x, y + 2.4, z, U.beige, { seg: 8 }));
-  const bistro = (p, x, y, z) => {                                   // a round table and four chairs in green painted metal
-    p.push(Kit.cyl(0.4, 0.4, 0.05, x, y + 0.75, z, U.chair, { seg: 8 }), Kit.cyl(0.04, 0.04, 0.75, x, y, z, U.chair, { seg: 4 }));
-    for (const [dx, dz] of [[-0.6, 0], [0.6, 0], [0, -0.6], [0, 0.6]]) p.push(Kit.box(0.36, 0.05, 0.36, x + dx, y + 0.45, z + dz, U.chair), Kit.box(0.36, 0.45, 0.05, x + dx + (dz ? 0 : (dx < 0 ? -0.18 : 0.18)), y + 0.45, z + dz + (dz ? (dz < 0 ? -0.18 : 0.18) : 0), U.chair));
+  const parasol = (p, x, y, z, r = 1.25, col = U.beige) => p.push(Kit.cyl(0.04, 0.04, 0.75, x, y, z, U.iron, { seg: 4 }), Kit.cyl(0.03, 0.03, 2.5, x, y, z, U.iron, { seg: 4 }), Kit.cone(r, 0.5, x, y + 2.4, z, col, { seg: 8 }));
+  const closedUm = (p, x, y, z, col) => p.push(Kit.cyl(0.03, 0.03, 2.2, x, y, z, U.iron, { seg: 4 }), Kit.cone(0.2, 1.7, x, y + 0.5, z, col, { seg: 6 }), Kit.cyl(0.16, 0.05, 0.2, x, y + 0.3, z, col, { seg: 6 }));     // a folded parasol
+  const boat = (p, x, z, y = -0.04) => p.push(Kit.box(0.7, 0.3, 2.4, x, y, z, U.boat), Kit.box(0.5, 0.27, 0.5, x, y + 0.02, z - 1.4, U.boat), Kit.box(0.28, 0.24, 0.4, x, y + 0.05, z - 1.75, U.boat), Kit.box(0.5, 0.27, 0.45, x, y + 0.02, z + 1.4, U.boat), Kit.box(0.5, 0.04, 2.0, x, y + 0.3, z, '#9b9c94'), Kit.box(0.56, 0.05, 0.2, x, y + 0.33, z - 0.4, U.boat), Kit.box(0.56, 0.05, 0.2, x, y + 0.33, z + 0.5, U.boat));   // a white rowing boat moored along the wharf
+  const bistro = (p, x, y, z, col = U.chair) => {                                   // a round table and four chairs in green painted metal
+    p.push(Kit.cyl(0.4, 0.4, 0.05, x, y + 0.75, z, col, { seg: 8 }), Kit.cyl(0.04, 0.04, 0.75, x, y, z, col, { seg: 4 }));
+    for (const [dx, dz] of [[-0.6, 0], [0.6, 0], [0, -0.6], [0, 0.6]]) p.push(Kit.box(0.36, 0.05, 0.36, x + dx, y + 0.45, z + dz, col), Kit.box(0.36, 0.45, 0.05, x + dx + (dz ? 0 : (dx < 0 ? -0.18 : 0.18)), y + 0.45, z + dz + (dz ? (dz < 0 ? -0.18 : 0.18) : 0), col));
   };
 
   // ------------------------------------------------------------------ the quay: wharf, cellar wall with lit arched doorways, street (herringbone brick), railing, black lanterns.
@@ -65,10 +68,10 @@ window.ENV3D = window.ENV3D || {};
       p.push(Kit.box(0.18, 1.4, 1.5, 2.5, WH, z, U.warm, { glow: true }), Kit.cyl(0.75, 0.75, 0.18, 2.5, WH + 1.4, z, U.warm, { rz: Math.PI / 2, seg: 10, glow: true }));
       p.push(Kit.box(0.22, 2.1, 0.07, 2.45, WH, z, U.iron), Kit.box(0.22, 0.07, 1.5, 2.45, WH + 0.8, z, U.iron));
     }
-    p.push(Kit.cyl(0.1, 0.12, 0.45, 0.5, WH, -5.2, U.iron, { seg: 6 }), Kit.cyl(0.1, 0.12, 0.45, 0.5, WH, 5.2, U.iron, { seg: 6 }));                          // mooring bollards
+    for (const z of [-5.4, -0.6, 4.4]) pile(p, -0.12, z);                                                                                                  // mooring piles with white caps, as along the wharves of the photos
     rail(p, 3.05, L); lamp(p, 3.4, mod(variant, 2) ? -4.5 : 4.5);
     if (variant === 0) {
-      for (const z of [-1.0, 1.9]) { bistro(p, 1.6, WH, z); parasol(p, 1.6, WH, z); }
+      for (const [z, um] of [[-1.0, U.blueUm], [1.9, U.greyUm]]) { bistro(p, 1.6, WH, z, U.wicker); parasol(p, 1.6, WH, z, 1.3, um); }
       for (let k = 0; k <= 10; k++) p.push(Kit.box(0.09, 0.09, 0.09, 4.4, ST + 3.2 - Math.sin(k / 10 * Math.PI) * -0.0 - 0.35 * Math.sin(k / 10 * Math.PI), -5 + k, U.warm, { glow: true }));   // a string of lights along the street
       p.push(Kit.box(0.02, 0.02, 10.2, 4.4, ST + 3.2, 0, U.iron));
       for (const z of [-5.4, 5.4]) p.push(Kit.box(0.5, 0.45, 0.9, 2.3, WH, z, '#5a3a2a'), Kit.ico(0.32, 2.3, WH + 0.7, z, '#c04a6a'), Kit.ico(0.26, 2.3, WH + 0.65, z + 0.25, '#e8b84a'));       // planters
@@ -76,10 +79,13 @@ window.ENV3D = window.ENV3D || {};
       for (const z of [-5.6, -1.4, 1.6, 5.6]) p.push(Kit.box(0.4, 0.4, 0.8, 2.3, WH, z, '#5a3a2a'), Kit.ico(0.34, 2.3, WH + 0.62, z, U.leaf), Kit.ico(0.25, 2.3, WH + 0.6, z + 0.3, '#d9667c'));
       for (const z of [-2.2, 2.6]) p.push(Kit.box(0.5, 0.1, 1.5, 4.0, ST + 0.45, z, '#7a5230'), Kit.box(0.08, 0.5, 1.5, 4.25, ST + 0.45, z, '#7a5230'), Kit.box(0.08, 0.45, 0.08, 3.85, ST, z - 0.6, U.iron), Kit.box(0.08, 0.45, 0.08, 3.85, ST, z + 0.6, U.iron));
       crates(p, 8.6, -3.6); crates(p, 8.6, 4.8);
+      for (let k = 0; k < 9; k++) p.push(Kit.box(0.9, (ST - WH) * (9 - k) / 9, 0.5, 2.25, WH, -2.2 + k * 0.5, '#5a3a2a'), Kit.box(0.9, 0.05, 0.5, 2.25, WH + (ST - WH) * (9 - k) / 9, -2.2 + k * 0.5, '#7a5230'));      // wooden stairs down to the wharf
+      p.push(Kit.box(0.07, 0.07, 4.9, 1.75, WH + 1.5, 0.25, '#f2efe6', { rx: Math.atan2(ST - WH, 4.5) }), Kit.box(0.07, 0.9, 0.07, 1.75, WH, 2.4, '#f2efe6'), Kit.box(0.07, 0.9, 0.07, 1.75, ST + 0.3, -2.0, '#f2efe6'));       // its white handrail
+      boat(p, -0.45, -3.2); boat(p, -0.45, 0.6); boat(p, -0.45, 4.1);
     } else {
       [-5.2, -4.4, -3.6, -2.8, 0.6, 1.4, 2.2].forEach((z, k) => bike(p, 3.4, z, BIKES[k], ST, 0));
       p.push(Kit.box(0.05, 0.6, 4.0, 4.3, ST, 4.0, U.iron)); [3.0, 3.8, 4.6, 5.4].forEach((z, k) => bike(p, 4.6, z, BIKES[k + 2], ST, 0));
-      cheeseCart(p, 7.2, -3.6);
+      cheeseCart(p, 7.2, -3.6); closedUm(p, 1.7, WH, -1.2, U.redUm); closedUm(p, 1.9, WH, 2.2, U.redUm);
     }
     return { merged: Kit.merge(p), sprite: UtrechtArt.floor(3.9, 9.4, -L / 2, L / 2, ST + 0.056), material: () => UtrechtArt.paveMaterial() };
   };
@@ -102,7 +108,7 @@ window.ENV3D = window.ENV3D || {};
   // ------------------------------------------------------------------ a canal house: facade plane at local x = 0 (facing the canal), body toward +X, on the street (y = ST), centred on z = zc. Several kinds:
   // gable: step, bell, neck, spout (a triangle), plain, mansard (a slate roof with dormers). stripes: orange brick bands. arch: red brick arches over the windows. frame: 'white' or 'blue' (blue frames in cream surrounds)
   function house(p, sp, o) {
-    const { F, D = 8, floors, wall, zc = 0, gable = 'step', trim = U.white, shut = null, seed = 1, shopCol = null, display = null, frame = 'white', stripes = null, arch = false, lant = false, banner = false } = o, y0 = ST, GF = 3.3, FL = 2.9, H = GF + floors * FL, cols = F > 4.6 ? 3 : 2;
+    const { F, D = 8, floors, wall, zc = 0, gable = 'step', trim = U.white, shut = null, seed = 1, shopCol = null, display = null, frame = 'white', stripes = null, arch = false, lant = false, banner = false, water = false } = o, y0 = o.y0 === undefined ? ST : o.y0, GF = 3.3, FL = 2.9, H = GF + floors * FL, cols = F > 4.6 ? 3 : 2;
     p.push(Kit.box(D, H, F, D / 2, y0, zc, wall), Kit.box(D + 0.1, 0.55, F + 0.1, D / 2, y0, zc, U.stoneD));
     p.push(Kit.box(0.4, 0.22, F + 0.2, -0.1, y0 + H - 0.22, zc, trim), Kit.box(0.14, 0.14, F + 0.04, -0.05, y0 + GF - 0.1, zc, trim));                  // cornice, ground-floor band
     if (stripes) for (let f = 0; f <= floors; f++) p.push(Kit.box(0.06, 0.1, F, -0.02, y0 + GF + f * FL - 0.25, zc, stripes), Kit.box(0.06, 0.08, F, -0.02, y0 + GF + f * FL - 0.45, zc, stripes));
@@ -114,7 +120,12 @@ window.ENV3D = window.ENV3D || {};
       if (arch) p.push(Kit.cyl(wide / 2 + 0.26, wide / 2 + 0.26, 0.1, 0.03, y + hgt + 0.1, z, U.archRed, { rz: Math.PI / 2, seg: 10 }), Kit.cyl(wide / 2 + 0.06, wide / 2 + 0.06, 0.1, 0.0, y + hgt + 0.1, z, wall, { rz: Math.PI / 2, seg: 10 }));
       if (shut) p.push(Kit.box(0.06, hgt, 0.36, -0.1, y, z - wide / 2 - 0.26, shut), Kit.box(0.06, hgt, 0.36, -0.1, y, z + wide / 2 + 0.26, shut));
     };
-    if (shopCol) shopfront(p, sp, F, zc, shopCol, display, seed);
+    if (water) {                                                                                                                                           // a house on the water: one or two arched basement openings (lit), mooring piles in front
+      const na = F > 4.6 ? 2 : 1;
+      for (let a = 0; a < na; a++) { const z = zc + (na === 1 ? 0 : (a ? 0.26 : -0.26) * F), lit = rnd(seed * 3 + a, 71) < 0.75;
+        p.push(Kit.box(0.14, 2.0, 1.7, -0.05, y0 + 0.25, z, U.stone), Kit.cyl(0.85, 0.85, 0.14, -0.05, y0 + 2.25, z, U.stone, { rz: Math.PI / 2, seg: 10 }), Kit.box(0.18, 1.85, 1.4, -0.08, y0 + 0.25, z, lit ? U.warm : U.iron, { glow: lit }), Kit.cyl(0.7, 0.7, 0.18, -0.08, y0 + 2.1, z, lit ? U.warm : U.iron, { rz: Math.PI / 2, seg: 10, glow: lit }), Kit.box(0.22, 2.2, 0.06, -0.12, y0 + 0.25, z, U.iron)); }
+      pile(p, -0.55, zc - F * 0.4); pile(p, -0.55, zc + F * 0.4);
+    } else if (shopCol) shopfront(p, sp, F, zc, shopCol, display, seed);
     else {                                                                                                                                                 // ground floor without a shop: a door with a transom and a window
       const doorZ = zc + (rnd(seed, 51) < 0.5 ? -1 : 1) * F * 0.24;
       p.push(Kit.box(0.12, 2.5, 1.0, -0.04, y0 + 0.5, doorZ, mod(seed, 3) === 0 ? U.oxblood : U.green), Kit.box(0.2, 0.15, 1.3, -0.08, y0 + 3.0, doorZ, trim), Kit.box(0.3, 0.2, 1.4, -0.15, y0 + 0.4, doorZ, U.stone));
@@ -144,7 +155,7 @@ window.ENV3D = window.ENV3D || {};
     sp.push(UtrechtArt.panel(cell, -0.03, zc - F / 2, zc + F / 2, y0 + shopH, y0 + shopH + h));
   }
   // a row of three houses filling a slot (12 m): widths, heights, gables and colours drawn from the seed. `photo` = { cell, F, side, ... } puts one of the user's photographed houses in the row
-  const row = (seed, photo) => () => {
+  const row = (seed, photo, wet) => () => {
     const p = [], sp = [], G = ['step', 'bell', 'neck', 'spout', 'plain', 'mansard', 'mansard', 'step', 'bell'], C = [U.brick, U.brickD, U.brickL, U.ochre, U.cream, U.nouv, U.blue, U.sage, U.brick, U.brickL, U.nouv], SH = [U.mint, U.burg, U.chair, null, null, U.mint];
     const parts = photo ? (photo.side ? [photo.F, (SLOT - photo.F) / 2, (SLOT - photo.F) / 2] : [(SLOT - photo.F) / 2, (SLOT - photo.F) / 2, photo.F]) : [3.6 + rnd(seed, 1) * 1.0, 3.8 + rnd(seed, 2) * 1.2, 0];
     if (!photo) parts[2] = SLOT - parts[0] - parts[1];
@@ -154,15 +165,15 @@ window.ENV3D = window.ENV3D || {};
       if (photo && F === photo.F && ((photo.side && k === 0) || (!photo.side && k === 2))) photoHouse(p, sp, photo.cell, F, z + F / 2, { wall: photo.wall, shopCol: photo.shopCol, display: photo.display, seed: s, ground: photo.ground, eave: photo.eave });
       else {
         const nouv = rnd(s, 17) < 0.35, shopCol = SH[Math.floor(rnd(s, 18) * SH.length)];
-        house(p, sp, { F, D: 8.5, floors: 3 + Math.floor(rnd(s, 11) * 2.2), wall: nouv ? U.nouv : C[Math.floor(rnd(s, 12) * C.length)], zc: z + F / 2, gable: G[Math.floor(rnd(s, 13) * G.length)], shut: !nouv && rnd(s, 14) < 0.3 ? (rnd(s, 15) < 0.5 ? U.green : U.oxblood) : null, seed: s,
-          shopCol, display: photo && photo.display && shopCol ? photo.display : null, frame: rnd(s, 19) < 0.3 ? 'blue' : 'white', stripes: nouv ? U.orange : null, arch: nouv && rnd(s, 20) < 0.7, lant: rnd(s, 21) < 0.4, banner: rnd(s, 22) < 0.12 });
+        house(p, sp, { F, D: 8.5, y0: wet ? 0 : undefined, water: !!wet, floors: 3 + Math.floor(rnd(s, 11) * 2.2), wall: nouv ? U.nouv : C[Math.floor(rnd(s, 12) * C.length)], zc: z + F / 2, gable: G[Math.floor(rnd(s, 13) * G.length)], shut: !nouv && rnd(s, 14) < 0.3 ? (rnd(s, 15) < 0.5 ? U.green : U.oxblood) : null, seed: s,
+          shopCol: wet ? null : shopCol, display: photo && photo.display && shopCol ? photo.display : null, frame: rnd(s, 19) < 0.3 ? 'blue' : 'white', stripes: nouv ? U.orange : null, arch: nouv && rnd(s, 20) < 0.7, lant: rnd(s, 21) < 0.4, banner: rnd(s, 22) < 0.12 });
       }
       z += F;
     }
-    p.push(Kit.box(8.6, ST, SLOT + 0.1, 4.3, 0, 0, U.stoneD));                                                                                             // the ground under them
-    const m = { merged: Kit.merge(p) };
-    if (sp.length) { m.sprite = UtrechtArt.join(sp); m.material = () => UtrechtArt.material(); }
-    return m;
+    if (!wet) p.push(Kit.box(8.6, ST, SLOT + 0.1, 4.3, 0, 0, U.stoneD));                                                                                  // the ground under them (a house on the water has none)
+    const merged = Kit.merge(p);
+    if (!sp.length) return merged;                                                                                                                         // plain geometry (the usual prop shape) unless the row carries photographed panels
+    return { merged, sprite: UtrechtArt.join(sp), material: () => UtrechtArt.material() };
   };
 
   // ------------------------------------------------------------------ trees: a plane tree (mottled grey-green trunk, as on the square of the photos) on the street, in 2 sizes
@@ -179,6 +190,8 @@ window.ENV3D = window.ENV3D || {};
     p.push(Kit.box(24, 0.06, L, 0, ST, 0, U.street), Kit.box(24, 0.18, 0.3, 0, ST + 0.55, L / 2 - 0.15, U.brickD), Kit.box(24, 0.18, 0.3, 0, ST + 0.55, -L / 2 + 0.15, U.brickD), Kit.box(24, 0.7, 0.24, 0, ST, L / 2 - 0.12, U.brick), Kit.box(24, 0.7, 0.24, 0, ST, -L / 2 + 0.12, U.brick));   // street, parapets with coping
     p.push(Kit.box(7.4, WH, L, 4.5, 0, 0, U.stoneD), Kit.box(7.4, WH, L, -4.5, 0, 0, U.stoneD));
     for (const [x, z] of [[-6.5, -3.6], [-6.5, 3.6], [6.5, -3.6], [6.5, 3.6]]) lamp(p, x, z);
+    for (const sz of [-1, 1]) { for (const x of [-4.2, -1.4, 1.4, 4.2]) for (const a of [Math.PI / 4, -Math.PI / 4]) p.push(Kit.box(0.09, 1.0, 0.07, x, ST - 1.25, sz * (L / 2 + 0.05), U.iron, { rz: a }));            // the X-shaped iron wall anchors of the old bridge face
+      for (let k = 0; k < 7; k++) bike(p, -9 + k * 1.2 + (sz > 0 ? 0.5 : 0), sz * (L / 2 - 0.62), BIKES[(k + (sz > 0 ? 3 : 0)) % BIKES.length], ST, Math.PI / 2); }   // bicycles leaning on both railings
     return Kit.merge(p);
   };
 
@@ -190,7 +203,9 @@ window.ENV3D = window.ENV3D || {};
     p.push(Kit.cyl(4.6, 5.0, 24, 0, 81, 0, U.dom, { seg: 8 }), Kit.cyl(5.2, 5.2, 1.0, 0, 105, 0, U.domD, { seg: 8 }), Kit.cone(4.6, 7, 0, 106, 0, '#59616a', { seg: 8 }), Kit.cyl(0.25, 0.25, 6, 0, 112, 0, U.iron, { seg: 4 }));
     for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + Math.PI / 8; p.push(Kit.box(1.4, 14, 0.3, 4.7 * Math.sin(a), 86, 4.7 * Math.cos(a), U.iron, { ry: a })); }                                         // the lantern's openings
     for (const [x, z] of [[-6.8, -6.8], [6.8, -6.8], [-6.8, 6.8], [6.8, 6.8]]) p.push(Kit.cone(1.2, 5, x, 80, z, U.domD, { seg: 4 }));
-    return Kit.merge(p);
+    // the Dom was under scaffolding with the red and white Utrecht flag on it: the user's photo of it wraps the body of the tower (two tiles of 26 m on the lower block, one on the upper)
+    const sp = UtrechtArt.join([UtrechtArt.tower('scaf', 8.06, 8.06, 0, 26), UtrechtArt.tower('scaf', 8.06, 8.06, 26, 52), UtrechtArt.tower('scaf', 6.06, 6.06, 52, 52 + 12.12 / UTRECHT_ASSETS.scaf.ar)]);
+    return { merged: Kit.merge(p), sprite: sp, material: () => UtrechtArt.material() };
   };
 
   // ------------------------------------------------------------------ stretch A, the basin at Utrecht Centraal (the restored Catharijnesingel): on one side the station hall, a wave-shaped canopy over a wide promenade,
@@ -246,16 +261,19 @@ window.ENV3D = window.ENV3D || {};
     innerOk: new Set(['platane']),
     props: { quayA: quay(0), quayB: quay(1), quayC: quay(2), rowA: row(1), rowB: row(2), rowC: row(3), rowD: row(4), rowE: row(5), rowF: row(6), rowG: row(7), rowH: row(8),
              rowP1905: row(21, { cell: 'h1905', F: 5.4, side: true, wall: '#d8c8a0', shopCol: '#26262c', eave: 0.7 }), rowP1912: row(22, { cell: 'h1912', F: 5.4, side: false, wall: '#d8c8a0', shopCol: '#6a1f2c', display: 'shoes', eave: 0.72 }), rowPChoor: row(23, { cell: 'hChoor', F: 5.3, side: true, wall: '#8a4a38', ground: false }),
+             rowPWhite: row(24, { cell: 'wArch', F: 5.0, side: false, wall: '#e0dcd2', shopCol: '#26262c', eave: 0.93 }), rowPShut: row(25, { cell: 'shut', F: 5.4, side: true, wall: '#9a5a44', shopCol: '#2f4a3c', eave: 0.95 }),
+             wetA: row(31, null, true), wetB: row(32, null, true), wetC: row(33, null, true), wetD: row(34, null, true),
              platane: platane(false), plataneB: platane(true), bridge, dom, stationHall, park, plane, footBridge, tunnel },
     stretches: {                                                                                   // the other two stretches of the zone (the Oudegracht is `layout` above)
       basin(i, rnd) { const out = [{ prop: 'stationHall', x: -EDGE, dist: 6 }, { prop: 'park', x: EDGE, dist: 6 }]; if (mod(i, 4) === 2) out.push({ prop: 'footBridge', x: 0, dist: 6 }); else if (mod(i, 2) === 0) out.push({ prop: 'plane', x: 5.6 + rnd(i, 3) * 3, dist: 3 + rnd(i, 4) * 4 }); if (mod(i, 2) === 1) out.push({ prop: 'plane', x: 8.5 + rnd(i, 5) * 3, dist: 8 }); return out; },
       tunnel(i) { return [{ prop: 'tunnel', x: 0, dist: 6 }]; },
     },
     layout(i, rnd) {
-      const out = [], ROWS = ['rowA', 'rowB', 'rowC', 'rowD', 'rowE', 'rowF', 'rowG', 'rowH'], PHOTO = ['rowP1905', 'rowP1912', 'rowPChoor'];
+      const out = [], ROWS = ['rowA', 'rowB', 'rowC', 'rowD', 'rowE', 'rowF', 'rowG', 'rowH'], PHOTO = ['rowP1905', 'rowP1912', 'rowPChoor', 'rowPWhite', 'rowPShut'], WET = ['wetA', 'wetB', 'wetC', 'wetD'], blk = Math.floor(i / 3), wetL = rnd(blk * 2, 41) < 0.34, wetR = !wetL && rnd(blk * 2 + 1, 41) < 0.34;       // now and then a stretch where the houses rise straight out of the water (as above the Stadhuisbrug)
       if (mod(i, 8) === 5) { out.push({ prop: 'bridge', x: 0, dist: 6 }); return out; }            // a bridge every 8 slots (96 m): no quay or houses there, the bridge has its own
       for (const side of [-1, 1]) {
         const k = i * 2 + (side > 0 ? 1 : 0);
+        if (side < 0 ? wetL : wetR) { out.push({ prop: WET[Math.floor(rnd(k, 9) * WET.length)], x: side * EDGE, dist: 6 }); continue; }
         out.push({ prop: ['quayA', 'quayB', 'quayC'][Math.floor(rnd(k, 3) * 3)], x: side * EDGE, dist: 6 });
         out.push({ prop: rnd(k, 7) < 0.42 ? PHOTO[Math.floor(rnd(k, 8) * PHOTO.length)] : ROWS[Math.floor(rnd(k, 4) * ROWS.length)], x: side * FRONT, dist: 6 });     // now and then one of the user's photographed houses
         if (mod(i + (side > 0 ? 1 : 0), 3) === 0) out.push({ prop: rnd(k, 6) < 0.5 ? 'platane' : 'plataneB', x: side * 7.6, dist: 3 + rnd(k, 5) * 2 });

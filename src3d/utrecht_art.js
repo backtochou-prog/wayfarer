@@ -13,6 +13,17 @@ const UtrechtArt = {
     }
     return this._mat;
   },
+  // the canal water: the user's own photo of the canal (a 256 px tile, UTRECHT_WATER), mirrored so that it tiles without a seam; the caller sets `map.repeat` (and may scroll `map.offset`)
+  waterMaterial() {
+    if (!this._water) {
+      const img = new Image(), tex = new THREE.Texture(img);
+      tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping; tex.anisotropy = 4;
+      const mat = new THREE.MeshBasicMaterial({ map: tex }); mat.color.setRGB(1.5, 1.75, 2.2);              // a daylight photo of dark water, lifted and cooled a little for the blue hour
+      mat.visible = false; img.onload = () => { tex.needsUpdate = true; mat.visible = true; }; img.src = UTRECHT_WATER.src;
+      this._water = mat;
+    }
+    return this._water;
+  },
   // herringbone paving: brick-sized rectangles tilted 45 degrees, the tilt alternating from one column to the next, in browns and reds with dark joints (a 256 px tile, 1.6 m of street)
   paveMaterial() {
     if (!this._pave) {
@@ -35,6 +46,16 @@ const UtrechtArt = {
     g.setAttribute('uv', new THREE.Float32BufferAttribute([c.u0, c.v0, c.u1, c.v0, c.u1, c.v1, c.u0, c.v1], 2));
     g.setIndex([0, 1, 2, 0, 2, 3]); g.computeBoundingSphere(); g.computeBoundingBox();
     return g;
+  },
+  // the four faces of a square tower (half-sizes hx, hz about the origin) from y0 to y1, each showing atlas cell `cell` (the Dom tower under scaffolding)
+  tower(cell, hx, hz, y0, y1) {
+    const c = UTRECHT_ASSETS[cell], faces = [[-hx, -hz, hx, -hz], [hx, -hz, hx, hz], [hx, hz, -hx, hz], [-hx, hz, -hx, -hz]], list = [];
+    for (const [xa, za, xb, zb] of faces) {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute([xa, y0, za, xb, y0, zb, xb, y1, zb, xa, y1, za], 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute([c.u0, c.v0, c.u1, c.v0, c.u1, c.v1, c.u0, c.v1], 2)); g.setIndex([0, 1, 2, 0, 2, 3]); list.push(g);
+    }
+    return this.join(list);
   },
   // a horizontal quad (the paving of a street slab) x0..x1, z0..z1 at height y, the tile repeating every 1.6 m
   floor(x0, x1, z0, z1, y) {

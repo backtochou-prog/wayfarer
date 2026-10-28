@@ -26,14 +26,15 @@ const TEX = { warm: soft(255, 176, 96, 'streak'), foam: soft(244, 251, 255), rip
 const flat = (w, d, x, y, z, tex, op, add) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: TEX[tex], transparent: true, opacity: op, depthWrite: false, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending })); m.position.set(x, y, z); m.renderOrder = 2; scene.add(m); return m; };
 // the canal: water (the ribbon) lit by the sky, pale ripple marks on the lanes and soft streaks, the ground beyond
 const rd = env.road, wcv = document.createElement('canvas'); wcv.width = 64; wcv.height = 8; { const x = wcv.getContext('2d'), g = x.createLinearGradient(0, 0, 64, 0); g.addColorStop(0, '#2c4a56'); g.addColorStop(0.5, '#4f8794'); g.addColorStop(1, '#2c4a56'); x.fillStyle = g; x.fillRect(0, 0, 64, 8); }
-const wt = new THREE.CanvasTexture(wcv); wt.colorSpace = THREE.SRGBColorSpace; const wat = new THREE.Mesh(new THREE.BoxGeometry(2 * ROAD_HALF + 0.4, 0.4, 420), [lit(rd.curbFace), lit(rd.curbFace), new THREE.MeshBasicMaterial({ map: wt }), lit(rd.curbFace), lit(rd.curbFace), lit(rd.curbFace)]); wat.position.set(0, -0.2, -190); scene.add(wat);
+const wm = UtrechtArt.waterMaterial(); wm.map.repeat.set(2, 110); const wat = new THREE.Mesh(new THREE.BoxGeometry(2 * ROAD_HALF + 0.4, 0.4, 420), [lit(rd.curbFace), lit(rd.curbFace), wm, lit(rd.curbFace), lit(rd.curbFace), lit(rd.curbFace)]); wat.position.set(0, -0.2, -190); scene.add(wat);       // the canal water is the user's photo of it, tiled
 for (let z = 20; z > -300; z -= 3.2) for (const x of [-1.1, 1.1]) flat(0.12, 1.2, x + 0.05 * Math.sin(z), 0.012, z, 'ripple', 0.5);
 for (let k = 0; k < 150; k++) flat(0.6 + rnd(k, 1) * 1.8, 0.35, (rnd(k, 2) - 0.5) * 5.6, 0.015, 20 - rnd(k, 3) * 300, 'foam', 0.12 + rnd(k, 4) * 0.12);
 const ground = new THREE.Mesh(new THREE.BoxGeometry(160, 0.6, 420), lit(env.groundFar)); ground.position.set(0, -0.36, -190); scene.add(ground);
 const props = {}; for (const k of Object.keys(env.props)) props[k] = env.props[k]();
 const put = (name, x, z, ry) => { const pr = props[name]; let m; if (pr.sprite) { m = pr.merged ? Kit.mesh(pr.merged) : new THREE.Group(); m.add(new THREE.Mesh(pr.sprite, pr.material())); } else m = Kit.mesh(pr); m.position.set(x, 0, z); m.rotation.y = ry || 0; scene.add(m); return m; };
 const showcase = (i, r) => { const base = env.layout(i, r).filter(q => q.x < 0 || !/^(row|quay)/.test(q.prop)); if (i < 0 || i > 3) return env.layout(i, r); return base.concat([{ prop: 'quayA', x: EDGE_, dist: 6 }, { prop: ['rowP1905', 'rowP1912', 'rowPChoor', 'rowP1905'][i], x: 12.9, dist: 6 }]); };
-const EDGE_ = 3.5, stretch = view === 'basin' ? env.stretches.basin : view === 'tunnel' ? env.stretches.tunnel : view === 'houses' ? showcase : env.layout;
+const EDGE_ = 3.5, wetShow = (i, r) => { if (i < 0 || i > 4) return env.layout(i, r); return [{ prop: ['wetA', 'wetB', 'wetC', 'wetD', 'wetA'][i], x: -EDGE_, dist: 6 }, { prop: ['quayA', 'quayB', 'quayC', 'quayA', 'quayB'][i], x: EDGE_, dist: 6 }, { prop: ['rowPWhite', 'rowPShut', 'rowP1912', 'rowPWhite', 'rowPShut'][i], x: 12.9, dist: 6 }]; };
+const stretch = view === 'basin' ? env.stretches.basin : view === 'tunnel' ? env.stretches.tunnel : view === 'houses' ? showcase : view === 'wet' ? wetShow : env.layout;
 for (let i = -2; i < 22; i++) for (const pl of stretch(i, rnd)) { const m = put(pl.prop, pl.x, -i * SEG_LEN - pl.dist, pl.x < 0 ? Math.PI : 0); }
 put('dom', view === 'basin' ? 36 : -28, -255, 0);
 if (view === 'basin') { const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 160; const x = cv.getContext('2d'); x.fillStyle = '#1d2f66'; x.fillRect(0, 0, 1024, 160); x.fillStyle = '#fff'; x.font = 'bold 92px Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('UTRECHT CENTRAAL', 512, 86);
@@ -76,6 +77,8 @@ const views = {
   photo: () => { let hit = null; for (let i = 0; i < 22 && !hit; i++) for (const pl of env.layout(i, rnd)) if (new RegExp('^' + (q.get('which') || 'rowP')).test(pl.prop) && !hit && i >= +(q.get('from') || 0)) hit = { i, pl }; const z = -hit.i * SEG_LEN - 6, side = Math.sign(hit.pl.x) || 1; rider(0, z + 10, 0, 1); camera.position.set(-side * 0.5, 2.4, z + 18); camera.lookAt(side * 13, 6.5, z - 2); camera.fov = 58; window.__photo = hit.pl.prop; },
   street: () => { rider(0, S); camera.position.set(5.4, 5.4, 9 + S); camera.lookAt(6.2, 4.4, -25 + S); camera.fov = 66; },
   houses: () => { rider(-1.4, S - 18); camera.position.set(-1.0, 3.2, -SEG_LEN * 1.5 + 24); camera.lookAt(12, 7.5, -SEG_LEN * 1.5 - 6); camera.fov = 62; },
+  dom: () => { rider(0, -150); camera.position.set(-6, 9, -176); camera.lookAt(-28, 40, -255); camera.fov = 56; },
+  wet: () => { rider(0, -SEG_LEN * 1.0 - 4); camera.position.set(2.2, 3.4, -SEG_LEN * 1.0 + 10); camera.lookAt(-8, 5.5, -SEG_LEN * 4); camera.fov = 64; },
   wharf: () => { rider(1.1, S, 0.1); camera.position.set(-0.2, 1.7, 5.5 + S); camera.lookAt(5.5, 2.6, -8 + S); camera.fov = 66; },
   basin: () => { rider(0, S); camera.position.set(1.4, 3.4, 9 + S); camera.lookAt(-4.5, 4.6, -16 + S); camera.fov = 64; },
   tunnel: () => { rider(0, S); camera.position.set(0, 2.6, 7 + S); camera.lookAt(0, 1.9, -30 + S); },
@@ -84,7 +87,7 @@ const views = {
 };
 (views[view] || views.oudegracht)();
 camera.updateProjectionMatrix();
-function go() { if (!UtrechtArt.material().visible) return setTimeout(go, 200); renderer.render(scene, camera); window.__ready = true; }
+function go() { if (!UtrechtArt.material().visible || !UtrechtArt.waterMaterial().visible) return setTimeout(go, 200); renderer.render(scene, camera); window.__ready = true; }
 setTimeout(go, 900);
 </script>
 </body></html>
