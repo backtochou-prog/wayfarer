@@ -199,7 +199,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = wants[nFork++]; }
       g.keys.left = g.keys.right = false; if (F && want && p.z > F.z0 - 500 && p.z < F.z0 - 400) g.keys[want] = true;
       let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * 0.5) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
-      if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && p.slide <= 0) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
+      if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || tg.kind !== 'over')) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
       g.advance(1 / 60); f++;
       for (const P of w.pieces) if (P.type === 'fork' && P.choice && !seenUid.has(P.uid)) { seenUid.add(P.uid); out.picks.push(P.choice); out.biomes.push(TRACK.segments[P.fork[P.choice].route].biome); }
       if (g.p.z < zP) out.backwards++; if (g.coins < cP) out.backwards++; if (g.score() < scP) out.backwards++; zP = g.p.z; cP = g.coins; scP = g.score();

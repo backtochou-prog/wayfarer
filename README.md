@@ -128,6 +128,30 @@ The trees are **your blossom-tree photo** (`src3d/blossom_assets.js` / `blossom_
 - Steering is continuous across the road (as in the 2D game), not snapping between three lanes. Collision uses the hit boxes above; the avatar's hair and outstretched arms are drawn slightly taller/wider than its 1.8 m hit box, so a close shave is forgiving, never a phantom hit.
 - The road you did not take stays visible with its coins and hazards (it cannot be touched: you are confined to your road and the two are metres apart). Pickup sparkles and dust are 2D-only; the 3D build has its own coin pop and crash debris.
 
+## Power-ups, shards, missions and skill (3D build)
+
+The 3D game has a depth layer on top of the same rules (`src/perks.js` for the rules, `src3d/perks3d.js` and `src3d/items3d.js` for the look, `Renderer.drawPerksHud` for the HUD). The classic `2d.html` has none of it: `World.extras` and `Game.pk` are only switched on by a front end that sets `supportsPerks`, and the classic world generator is byte-for-byte what it was.
+
+![perks](docs/screenshots/perks-sheet.jpg)
+
+*A shard, a mission completed, the magnet at work, the aura, its break, the dash, a waymark and a near miss, from a staged run on the real road (the items are placed by hand, the game and its HUD are the real ones). The whole run, 19 s with captions in French: `docs/downloads/wayfarer-perks-demo.mp4`, made by `node tools/demo_perks.js`.*
+
+**Three power-ups**, each with its own model, colour, sound and effect, none stacking with itself and none able to make the run unfair:
+- **Magnet** (red horseshoe, 8 s): coins up to 150 units ahead and about one lane to either side glide into the runner; two soft rings swell from its feet while it works.
+- **Protective Aura** (teal shield bubble, 15 s): takes exactly ONE hit, which destroys that hazard (a pop and a ring), then it is gone; it also times out. A second aura picked up while one is on only restarts its clock.
+- **Wayfinder Dash** (two orange chevrons in a ring, 3.5 s): +32 % forward speed (eased in and out; the run's own speed ramp is untouched), orange streaks, speed lines and a slightly wider view. A dash that is not cut short by a hit pays 10 points per hazard passed and 25 at the end. Every pattern is still avoidable at dash speed (see tests).
+Power-ups are at least 240 m apart on a road, never in the first 70 m and never near a hazard in their lane (the dash also needs 130 units clear ahead); each road, including both branches of a fork, gets its own. Effects are chips at the top centre (bar + seconds, blinking in the last two seconds). They only advance in `Game.step`, so a pause, a cutscene or a game over freezes or ends them; `reset()` starts every run from nothing.
+
+**Two rarer collectibles.** *Memory Shards* (violet crystals with two chips orbiting them) lie at the edge of the road, high up (a jump) or as a pair on both edges (one side only); they feed a separate **saved total**. *Golden Waymarks* (a gold diamond in two crossed rings) are the route-specific ones: one per fork road, each at a spot that needs a deliberate move: a high jump over a crate (market), a jump over a fallen wall (ruins), a slide under a gate (forest and neon), or the one free lane (coast). Each pickup registers once (`taken`), is drawn from a pool and pays +50 points for a waymark.
+
+**Missions** rotate: collect coins (12, then 18, 24 ... up to 60), travel a distance (400 m, 550 ... up to 2000), then a special one (a shard, a few near misses, a power-up). Progress is per run (top right: `5/12 COINS` with a bar); finishing one pays +100 points and +1 shard, flashes the plate and plays a short fanfare, and the next one starts 3 s later. A mission that was not finished is offered again next run; the counter of the missions done is what is saved.
+
+**Skill.** A *near miss* (a genuine close pass: under 0.35 m beside a hazard having been headed for it, or a jump that clears one by under 0.38 m) pays +5 once per hazard, checked when the hazard passes the runner, so it is the same at any frame rate and speed; passing a whole sequence of hazards cleanly (the crate-then-barrier, staggered crates and similar combos) pays +20 once, nothing if the aura took a hit in it.
+
+**New obstacle patterns** (`PATTERNS_X` in `src/track.js`, same crate / barrier / gate boxes, introduced by distance): a crate then a barrier 40 units later (one jump clears both, from a take-off range at least 55 units wide at every speed), a gate followed by a coin trail at sliding height that drifts to the right lane, crates staggered across the three lanes 100 units apart, a gate then a barrier (slide, then jump once the gate is behind), and a barrier then two outer crates with the middle lane free. Each one is followed by the usual gap after its LAST hazard (at least 195 units), none touches the stretch before a junction, and `tests/qa3d_perks.js` plays every one from each lane at 340 units/s and in a dash.
+
+**Saved progress** (only this, `localStorage` key `wayfarer.progress`): `{ shards, waymarks per route, missions { done, idx } }`. Anything missing or invalid is replaced field by field by a safe value (clamped integers, route keys checked, at most 24); a storage that throws changes nothing. Effects, run counts and mission progress are never saved. The game-over panel shows this run and the saved totals.
+
 ## Controls (keyboard)
 
 | Key | Action |
@@ -157,6 +181,7 @@ tests/qa3d_coins.js   regression test: coin pickup (coins vanish at once, count 
 tests/qa3d_world.js   regression test: world variety, track integrity, pools, six junctions played
 tests/qa3d_audio.js   regression test: sound and music (locked until a gesture, the track and its beat grid checked against the decoded mp3, every event's effect, offline-rendered effects, mute, animation on the beat)
 tests/qa3d_dest.js     regression test: the five destinations (routes, order by seed, forks, signs, identity patterns at top speed, a whole run through the coast, ruins and neon branches with road and camera checked, pools over repeated route cycles)
+tests/qa3d_perks.js    regression test: power-ups (magnet, aura, dash), shards, waymarks, missions, near misses, the skill patterns (all avoidable at top speed and in a dash), saved progress (also corrupt), pause / restart, HUD, pools, sounds, 2D untouched
 tests/qa3d_gare.js     regression test: the Gare du Midi (sequence, props, atmosphere hand-over, the cutscene timeline with no player control, hazards ignored, score kept, resume, camera / train / overlay, no music in the scene and the sounds cut to the picture, the platform crowd, pools, 2D untouched)
 tests/qa3d_scooter.js  regression test: the optional scooter of Saint-Gilles (indicator, E / click / HOP OFF, ends with the zone, glide, wheels, lean, size, gameplay untouched, ?scooter=1/0)
 tests/qa3d_controls.js regression test: keyboard bindings (arrows, WASD, ZQSD / AZERTY), the neon-ring touch buttons and the menu key text

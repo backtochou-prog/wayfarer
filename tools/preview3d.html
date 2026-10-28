@@ -33,7 +33,7 @@ function setup() {
   scene.add(new THREE.HemisphereLight(env.hemi.sky, env.hemi.ground, env.hemi.intensity));
   const sun = new THREE.DirectionalLight(env.sun.color, env.sun.intensity); sun.position.set(...env.sun.position); scene.add(sun);
   const camera = new THREE.PerspectiveCamera(62, 16 / 9, 0.1, 500);
-  const views = { game: [[0, 4.2, 7.5], [0, 0.8, -10]], side: [[13, 7, -14], [0, 3, -34]], high: [[0, 30, 12], [0, 0, -30]], front: [[2.2, 1.6, -4.5], [0, 1, 0]] };
+  const views = { perks: [[0, 1.5, 0.5], [0, 1.0, -6]], game: [[0, 4.2, 7.5], [0, 0.8, -10]], side: [[13, 7, -14], [0, 3, -34]], high: [[0, 30, 12], [0, 0, -30]], front: [[2.2, 1.6, -4.5], [0, 1, 0]] };
   if (mod === 'runner') { views.game = [[0, 2.2, 8.5], [0, 0.9, 0]]; views.side = [[9, 1.6, 0], [0, 1, 0]]; views.front = [[0, 1.8, -8.5], [0, 0.9, 0]]; views.close = [[0.6, 1.2, -3.3], [0, 0.95, 0]]; views.closeback = [[0.6, 1.3, 3.3], [0, 0.95, 0]]; views.closeside = [[3.4, 1.2, -0.4], [0, 0.95, 0]]; }
   const [cp, ct] = views[cam] || views.game; camera.position.set(...cp); camera.lookAt(...ct);
   const stats = {};
@@ -68,6 +68,7 @@ function setup() {
     it.place('crate', -LANE_X, 0, -7); it.place('barrier', 0, 0, -7); it.place('over', LANE_X, 0, -7);
     for (let k = 0; k < 5; k++) it.place('coin', 0, 0.9, -12 - k * 2.5);
     it.place('coin', -LANE_X, 0.9 + 1.2, -7); it.place('crate', LANE_X, 0, -18); it.place('over', -LANE_X, 0, -18); it.place('barrier', LANE_X, 0, -26);
+    if (q.get('perks')) { for (const k of ['magnet', 'aura', 'dash', 'shard', 'waymark']) { const i = ['magnet', 'aura', 'dash', 'shard', 'waymark'].indexOf(k); it.place(k, (i - 2) * 1.5, 1.0, -6); } }     // ?perks=1: the five collectibles of the 3D build in a row
     it.end(0.3);
   }
   renderer.render(scene, camera);

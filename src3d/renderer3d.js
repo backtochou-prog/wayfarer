@@ -109,6 +109,7 @@ class Renderer3D {
     this.scene.add(this.runner.group); this.scene.add(this.runner.shadow);
 
     this.supportsScene = true;                                                      // Game plays the Gare du Midi cutscene only with a front end that sets this
+    this.supportsPerks = true; this.perk = new Perk3D(this.scene);                  // Game builds its power-ups, shards and missions (Perks) only with a front end that sets this; Perk3D draws their effects
     this.train = new Train3D(this.scene); this.crowd = new Crowd3D(this.scene); this.crowdT = 0; this.sceneK = 0; this.scCam = new THREE.Vector3(); this.scLook = new THREE.Vector3(); this.garePiece = null;
     this.spots = []; this.usedSpots = new Set(); this.armedSpot = null; this._v = new THREE.Vector3();         // parked scooters / stations seen this frame; the ones already taken
     this.menu = 1; this.lookX = 0; this.heading = 0;                         // menu blend (1 = menu camera, 0 = chase) and smoothed look-ahead
@@ -175,7 +176,15 @@ class Renderer3D {
   // game events (called by Game): a collected coin pops, a crash throws debris, a restart clears the effects
   onCoin(g, it) { const band = g.world.bandNear(it.z, it.x); this.fx.coinPop((it.x + band.off) * U3.X, it.h * U3.Y, it.z * U3.Z, g.time); }
   onDie(g) { const p = g.p, pb = g.world.playerBand(p.z, p.x); this.fx.crash((p.x + pb.off) * U3.X, p.jy * U3.Y + 0.9, p.z * U3.Z + 0.4, g.time); }
-  onReset() { this.fx.clear(); this.heading = 0; this.lastT = 0; this.usedSpots.clear(); this.armedSpot = null; }
+  onPerk(g, ev) {                                                                   // an event of the perks layer (src/perks.js): the pickup / pop / near-miss / mission effects, placed in track coordinates
+    const U = U3, p = g.p, pb = g.world.playerBand(p.z, p.x), lat = (p.x + pb.off) * U.X, y = p.jy * U.Y + 0.9, z = p.z * U.Z, t = g.time;
+    if (ev.t === 'pickup') { const it = ev.it, band = g.world.bandNear(it.z, it.x); this.perk.pickup(ev.kind, (it.x + band.off) * U.X, it.h * U.Y, it.z * U.Z, t); }
+    else if (ev.t === 'auraBreak') { this.perk.auraBreak(lat, y, z, t); const it = ev.it, band = g.world.bandNear(it.z, it.x); this.fx.crash((it.x + band.off) * U.X, 0.4, it.z * U.Z, t); }   // the hazard shatters
+    else if (ev.t === 'near') this.perk.near(lat, y, z, t);
+    else if (ev.t === 'expire') this.perk.ring(ev.kind, lat, 0.15, z, t, 2.2);
+    else if (ev.t === 'mission' || ev.t === 'combo') this.perk.celebrate(lat, y, z, t);
+  }
+  onReset() { this.fx.clear(); this.perk.clear(); this.heading = 0; this.lastT = 0; this.usedSpots.clear(); this.armedSpot = null; }
 
   // does the runner ride the kick scooter? The player decides (Game.riding: tap the indicator over a parked scooter or a station, or press E; again to get off); ?scooter=1 rides
   // everywhere and always, ?scooter=0 never (for testing)
@@ -290,7 +299,7 @@ class Renderer3D {
       const x = (it.x + it.off) * U.X - Lref, zr = -dz * U.Z;
       const iy = dy(it.z);                                     // on a descent the item sits on the sloping road
       if (it.kind === 'prop') { this.place(it.spr, x, WALK_Y + iy, zr, 0); continue; }
-      if (it.kind === 'coin') this.items.place('coin', x, it.h * U.Y + iy, zr); else this.items.place(it.kind, x, iy, zr);
+      if (it.kind === 'coin' || this.items.extraSet[it.kind]) this.items.place(it.kind, x, it.h * U.Y + iy, zr); else this.items.place(it.kind, x, iy, zr);   // coins and the collectibles hang at their height
     }
     for (const name in this.props) { const pool = this.props[name]; for (let n = this.propUsed[name]; n < pool.length; n++) pool[n].visible = false; }
     this.items.end(g.time);
@@ -312,6 +321,8 @@ class Renderer3D {
     const lift = SC ? 0.85 * Math.max(0, Math.min(1, ((p.x + pb.off) * U.X - 6.6) / 0.8)) : 0;       // in the cutscene the runner steps up onto the platform (0.85 m)
     this.runner.group.position.set(relX, p.jy * U.Y + lift, 0); this.runner.group.visible = !(SC && SC.boarded);
     { const sh = this.runner.shadow, k = Math.max(0.25, 1 - p.jy * U.Y / 3.5); sh.position.set(relX, 0.04 + lift, 0); sh.scale.set(0.5 * k, 1, 0.42 * k); sh.material.opacity = 0.3 * k; sh.visible = this.runner.group.visible; }   // contact shadow, fading as the runner leaves the ground
+    this.perk.update(g, rz, Lref, relX, this.runner.group.position.y);
+    if (Math.abs(this.camera.fov - this.perk.fov) > 0.02) { this.camera.fov = this.perk.fov; this.camera.updateProjectionMatrix(); }       // the dash opens the view a few degrees
     const ms = 1 - Math.exp(-3.5 * dt);
     this.menu += ((g.state === 'title' ? 1 : 0) - this.menu) * ms;
     const mm = this.menu * this.menu * (3 - 2 * this.menu);

@@ -29,6 +29,8 @@ class Game {
     this.touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches); // shows the on-screen controls
     this.time = 0; this.best = 0;
     try { this.best = +localStorage.getItem('wayfarer.best') || 0; } catch (e) {}
+    this.pk = (this.r.supportsPerks && typeof Perks !== 'undefined') ? new Perks(this) : null;               // the 3D build's power-ups, shards and missions (Perks); the classic game has none
+    this.world.extras = !!this.pk;
     this.state = 'title';
     this.resetRun();
     addEventListener('keydown', e => this.onKey(e, true));
@@ -102,7 +104,7 @@ class Game {
     this.world.seed = Game.runSeed();
     this.world.reset();
     this.p = { x: 0, z: 0, vx: 0, jy: 0, vy: 0, slide: 0, speed: BASE_SPEED };
-    this.coins = 0; this.camX = 0; this.camOff = 0; this.camRel = 0; this.camErr = 0; this.prevTgt = 0;
+    this.coins = 0; if (this.pk) this.pk.reset(); this.camX = 0; this.camOff = 0; this.camRel = 0; this.camErr = 0; this.prevTgt = 0;
     const ahead0 = this.world.playerBand(300, 0);                                    // the atmosphere starts as the road ahead looks (the run opens in the neon quarter), not eased in from the base look
     this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0;
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
@@ -134,7 +136,7 @@ class Game {
     if (p.x < -0.25) return 'left';
     return 'right';
   }
-  score() { return Math.floor(this.p.z / 10) + this.coins * 10; }
+  score() { return Math.floor(this.p.z / 10) + this.coins * 10 + (this.pk ? this.pk.bonus : 0); }
 
   jump() { this.jumpBuf = 0.12; } // buffered: a press just before landing still jumps
   // down: fast-fall in the air; on the ground start a slide (a slide already under way is not restarted, so taps can't chain)
@@ -271,9 +273,10 @@ class Game {
   }
 
   step(dt) {
-    const w = this.world, p = this.p, prevZ = p.z;
+    const w = this.world, p = this.p, prevZ = p.z, pk = this.pk;
     p.speed = Math.min(MAX_SPEED, p.speed + ACCEL * dt);
-    p.z += p.speed * dt;
+    if (pk) pk.update(dt);                                                         // power-up timers, mission distance, toasts: only ever advance here, so a pause or a cutscene freezes them
+    p.z += p.speed * (pk ? pk.speedMul : 1) * dt;                                  // the dash: a forward boost on top of the run's own speed ramp
     this.steer(dt);
     if (this.jumpBuf > 0) { // jump starts on the ground, cancels a slide; a press just before landing is kept briefly
       this.jumpBuf -= dt;
@@ -287,17 +290,21 @@ class Game {
     if (this.r.supportsScene) { const P = w.pieceAt(p.z); if (P && P.type === 'seg' && P.seg.scene && !P.sceneDone && p.z >= P.z0 + P.seg.scene.at) { this.beginScene(P); return; } }   // the station: the cutscene (only in a front end that can show it)
 
     const top = p.slide > 0 ? 8 : 24;
+    if (pk && pk.t.magnet > 0) pk.pull(w.items, dt);
     for (const it of w.items) {
       if (it.taken || it.z < prevZ - 10 || it.z > p.z + 10) continue;
       const dx = Math.abs(it.x - p.x);
       if (it.kind === 'coin') {
         if (dx < 0.2 && it.z > prevZ - 9 && it.z < p.z + 9 && p.jy < it.h + 6 && p.jy + top > it.h - 6) {
           it.taken = true; this.coins++; this.coinPulse = 0.2;
-          this.onCoin(it);
+          this.onCoin(it); if (pk) pk.coin();
         }
+      } else if (pk && PICKUPS[it.kind]) {                                          // shards, waymarks and the three power-ups: the same box as a coin, taken once
+        if (dx < 0.2 && it.z > prevZ - 9 && it.z < p.z + 9 && p.jy < it.h + 6 && p.jy + top > it.h - 6) { it.taken = true; pk.pickup(it); }
       } else if (it.kind !== 'prop') {
         const o = OBST[it.kind];
-        if (dx < o.hw + P_HW && it.z > prevZ - 8 && it.z < p.z + 8 && p.jy < o.y1 && p.jy + top > o.y0) { this.die(); return; }
+        if (dx < o.hw + P_HW && it.z > prevZ - 8 && it.z < p.z + 8 && p.jy < o.y1 && p.jy + top > o.y0) { if (pk && pk.absorb(it)) continue; this.die(); return; }   // the aura takes one hit and destroys that hazard
+        if (pk && it.z <= p.z) pk.passed(it, o, dx, top);                           // past the runner without a hit: near miss, sequence bonus, dash count (once per hazard)
       }
     }
   }
@@ -358,6 +365,7 @@ class Game {
   die() {
     this.releaseTouch();
     if (this.touch && navigator.vibrate) navigator.vibrate(60);
+    if (this.pk) this.pk.onDie();
     this.state = 'over'; this.flash = 0.25; this.shake = 0.35; this.overT = 0; this.jumpBuf = 0;
     this.emit('crash'); this.onDie();
     const s = this.score();

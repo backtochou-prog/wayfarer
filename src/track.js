@@ -41,6 +41,31 @@ const PATTERNS = {
   neonStrobe: [['coin', 10, 0], ['coin', 30, 0], ['crate', 55, -1], ['crate', 62, 1], ['crate', 69, -1], ['coin', 55, 0], ['coin', 69, 0], ['coin', 90, 0], ['coin', 110, 0]],
 };
 
+// ---- the SKILL patterns of the 3D build (World.extras only: the classic 2D game never gets them). Same format as PATTERNS, plus:
+//   intro : the distance (units) from which the pattern can appear, so they come in gradually (a 90 s run is about 25 000 units)
+//   last  : the z of the pattern's last hazard. The next pattern is pushed back so that its first hazard (55 units into it) is at least 195 units after this one, the gap every other pattern keeps
+//   combo : the number of hazards of a sequence worth a small skill bonus when all of them are passed without a hit (Game.step)
+// Every hazard sits where one jump, one slide or one lane change gets past it with room to spare at the top speed (tests/qa3d_perks.js plays them all at 340 units/s and with the dash).
+const PATTERNS_X = {
+  // a crate, then a low barrier 40 units later: ONE jump clears both, from a take-off range that stays at least 55 units wide (0.25 s) at every speed of the run, counting the 8-unit collision zone around each hazard
+  crateBarrier: { intro: 2200, last: 95, combo: 2, items: [['coin', 15, 0, 12], ['coin', 36, 0, 26], ['crate', 55, 0], ['coin', 55, 0, 38], ['coin', 75, 0, 36], ['barrier', 95, 0], ['coin', 95, 0, 26], ['coin', 118, 0, 12]] },
+  // a gate, then a trail of coins at sliding height that drifts to the right-hand lane: slide, stay low, then reposition
+  gateTrail: { intro: 1800, last: 55, items: [['coin', 20, 0, 6], ['over', 55, 0], ['coin', 80, 0, 6], ['coin', 100, 0.25, 6], ['coin', 120, 0.55, 6], ['coin', 140, 0.85, 6], ['coin', 160, 1, 6]] },
+  // crates staggered across the three lanes, 100 units apart: no lane stays free, the line has to be changed once
+  stagger: { intro: 4200, last: 255, combo: 3, items: [['coin', 20, 1], ['crate', 55, -1], ['coin', 95, 1], ['crate', 155, 0], ['coin', 195, 1], ['crate', 255, 1], ['coin', 215, -0.5], ['coin', 275, -1]] },
+  // a gate, then a barrier 130 units later: slide, then jump once the gate is behind (a jump ends a slide at once)
+  slideJump: { intro: 5600, last: 185, combo: 2, items: [['coin', 20, 0, 6], ['over', 55, 0], ['coin', 75, 0, 6], ['coin', 140, 0, 14], ['barrier', 185, 0], ['coin', 185, 0, 26], ['coin', 210, 0, 12]] },
+  // a barrier in the middle (jump), then two crates on the outer lanes (the middle one is free): land in the middle and run straight through
+  hopWeave: { intro: 7200, last: 125, combo: 2, items: [['coin', 20, 0, 12], ['barrier', 55, 0], ['coin', 55, 0, 26], ['coin', 90, 0], ['crate', 125, -1], ['crate', 125, 1], ['coin', 125, 0], ['coin', 150, 0]] },
+};
+// the three Golden Waymark spots: each needs a deliberate move to reach (a high jump over a crate or a wall, a slide under a gate, or the one free lane), placed once on every fork branch (see `waymark` on the routes)
+const WAYMARKS = {
+  jump:  { last: 60, items: [['coin', 20, 0, 12], ['coin', 40, 0, 26], ['crate', 60, 0], ['waymark', 60, 0, 52], ['coin', 85, 0, 26], ['coin', 105, 0, 12]] },
+  wall:  { last: 60, items: [['coin', 14, 0, 12], ['coin', 32, 0, 24], ['barrier', 60, -1], ['barrier', 60, 0], ['barrier', 60, 1], ['waymark', 60, 0, 46], ['coin', 92, 0, 24], ['coin', 110, 0, 12]] },
+  slide: { last: 60, items: [['coin', 30, 0, 6], ['over', 60, 0], ['waymark', 60, 0, 5], ['coin', 90, 0, 6], ['coin', 110, 0, 6]] },
+  lane:  { last: 60, items: [['coin', 20, -1], ['crate', 60, 0], ['crate', 60, 1], ['waymark', 60, -1, 12], ['coin', 90, -1], ['coin', 110, -1]] },
+};
+
 // Track = a sequence of pieces. A piece is a segment ({seg}) or a junction ({fork}).
 //  segment.curve : lateral bump (world units) the road swings through, returning to centre at both ends
 //  fork          : zone (roads diverge) + branchLen (two parallel roads) + merge (roads rejoin)
@@ -50,23 +75,23 @@ const TRACK = {
     cityStart: { name: 'OLD TOWN',      biome: 'city',   length: 900,  curve: 0,    first: 420, spacing: 210, calmStart: true,   // calmStart: the run always opens with the first (hazard-free) pattern
                  patterns: ['line', 'crateJump', 'hurdle', 'slideGate'] },
     cityRun:   { name: 'OLD TOWN',      biome: 'city',   length: 1000, curve: 1.1,  first: 60,  spacing: 210,
-                 patterns: ['rowR', 'hurdle', 'trailL', 'crateJump', 'slideGate', 'dodgeL', 'risky', 'trailR', 'line'] },
+                 patterns: ['rowR', 'hurdle', 'trailL', 'crateJump', 'slideGate', 'dodgeL', 'risky', 'trailR', 'line'], extra: ['crateBarrier', 'gateTrail', 'stagger'] },
     forest:    { name: 'GREENWOOD',     biome: 'forest', curve: -1.2, first: 80, spacing: 210,
-                 patterns: ['dodgeR', 'zig', 'twin', 'hurdle', 'trailL', 'dodgeL', 'slideGate', 'risky', 'zig'] },
+                 patterns: ['dodgeR', 'zig', 'twin', 'hurdle', 'trailL', 'dodgeL', 'slideGate', 'risky', 'zig'], extra: ['slideJump', 'stagger', 'gateTrail'], waymark: 'slide' },
     detour:    { name: 'MARKET DETOUR', biome: 'market', curve: 1.0,  first: 80, spacing: 210,
-                 patterns: ['rowL', 'slideGate', 'line', 'crateJump', 'rowR', 'hurdle', 'trailR', 'slideGate', 'line'] },
+                 patterns: ['rowL', 'slideGate', 'line', 'crateJump', 'rowR', 'hurdle', 'trailR', 'slideGate', 'line'], extra: ['crateBarrier', 'gateTrail', 'hopWeave'], waymark: 'jump' },
     plaza:     { name: 'OLD TOWN',      biome: 'city',   length: 800,  curve: -0.9, first: 100, spacing: 210,
-                 patterns: ['line', 'dodgeR', 'hurdle', 'rowL', 'risky'] },
+                 patterns: ['line', 'dodgeR', 'hurdle', 'rowL', 'risky'], extra: ['gateTrail', 'crateBarrier'] },
     // the NEON QUARTER: a night district of the city. `district` (a distance in units) makes the world fade the atmosphere, road palette and scenery into this biome over its first
     // and last `district` units (see World.bandsAt), so it is entered and left smoothly however long the segment is; 5000 units = 500 m = about 15 s.
     // the run opens in the quarter: `opening` = no fade-in (it is already night at distance 0); it fades back to the sunset city over its last 1200 units
     neonStart: { name: 'NEON QUARTER',  biome: 'neon',   length: 4000, curve: 0,    first: 420, spacing: 210, district: 1200, opening: true, calmStart: true,
                  patterns: ['line', 'crateJump', 'hurdle', 'slideGate', 'trailR', 'dodgeL', 'risky', 'zig'] },
     neonRun:   { name: 'NEON QUARTER',  biome: 'neon',   length: 5000, curve: -0.8, first: 140, spacing: 210, district: 1200,
-                 patterns: ['line', 'trailR', 'crateJump', 'dodgeL', 'hurdle', 'risky', 'slideGate', 'zig'] },
+                 patterns: ['line', 'trailR', 'crateJump', 'dodgeL', 'hurdle', 'risky', 'slideGate', 'zig'], extra: ['gateTrail', 'slideJump', 'stagger'] },
     // the TRAM STREET: a Brussels street at sunset (low sun ahead, tram rails in the cobbles, overhead wires); a district like the neon quarter, fading in and out over 120 m
     tramRun:   { name: 'SAINT-GILLES',   biome: 'tram',   length: 4500, curve: 0.6,  first: 140, spacing: 210, district: 1200, stay: true, grade: 0.07,   // grade: the street runs downhill (7 %), like in the photos
-                 patterns: ['line', 'hurdle', 'trailL', 'crateJump', 'dodgeR', 'risky', 'slideGate', 'zig', 'trailR'] },
+                 patterns: ['line', 'hurdle', 'trailL', 'crateJump', 'dodgeR', 'risky', 'slideGate', 'zig', 'trailR'], extra: ['crateBarrier', 'gateTrail', 'hopWeave'] },
     // the GARE DU MIDI: where Saint-Gilles ends. Saint-Gilles (`tramRun`, `stay`: it does not fade out) runs into the station (a district fully in at its start); coins on the way in, then at `scene.at` the
     // run hands over to the cutscene (Game.beginScene): the runner carries on by itself for `scene.run` units to the platform door at lateral `scene.x` and boards the train, which leaves; the
     // run resumes 100 units further on, while the station fades out and the fork after it (the next zone) comes up. `itemsEnd`: no coins or hazards after that point; `props`: world props (z from the start).
@@ -75,29 +100,29 @@ const TRACK = {
                  props: [{ spr: 'gareHall', dz: 900, x: 4.5 }, { spr: 'tourMidi', dz: 1180, x: 6.4 }] },
     // second variants of the repeating pieces (same biomes and names, a different bend, length and pattern mix) so each lap along the loop is not a copy of the last
     cityRunB:  { name: 'OLD TOWN',      biome: 'city',   length: 1150, curve: -1.0, first: 90,  spacing: 210,
-                 patterns: ['trailR', 'crateJump', 'dodgeR', 'risky', 'line', 'hurdle', 'slideGate', 'rowL', 'trailL', 'zig'] },
+                 patterns: ['trailR', 'crateJump', 'dodgeR', 'risky', 'line', 'hurdle', 'slideGate', 'rowL', 'trailL', 'zig'], extra: ['crateBarrier', 'gateTrail', 'hopWeave'] },
     plazaB:    { name: 'OLD TOWN',      biome: 'city',   length: 900,  curve: 0.8,  first: 120, spacing: 210,
-                 patterns: ['hurdle', 'line', 'dodgeL', 'rowR', 'slideGate', 'trailR'] },
+                 patterns: ['hurdle', 'line', 'dodgeL', 'rowR', 'slideGate', 'trailR'], extra: ['crateBarrier', 'stagger'] },
     forestB:   { name: 'GREENWOOD',     biome: 'forest', curve: 1.0, first: 100, spacing: 210,
-                 patterns: ['twin', 'dodgeL', 'slideGate', 'zig', 'trailR', 'hurdle', 'risky', 'dodgeR', 'line'] },
+                 patterns: ['twin', 'dodgeL', 'slideGate', 'zig', 'trailR', 'hurdle', 'risky', 'dodgeR', 'line'], extra: ['stagger', 'slideJump'], waymark: 'slide' },
     detourB:   { name: 'MARKET DETOUR', biome: 'market', curve: -0.9, first: 100, spacing: 210,
-                 patterns: ['rowR', 'line', 'slideGate', 'trailL', 'crateJump', 'rowL', 'hurdle', 'trailR'] },
+                 patterns: ['rowR', 'line', 'slideGate', 'trailL', 'crateJump', 'rowL', 'hurdle', 'trailR'], extra: ['crateBarrier', 'hopWeave'], waymark: 'jump' },
     // ---- the three new destinations (fork branches; each has a variant B so the second visit is not a copy)
     // SUNSET COAST: a warm seaside road, a safe sprint: coin waves and straights, almost no hazard
     coastRun:   { name: 'SUNSET COAST',  biome: 'coast',  curve: -0.8, first: 80,  spacing: 210,
-                  patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave'] },
+                  patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave'], extra: ['crateBarrier'], waymark: 'lane' },
     coastRunB:  { name: 'SUNSET COAST',  biome: 'coast',  curve: 0.9,  first: 100, spacing: 210,
-                  patterns: ['coastDunes', 'coastWave', 'trailL', 'line', 'coastDunes', 'coastWave', 'trailR', 'crateJump'] },
+                  patterns: ['coastDunes', 'coastWave', 'trailL', 'line', 'coastDunes', 'coastWave', 'trailR', 'crateJump'], extra: ['crateBarrier', 'hopWeave'], waymark: 'lane' },
     // MOSSY RUINS: stone, moss and green light; the signature moment is the fallen wall that has to be jumped
     ruinsRun:   { name: 'MOSSY RUINS',   biome: 'ruins',  curve: 1.1,  first: 80,  spacing: 210,
-                  patterns: ['collapsedArch', 'ruinSteps', 'dodgeL', 'collapsedArch', 'twin', 'slideGate', 'ruinSteps', 'zig', 'dodgeR'] },
+                  patterns: ['collapsedArch', 'ruinSteps', 'dodgeL', 'collapsedArch', 'twin', 'slideGate', 'ruinSteps', 'zig', 'dodgeR'], extra: ['stagger', 'crateBarrier'], waymark: 'wall' },
     ruinsRunB:  { name: 'MOSSY RUINS',   biome: 'ruins',  curve: -1.0, first: 100, spacing: 210,
-                  patterns: ['ruinSteps', 'collapsedArch', 'dodgeR', 'hurdle', 'collapsedArch', 'twin', 'crateJump', 'dodgeL'] },
+                  patterns: ['ruinSteps', 'collapsedArch', 'dodgeR', 'hurdle', 'collapsedArch', 'twin', 'crateJump', 'dodgeL'], extra: ['stagger', 'crateBarrier', 'hopWeave'], waymark: 'wall' },
     // NEON DISTRICT: a compact lit neighbourhood: light gantries to slide under and strobing crates
     neonBranch:  { name: 'NEON DISTRICT', biome: 'neon',   curve: 0.8,  first: 80,  spacing: 210,
-                   patterns: ['neonGantry', 'neonStrobe', 'zig', 'neonGantry', 'dodgeR', 'neonStrobe', 'slideGate', 'twin', 'line'] },
+                   patterns: ['neonGantry', 'neonStrobe', 'zig', 'neonGantry', 'dodgeR', 'neonStrobe', 'slideGate', 'twin', 'line'], extra: ['gateTrail', 'slideJump'], waymark: 'slide' },
     neonBranchB: { name: 'NEON DISTRICT', biome: 'neon',   curve: -0.9, first: 100, spacing: 210,
-                   patterns: ['neonStrobe', 'neonGantry', 'dodgeL', 'neonStrobe', 'zig', 'neonGantry', 'rowR', 'line'] },
+                   patterns: ['neonStrobe', 'neonGantry', 'dodgeL', 'neonStrobe', 'zig', 'neonGantry', 'rowR', 'line'], extra: ['gateTrail', 'slideJump', 'stagger'], waymark: 'slide' },
   },
   forks: {
     gate: { zone: 440, branchLen: 1300, merge: 360, blend: 40,    // blend: extra distance after the diverge zone before a branch is fully its own biome

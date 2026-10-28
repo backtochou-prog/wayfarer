@@ -357,8 +357,8 @@ class Renderer {
   }
 
   drawHud(g) {
-    const w = g.world, p = g.p, T = w.track, pulse = g.coinPulse > 0;
-    this.plate(3, 3, 62, 24);
+    const w = g.world, p = g.p, T = w.track, pulse = g.coinPulse > 0, pk = g.pk, dy = pk ? 9 : 0;        // pk: the 3D build's power-ups, shards and missions (null in the classic game: nothing below changes)
+    this.plate(3, 3, 62, pk ? 33 : 24);
     this.txt('DIST ' + Math.floor(p.z / 10) + ' M', 7, 6, C.bone);
     if (this.menu3d) {                                      // the 3D coin's rings, small: lilac rim, pink, green, cream, lime, mint core
       const cx = 11, cy = pulse ? 18 : 19;
@@ -368,18 +368,52 @@ class Renderer {
     const nm = T.segments[w.playerBand(p.z, p.x).route].name, nw = textW(nm) + 8;
     this.plate(VW - 3 - nw, 3, nw, 11);
     this.txt(nm, VW - 3 - nw + 4, 6, C.tealL);
+    if (pk) this.drawPerksHud(g);
     if (g.prompt && g.state === 'play') { // junction visible: LEFT / RIGHT with the current pick highlighted
       const f = g.prompt.fork, sel = g.prompt.sel;
       const l = '< LEFT: ' + T.segments[f.left.route].name, r = 'RIGHT: ' + T.segments[f.right.route].name + ' >';
       const lw = textW(l) + 8, rw = textW(r) + 8;
-      this.plate(5, 31, lw, 11, sel === 'left' ? C.amber : C.ink);
-      this.txt(l, 9, 34, sel === 'left' ? C.amberL : C.stoneL);
-      this.plate(VW - 5 - rw, 31, rw, 11, sel === 'right' ? C.amber : C.ink);
-      this.txt(r, VW - 5 - rw + 4, 34, sel === 'right' ? C.amberL : C.stoneL);
+      this.plate(5, 31 + dy, lw, 11, sel === 'left' ? C.amber : C.ink);
+      this.txt(l, 9, 34 + dy, sel === 'left' ? C.amberL : C.stoneL);
+      this.plate(VW - 5 - rw, 31 + dy, rw, 11, sel === 'right' ? C.amber : C.ink);
+      this.txt(r, VW - 5 - rw + 4, 34 + dy, sel === 'right' ? C.amberL : C.stoneL);
     } else if (g.banner && g.banner.t > 0) {
       const bw = textW(g.banner.text, 2) + 12;
-      this.plate(Math.round((VW - bw) / 2), 30, bw, 15, C.amber);
-      this.ctr(g.banner.text, 33, C.amberL, 2);
+      this.plate(Math.round((VW - bw) / 2), 30 + dy, bw, 15, C.amber);
+      this.ctr(g.banner.text, 33 + dy, C.amberL, 2);
+    }
+  }
+
+  // The 3D build's depth layer on the HUD, kept to the edges and the sky so the road stays clear: under the coin count the shards of this run and the saved total, top right the mission (run progress),
+  // top centre one small chip per active power-up (a bar for what is left, and the seconds), brief toasts above the runner, and a plate when a mission is completed.
+  drawPerksHud(g) {
+    const pk = g.pk, c = this.ctx, m = pk.mission, t = g.time, live = g.state === 'play' || g.state === 'pause';
+    const gem = (x, y, col) => { c.fillStyle = col; c.fillRect(x + 1, y, 2, 1); c.fillRect(x, y + 1, 4, 2); c.fillRect(x + 1, y + 3, 2, 1); };
+    gem(7, 29, '#c58bff'); this.txt('' + (pk.shards + pk.rewardShards), 14, 28, '#e6d2ff'); this.txt('ALL ' + pk.save.shards, 30, 28, C.stoneL);
+    if (m) {                                                                                           // the mission: what to do, how far along, and a bar
+      const done = m.done, txt = done ? 'DONE +' + REWARD.mission : m.progress + '/' + m.goal + ' ' + m.label, w = Math.max(48, textW(txt) + 11), x = VW - 3 - w, hot = pk.flash > 0 && Math.floor(t * 8) % 2 === 0;
+      this.plate(x, 17, w, 13, hot ? C.amber : done ? C.amberD : C.teal);
+      gem(x + 3, 20, '#ffd24a'); this.txt(txt, x + 9, 19, done ? C.amberL : C.bone);
+      c.fillStyle = C.ink; c.fillRect(x + 3, 26, w - 6, 2); c.fillStyle = done ? C.amberL : C.tealL; c.fillRect(x + 3, 26, Math.round((w - 6) * Math.min(1, m.progress / m.goal)), 2);
+    }
+    if (live) {
+      const list = ['magnet', 'aura', 'dash'].filter(k => pk.t[k] > 0), W = 35, x0 = Math.round(160 - list.length * (W + 2) / 2 + 1);
+      const COL = { magnet: '#ff6a7a', aura: '#5ff0d0', dash: '#ffb347' }, NAME = { magnet: 'MAG', aura: 'AURA', dash: 'DASH' };
+      list.forEach((k, i) => {
+        const x = x0 + i * (W + 2), low = pk.t[k] < 2 && Math.floor(t * 6) % 2 === 0;                       // the last two seconds blink
+        this.plate(x, 19, W, 11, COL[k]); c.fillStyle = C.plum; c.fillRect(x, 19, W, 11);
+        c.fillStyle = low ? C.stoneD : COL[k]; c.fillRect(x + 2, 27, Math.max(1, Math.round((W - 4) * pk.t[k] / pk.tot[k])), 2);
+        this.txt(NAME[k] + ' ' + Math.ceil(pk.t[k]), x + 3, 21, low ? C.stoneL : C.bone);
+      });
+      pk.pops.forEach((q, i) => {                                                                          // toasts rise from just above the runner and fade out
+        const a = q.t < 0.8 ? 1 : Math.max(0, 1 - (q.t - 0.8) / 0.3), y = Math.round(92 + i * 9 - q.t * 14);
+        c.globalAlpha = a; this.ctr(q.txt, y, q.col); c.globalAlpha = 1;
+      });
+      if (pk.flash > 0.2) {                                                                                // mission completed: a plate in the sky, gold, with the reward
+        const bw = textW('MISSION COMPLETE', 2) + 14, bx = Math.round((VW - bw) / 2);
+        c.globalAlpha = Math.min(1, pk.flash * 2); this.plate(bx, 40, bw, 24, C.amber); this.ctr('MISSION COMPLETE', 43, C.amberL, 2);
+        this.ctr('+' + REWARD.mission + '  +' + REWARD.shardsPerMission + ' SHARD', 55, C.bone); c.globalAlpha = 1;
+      }
     }
   }
 
@@ -440,12 +474,24 @@ class Renderer {
 
   drawOver(g) {
     this.ctx.fillStyle = this.dither; this.ctx.fillRect(0, 0, VW, VH);
+    if (g.pk) {                                                                    // the 3D build: a taller panel with what this run earned and what is saved
+      const pk = g.pk; this.panel(80, 14, 160, 128);
+      this.ctr('GAME OVER', 20, C.burgL, 3, C.ink);
+      this.ctr('DIST ' + Math.floor(g.p.z / 10) + ' M', 44, C.bone);
+      this.ctr('COINS ' + g.coins, 53, C.amberL);
+      this.ctr('SCORE ' + g.score(), 62, C.bone);
+      this.ctr('BEST ' + g.best, 71, C.tealL);
+      this.ctr('THIS RUN  SHARDS ' + (pk.shards + pk.rewardShards) + '  WAYMARKS ' + pk.waymarks, 83, '#e6d2ff');
+      this.ctr('MISSIONS ' + pk.missionsDone + '  NEAR ' + pk.nearMisses + '  BONUS ' + pk.bonus, 92, C.sand);
+      this.ctr('SAVED  SHARDS ' + pk.save.shards + '  MISSIONS ' + pk.save.missions.done, 101, C.stoneL);
+    } else {
     this.panel(80, 30, 160, 112);
     this.ctr('GAME OVER', 38, C.burgL, 3, C.ink);
     this.ctr('DIST ' + Math.floor(g.p.z / 10) + ' M', 64, C.bone);
     this.ctr('COINS ' + g.coins, 74, C.amberL);
     this.ctr('SCORE ' + g.score(), 86, C.bone);
     this.ctr('BEST ' + g.best, 96, C.tealL);
+    }
     this.button(BTN.over, g);
     if (!g.touch) this.ctr('SPACE  ENTER  R', 133, C.sand);
   }

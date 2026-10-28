@@ -101,7 +101,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       const p = g.p, w = g.world, F = w.openFork(); g.keys.left = g.keys.right = false;
       if (F && p.z > F.z0 - 500 && p.z < F.z0 - 400) g.keys[want] = true;
       let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * 0.5) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
-      if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && p.slide <= 0) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
+      if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || tg.kind !== 'over')) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
     };
     for (const want of ['left', 'right']) {
       CT.fresh(); g.world.reset(); g.start();

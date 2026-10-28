@@ -157,7 +157,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     let f = 0; while (f < 60 * 70 && g.state === 'play' && g.p.z < F.z1 + 1500) {
       const p = g.p, Fo = w.openFork(); g.keys.left = g.keys.right = false; if (Fo && p.z > Fo.z0 - 500 && p.z < Fo.z0 - 400) g.keys.left = true;
       let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * 0.5) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
-      if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && p.slide <= 0) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
+      if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || tg.kind !== 'over')) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
       g.p.speed = 340; g.advance(1 / 60); f++; if (f % 30 === 0) { await new Promise(r => setTimeout(r, 30)); out.log.push({ at: Math.round((g.p.z - F.z0) / 10), to: g.bgTo, w: a.coastW, main: a.music.volume, coast: a.musicCoast.volume, paused: a.musicCoast.paused, track: a.beat().track }); }
     }
     out.state = g.state; g.state = 'title'; return out;

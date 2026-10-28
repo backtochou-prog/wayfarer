@@ -18,10 +18,10 @@ function rnd(a, b = 0) {
 function hashStr(s) { let h = 17; for (let i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0; return h; }
 
 class World {
-  constructor(track) { this.track = track; this.reset(); }
+  constructor(track) { this.track = track; this.extras = false; this.reset(); }       // extras: the 3D build's extra items and patterns (power-ups, shards, waymarks, skill patterns); off for the classic 2D game
 
   reset() {
-    this.pieces = []; this.items = []; this.cursor = {}; this.lastPat = {}; this.seqIdx = 0; this.seqCount = 0; this.picked = {}; this.pickLap = {}; this.pickLast = {}; this.uid = 0; this.ver = (this.ver || 0) + 1;   // ver only ever increases; it changes whenever bandsAt() results could change (pieces added/dropped, a route chosen)
+    this.pieces = []; this.items = []; this.cursor = {}; this.lastPat = {}; this.seqIdx = 0; this.seqCount = 0; this.picked = {}; this.pickLap = {}; this.pickLast = {}; this.lastPU = {}; this.lastShard = {}; this.puKind = ''; this.uid = 0; this.ver = (this.ver || 0) + 1;   // ver only ever increases; it changes whenever bandsAt() results could change (pieces added/dropped, a route chosen)
     this.baseBiome = this.track.base || this.track.segments[this.track.sequence[0].seg].biome;
     this.extend(0);
   }
@@ -74,22 +74,72 @@ class World {
   // gap to the next spot is the base spacing plus 0-49 seeded units, never less. Hazards sit 55-70 units into every pattern, so the
   // distance between consecutive hazards stays >= spacing - 15 whatever the order. Deterministic: same track -> same items.
   genSegment(id, z0, len, tag, cx, tail = 0) {
-    const seg = this.track.segments[id], end = Math.min(z0 + len - tail, seg.itemsEnd !== undefined ? z0 + seg.itemsEnd : 1e12), L = seg.patterns.length;
+    const seg = this.track.segments[id], end = Math.min(z0 + len - tail, seg.itemsEnd !== undefined ? z0 + seg.itemsEnd : 1e12), X = this.extras;
+    const list = X && seg.extra ? seg.patterns.concat(seg.extra) : seg.patterns, L = list.length;                            // extras: the skill patterns join the segment's own list
     for (const pr of seg.props || []) this.items.push({ kind: 'prop', spr: pr.spr, z: z0 + pr.dz, x: pr.x, tag: 'prop' });          // fixed props of the segment (the station hall ...)
     let n = this.cursor[id] || 0, last = this.lastPat[id] === undefined ? -1 : this.lastPat[id];
     const h = hashStr(id);
-    for (let z = z0 + seg.first; z + seg.spacing <= end; z += seg.spacing + Math.floor(rnd(h, n * 3 + 2) * 50)) {
+    for (let z = z0 + seg.first; z + seg.spacing <= end;) {
       let k = Math.floor(rnd(h, n * 3) * L);
+      if (X && PATTERNS_X[list[k]] && z < PATTERNS_X[list[k]].intro) k = Math.floor(rnd(h, n * 3 + 5) * seg.patterns.length);     // a skill pattern not introduced yet: one of the classic ones
       if (n === 0 && seg.calmStart) k = 0;
-      else if (L > 1 && last >= 0 && seg.patterns[k] === seg.patterns[last]) {           // compare names: a list can hold the same pattern at two indices
+      else if (L > 1 && last >= 0 && list[k] === list[last]) {                           // compare names: a list can hold the same pattern at two indices
         k = (k + 1 + Math.floor(rnd(h, n * 3 + 1) * (L - 1))) % L;
-        for (let t = 0; t < L && seg.patterns[k] === seg.patterns[last]; t++) k = (k + 1) % L;
+        for (let t = 0; t < L && (list[k] === list[last] || (X && PATTERNS_X[list[k]] && z < PATTERNS_X[list[k]].intro)); t++) k = (k + 1) % L;
       }
       n++; last = k;
-      for (const [kind, dz, lane, hh] of PATTERNS[seg.patterns[k]])
-        this.items.push({ kind, z: z + dz, x: cx + lane * LANE_W, h: hh === undefined ? 12 : hh, tag, pat: seg.patterns[k], seg: id, inst: n });   // pat / seg / inst: which pattern, segment and occurrence made this item (for tests)
+      const px = PATTERNS_X[list[k]], items = px ? px.items : PATTERNS[list[k]], inst = h + '.' + n;
+      for (const [kind, dz, lane, hh] of items) {
+        const it = { kind, z: z + dz, x: cx + lane * LANE_W, h: hh === undefined ? 12 : hh, tag, pat: list[k], seg: id, inst: n };       // pat / seg / inst: which pattern, segment and occurrence made this item (for tests)
+        if (px && px.combo && OBST[kind]) { it.combo = inst + tag; it.comboN = px.combo; }                                  // the hazards of a sequence: passing them all without a hit earns the skill bonus
+        this.items.push(it);
+      }
+      z += Math.max(seg.spacing, px ? px.last + 140 : 0) + Math.floor(rnd(h, n * 3 + 2) * 50);    // a skill pattern is followed by the usual gap after its LAST hazard
     }
     this.cursor[id] = n; this.lastPat[id] = last;
+    if (X) this.genExtras(id, seg, z0, end, tag, cx);
+  }
+
+  // ---- extras (the 3D build): one Golden Waymark spot per fork branch, then power-ups and Memory Shards in the clear gaps. All seeded by the segment id and the spot index, so the same track gives the same items.
+  // `free(tag, z, x, dzBefore, dzAfter, wide)` = no hazard of that road within the window in a lane near x (every lane if `wide`), and no other pickup within 30 units
+  free(tag, z, x, before, after, wide) {
+    for (const it of this.items) {
+      if (it.tag !== tag || it.kind === 'prop') continue;
+      const dz = it.z - z;
+      if (OBST[it.kind]) { if (dz > -before && dz < after && (wide || Math.abs(it.x - x) < 0.45)) return false; }
+      else if (it.kind !== 'coin' && Math.abs(dz) < 30) return false;
+    }
+    return true;
+  }
+  genExtras(id, seg, z0, end, tag, cx) {
+    const h = hashStr(id) ^ 0x5bd1e995, tail = end - 160;
+    if (seg.waymark && tag !== 'main') {                                           // the route's Golden Waymark: its pattern replaces whatever the grid put in a window of the branch
+      const W = WAYMARKS[seg.waymark], zc = z0 + (end - z0) * 0.45;
+      this.items = this.items.filter(it => !(it.tag === tag && it.kind !== 'prop' && it.z > zc - 175 && it.z < zc + W.last + 205));
+      for (const [kind, dz, lane, hh] of W.items) this.items.push({ kind, z: zc + dz, x: cx + lane * LANE_W, h: hh === undefined ? 12 : hh, tag, pat: 'wm' + seg.waymark, seg: id, inst: 0 });
+    }
+    const base = k => this[k][tag] !== undefined ? this[k][tag] : (this[k].main !== undefined ? this[k].main : -1e9);
+    let lastPU = base('lastPU'), lastSh = base('lastShard');
+    for (let m = 0, z = z0 + 520; z < tail; m++, z += 330 + Math.floor(rnd(h, m * 7 + 1) * 120)) {
+      const pre = Math.floor(rnd(h, m * 7 + 2) * 3) - 1;                           // lane -1 .. 1
+      if (z > 700 && z - lastPU >= 2400 && rnd(h, m * 7 + 3) < 0.55) {            // a power-up: at most one every 240 m on a road, never in the first 70 m, never against a hazard
+        let kind = ['magnet', 'aura', 'dash'][Math.floor(rnd(h, m * 7 + 4) * 3)];
+        if (kind === this.puKind) kind = ['magnet', 'aura', 'dash'][(['magnet', 'aura', 'dash'].indexOf(kind) + 1) % 3];
+        for (let t = 0; t < 3; t++) {
+          const lane = ((pre + 1 + t) % 3) - 1, x = cx + lane * LANE_W;
+          if (this.free(tag, z, x, 70, kind === 'dash' ? 130 : 70, kind === 'dash')) { this.items.push({ kind, z, x, h: 12, tag, seg: id }); lastPU = z; this.puKind = kind; break; }
+        }
+      } else if (z > 500 && z - lastSh >= 650 && rnd(h, m * 7 + 5) < 0.6) {       // a Memory Shard: off the usual line, or high enough to need a jump
+        const how = Math.floor(rnd(h, m * 7 + 6) * 3);
+        for (let t = 0; t < 3; t++) {
+          const lane = ((pre + 1 + t) % 3) - 1;
+          if (how === 0) { const l = lane || 1, x = cx + l * LANE_W; if (this.free(tag, z, x, 60, 60, false)) { this.items.push({ kind: 'shard', z, x, h: 12, tag, seg: id }); lastSh = z; break; } }                                  // at the edge of the road
+          else if (how === 1) { const x = cx + lane * LANE_W; if (this.free(tag, z, x, 60, 60, true)) { this.items.push({ kind: 'shard', z, x, h: 36, tag, seg: id }); lastSh = z; break; } }                              // up in the air: a jump
+          else if (this.free(tag, z - 22, cx - LANE_W, 60, 60, false) && this.free(tag, z + 22, cx + LANE_W, 60, 60, false)) { for (const [dz, sl] of [[-22, -1], [22, 1]]) this.items.push({ kind: 'shard', z: z + dz, x: cx + sl * LANE_W, h: 14, tag, seg: id }); lastSh = z; break; }   // a pair on both edges: one side only
+        }
+      }
+    }
+    this.lastPU[tag] = lastPU; this.lastShard[tag] = lastSh;
   }
 
   genFork(P) {
@@ -108,6 +158,7 @@ class World {
       }
       this.genSegment(f[side].route, P.fe, f.branchLen, tag, sg * FORK_C);
     }
+    if (this.extras) { const lt = P.uid + 'left', rt = P.uid + 'right'; this.lastPU.main = Math.max(this.lastPU[lt] === undefined ? -1e9 : this.lastPU[lt], this.lastPU[rt] === undefined ? -1e9 : this.lastPU[rt], this.lastPU.main === undefined ? -1e9 : this.lastPU.main); this.lastShard.main = Math.max(this.lastShard[lt] === undefined ? -1e9 : this.lastShard[lt], this.lastShard[rt] === undefined ? -1e9 : this.lastShard[rt], this.lastShard.main === undefined ? -1e9 : this.lastShard.main); }
   }
 
   pieceAt(z) { return this.pieces.find(p => z < p.z1) || this.pieces[this.pieces.length - 1]; }
