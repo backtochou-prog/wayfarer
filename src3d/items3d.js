@@ -91,9 +91,37 @@ class Items3D {
     };
     this.extraKinds = ['magnet', 'shard', 'dash', 'waymark', 'aura']; this.extraSet = { magnet: 1, shard: 1, dash: 1, waymark: 1, aura: 1 };
     // pool sizes cover everything inside the 150 m draw range, including both roads of a fork
-    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
+    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
     this.pool = {}; this.used = {}; this.merged = {}; this.dropped = 0;
-    Object.assign(kinds, kinds2); kinds.aura = () => ({});                                                    // (aura: no merged geometry, only its extra meshes)
+    // ---- the hazards on the canals (Renderer3D picks `<kind>W` for an item on a water road): the same sizes and boxes as the crate, the low barrier and the gate, so what you see is what you can hit
+    //   crateW   floating barrels (two standing, one lying on top), 1.2 m wide, 1.05 m tall: jump over it
+    //   barrierW a white rowing boat across the canal with a red lantern at each end, 2.77 m wide, 0.68 m tall: jump over it
+    //   overW    a low brick footbridge on two piers, its underside 1.05 m above the water, nothing above 3.6 m (the camera passes over it): slide under it
+    const kindsW = {
+      crateW: () => {
+        const p = [], RUST = '#b5452c', BLUE = '#2f5d8c', HOOP = '#2a2430';
+        for (const [sx, c] of [[-1, BLUE], [1, RUST]]) p.push(Kit.cyl(0.3, 0.3, 0.62, sx * 0.3, 0, 0, c, { seg: 10 }), Kit.cyl(0.31, 0.31, 0.05, sx * 0.3, 0.1, 0, HOOP, { seg: 10 }), Kit.cyl(0.31, 0.31, 0.05, sx * 0.3, 0.46, 0, HOOP, { seg: 10 }));
+        p.push(Kit.cyl(0.2, 0.2, 0.9, 0, 0.37, 0, '#d9a24a', { rz: Math.PI / 2, seg: 10 }), Kit.cyl(0.21, 0.21, 0.05, -0.25, 0.37, 0, HOOP, { rz: Math.PI / 2, seg: 10 }), Kit.cyl(0.21, 0.21, 0.05, 0.25, 0.37, 0, HOOP, { rz: Math.PI / 2, seg: 10 }));
+        return Kit.merge(p);
+      },
+      barrierW: () => {
+        const p = [], W = '#e8eae4', hw = bHW;
+        p.push(Kit.box(2 * hw - 0.9, 0.36, 0.95, 0, 0, 0, W), Kit.box(0.6, 0.34, 0.7, -(hw - 0.55), 0, 0, W), Kit.box(0.6, 0.34, 0.7, hw - 0.55, 0, 0, W), Kit.box(0.34, 0.3, 0.45, -(hw - 0.2), 0.05, 0, W), Kit.box(0.34, 0.3, 0.45, hw - 0.2, 0.05, 0, W),
+          Kit.box(2 * hw - 1.2, 0.05, 0.9, 0, 0.36, 0, '#9b9c94'), Kit.box(0.12, 0.05, 0.9, -0.5, 0.4, 0, W), Kit.box(0.12, 0.05, 0.9, 0.5, 0.4, 0, W), Kit.box(2 * hw - 0.9, 0.05, 0.99, 0, 0.3, 0, '#2f5d8c'));
+        for (const sx of [-1, 1]) p.push(Kit.box(0.05, 0.3, 0.05, sx * (hw - 0.25), 0.38, 0, '#2a2430'), Kit.box(0.14, 0.12, 0.14, sx * (hw - 0.25), 0.56, 0, '#ff3a2a', { glow: true }));
+        p.push(Kit.box(0.04, 0.04, 2.0, -0.2, 0.41, 0, '#7a5230', { ry: 0.5 }), Kit.box(0.04, 0.04, 2.0, 0.3, 0.41, 0, '#7a5230', { ry: -0.5 }));            // two oars across the thwarts
+        return Kit.merge(p);
+      },
+      overW: () => {
+        const p = [], BR = '#92503f', BR2 = '#7a4234', ST = '#a29686', px = oHW - 0.25;
+        for (const sx of [-1, 1]) p.push(Kit.box(0.7, oTop - 0.2, 1.4, sx * px, 0, 0, BR2), Kit.box(0.84, 0.2, 1.5, sx * px, 0, 0, '#6c655d'));
+        p.push(Kit.box(2 * oHW + 0.7, oTop - gap - 0.2, 1.4, 0, gap, 0, BR), Kit.box(2 * oHW + 0.9, 0.2, 1.6, 0, oTop - 0.2, 0, ST), Kit.box(2 * oHW - 0.4, 0.06, 1.3, 0, gap - 0.04, 0, '#2a2430'));
+        for (let k = 0; k < 5; k++) p.push(Kit.box(0.5, 0.18, 1.42, -oHW + 0.2 + k * (2 * oHW - 0.4) / 4, oTop - 0.5, 0, k % 2 ? ST : '#6c655d'));            // a course of pale stones
+        for (const sx of [-1, 1]) for (const a of [Math.PI / 4, -Math.PI / 4]) p.push(Kit.box(0.08, 0.8, 0.06, sx * 0.9, oTop - 0.9, 0.73, '#202228', { rz: a }), Kit.box(0.08, 0.8, 0.06, sx * 0.9, oTop - 0.9, -0.73, '#202228', { rz: a }));   // X-shaped wall anchors
+        return Kit.merge(p);
+      },
+    };
+    Object.assign(kinds, kinds2, kindsW); kinds.aura = () => ({});                                                    // (aura: no merged geometry, only its extra meshes)
     for (const k of Object.keys(kinds)) {
       const m = this.merged[k] = kinds[k](); this.pool[k] = []; this.used[k] = 0;
       for (let i = 0; i < POOL[k]; i++) {

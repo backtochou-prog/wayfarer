@@ -95,9 +95,20 @@ const TRACK = {
     // the GARE DU MIDI: where Saint-Gilles ends. Saint-Gilles (`tramRun`, `stay`: it does not fade out) runs into the station (a district fully in at its start); coins on the way in, then at `scene.at` the
     // run hands over to the cutscene (Game.beginScene): the runner carries on by itself for `scene.run` units to the platform door at lateral `scene.x` and boards the train, which leaves; the
     // run resumes 100 units further on, while the station fades out and the fork after it (the next zone) comes up. `itemsEnd`: no coins or hazards after that point; `props`: world props (z from the start).
-    gareMidi:  { name: 'GARE DU MIDI',  biome: 'gare',   length: 1700, curve: 0,    first: 100, spacing: 210, district: 700, opening: true, calmStart: true, itemsEnd: 440,
+    gareMidi:  { name: 'GARE DU MIDI',  biome: 'gare',   length: 1300, curve: 0,    first: 100, spacing: 210, district: 700, opening: true, stay: true, calmStart: true, itemsEnd: 440,
                  patterns: ['line', 'coastWave'], scene: { at: 500, run: 400, x: 2.82 },
                  props: [{ spr: 'gareHall', dz: 900, x: 4.5 }, { spr: 'tourMidi', dz: 1180, x: 6.4 }] },
+    // UTRECHT, the zone the train goes to: the run is on the water of the canals, on a surfboard (Game.surf), at blue hour. Three stretches of one atmosphere (BIOMES `atmo`): the basin in front of
+    // Utrecht Centraal (open, calm), the canal under Hoog Catharijne (a covered gallery: gates to slide under) and the Oudegracht (two levels of quays, houses, bridges, the Dom). The station
+    // ends 300 units after the point where the cutscene resumes the run (the door is 400 units before its end); `opening` + `stay` = fully in from the first unit to the last, only the Oudegracht
+    // fades back out over its last 700 units before the next junction. Straight (curve 0): the water is drawn as one strip along the road (Road3D). The Dom is a fixed prop of the Oudegracht.
+    utrechtA:  { name: 'UTRECHT CENTRAAL', biome: 'utrechtA', length: 2200, curve: 0, first: 300, spacing: 210, district: 600, opening: true, stay: true, calmStart: true,
+                 patterns: ['line', 'coastWave', 'trailL', 'hurdle', 'trailR', 'line'], extra: ['crateBarrier'] },
+    utrechtB:  { name: 'HOOG CATHARIJNE',  biome: 'utrechtB', length: 1800, curve: 0, first: 160, spacing: 210, district: 600, opening: true, stay: true,
+                 patterns: ['slideGate', 'line', 'neonGantry', 'trailL', 'slideGate', 'trailR'], extra: ['gateTrail', 'slideJump'] },
+    utrechtC:  { name: 'OUDEGRACHT',       biome: 'utrecht',  length: 5200, curve: 0, first: 160, spacing: 210, district: 700, opening: true,
+                 patterns: ['line', 'crateJump', 'hurdle', 'slideGate', 'dodgeL', 'dodgeR', 'risky', 'zig', 'twin', 'trailL', 'trailR', 'rowL'], extra: ['crateBarrier', 'gateTrail', 'stagger', 'slideJump', 'hopWeave'],
+                 props: [{ spr: 'utDom', dz: 3600, x: -9 }] },
     // second variants of the repeating pieces (same biomes and names, a different bend, length and pattern mix) so each lap along the loop is not a copy of the last
     cityRunB:  { name: 'OLD TOWN',      biome: 'city',   length: 1150, curve: -1.0, first: 90,  spacing: 210,
                  patterns: ['trailR', 'crateJump', 'dodgeR', 'risky', 'line', 'hurdle', 'slideGate', 'rowL', 'trailL', 'zig'], extra: ['crateBarrier', 'gateTrail', 'hopWeave'] },
@@ -141,7 +152,7 @@ const TRACK = {
   // Every route choice is a fork with a signpost on each side. The two fork slots of a lap (A and B) pick one of three pairs each (see `picks`), so the destinations come in a different order
   // from lap to lap and, in a real run, from run to run (World.seed). Between them the five destinations (forest, market, coast, ruins, neon district) are all reachable.
   base: 'city',          // the biome every segment's palette blends from (the "unblended" look); NOT the biome of the first piece, which is the neon quarter
-  sequence: [{ seg: 'neonStart' }, { seg: 'cityRun' }, { pick: 'A' }, { seg: 'plaza' }, { seg: 'neonRun' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { seg: 'gareMidi' }, { pick: 'B' }, { seg: 'plazaB' }],
+  sequence: [{ seg: 'neonStart' }, { seg: 'cityRun' }, { pick: 'A' }, { seg: 'plaza' }, { seg: 'neonRun' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { seg: 'gareMidi' }, { seg: 'utrechtA' }, { seg: 'utrechtB' }, { seg: 'utrechtC' }, { pick: 'B' }, { seg: 'plazaB' }],
   picks: { A: ['gate', 'gate3', 'gate4'], B: ['gate2', 'gate3B', 'gate4B'] },       // the fork pairs a `pick` slot chooses from (the first lap, with seed 0, takes the first: forest / market)
   loopFrom: 1,
 };

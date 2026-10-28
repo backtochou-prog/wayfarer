@@ -16,7 +16,7 @@ window.ENV3D = window.ENV3D || {};
               leaf: '#4d7a45', leafD: '#355d3a', trunk: '#4e3a30', dom: '#b9a78e', domD: '#8d7c68',
               mint: '#8fe0b0', burg: '#6a1f2c', chair: '#1f5a3a', beige: '#d9cdb0', blueFrame: '#2a4466', archRed: '#b0442c', orange: '#cd8a30', banner: '#8a1c24', blueUm: '#1d4fb8', greyUm: '#3a3a40', redUm: '#c0282c', wicker: '#6a4a34', boat: '#dfe2dc', pileW: '#ececec', pile: '#5a4a3a' };
   const SLOT = SEG_LEN, WH = 1.0, ST = 3.5, FRONT = 12.9;           // slot length (12 m), wharf height, street height above the water, x of the house fronts from the canal's axis
-  const EDGE = 3.5;                                                  // x of the water's edge (the ribbon's curb): quay props sit here, local x = 0 at the water edge, so the street is local 2.7 .. 9.4
+  const EDGE = 3.2;                                                  // x of the water's edge (the road's own edge, 0.9 lane-units): quay props sit here, local x = 0 at the water edge, so the street is local 2.7 .. 9.4
 
   // ------------------------------------------------------------------ small parts (the vocabulary comes from the user's photos of Utrecht: black square lanterns, dark Dutch bicycles, green bistro furniture, beige parasols)
   const bike = (p, x, z, col, y0 = ST, ry = 0) => {                  // a parked bicycle standing along Z (wheels turn about X): two wheels, frame, saddle, high bars, a carrier or a basket
@@ -81,7 +81,7 @@ window.ENV3D = window.ENV3D || {};
       crates(p, 8.6, -3.6); crates(p, 8.6, 4.8);
       for (let k = 0; k < 9; k++) p.push(Kit.box(0.9, (ST - WH) * (9 - k) / 9, 0.5, 2.25, WH, -2.2 + k * 0.5, '#5a3a2a'), Kit.box(0.9, 0.05, 0.5, 2.25, WH + (ST - WH) * (9 - k) / 9, -2.2 + k * 0.5, '#7a5230'));      // wooden stairs down to the wharf
       p.push(Kit.box(0.07, 0.07, 4.9, 1.75, WH + 1.5, 0.25, '#f2efe6', { rx: Math.atan2(ST - WH, 4.5) }), Kit.box(0.07, 0.9, 0.07, 1.75, WH, 2.4, '#f2efe6'), Kit.box(0.07, 0.9, 0.07, 1.75, ST + 0.3, -2.0, '#f2efe6'));       // its white handrail
-      boat(p, -0.45, -3.2); boat(p, -0.45, 0.6); boat(p, -0.45, 4.1);
+      boat(p, -0.33, -3.2); boat(p, -0.33, 0.6); boat(p, -0.33, 4.1);
     } else {
       [-5.2, -4.4, -3.6, -2.8, 0.6, 1.4, 2.2].forEach((z, k) => bike(p, 3.4, z, BIKES[k], ST, 0));
       p.push(Kit.box(0.05, 0.6, 4.0, 4.3, ST, 4.0, U.iron)); [3.0, 3.8, 4.6, 5.4].forEach((z, k) => bike(p, 4.6, z, BIKES[k + 2], ST, 0));
@@ -124,7 +124,7 @@ window.ENV3D = window.ENV3D || {};
       const na = F > 4.6 ? 2 : 1;
       for (let a = 0; a < na; a++) { const z = zc + (na === 1 ? 0 : (a ? 0.26 : -0.26) * F), lit = rnd(seed * 3 + a, 71) < 0.75;
         p.push(Kit.box(0.14, 2.0, 1.7, -0.05, y0 + 0.25, z, U.stone), Kit.cyl(0.85, 0.85, 0.14, -0.05, y0 + 2.25, z, U.stone, { rz: Math.PI / 2, seg: 10 }), Kit.box(0.18, 1.85, 1.4, -0.08, y0 + 0.25, z, lit ? U.warm : U.iron, { glow: lit }), Kit.cyl(0.7, 0.7, 0.18, -0.08, y0 + 2.1, z, lit ? U.warm : U.iron, { rz: Math.PI / 2, seg: 10, glow: lit }), Kit.box(0.22, 2.2, 0.06, -0.12, y0 + 0.25, z, U.iron)); }
-      pile(p, -0.55, zc - F * 0.4); pile(p, -0.55, zc + F * 0.4);
+      pile(p, -0.3, zc - F * 0.4); pile(p, -0.3, zc + F * 0.4);
     } else if (shopCol) shopfront(p, sp, F, zc, shopCol, display, seed);
     else {                                                                                                                                                 // ground floor without a shop: a door with a transom and a window
       const doorZ = zc + (rnd(seed, 51) < 0.5 ? -1 : 1) * F * 0.24;
@@ -181,19 +181,19 @@ window.ENV3D = window.ENV3D || {};
     for (const [dx, dy, dz, r, c] of [[0, 4.4, 0, 1.9, '#5f8a4e'], [0.9, 3.8, 0.7, 1.4, '#4d7a45'], [-0.8, 3.9, -0.6, 1.5, '#5f8a4e'], [0.2, 5.5, -0.3, 1.2, '#4d7a45'], [-0.3, 3.7, 1.0, 1.1, '#5f8a4e']]) p.push(Kit.ico(r * s, dx * s, ST + dy * s, dz * s, c, { detail: 1 })); return Kit.merge(p); };
 
   // ------------------------------------------------------------------ the bridge: a low segmental stone arch over the canal, street level on top, lamps at the corners, a parapet along both sides. Spans x = -12 .. 12.
-  const bridge = () => {
-    const p = [], R = 6.0, CY = -3.0, L = 8.0;
-    for (let x = -12; x < 12; x += 0.5) {                                                                                                                  // the arch face in 0.5 m columns: solid from the arch's soffit up to the street
-      const xc = x + 0.25, ax = Math.abs(xc), yi = ax < 5.2 ? Math.max(WH, Math.sqrt(R * R - ax * ax) + CY) : 0;
-      p.push(Kit.box(0.5, ST - yi, L, xc, yi, 0, mod(Math.round(x * 2), 4) < 2 ? U.brick : U.brickL));
+  const bridge = () => {                                                                                                                                   // a humpback stone bridge: the arch's crown is 5.4 m up (the chase camera is at 4.2 m), the deck falls to street level either side
+    const p = [], L = 8.0, YC = 5.4, RA = 3.51, CYA = YC - RA, deck = x => { const u = Math.max(0, Math.min(1, (12 - Math.abs(x)) / 9)); return ST + (YC + 0.9 - ST) * u * u * (3 - 2 * u); };
+    for (let x = -12; x < 12; x += 0.5) {                                                                                                                  // 0.5 m columns: solid from the arch's soffit (or the ground) up to the deck
+      const xc = x + 0.25, ax = Math.abs(xc), yi = ax < 3.4 ? Math.max(WH, CYA + Math.sqrt(Math.max(0, RA * RA - ax * ax))) : 0, top = deck(xc);
+      p.push(Kit.box(0.5, Math.max(0.1, top - yi), L, xc, yi, 0, mod(Math.round(x * 2), 4) < 2 ? U.brick : U.brickL), Kit.box(0.5, 0.18, 0.3, xc, top, L / 2 - 0.15, U.brickD), Kit.box(0.5, 0.18, 0.3, xc, top, -L / 2 + 0.15, U.brickD), Kit.box(0.5, 0.6, 0.24, xc, top - 0.05, L / 2 - 0.12, U.brick), Kit.box(0.5, 0.6, 0.24, xc, top - 0.05, -L / 2 + 0.12, U.brick));
     }
-    p.push(Kit.box(24, 0.06, L, 0, ST, 0, U.street), Kit.box(24, 0.18, 0.3, 0, ST + 0.55, L / 2 - 0.15, U.brickD), Kit.box(24, 0.18, 0.3, 0, ST + 0.55, -L / 2 + 0.15, U.brickD), Kit.box(24, 0.7, 0.24, 0, ST, L / 2 - 0.12, U.brick), Kit.box(24, 0.7, 0.24, 0, ST, -L / 2 + 0.12, U.brick));   // street, parapets with coping
-    p.push(Kit.box(7.4, WH, L, 4.5, 0, 0, U.stoneD), Kit.box(7.4, WH, L, -4.5, 0, 0, U.stoneD));
-    for (const [x, z] of [[-6.5, -3.6], [-6.5, 3.6], [6.5, -3.6], [6.5, 3.6]]) lamp(p, x, z);
-    for (const sz of [-1, 1]) { for (const x of [-4.2, -1.4, 1.4, 4.2]) for (const a of [Math.PI / 4, -Math.PI / 4]) p.push(Kit.box(0.09, 1.0, 0.07, x, ST - 1.25, sz * (L / 2 + 0.05), U.iron, { rz: a }));            // the X-shaped iron wall anchors of the old bridge face
-      for (let k = 0; k < 7; k++) bike(p, -9 + k * 1.2 + (sz > 0 ? 0.5 : 0), sz * (L / 2 - 0.62), BIKES[(k + (sz > 0 ? 3 : 0)) % BIKES.length], ST, Math.PI / 2); }   // bicycles leaning on both railings
+    p.push(Kit.box(8.6, WH, L, 7.9, 0, 0, U.stoneD), Kit.box(8.6, WH, L, -7.9, 0, 0, U.stoneD));
+    for (const [x, z] of [[-6.5, -3.6], [-6.5, 3.6], [6.5, -3.6], [6.5, 3.6]]) lamp(p, x, z, deck(x));
+    for (const sz of [-1, 1]) { for (const x of [-2.4, -0.8, 0.8, 2.4]) for (const a of [Math.PI / 4, -Math.PI / 4]) p.push(Kit.box(0.09, 0.8, 0.07, x, YC + 0.05, sz * (L / 2 + 0.05), U.iron, { rz: a }));                  // the X-shaped iron wall anchors of the old bridge face
+      for (let k = 0; k < 7; k++) { const bx = -9 + k * 1.2 + (sz > 0 ? 0.5 : 0); bike(p, bx, sz * (L / 2 - 0.62), BIKES[(k + (sz > 0 ? 3 : 0)) % BIKES.length], deck(bx) + 0.6, Math.PI / 2); } }                            // bicycles leaning on both railings
     return Kit.merge(p);
   };
+
 
   // ------------------------------------------------------------------ the Dom tower: the cathedral's bell tower, far off at the end of the canal (a fixed landmark). Pale stone, three stages, an open lantern, 112 m
   const dom = () => {
@@ -239,17 +239,18 @@ window.ENV3D = window.ENV3D || {};
   };
   // ------------------------------------------------------------------ stretch B, under Hoog Catharijne: the canal runs through a covered channel under the shopping centre. A low concrete ceiling, brick sides, lit walkways, and
   // strips of glass in the ceiling with the shadows of people crossing above (in the real place there are glass panels to watch the boats from above).
-  const tunnel = () => {
-    const p = [], L = SLOT + 0.2;
-    p.push(Kit.box(24, 0.9, L, 0, 3.6, 0, CON), Kit.box(0.3, 3.6, L, -3.55, 0, 0, U.brickD), Kit.box(0.3, 3.6, L, 3.55, 0, 0, U.brickD));
-    for (const s of [-1, 1]) { p.push(Kit.box(1.3, WH, L, s * 4.4, 0, 0, U.stoneD), Kit.box(7, 4.5, L, s * 8.4, 0, 0, U.stoneD), Kit.box(0.14, 0.8, L, s * 3.75, WH, 0, U.warm, { glow: true })); }
-    for (const x of [-2.3, 0, 2.3]) { p.push(Kit.box(0.7, 0.12, L - 1.2, x, 3.55, 0, '#5f84b4', { glow: true })); for (let k = 0; k < 2; k++) { const z = (rnd(x * 7 + k, 81) - 0.5) * 8, xx = x + (rnd(x + k, 82) - 0.5) * 0.4; p.push(Kit.box(0.2, 0.03, 0.5, xx - 0.12, 3.5, z, '#1f2740'), Kit.box(0.2, 0.03, 0.5, xx + 0.12, 3.5, z + 0.1, '#1f2740')); } }       // the glass strips and the shadows of people
-    for (const z of [-6, 0]) for (const s of [-1, 1]) p.push(Kit.box(0.3, 3.6, 0.5, s * 3.4, 0, z, '#9a9ca6'));
-    for (const z of [-3, 3]) for (const x of [-1.15, 1.15]) p.push(Kit.box(0.5, 0.1, 0.9, x, 3.5, z, U.warm, { glow: true }));                                                                  // ceiling lamps between the glass strips
+  const tunnel = () => {                                                                                                                                   // a covered gallery: walls and a ceiling 7 m up (the chase camera is at 4.2 m), glass strips and lamps in it
+    const p = [], L = SLOT + 0.2, CH = 7.0;
+    p.push(Kit.box(24, 0.9, L, 0, CH, 0, CON), Kit.box(0.3, CH, L, -3.3, 0, 0, U.brickD), Kit.box(0.3, CH, L, 3.3, 0, 0, U.brickD));
+    for (const s of [-1, 1]) { p.push(Kit.box(1.3, WH, L, s * 4.0, 0, 0, U.stoneD), Kit.box(7, CH + 1, L, s * 8.4, 0, 0, U.stoneD), Kit.box(0.14, 0.8, L, s * 3.45, WH, 0, U.warm, { glow: true })); }
+    for (const x of [-2.3, 0, 2.3]) p.push(Kit.box(0.7, 0.12, L - 1.2, x, CH - 0.05, 0, '#5f84b4', { glow: true }));                                   // the glass strips in the ceiling
+    for (const z of [-6, 0]) for (const s of [-1, 1]) p.push(Kit.box(0.3, CH, 0.5, s * 3.1, 0, z, '#9a9ca6'));                                                 // columns along the walls
+    for (const z of [-3, 3]) for (const s of [-1, 1]) p.push(Kit.cyl(0.03, 0.03, 1.2, s * 2.9, CH - 1.2, z, U.iron, { seg: 4 }), Kit.box(0.5, 0.22, 0.5, s * 2.9, CH - 1.45, z, U.warm, { glow: true }));   // hanging lamps
     return Kit.merge(p);
   };
 
-  ENV3D.utrecht = {
+
+  const UT = {
     name: 'UTRECHT',
     sky: { top: '#27324f', mid: '#7b6f93', horizon: '#f0b484' },                                  // blue hour: deep blue overhead, lilac, a last peach band at the horizon
     sunDisc: { color: '#ffe0b0', size: 7 }, sunPos: [-30, 8], sunGlow: 0.5,
@@ -258,14 +259,14 @@ window.ENV3D = window.ENV3D || {};
     sun: { color: '#ffb070', intensity: 1.6, position: [-8, 4, -10] },
     groundFar: '#2c2a36',
     road: { asphalt: ['#35575f', '#315359'], mark: '#9fc4c8', edge: '#4a7078', curb: ['#6c655d', '#6c655d'], curbFace: '#5a544e', walk: ['#8f857a', '#8a8076'], court: '#5d5654', verge: ['#5d5654', '#585250'], water: true },   // the ribbon is water: blue-green, pale ripple marks
-    innerOk: new Set(['platane']),
+    innerOk: new Set(['utPlatane']),
     props: { quayA: quay(0), quayB: quay(1), quayC: quay(2), rowA: row(1), rowB: row(2), rowC: row(3), rowD: row(4), rowE: row(5), rowF: row(6), rowG: row(7), rowH: row(8),
              rowP1905: row(21, { cell: 'h1905', F: 5.4, side: true, wall: '#d8c8a0', shopCol: '#26262c', eave: 0.7 }), rowP1912: row(22, { cell: 'h1912', F: 5.4, side: false, wall: '#d8c8a0', shopCol: '#6a1f2c', display: 'shoes', eave: 0.72 }), rowPChoor: row(23, { cell: 'hChoor', F: 5.3, side: true, wall: '#8a4a38', ground: false }),
              rowPWhite: row(24, { cell: 'wArch', F: 5.0, side: false, wall: '#e0dcd2', shopCol: '#26262c', eave: 0.93 }), rowPShut: row(25, { cell: 'shut', F: 5.4, side: true, wall: '#9a5a44', shopCol: '#2f4a3c', eave: 0.95 }),
              wetA: row(31, null, true), wetB: row(32, null, true), wetC: row(33, null, true), wetD: row(34, null, true),
              platane: platane(false), plataneB: platane(true), bridge, dom, stationHall, park, plane, footBridge, tunnel },
     stretches: {                                                                                   // the other two stretches of the zone (the Oudegracht is `layout` above)
-      basin(i, rnd) { const out = [{ prop: 'stationHall', x: -EDGE, dist: 6 }, { prop: 'park', x: EDGE, dist: 6 }]; if (mod(i, 4) === 2) out.push({ prop: 'footBridge', x: 0, dist: 6 }); else if (mod(i, 2) === 0) out.push({ prop: 'plane', x: 5.6 + rnd(i, 3) * 3, dist: 3 + rnd(i, 4) * 4 }); if (mod(i, 2) === 1) out.push({ prop: 'plane', x: 8.5 + rnd(i, 5) * 3, dist: 8 }); return out; },
+      basin(i, rnd) { const out = [{ prop: 'stationHall', x: -EDGE, dist: 6 }, { prop: 'park', x: EDGE, dist: 6 }]; if (mod(i, 8) === 2) out.push({ prop: 'footBridge', x: 0, dist: 6 }); else if (mod(i, 2) === 0) out.push({ prop: 'plane', x: 5.6 + rnd(i, 3) * 3, dist: 3 + rnd(i, 4) * 4 }); if (mod(i, 2) === 1) out.push({ prop: 'plane', x: 8.5 + rnd(i, 5) * 3, dist: 8 }); return out; },
       tunnel(i) { return [{ prop: 'tunnel', x: 0, dist: 6 }]; },
     },
     layout(i, rnd) {
@@ -281,4 +282,14 @@ window.ENV3D = window.ENV3D || {};
       return out;
     },
   };
+  // the exported zone. Prop names get the prefix `ut` (the renderer keeps one global pool per prop name), every prop is lowered by WALK_Y (the renderer stands them on the pavement, 0.15 m above the water),
+  // and the three stretches share one atmosphere and one prop set (so a prop is built once): the Oudegracht (`utrecht`), the basin (`utrechtA`), the covered gallery (`utrechtB`).
+  const ut = n => 'ut' + n[0].toUpperCase() + n.slice(1), down = g => g && g.translate(0, -WALK_Y, 0);
+  const lower = f => () => { const m = f(); if (m.merged || m.sprite) { if (m.merged) { down(m.merged.lit); down(m.merged.glow); } down(m.sprite); } else { down(m.lit); down(m.glow); } return m; };
+  const PR = {}; for (const k of Object.keys(UT.props)) PR[ut(k)] = lower(UT.props[k]);
+  const pre = f => (i, r) => f(i, r).map(q => Object.assign({}, q, { prop: ut(q.prop) }));
+  const base = Object.assign({}, UT, { props: PR, entrance: null }); delete base.layout; delete base.stretches;
+  ENV3D.utrecht = Object.assign({}, base, { layout: pre(UT.layout), stretches: { basin: pre(UT.stretches.basin), tunnel: pre(UT.stretches.tunnel) } });
+  ENV3D.utrechtA = Object.assign({}, base, { name: 'UTRECHT CENTRAAL', layout: ENV3D.utrecht.stretches.basin });
+  ENV3D.utrechtB = Object.assign({}, base, { name: 'HOOG CATHARIJNE', layout: ENV3D.utrecht.stretches.tunnel });
 })();

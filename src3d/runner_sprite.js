@@ -12,6 +12,7 @@
 class RunnerSprite {
   static get SC() { return 1.3; }                            // the scooter is drawn 1.3 x its modelled size (a chunkier, easier to read scooter under a 1.9 m runner)
   static get BOARD_DECK() { return 0.21 * 1.3; }              // the floating board's deck top
+  static get SURF_DECK() { return 0.13; }                     // the surfboard's deck top (the board lies on the water: nothing of it is below y = 0)
   static get DECK() { return 0.17 * 1.3; }                   // height of the deck's top: the card's feet stand here while riding
   constructor() {
     this.menuView = (location.search.match(/[?&]menu=(side|back)\b/) || [])[1] || 'back';   // which artwork the menu shows: the back view (default, wider and matching the game) or the side view (?menu=side)
@@ -32,6 +33,7 @@ class RunnerSprite {
     this.shadow.renderOrder = 1; this.shadow.scale.set(0.5, 1, 0.42);
     this.scooter = RunnerSprite.buildScooter(); this.scooter.visible = false; this.group.add(this.scooter);   // the kick scooter (shown while riding)
     this.board = RunnerSprite.buildBoard(); this.board.visible = false; this.group.add(this.board);                    // the electromagnetic skateboard (the other vehicle)
+    this.surfB = RunnerSprite.buildSurf(); this.surfB.visible = false; this.group.add(this.surfB);                    // the surfboard of the canals of Utrecht (Game.surf)
     this.vehicle = 'scooter'; this.ride = 0; this.wheelA = 0;                            // 0..1: how far the runner is on the scooter (eased); the wheels' spin angle
     this.phase = 0;
     this.cur = { y: 0, rx: 0, rz: 0, sx: 1, sy: 1 };           // rx = pitch of the card (0 upright, + leaning back, - tipped forward)
@@ -70,12 +72,13 @@ class RunnerSprite {
     const k = 1 - Math.exp(-(s.sliding ? 60 : 15) * dt);       // the slide pose is near-instant: the game counts a slide from the first frame
     for (const key in c) c[key] += (t[key] - c[key]) * k;
     if (view !== this.view) { this.cards.back.visible = view === 'back'; this.cards.side.visible = view === 'side'; this.view = view; }
-    const hover = board ? 0.02 * Math.sin(T * 3) : 0;                                      // the board floats, with a gentle bob
-    this.pivot.position.y = c.y + (board ? RunnerSprite.BOARD_DECK : RunnerSprite.DECK) * Math.min(1, R * 1.5) + hover * R;   // the feet stand on the deck
-    const sc = this.scooter, bd = this.board, v = board ? bd : sc, o = board ? sc : bd; o.visible = false;
+    const surf = this.vehicle === 'surf', hover = board ? 0.02 * Math.sin(T * 3) : surf ? 0.03 * Math.sin(T * 2.4) + 0.02 * (s.beat || 0) : 0;      // the board floats, with a gentle bob (the surfboard rides the swell)
+    this.pivot.position.y = c.y + (surf ? RunnerSprite.SURF_DECK : board ? RunnerSprite.BOARD_DECK : RunnerSprite.DECK) * Math.min(1, R * 1.5) + hover * R;   // the feet stand on the deck
+    const sc = this.scooter, bd = this.board, sf = this.surfB, v = surf ? sf : board ? bd : sc; for (const o of [sc, bd, sf]) if (o !== v) o.visible = false;
     v.visible = R > 0.02; v.scale.setScalar(Math.min(1, R * 1.4) * RunnerSprite.SC); v.position.y = hover * R;
     if (v.visible) {
-      if (!board) { this.wheelA += dt * s.runRate * 9; for (const w of sc.userData.wheels) w.rotation.x = -this.wheelA; }
+      if (surf) { const u = sf.userData, k3 = 1 + 0.08 * Math.sin(T * 5); u.wake.scale.set(1, 1, k3); u.collar.scale.set(1 + 0.1 * Math.sin(T * 6), 1, 1); u.foam.material.opacity = 0.5 + 0.1 * Math.sin(T * 4); }
+      else if (!board) { this.wheelA += dt * s.runRate * 9; for (const w of sc.userData.wheels) w.rotation.x = -this.wheelA; }
       else {
         const u = bd.userData, bt = s.beat || 0; if (u.rear) u.rear.scale.setScalar(1 + 0.1 * bt);                      // the engine ring swells on the beat
         u.ring.scale.setScalar(1 + 0.12 * Math.sin(T * 4) + 0.25 * bt); u.field.scale.setScalar(1 + 0.05 * Math.sin(T * 3)); u.trail.scale.y = 0.8 + 0.2 * Math.sin(T * 7);   // the magnetic field breathes
@@ -84,6 +87,19 @@ class RunnerSprite {
     }
     this.pivot.rotation.set(c.rx, -this.group.rotation.y + face + spin, c.rz, 'YXZ');   // cancel the renderer's yaw: the card always faces the camera (plus the showcase spin)
     this.pivot.scale.set(c.sx, c.sy, 1);
+  }
+
+  // the surfboard: a short cream board with a turquoise stripe and a tail fin, sitting in the water (about 2.4 m once drawn at the vehicle scale), with its white foam: a V-shaped wake behind, a collar at the nose
+  // and a few soft dashes (flat translucent planes with a soft edge, one shared texture; they stay in the board's group and ride with it). The runner's artwork stands on it, unchanged.
+  static buildSurf() {
+    const C1 = '#efe8d6', C2 = '#1f8f8a', DK = '#2a2a32', g = new THREE.Group(), inner = new THREE.Group(); inner.scale.setScalar(0.7); inner.position.y = 0.04; g.add(inner);
+    inner.add(Kit.mesh(Kit.merge([Kit.box(0.5, 0.09, 1.2, 0, 0, 0.05, C1), Kit.box(0.42, 0.09, 0.5, 0, 0, -0.8, C1), Kit.box(0.28, 0.09, 0.4, 0, 0.01, -1.15, C1, { rx: -0.2 }), Kit.box(0.14, 0.09, 0.25, 0, 0.03, -1.4, C1, { rx: -0.35 }),
+      Kit.box(0.44, 0.09, 0.4, 0, 0, 0.85, C1), Kit.box(0.3, 0.09, 0.2, 0, 0, 1.1, C1), Kit.box(0.12, 0.1, 2.1, 0, 0.01, -0.1, C2), Kit.box(0.4, 0.04, 0.5, 0, 0.09, 0.35, DK)])));
+    if (!RunnerSprite._foamTex) { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'), gr = x.createRadialGradient(32, 32, 2, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.55, 'rgba(255,255,255,0.75)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); RunnerSprite._foamTex = new THREE.CanvasTexture(cv); }
+    const mat = new THREE.MeshBasicMaterial({ map: RunnerSprite._foamTex, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide }), plane = (w, d, x, z, ry) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), mat); m.position.set(x, 0.035, z); m.rotation.y = ry; m.renderOrder = 2; return m; };
+    const wake = new THREE.Group(), collar = new THREE.Group(); wake.add(plane(0.7, 6.5, 0.7, 3.4, 0.17), plane(0.7, 6.5, -0.7, 3.4, -0.17), plane(1.3, 2.2, 0, 1.6, 0)); for (let k = 0; k < 6; k++) wake.add(plane(0.45, 0.9, (k % 2 ? 1 : -1) * (0.7 + k * 0.28), 2.4 + k * 1.0, 0.2 * (k % 2 ? -1 : 1)));
+    collar.add(plane(1.7, 0.8, 0, -1.55, 0)); g.add(wake, collar); g.userData = { wake, collar, foam: wake.children[0] };
+    return g;
   }
 
   // the kick scooter: deck, stem, handlebar, two spinning wheels; the runner faces -z. Lime body, dark tyres and grip tape, a glowing headlight and tail light

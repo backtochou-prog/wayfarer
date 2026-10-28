@@ -22,7 +22,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   // ---------------------------------------------------------------- 1. the track: Saint-Gilles -> the station -> the next fork
   const K = await pg.evaluate(() => {
     const out = {}, w = new World(TRACK); w.extend(120000); const ids = w.pieces.map(p => p.id || 'fork');
-    const i = ids.indexOf('tramRun'); out.after = ids.slice(i, i + 4).join('>'); const G = w.pieces[i + 1], Tr = w.pieces[i];
+    const i = ids.indexOf('tramRun'); out.after = ids.slice(i, i + 5).join('>'); const G = w.pieces[i + 1], Tr = w.pieces[i];
     out.seg = { biome: G.seg.biome, len: G.z1 - G.z0, scene: G.seg.scene, name: G.seg.name, itemsEnd: G.seg.itemsEnd };
     // no hazard in the station, no item at all after `itemsEnd`
     const inG = w.items.filter(it => it.z >= G.z0 && it.z < G.z1 && it.kind !== 'prop'); out.hazards = inG.filter(it => OBST[it.kind]).length; out.lateItems = inG.filter(it => it.z > G.z0 + G.seg.itemsEnd + 1).length; out.coins = inG.filter(it => it.kind === 'coin').length;
@@ -33,14 +33,14 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     // the slope of Saint-Gilles eases out before the station: no step in the grade, no step in the drop
     out.grade = [w.gradeAt(Tr.z1 - 600), w.gradeAt(Tr.z1 - 300), w.gradeAt(Tr.z1 - 3), w.gradeAt(G.z0 + 50)].map(v => +v.toFixed(3)); let gStep = 0; for (let z = Tr.z1 - 1000; z < Tr.z1 + 100; z += 10) gStep = Math.max(gStep, Math.abs(w.gradeAt(z + 10) - w.gradeAt(z))); out.gStep = +gStep.toFixed(4);
     out.dropOk = Math.abs(w.dropAt(G.z0 + 400) - w.dropAt(G.z0 + 10)) < 1e-6;
-    out.next = ids[i + 2]; out.nextFork = w.pieces[i + 2].type === 'fork';
+    out.next = ids[i + 2]; out.nextFork = w.pieces[i + 2].type === 'fork' || w.pieces[i + 2].id === 'utrechtA';          // the zone the train goes to: Utrecht
     out.hasEnv = !!ENV3D.gare && !!BIOMES.gare && BIOMES.gare.atmo === 'tram' && ['signs', 'garePlat', 'gareHall', 'tourMidi'].filter(n => n !== 'signs').every(n => ENV3D.gare.props[n]);
     return out;
   });
-  T('Saint-Gilles ends at the station: the sequence runs tramRun > gareMidi (GARE DU MIDI, biome gare, ' + K.seg.len + ' units, the scene 500 units in, the door 400 units further) > the fork that picks the next zone; the station has no hazard, coins only before unit ' + K.seg.itemsEnd + ' (' + K.coins + ' of them), and the hall and the Tour du Midi as props (the signs of the next fork stand in its last 420 units)',
-    K.after.startsWith('tramRun>gareMidi>fork') && K.seg.biome === 'gare' && K.seg.name === 'GARE DU MIDI' && K.seg.scene.at === 500 && K.seg.scene.run === 400 && K.hazards === 0 && K.lateItems === 0 && K.coins >= 5 && K.props.includes('gareHall') && K.props.includes('tourMidi') && K.nextFork && K.hasEnv, JSON.stringify({ after: K.after, seg: K.seg, hazards: K.hazards, late: K.lateItems, coins: K.coins, props: K.props }));
-  T('the hand-over is smooth: the atmosphere stays fully in from Saint-Gilles into the station (t ' + K.t.join(' / ') + ', biomes ' + K.to.join(' > ') + ') and only fades out over the station\'s last 700 units (largest step ' + K.maxStep + '); the slope eases out first (' + K.grade.join(' / ') + ', no step above ' + K.gStep + ') so the road is level in the station',
-    K.t[0] === 1 && K.t[1] === 1 && K.t[2] === 1 && K.t[3] > 0.2 && K.t[3] < 0.8 && K.t[4] < 0.02 && K.to.join() === 'tram,gare' && K.maxStep < 0.06 && K.grade[0] > K.grade[1] && K.grade[2] < 0.005 && K.grade[3] === 0 && K.gStep < 0.004 && K.dropOk, JSON.stringify(K));
+  T('Saint-Gilles ends at the station: the sequence runs tramRun > gareMidi (GARE DU MIDI, biome gare, ' + K.seg.len + ' units, the scene 500 units in, the door 400 units further, 400 more to the end) > Utrecht; the station has no hazard, coins only before unit ' + K.seg.itemsEnd + ' (' + K.coins + ' of them), and the hall and the Tour du Midi as props (the signs of the next fork stand in its last 420 units)',
+    K.after.startsWith('tramRun>gareMidi>utrechtA>utrechtB') && K.seg.biome === 'gare' && K.seg.name === 'GARE DU MIDI' && K.seg.scene.at === 500 && K.seg.scene.run === 400 && K.hazards === 0 && K.lateItems === 0 && K.coins >= 5 && K.props.includes('gareHall') && K.props.includes('tourMidi') && K.nextFork && K.hasEnv, JSON.stringify({ after: K.after, seg: K.seg, hazards: K.hazards, late: K.lateItems, coins: K.coins, props: K.props }));
+  T('the hand-over is smooth: the atmosphere stays fully in from Saint-Gilles into the station (t ' + K.t.join(' / ') + ', biomes ' + K.to.join(' > ') + ') and stays fully in to the end of the station, where Utrecht takes over (largest step ' + K.maxStep + '); the slope eases out first (' + K.grade.join(' / ') + ', no step above ' + K.gStep + ') so the road is level in the station',
+    K.t[0] === 1 && K.t[1] === 1 && K.t[2] === 1 && K.t[3] === 1 && K.t[4] === 1 && K.to.join() === 'tram,gare' && K.maxStep < 0.06 && K.grade[0] > K.grade[1] && K.grade[2] < 0.005 && K.grade[3] === 0 && K.gStep < 0.004 && K.dropOk, JSON.stringify(K));
 
   // ---------------------------------------------------------------- 2. no dip back to the base look between Saint-Gilles and the station (the game's own atmosphere easing)
   const Atm = await pg.evaluate(() => {

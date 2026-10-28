@@ -109,7 +109,7 @@ class Game {
     this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0;
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
     this.scene = null; this.fadeIn = 0;                                                 // no cutscene running, no fade
-    this.riding = false; this.vehicle = 'scooter'; this.scooterHint = null;                                     // on foot, no indicator
+    this.riding = false; this.vehicle = 'scooter'; this.scooterHint = null; this.surf = false;                // on foot, no indicator, not on the water
     this.carryC = 0; this.lean = 0; this.kick = null; this.sway = 0; this.prompt = null; this.banner = null;
     if (this.r.onReset) this.r.onReset(this);
   }
@@ -124,7 +124,7 @@ class Game {
 
   start() { this.resetRun(); this.state = 'play'; this.emit('start'); }
   // the optional scooter: get on (the nearest parked scooter / station that has an indicator right now; it is taken) or off again, whenever the player wants. Drawing only: the rules are the same.
-  mount() { const h = this.scooterHint; if (this.state !== 'play' || this.riding || !h) return false; this.riding = true; this.vehicle = h.kind || 'scooter'; this.scooterHint = null; if (this.r.onScooter) this.r.onScooter(this, h); this.emit('mount'); if (this.touch && navigator.vibrate) navigator.vibrate(30); return true; }
+  mount() { const h = this.scooterHint; if (this.state !== 'play' || this.riding || this.surf || !h) return false; this.riding = true; this.vehicle = h.kind || 'scooter'; this.scooterHint = null; if (this.r.onScooter) this.r.onScooter(this, h); this.emit('mount'); if (this.touch && navigator.vibrate) navigator.vibrate(30); return true; }
   dismount() { if (this.state !== 'play' || !this.riding) return false; this.riding = false; this.emit('dismount'); return true; }
   emit(name, arg) { if (this.sfx) this.sfx.play(name, arg); }                       // a sound effect, if the front end has sound
 
@@ -222,6 +222,8 @@ class Game {
     if (this.bgT <= 0.02 && to !== this.bgTo) this.bgTo = to;
     const here = w.playerBand(p.z + 60, p.x);
     this.canopy += ((here.to === 'forest' ? here.t : 0) - this.canopy) * Math.min(1, dt * 2);
+    this.surf = /^utrecht/.test(here.to) && here.t > 0.5;                           // on the canals of Utrecht the runner is on a surfboard (drawing only, the rules are the same); no scooter there
+    if (this.surf) { this.riding = false; this.scooterHint = null; }
   }
 
   // ---- THE CUTSCENE at the end of Saint-Gilles (the Gare du Midi). The player has no control: the runner carries on by itself to the platform door, boards the train, the train leaves, the
@@ -258,6 +260,7 @@ class Game {
     const S = this.scene, p = this.p, w = this.world;
     p.x = 0; p.z = S.doorZ + 100; p.vx = 0; p.jy = 0; p.vy = 0; p.slide = 0; p.speed = Math.max(BASE_SPEED, S.speed0 * 0.85); this.jumpBuf = 0; this.keys = {};
     this.scene = null; this.state = 'play'; this.fadeIn = 1; w.extend(p.z); this.camRel = 0; this.camErr = 0;
+    const ah = w.playerBand(p.z + 300, p.x); this.bgTo = ah.to; this.bgT = ah.t;      // the new zone's sky and light are in at once (the screen is black: no dip through the old look)
   }
 
   updateFx(dt) {

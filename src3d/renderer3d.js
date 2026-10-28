@@ -71,6 +71,8 @@ class Renderer3D {
                   seaStrip: 36, cottageA: 24, cottageB: 24, cottageC: 24, cottageD: 24, seaFence: 70, tuft: 80, tuftBig: 50, driftwood: 30, dune: 30, cliff: 24, boat: 24, buoy: 40, crates: 30, lampSea: 40, lighthouse: 6, pier: 6, gateCoast: 8,   // the sunset coast
                   wallLow: 40, wallHigh: 40, wallLowB: 40, column: 60, columnLow: 60, columnTall: 20, archHalf: 24, lantern: 50, blocks: 40, ivy: 50, patchA: 40, patchB: 40, ruinTemple: 6, obelisk: 6, gateRuins: 8,   // the mossy ruins
                   garePlat: 20, stationFlankA: 12, stationFlankB: 12, platLamp: 20, gareHall: 3, tourMidi: 3,                  // the Gare du Midi
+                  utQuayA: 30, utQuayB: 30, utQuayC: 30, utRowA: 16, utRowB: 16, utRowC: 16, utRowD: 16, utRowE: 16, utRowF: 16, utRowG: 16, utRowH: 16, utRowP1905: 10, utRowP1912: 10, utRowPChoor: 10, utRowPWhite: 10, utRowPShut: 10,   // Utrecht
+                  utWetA: 14, utWetB: 14, utWetC: 14, utWetD: 14, utPlatane: 24, utPlataneB: 24, utBridge: 3, utDom: 3, utStationHall: 24, utPark: 24, utPlane: 30, utFootBridge: 4, utTunnel: 24,
                   neonHotel: 6, neonMoroccanLamp: 80, neonPendantLamp: 50, neonLanternPierced: 50, neonPillarLamp: 50, neonLightbox: 30 };                                                              // entrance markers where the biome changes
     this.props = {}; this.propUsed = {};
     for (const id of Object.keys(envs)) {
@@ -91,11 +93,11 @@ class Renderer3D {
     // upload the art textures to the GPU as soon as their images have loaded, so the first frames that show them do not hitch (a big atlas upload is a one-off spike)
     // and warm up once: compile every material variant and draw one frame with every pooled prop visible, so geometries, textures and shaders are all on the GPU before
     // the first prop of each kind comes into view (otherwise that first sight costs a one-off hitch of hundreds of ms in a software renderer)
-    let pending = 11;
+    let pending = 11 + (typeof UtrechtArt !== 'undefined' ? 3 : 0);
     const warm = () => { const hid = []; this.scene.traverse(o => { if (!o.visible && o.parent) { hid.push(o); o.visible = true; } });
       try { this.renderer.compile(this.scene, this.camera); this.renderer.render(this.scene, this.camera); this.renderer.clear(); } catch (e) {}   // drawn on screen (that is the program variant that must be ready) and cleared in the same task: a canvas is only shown after the next game frame
       for (const o of hid) o.visible = false; };
-    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3(), () => TramArt.material(), () => this.sunGlow.material, () => BlossomSprite.material(), () => BoardArt.material(), () => NeonShopArt.material(), () => NeonArt.material4(), () => (typeof FlowerArt !== 'undefined' ? FlowerArt.material() : TreeSprite.material())]) {
+    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3(), () => TramArt.material(), () => this.sunGlow.material, () => BlossomSprite.material(), () => BoardArt.material(), () => NeonShopArt.material(), () => NeonArt.material4(), () => (typeof FlowerArt !== 'undefined' ? FlowerArt.material() : TreeSprite.material())].concat(typeof UtrechtArt !== 'undefined' ? [() => UtrechtArt.material(), () => UtrechtArt.paveMaterial(), () => UtrechtArt.waterMaterial()] : [])) {
       const tex = get().map, go = () => { tex.needsUpdate = true; try { this.renderer.initTexture(tex); } catch (e) {}   // (needsUpdate first: an image that was already decoded when checked has no upload version yet, and initTexture skips such a texture)
       if (--pending === 0) setTimeout(warm, 50); };
       if (!(tex.image instanceof HTMLImageElement) || (tex.image.complete && tex.image.naturalWidth)) go(); else tex.image.addEventListener('load', () => setTimeout(go, 0));   // (a canvas texture, the tram signs, is ready at once)
@@ -201,7 +203,7 @@ class Renderer3D {
   // (called by Game when the player mounts) marks the spot as taken.
   pickHint(g) {
     g.scooterHint = null;
-    if (g.state !== 'play' || this.riding(g)) { this.armedSpot = null; return; }
+    if (g.state !== 'play' || this.riding(g) || g.surf) { this.armedSpot = null; return; }
     const U = U3, rz = g.p.z * U.Z, Lref = (g.camX + g.camOff) * U.X, w = g.world, d0 = w.dropAt(g.p.z);
     let sp = null;
     const kept = this.armedSpot && !this.usedSpots.has(this.armedSpot.key) && this.armedSpot.zAbs - rz >= -60 ? this.armedSpot : null;     // the scooter already offered stays offered until it is 60 m behind (a newer one nearer ahead does not take over: no chasing a moving target)
@@ -295,11 +297,11 @@ class Renderer3D {
     for (const it of w.items) {
       const dz = it.z - p.z;
       if (it.taken || dz < -150 || dz > 1500) continue;         // design units: 15 m behind .. 150 m ahead
-      if (it.offV !== w.ver) { it.off = w.bandNear(it.z, it.x).off; it.offV = w.ver; }   // road curve offset at the item, cached until the track changes
+      if (it.offV !== w.ver) { const bn = w.bandNear(it.z, it.x); it.off = bn.off; it.wet = bn.t > 0.5 && !!(this.envs[bn.to] && this.envs[bn.to].road.water); it.offV = w.ver; }   // road curve offset and water (a canal: hazards get their water look) at the item, cached until the track changes
       const x = (it.x + it.off) * U.X - Lref, zr = -dz * U.Z;
       const iy = dy(it.z);                                     // on a descent the item sits on the sloping road
       if (it.kind === 'prop') { this.place(it.spr, x, WALK_Y + iy, zr, 0); continue; }
-      if (it.kind === 'coin' || this.items.extraSet[it.kind]) this.items.place(it.kind, x, it.h * U.Y + iy, zr); else this.items.place(it.kind, x, iy, zr);   // coins and the collectibles hang at their height
+      if (it.kind === 'coin' || this.items.extraSet[it.kind]) this.items.place(it.kind, x, it.h * U.Y + iy, zr); else this.items.place(it.wet && this.items.pool[it.kind + 'W'] ? it.kind + 'W' : it.kind, x, iy, zr);   // coins and the collectibles hang at their height
     }
     for (const name in this.props) { const pool = this.props[name]; for (let n = this.propUsed[name]; n < pool.length; n++) pool[n].visible = false; }
     this.items.end(g.time);
@@ -332,7 +334,7 @@ class Renderer3D {
     this.heading += (-Math.atan(slope) - this.heading) * (1 - Math.exp(-10 * dt));
     this.runner.group.rotation.y = Math.PI * mm + this.heading * (1 - mm);
     this.runner.update(dt, { beat: pulse, faceYaw: Math.atan2(this.cam.x - relX, this.cam.z), time: g.time, runRate: 2.3 + p.speed / 340 * 1.1, airborne: p.jy > 0, vy: p.vy, sliding: p.slide > 0,
-                             lean: Math.max(-1, Math.min(1, p.vx / STEER)), state: g.state, scooter: this.riding(g), vehicle: g.vehicle || 'scooter' });
+                             lean: Math.max(-1, Math.min(1, p.vx / STEER)), state: g.state, scooter: this.riding(g) || !!g.surf, vehicle: g.surf ? 'surf' : g.vehicle || 'scooter' });
 
     // ---- camera: chase (behind and above, centred on the 2D camera) blended with the menu showcase orbit; looks down the active route
     const orbit = Math.sin(g.time * 0.35) * 0.5;                  // menu camera drifts around the character

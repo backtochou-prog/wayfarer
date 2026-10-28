@@ -166,7 +166,7 @@ class World {
   // blend 0..1 of a district segment at z: in over its first `district` units, out over its last (an `opening` one is already fully in at the start)
   districtT(P, z) {
     const s = P.seg, d = s.district === true ? 0.3 * (P.z1 - P.z0) : s.district;
-    if (s.stay) return ease(clamp(Math.min(z - P.z0, d) / d, 0, 1));                 // `stay`: fades in, then stays in to the end of the segment (the next piece takes over at full strength)
+    if (s.stay) return s.opening ? 1 : ease(clamp(Math.min(z - P.z0, d) / d, 0, 1));   // `stay`: fades in, then stays in to the end of the segment (the next piece takes over at full strength); with `opening` it is in all the way
     return ease(clamp(Math.min(s.opening ? d : z - P.z0, P.z1 - z) / d, 0, 1));
   }
   // how much of a segment's grade applies at z: a `stay` district still eases its slope out over its last `district` units (the road levels off before the next piece)
