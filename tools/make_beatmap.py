@@ -5,6 +5,11 @@
     ffmpeg -i track.m4a -vn -af volume=-3dB -codec:a libmp3lame -b:a 128k -ar 44100 assets/music.mp3
     python3 tools/make_beatmap.py /tmp/mono.f32 > src3d/music_beats.js
 
+For a short clip cut from a track whose beat period is known (the coast loop: 28 beats of 0.49703 s) pass the period as a second argument; the tempo search is then skipped,
+it is unreliable on a few seconds of music (it found 1.5 times the period on the coast loop). A third argument gives the time of the first beat when it is known:
+
+    python3 tools/make_beatmap.py /tmp/mono.f32 0.49703 0.0035 > src3d/music_beats_coast.js        (period, then the time of the first beat inside the clip)
+
 Finds the tempo and the position of the first kick drum by a grid search on the kick onsets (sharp rises in the 40-200 Hz band), checks that the grid does not drift
 (best phase in six windows), and writes the loudness of the whole sound and of the bass (20-250 Hz) in 40 ms windows (25 per second). Needs numpy. Assumes a steady tempo.
 """
@@ -30,14 +35,21 @@ def score(per, off, t0=0, t1=None):
     t1 = t1 or T; k0 = int(np.ceil((t0 - off) / per)); k1 = int((t1 - off) / per); tt = off + per * np.arange(k0, k1)
     return float(np.interp(tt / dt - 0.5, np.arange(len(ons)), ons).mean())
 
-best = max((score(per, off), per, off) for per in np.arange(0.40, 0.75, 0.0005) for off in np.arange(0, 0.75, 0.01))   # coarse
-_, per0, off0 = best
-best = max((score(per, off), per, off) for per in np.arange(per0 - 0.0015, per0 + 0.0015, 0.00001) for off in np.arange(off0 - 0.03, off0 + 0.03, 0.001))  # fine
+if len(sys.argv) > 2:                      # a short clip cut from a track whose beat period is known (argv[2], seconds): only the position of the first kick is searched
+    PER = float(sys.argv[2]); best = max((score(PER, off), PER, off) for off in np.arange(0, PER, 0.002)); off0 = best[2]
+    best = max((score(PER, off), PER, off) for off in np.arange(off0 - 0.004, off0 + 0.004, 0.0002))
+    if len(sys.argv) > 3: best = (0.0, PER, float(sys.argv[3]))        # the position of the first beat is known too (the clip starts at a known point of the bar grid): no search, the bass of a
+                                                                       # syncopated passage falls a sixteenth after the beat and would pull the search off the grid
+else:
+    best = max((score(per, off), per, off) for per in np.arange(0.40, 0.75, 0.0005) for off in np.arange(0, 0.75, 0.01))   # coarse
+    _, per0, off0 = best
+    best = max((score(per, off), per, off) for per in np.arange(per0 - 0.0015, per0 + 0.0015, 0.00001) for off in np.arange(off0 - 0.03, off0 + 0.03, 0.001))  # fine
 _, per, off = best
 shifts = []
-for k in range(6):
-    t0 = k * 28; shifts.append(round((max((score(per, o, t0, t0 + 28), o) for o in np.arange(off - 0.06, off + 0.06, 0.002))[1] - off) * 1000))
-sys.stderr.write('tempo %.3f BPM, first kick %.3f s, phase shift per 28 s window (ms): %s\n' % (60 / per, off % per, shifts))
+WL = min(28.0, T / 2)                                                   # a short clip (a loop of a few bars) gets two windows instead of six
+for k in range(max(1, min(6, int(T // WL)))):
+    t0 = k * WL; shifts.append(round((max((score(per, o, t0, t0 + WL), o) for o in np.arange(off - 0.06, off + 0.06, 0.002))[1] - off) * 1000))
+sys.stderr.write('tempo %.3f BPM, first kick %.3f s, phase shift per %.0f s window (ms): %s\n' % (60 / per, off % per, WL, shifts))
 
 W = int(0.04 * SR); n = len(x) // W
 def loud(sig):

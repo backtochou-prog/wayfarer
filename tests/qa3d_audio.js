@@ -39,7 +39,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
 
   // ================================================================ 2. the beat map against the real audio
   const beatMap = which => pg.evaluate(async which => {
-    const B = which === 'coast' ? MUSIC_BEATS_COAST : MUSIC_BEATS, url = which === 'coast' ? 'assets/music_coast.mp3' : 'assets/music.mp3', out = { bpm: B.bpm, first: B.first, frames: B.energy.length, fps: B.fps, dur: B.duration };
+    const B = which === 'coast' ? MUSIC_BEATS_COAST : MUSIC_BEATS, url = which === 'coast' ? 'assets/music_coast.mp3' : 'assets/music.mp3', out = { bpm: B.bpm, beat: B.beat, first: B.first, frames: B.energy.length, fps: B.fps, dur: B.duration };
     const buf = await (await fetch(url)).arrayBuffer(); out.bytes = buf.byteLength; const ac = new OfflineAudioContext(1, 1, 44100); const au = await ac.decodeAudioData(buf), x = au.getChannelData(0), sr = au.sampleRate;
     out.decDur = +au.duration.toFixed(2);
     // kick onsets: the 40-200 Hz band (two poles below 200 Hz minus one pole below 40 Hz), its 4 ms RMS envelope, and the rise over the previous 32 ms (sustained bass notes do not count)
@@ -48,8 +48,9 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const ons = new Float32Array(M); for (let i = 8; i < M; i++) ons[i] = Math.max(0, env[i] - env[i - 8]);
     const at = t => { const i = Math.round(t / 0.004 - 0.5); return i >= 0 && i < M ? ons[i] : 0; };
     out.seg = {};
-    for (const [name, t0] of [['start', 8], ['middle', 80], ['end', 135]]) {
-      const per = B.beat, k0 = Math.ceil((t0 - B.first) / per), K = 60, score = (ph, shift = 0) => { let e = 0; for (let k = 0; k < K; k++) e += at(B.first + (k0 + k) * per + ph + shift); return e / K; };
+    // (the coast loop is 14 s: its loud first 5 s are checked; the quiet closing outro is syncopated and too soft for an onset grid)
+    for (const [name, t0, K] of which === 'coast' ? [['loud part', 0.2, 9]] : [['start', 8, 60], ['middle', 80, 60], ['end', 135, 60]]) {
+      const per = B.beat, k0 = Math.ceil((t0 - B.first) / per), score = (ph, shift = 0) => { let e = 0; for (let k = 0; k < K; k++) e += at(B.first + (k0 + k) * per + ph + shift); return e / K; };
       const scan = []; for (let ph = -0.12; ph <= 0.12; ph += 0.004) scan.push([ph, score(ph)]);
       const best = scan.reduce((m, v) => v[1] > m[1] ? v : m), peakOn = Math.max(...scan.filter(v => Math.abs(v[0]) <= 0.02).map(v => v[1])), peakOff = Math.max(...scan.map(v => score(v[0], B.beat / 2)).slice(0, 61).concat(scan.filter(v => Math.abs(v[0]) <= 0.02).map(v => score(v[0], B.beat / 2))));
       out.seg[name] = { bestPhase: +best[0].toFixed(3), onVsOff: +(peakOn / Math.max(1e-9, peakOff)).toFixed(2) };
@@ -125,8 +126,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   T('M mutes: master gain 0, the music element muted, the choice stored; muted effects build no audio nodes but are still counted; M again restores it', MU.unmutedNodes > 0 && MU.afterM.muted && MU.afterM.gain === 0 && MU.afterM.mediaMuted && MU.afterM.stored === '0' && MU.mutedNodes === 0 && MU.mutedCounted === 1 && !MU.afterM2.muted && Math.abs(MU.afterM2.gain - 0.8) < 1e-6 && !MU.afterM2.mediaMuted && MU.afterM2.stored === '1', JSON.stringify(MU));
-  T('the Sunset Coast track (assets/music_coast.mp3) has its own beat map: ~120.7 BPM, 25 frames per second for its whole ' + BMC.dur + ' s (' + BMC.frames + ' frames), the same length as the decoded mp3 (' + BMC.decDur + ' s)', Math.abs(BMC.bpm - 120.7) < 0.3 && BMC.fps === 25 && Math.abs(BMC.frames - BMC.dur * 25) < 3 && Math.abs(BMC.decDur - BMC.dur) < 0.3 && BMC.bytes === 2739999, JSON.stringify({ bpm: BMC.bpm, frames: BMC.frames, dur: BMC.dur, decDur: BMC.decDur, bytes: BMC.bytes }));
-  T('its beat grid matches the decoded audio at the start, middle and end (kick onsets within 40 ms of the grid in each, positions agreeing within 40 ms: a steady tempo) and the onsets are stronger on the beat than half a beat later',
+  T('the Sunset Coast track (assets/music_coast.mp3) has its own beat map: ~120.7 BPM, 25 frames per second for its whole ' + BMC.dur + ' s (' + BMC.frames + ' frames), the same length as the decoded mp3 (' + BMC.decDur + ' s), a loop of exactly 28 beats (the last 7 bars of the full track)', Math.abs(BMC.bpm - 120.7) < 0.3 && Math.abs(BMC.dur - 28 * BMC.beat) < 0.01 && BMC.fps === 25 && Math.abs(BMC.frames - BMC.dur * 25) < 3 && Math.abs(BMC.decDur - BMC.dur) < 0.3 && BMC.bytes === 223651, JSON.stringify({ bpm: BMC.bpm, frames: BMC.frames, dur: BMC.dur, decDur: BMC.decDur, bytes: BMC.bytes }));
+  T('its beat grid matches the decoded audio over the loud first 5 s (bass onsets within 40 ms of the grid) and the onsets are stronger on the beat than half a beat later',
     phc.every(p => Math.abs(p) <= 0.04) && Math.max(...phc) - Math.min(...phc) <= 0.04 && Object.values(BMC.seg).every(s => s.onVsOff > 1.2), JSON.stringify(BMC.seg));
   const CF = await pg.evaluate(async () => {
     const g = __wf, a = g.sfx, c = a.musicCoast, out = {}, keep = { s: g.state, to: g.bgTo, t: g.bgT }, adv = g.advance; g.advance = () => {};       // (the game loop is held still: it would put its own state and biome back during the waits)
