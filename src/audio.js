@@ -3,7 +3,7 @@
 //    (`beat()`), read from the audio's currentTime; with no audio yet (browsers only allow sound after a first tap / key press) the same clock runs from the page time at the same
 //    tempo, so the menu already moves in time.
 //    A SECOND track (assets/music_coast.mp3, MUSIC_BEATS_COAST) belongs to the Sunset Coast: it crossfades with the main one as the road enters and leaves the coast (the weight is the
-//    game's biome blend, g.bgTo === 'coast' ? g.bgT : 0), starts from its beginning on every entry, and the beat clock follows whichever track is louder.
+//    game's biome blend, /^coast/.test(g.bgTo) ? g.bgT : 0: every light of the coast), starts from its beginning on every entry, and the beat clock follows whichever track is louder.
 //  - EFFECTS: short sounds synthesised with the Web Audio API (no sound files): jump, land, slide, coin (the pitch climbs with a streak), crash, game-over, fork prompt / choice,
 //    start, pause / resume. Every voice is a pure function of (ctx, out, time, arg), so tests can render them offline.
 // Sound is allowed from the first user gesture; M toggles mute (remembered); the game pauses it with the tab. The Game just calls `g.sfx.play(name)` where things happen and
@@ -92,7 +92,7 @@ class GameAudio {
       this.musicVol += (target - this.musicVol) * Math.min(1, dt * (s === 'scene' ? 3 : this.sceneOut > 0 ? 0.7 : 4));      // out in about a second; back in slowly over the first seconds after the scene
       if (s === 'scene' && this.musicVol < 0.004) this.musicVol = 0;
       // the coast crossfade: the weight follows the biome blend of the road ahead (g.bgTo / g.bgT) and is only heard while playing or paused on that road
-      const want = g.bgTo === 'coast' && s !== 'title' ? Math.max(0, Math.min(1, g.bgT)) : 0, c = this.musicCoast;
+      const want = /^coast/.test(g.bgTo) && s !== 'title' ? Math.max(0, Math.min(1, g.bgT)) : 0, c = this.musicCoast;
       this.coastW += (want - this.coastW) * Math.min(1, dt * 6);
       if (this.coastW < 0.004 && want === 0) this.coastW = 0;
       if (c) {

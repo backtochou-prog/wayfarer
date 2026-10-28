@@ -114,3 +114,5 @@ function paletteFor(toId, t) {
   if (!_palCache.has(key)) _palCache.set(key, lerpPalette(BIOMES[TRACK.base || TRACK.segments[TRACK.sequence[0].seg].biome], BIOMES[toId], q / 8));
   return _palCache.get(key);
 }
+// the independent coastal zone's other lights (the 3D build gives them their own sky: ENV3D.coastMorning / coastNoon / coastBlue; the 2D game just uses the coast's palette)
+for (const id of ['coastMorning', 'coastNoon', 'coastBlue']) BIOMES[id] = Object.assign({}, BIOMES.coast, { name: 'SUNSET COAST' });

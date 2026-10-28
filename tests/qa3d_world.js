@@ -207,8 +207,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.missing = out.kinds.filter(k => !ENV3D.neon.props[k]); out.has2D = !!BIOMES.neon;
     return out;
   });
-  T('the neon quarter is a district: biome neon through the whole segment, atmosphere fades in over the first 120 m and out over the last 120 m (no jumps), full strength for the ~250 m between, the segment sits between plain city pieces (' + Nq.ids[0] + ')',
-    Nq.segs >= 2 && Nq.len >= 5000 && Nq.bad.length === 0 && Nq.maxStep < 0.1 && Nq.mid > 5 && Nq.ends > 0 && Nq.ids.every(x => /^(plaza|plazaB)>neonRun>cityRunB$/.test(x)), JSON.stringify({ segs: Nq.segs, len: Nq.len, bad: Nq.bad.slice(0, 3), maxStep: +Nq.maxStep.toFixed(3), ids: Nq.ids.slice(0, 2) }));
+  T('the neon quarter is a district: biome neon through the whole segment, atmosphere fades in over the first 120 m and out over the last 120 m (no jumps), full strength for the ~250 m between, the segment sits after the coastal zone (or a plaza) and before the second city run (' + Nq.ids[0] + ')',
+    Nq.segs >= 2 && Nq.len >= 5000 && Nq.bad.length === 0 && Nq.maxStep < 0.1 && Nq.mid > 5 && Nq.ends > 0 && Nq.ids.every(x => /^(plaza|plazaB|coast(Sunset|Midday|BlueHour|Morning))>neonRun>cityRunB$/.test(x)), JSON.stringify({ segs: Nq.segs, len: Nq.len, bad: Nq.bad.slice(0, 3), maxStep: +Nq.maxStep.toFixed(3), ids: Nq.ids.slice(0, 2) }));
   T('the neon quarter\'s layout only uses props it defines, dresses every slot (2..18 props) and uses >= 30 kinds incl. the eight landmarks; the 2D game has a palette for it',
     Nq.missing.length === 0 && Nq.layout.min >= 2 && Nq.layout.max <= 18 && Nq.kinds.length >= 30 && ['neonRing', 'neonSpire', 'neonBillboard', 'neonHalo', 'neonBoardVortex', 'neonBoardSphere', 'neonBoardRings', 'neonBoardSpiral'].every(k => Nq.kinds.includes(k)) && Nq.has2D, JSON.stringify({ missing: Nq.missing, layout: Nq.layout, kinds: Nq.kinds.length }));
 

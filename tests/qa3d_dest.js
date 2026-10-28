@@ -184,7 +184,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     // a seed whose first six forks offer the coast, the ruins and the neon district; at each fork the run takes a new destination if one is offered (else alternates left / right)
     let seed = -1, want6 = [], wants = [];
     for (let sd = 1; sd < 200 && seed < 0; sd++) {
-      const w = new World(TRACK); w.seed = sd; w.reset(); w.extend(90000); const fk = w.pieces.filter(p => p.type === 'fork').slice(0, 6), got = new Set(), ws = [], bs = [];
+      const w = new World(TRACK); w.seed = sd; w.reset(); w.extend(200000); const fk = w.pieces.filter(p => p.type === 'fork').slice(0, 6), got = new Set(), ws = [], bs = [];
       fk.forEach((F, k) => { const L = TRACK.segments[F.fork.left.route].biome, R2 = TRACK.segments[F.fork.right.route].biome, fresh = b => ['coast', 'ruins', 'neon'].includes(b) && !got.has(b); const side = fresh(L) ? 'left' : fresh(R2) ? 'right' : (k % 2 ? 'right' : 'left'); got.add(side === 'left' ? L : R2); ws.push(side); bs.push(side === 'left' ? L : R2); });
       if (['coast', 'ruins', 'neon'].every(b => got.has(b))) { seed = sd; want6 = bs; wants = ws; }
     }

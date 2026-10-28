@@ -109,6 +109,16 @@ const TRACK = {
     utrechtC:  { name: 'OUDEGRACHT',       biome: 'utrecht',  length: 5200, curve: 0, first: 160, spacing: 210, district: 700, opening: true,
                  patterns: ['line', 'crateJump', 'hurdle', 'slideGate', 'dodgeL', 'dodgeR', 'risky', 'zig', 'twin', 'trailL', 'trailR', 'rowL'], extra: ['crateBarrier', 'gateTrail', 'stagger', 'slideJump', 'hopWeave'],
                  props: [{ spr: 'utDom', dz: 3600, x: -9 }] },
+    // THE COASTAL ZONE, on the main circuit (after the first plaza of every lap), one of four pieces by turns (`pickSegs.C`): the same safe sprint of coin waves, dunes and a few barriers, on a 420 m
+    // coast road, under four lights: the sunset (the look of the coast branches of the junctions), the morning haze, the midday sun and the blue hour. A district fading in and out over 90 m.
+    coastMorning:  { name: 'MORNING COAST',   biome: 'coastMorning', length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, calmStart: true,
+                     patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave', 'crateJump'], extra: ['crateBarrier', 'hopWeave'] },
+    coastMidday:   { name: 'MIDDAY COAST',    biome: 'coastNoon',    length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, calmStart: true,
+                     patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave', 'crateJump'], extra: ['crateBarrier', 'hopWeave'] },
+    coastSunset:   { name: 'SUNSET COAST',    biome: 'coast',        length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, calmStart: true,
+                     patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave', 'crateJump'], extra: ['crateBarrier', 'hopWeave'] },
+    coastBlueHour: { name: 'BLUE HOUR COAST', biome: 'coastBlue',    length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, calmStart: true,
+                     patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave', 'crateJump'], extra: ['crateBarrier', 'hopWeave'] },
     // second variants of the repeating pieces (same biomes and names, a different bend, length and pattern mix) so each lap along the loop is not a copy of the last
     cityRunB:  { name: 'OLD TOWN',      biome: 'city',   length: 1150, curve: -1.0, first: 90,  spacing: 210,
                  patterns: ['trailR', 'crateJump', 'dodgeR', 'risky', 'line', 'hurdle', 'slideGate', 'rowL', 'trailL', 'zig'], extra: ['crateBarrier', 'gateTrail', 'hopWeave'] },
@@ -152,7 +162,9 @@ const TRACK = {
   // Every route choice is a fork with a signpost on each side. The two fork slots of a lap (A and B) pick one of three pairs each (see `picks`), so the destinations come in a different order
   // from lap to lap and, in a real run, from run to run (World.seed). Between them the five destinations (forest, market, coast, ruins, neon district) are all reachable.
   base: 'city',          // the biome every segment's palette blends from (the "unblended" look); NOT the biome of the first piece, which is the neon quarter
-  sequence: [{ seg: 'neonStart' }, { seg: 'cityRun' }, { pick: 'A' }, { seg: 'plaza' }, { seg: 'neonRun' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { seg: 'gareMidi' }, { seg: 'utrechtA' }, { seg: 'utrechtB' }, { seg: 'utrechtC' }, { pick: 'B' }, { seg: 'plazaB' }],
+  sequence: [{ seg: 'neonStart' }, { seg: 'cityRun' }, { pick: 'A' }, { seg: 'plaza' }, { pick: 'C' }, { seg: 'neonRun' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { seg: 'gareMidi' }, { seg: 'utrechtA' }, { seg: 'utrechtB' }, { seg: 'utrechtC' }, { pick: 'B' }, { seg: 'plazaB' }],
+  // a `pick` slot of `pickSegs` chooses a SEGMENT instead of a fork pair: one after the other at each passage (the first one with seed 0, a seeded starting point for a real run), so every ambiance of the coastal zone is met in turn
+  pickSegs: { C: ['coastSunset', 'coastMidday', 'coastBlueHour', 'coastMorning'] },
   picks: { A: ['gate', 'gate3', 'gate4'], B: ['gate2', 'gate3B', 'gate4B'] },       // the fork pairs a `pick` slot chooses from (the first lap, with seed 0, takes the first: forest / market)
   loopFrom: 1,
 };

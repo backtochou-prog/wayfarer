@@ -71,6 +71,7 @@ class Renderer3D {
                   seaStrip: 36, cottageA: 24, cottageB: 24, cottageC: 24, cottageD: 24, seaFence: 70, tuft: 80, tuftBig: 50, driftwood: 30, dune: 30, cliff: 24, boat: 24, buoy: 40, crates: 30, lampSea: 40, lighthouse: 6, pier: 6, gateCoast: 8,   // the sunset coast
                   wallLow: 40, wallHigh: 40, wallLowB: 40, column: 60, columnLow: 60, columnTall: 20, archHalf: 24, lantern: 50, blocks: 40, ivy: 50, patchA: 40, patchB: 40, ruinTemple: 6, obelisk: 6, gateRuins: 8,   // the mossy ruins
                   garePlat: 20, stationFlankA: 12, stationFlankB: 12, platLamp: 20, gareHall: 3, tourMidi: 3,                  // the Gare du Midi
+                  coastClub: 6, coastDelphi: 6,
                   utQuayA: 30, utQuayB: 30, utQuayC: 30, utRowA: 16, utRowB: 16, utRowC: 16, utRowD: 16, utRowE: 16, utRowF: 16, utRowG: 16, utRowH: 16, utRowP1905: 10, utRowP1912: 10, utRowPChoor: 10, utRowPWhite: 10, utRowPShut: 10,   // Utrecht
                   utWetA: 14, utWetB: 14, utWetC: 14, utWetD: 14, utPlatane: 24, utPlataneB: 24, utBridge: 3, utDom: 3, utStationHall: 24, utPark: 24, utPlane: 30, utFootBridge: 4, utTunnel: 24,
                   neonHotel: 6, neonMoroccanLamp: 80, neonPendantLamp: 50, neonLanternPierced: 50, neonPillarLamp: 50, neonLightbox: 30 };                                                              // entrance markers where the biome changes
@@ -93,11 +94,11 @@ class Renderer3D {
     // upload the art textures to the GPU as soon as their images have loaded, so the first frames that show them do not hitch (a big atlas upload is a one-off spike)
     // and warm up once: compile every material variant and draw one frame with every pooled prop visible, so geometries, textures and shaders are all on the GPU before
     // the first prop of each kind comes into view (otherwise that first sight costs a one-off hitch of hundreds of ms in a software renderer)
-    let pending = 11 + (typeof UtrechtArt !== 'undefined' ? 3 : 0);
+    let pending = 11 + (typeof UtrechtArt !== 'undefined' ? 3 : 0) + (typeof CoastArt !== 'undefined' ? 3 : 0);
     const warm = () => { const hid = []; this.scene.traverse(o => { if (!o.visible && o.parent) { hid.push(o); o.visible = true; } });
       try { this.renderer.compile(this.scene, this.camera); this.renderer.render(this.scene, this.camera); this.renderer.clear(); } catch (e) {}   // drawn on screen (that is the program variant that must be ready) and cleared in the same task: a canvas is only shown after the next game frame
       for (const o of hid) o.visible = false; };
-    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3(), () => TramArt.material(), () => this.sunGlow.material, () => BlossomSprite.material(), () => BoardArt.material(), () => NeonShopArt.material(), () => NeonArt.material4(), () => (typeof FlowerArt !== 'undefined' ? FlowerArt.material() : TreeSprite.material())].concat(typeof UtrechtArt !== 'undefined' ? [() => UtrechtArt.material(), () => UtrechtArt.paveMaterial(), () => UtrechtArt.waterMaterial()] : [])) {
+    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3(), () => TramArt.material(), () => this.sunGlow.material, () => BlossomSprite.material(), () => BoardArt.material(), () => NeonShopArt.material(), () => NeonArt.material4(), () => (typeof FlowerArt !== 'undefined' ? FlowerArt.material() : TreeSprite.material())].concat(typeof UtrechtArt !== 'undefined' ? [() => UtrechtArt.material(), () => UtrechtArt.paveMaterial(), () => UtrechtArt.waterMaterial()] : []).concat(typeof CoastArt !== 'undefined' ? [() => CoastArt.material(), () => CoastArt.signMaterial(), () => CoastArt.delphiMaterial()] : [])) {
       const tex = get().map, go = () => { tex.needsUpdate = true; try { this.renderer.initTexture(tex); } catch (e) {}   // (needsUpdate first: an image that was already decoded when checked has no upload version yet, and initTexture skips such a texture)
       if (--pending === 0) setTimeout(warm, 50); };
       if (!(tex.image instanceof HTMLImageElement) || (tex.image.complete && tex.image.naturalWidth)) go(); else tex.image.addEventListener('load', () => setTimeout(go, 0));   // (a canvas texture, the tram signs, is ready at once)
