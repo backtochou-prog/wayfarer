@@ -44,10 +44,11 @@ class Renderer {
     if (g.state !== 'title') this.drawHud(g);
     this.drawTouch(g);
     if (g.state === 'play') this.drawScooterHint(g);
+    if (g.scene || g.fadeIn > 0) this.drawSceneOverlay(g);
     if (g.state === 'title') this.drawTitle(g);
     else if (g.state === 'pause') this.drawPause(g);
     else if (g.state === 'over' && g.overT > 0.5) this.drawOver(g);
-    if (g.sfx && g.state !== 'play') this.drawSoundBtn(g);
+    if (g.sfx && g.state !== 'play' && g.state !== 'scene') this.drawSoundBtn(g);
   }
 
   // the sound on / off icon (bottom-right of the menu, pause and game-over screens): a speaker with waves when on, crossed out when off
@@ -177,6 +178,7 @@ class Renderer {
         else if (it.kind === 'crate') spr = SPR.crate;
         else spr = SPR[w.themeAt(it.z, it.x) + it.kind[0].toUpperCase() + it.kind.slice(1)];
       } else spr = o.spr;
+      if (!spr) continue;                                                                          // (a prop that only the 3D build draws, such as the station hall)
       const sw = Math.max(1, Math.round(spr.width * sc)), sh = Math.max(1, Math.round(spr.height * sc));
       ctx.drawImage(spr, Math.round(this.sx(o.wx, s) - sw / 2), Math.round(sy - sh - lift), sw, sh);
     }
@@ -296,6 +298,19 @@ class Renderer {
     c.fillRect(x + 9, y, 1, 8); c.fillRect(x + 7, y, 4, 1);                  // stem and handlebar
     c.fillRect(x + 1, y + 6, 9, 1);                                          // deck
     c.fillRect(x, y + 7, 3, 3); c.fillRect(x + 9, y + 7, 3, 3);              // wheels
+  }
+
+  // the cutscene's frame: letterbox bars sliding in, the caption (GARE DU MIDI / ALL ABOARD / NEXT ZONE) and the fade to black (g.scene.fade) and from black (g.fadeIn) round it
+  drawSceneOverlay(g) {
+    const c = this.ctx, S = g.scene;
+    if (S) {
+      const k = Math.min(1, S.t / 0.7), bar = Math.round(24 * (k * k * (3 - 2 * k)));
+      c.globalAlpha = 1; c.fillStyle = C.ink; c.fillRect(0, 0, VW, bar); c.fillRect(0, VH - bar, VW, bar);
+      c.fillStyle = C.amber; c.fillRect(0, bar, VW, 1); c.fillRect(0, VH - bar - 1, VW, 1);
+      if (S.caption) { const w2 = textW(S.caption, 2) + 14, x = Math.round((VW - w2) / 2); c.globalAlpha = 0.9; c.fillStyle = C.ink; c.fillRect(x - 1, 28, w2 + 2, 20); c.fillStyle = C.plum; c.fillRect(x, 29, w2, 18); c.fillStyle = C.amberD; c.fillRect(x, 29, w2, 1); c.fillRect(x, 46, w2, 1); c.globalAlpha = 1; this.ctr(S.caption, 33, C.amberL, 2); }
+    }
+    const a = Math.max(S ? S.fade : 0, g.fadeIn > 0 ? g.fadeIn * g.fadeIn : 0);
+    if (a > 0.003) { c.globalAlpha = Math.min(1, a); c.fillStyle = '#000'; c.fillRect(0, 0, VW, VH); c.globalAlpha = 1; }
   }
 
   // a vehicle in pixels, to tell the player what the disc is for: a kick scooter (lime) or the electromagnetic skateboard (cyan deck, red engine ring), about 28 x 18, top-left at (x, y)

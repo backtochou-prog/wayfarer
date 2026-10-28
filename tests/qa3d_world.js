@@ -140,7 +140,9 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const LM = ['fountain', 'clockTower', 'statue', 'cabin', 'giantOak', 'standingStones', 'marketHall', 'bigTent'], GATES = ['gateCity', 'gateWood', 'gateMarket'];
     let zP = 0, cP = 0, sP = 0, scP = 0, camP = null, nFork = 0, want = null, lastUid = -1, f = 0;
     const vis = o => { for (let n = o; n; n = n.parent) if (!n.visible) return false; return true; };
-    while (out.picks.length < 6 && f < 60 * 60 * 10 && g.state === 'play') {
+    out.scenes = 0; let wasScene = false;
+    while (out.picks.length < 6 && f < 60 * 60 * 10 && (g.state === 'play' || g.state === 'scene')) {
+      if (g.state === 'scene') { if (!wasScene) out.scenes++; wasScene = true; g.advance(1 / 60); f++; zP = g.p.z; cP = g.coins; sP = 0; scP = g.score(); camP = null; if (f % 3 === 0) r.draw(g); continue; } wasScene = false;      /* the Gare du Midi cutscene: the bot lets it play (qa3d_gare checks it) */
       const p = g.p, w = g.world, F = w.openFork();
       if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = nFork++ % 2 === 0 ? 'left' : 'right'; out.wants.push(want); }
       g.keys.left = g.keys.right = false;
@@ -157,14 +159,14 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       if (f % 3 === 0) {
         r.draw(g);
         const E = r.road.edge; for (let i = 0; i < r.road.N - 1; i++) { out.maxEdge = Math.max(out.maxEdge, Math.abs(E.loA[i + 1] - E.loA[i]), Math.abs(E.hiB[i + 1] - E.hiB[i])); if (E.two[i] && E.two[i + 1]) out.maxEdge = Math.max(out.maxEdge, Math.abs(E.hiA[i + 1] - E.hiA[i]), Math.abs(E.loB[i + 1] - E.loB[i])); }   // outer edges always; inner edges while both roads exist
-        const cp = { x: r.look.x, y: r.camera.position.y }; if (camP) { out.maxCamDx = Math.max(out.maxCamDx, Math.abs(cp.x - camP.x)); out.maxCamDy = Math.max(out.maxCamDy, Math.abs(cp.y - camP.y)); } camP = cp;   // the camera sits at x 0 (the scene moves around it): what can jump is the look-at target
+        const cp = { x: r.look.x, y: r.camera.position.y }; if (g.fadeIn > 0.5) camP = null; /* (the cut at the end of the station scene is behind the black fade-in) */ if (camP) { out.maxCamDx = Math.max(out.maxCamDx, Math.abs(cp.x - camP.x)); out.maxCamDy = Math.max(out.maxCamDy, Math.abs(cp.y - camP.y)); } camP = cp;   // the camera sits at x 0 (the scene moves around it): what can jump is the look-at target
         for (const n of LM) if (r.props[n] && r.props[n].some(vis)) out.seen.add(n); for (const n of GATES) if (r.props[n] && r.props[n].some(vis)) out.gates.add(n);
       }
     }
     out.state = g.state; out.dist = Math.round(g.p.z / 10); out.coins = g.coins; out.dropped = r.dropped + r.items.dropped; out.seen = [...out.seen].sort(); out.gates = [...out.gates].sort(); out.forkRoutes = out.forkRoutes.size;
     return out;
   });
-  T('six junctions played, alternating left/right (' + Run.picks.join(',') + '): still running at ' + Run.dist + ' m, every choice took the intended road, both junction types used', Run.state === 'play' && Run.picks.length === 6 && Run.picks.join() === Run.wants.slice(0, 6).join() && Run.dist > 1500, JSON.stringify({ state: Run.state, picks: Run.picks, wants: Run.wants, dist: Run.dist }));
+  T('six junctions played, alternating left/right (' + Run.picks.join(',') + '): still running at ' + Run.dist + ' m (' + Run.scenes + ' station cutscene passed), every choice took the intended road, both junction types used', Run.state === 'play' && Run.scenes >= 1 && Run.picks.length === 6 && Run.picks.join() === Run.wants.slice(0, 6).join() && Run.dist > 1500, JSON.stringify({ state: Run.state, picks: Run.picks, wants: Run.wants, dist: Run.dist, scenes: Run.scenes }));
   T('branch lock: the runner always stays on its chosen road and never enters the other road of a junction', Run.offRoad === 0 && Run.otherRoad === 0, JSON.stringify({ offRoad: Run.offRoad, otherRoad: Run.otherRoad }));
   T('distance, speed, score and coins never go backwards across segments and junctions (' + Run.coins + ' coins)', Run.backwards === 0 && Run.coins > 30, JSON.stringify({ backwards: Run.backwards, coins: Run.coins }));
   T('road ribbon stays continuous and the chase camera glitch-free through all of it (max edge step between sections ' + Run.maxEdge.toFixed(2) + ' m, look-at step ' + Run.maxCamDx.toFixed(2) + ' m / camera height step ' + Run.maxCamDy.toFixed(2) + ' m per 3 frames)', Run.maxEdge < 1.6 && Run.maxCamDx < 1.0 && Run.maxCamDy < 0.3, JSON.stringify({ edge: +Run.maxEdge.toFixed(2), dx: +Run.maxCamDx.toFixed(2), dy: +Run.maxCamDy.toFixed(2) }));
@@ -318,7 +320,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
         if (b.to !== 'tram') out.bad.push(['to', Math.round(z)]);
         if (prev !== null) out.maxStep = Math.max(out.maxStep, Math.abs(b.t - prev)); prev = b.t;
         if (u > 0.4 && u < 0.6 && b.t < 0.999) out.bad.push(['mid', Math.round(z), b.t]); if (u > 0.4 && u < 0.6) out.mid++;
-        if ((u < 0.01 || u > 0.99) && b.t > 0.05) out.bad.push(['end', Math.round(z), b.t]); if (u < 0.01 || u > 0.99) out.ends++;
+        if (u < 0.01 && b.t > 0.05) out.bad.push(['start', Math.round(z), b.t]); if (u > 0.99 && b.t < 0.999) out.bad.push(['stay', Math.round(z), b.t]); if (u < 0.01 || u > 0.99) out.ends++;
       }
       const before = w.pieces[w.pieces.indexOf(P) - 1], after = w.pieces[w.pieces.indexOf(P) + 1]; if (before && after) out.ids.push(before.id + '>' + P.id + '>' + (after.type === 'fork' ? 'fork:' + after.fork.left.route : after.id));
     }
@@ -344,16 +346,16 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const pm = ENV3D.tram.props.polyclinique(); pm.sprite.computeBoundingBox(); const bb = pm.sprite.boundingBox; out.blade = { poly: TramArt.cells.poly.ar < 0.3, tall: bb.max.y > 9 };
     return out;
   });
-  T('the tram street is a district: biome tram through the whole segment, atmosphere fades in over the first 120 m and out over the last 120 m (no jumps), full strength in the middle, between the old town and the second fork (' + Ts.ids[0] + ')',
-    Ts.segs >= 2 && Ts.len >= 4000 && Ts.bad.length === 0 && Ts.maxStep < 0.1 && Ts.mid > 5 && Ts.ends > 0 && Ts.ids.every(x => /^cityRunB>tramRun>fork:\w+$/.test(x)) && Ts.name === 'SAINT-GILLES', JSON.stringify({ segs: Ts.segs, len: Ts.len, bad: Ts.bad.slice(0, 3), maxStep: +Ts.maxStep.toFixed(3), ids: Ts.ids.slice(0, 2), name: Ts.name }));
+  T('the tram street is a district: biome tram through the whole segment, atmosphere fades in over the first 120 m (no jumps) and stays at full strength to the end, where the Gare du Midi segment takes over in the same atmosphere (' + Ts.ids[0] + ')',
+    Ts.segs >= 2 && Ts.len >= 4000 && Ts.bad.length === 0 && Ts.maxStep < 0.1 && Ts.mid > 5 && Ts.ends > 0 && Ts.ids.every(x => /^cityRunB>tramRun>gareMidi$/.test(x)) && Ts.name === 'SAINT-GILLES', JSON.stringify({ segs: Ts.segs, len: Ts.len, bad: Ts.bad.slice(0, 3), maxStep: +Ts.maxStep.toFixed(3), ids: Ts.ids.slice(0, 2), name: Ts.name }));
   T('the tram streets layout uses only props that exist, dresses every slot (2..16 props), has the wire over both rails in every slot, uses >= 30 kinds incl. the five landmarks and the new street furniture, never repeats a house on the same side in consecutive slots; 2D palette and entrance marker exist',
     Ts.missing.length === 0 && Ts.layout.min >= 2 && Ts.layout.max <= 16 && Ts.kinds.length >= 30 && ['polyclinique', 'tramStop', 'cornerCafe', 'school', 'glassTower', 'wire', 'pole', 'swan', 'lantern', 'posts', 'streetSign', 'hedge', 'tent', 'scooter', 'scooterDock', 'board', 'boardDock', 'steps', 'zebra', 'rowI', 'rowJ', 'rowK', 'rowL', 'blossom', 'cobbles', 'carA', 'van'].every(k => Ts.kinds.includes(k)) && Ts.nb.n > 500 && Ts.nb.same === 0 && Ts.has2D && Ts.entrance,
     JSON.stringify({ missing: Ts.missing, layout: Ts.layout, kinds: Ts.kinds.length, nb: Ts.nb, has2D: Ts.has2D, entrance: Ts.entrance }));
   T('the sun is low and ahead with a glow in the tram street (blended in with the zone, half way at half strength), unchanged elsewhere (default place, no glow); warm fog; tram rails only in the street, once it is mostly in',
     Ts.sunTram.glow >= 0.99 && Ts.sunTram.glowVisible && Ts.sunTram.y < 20 && Ts.sunTram.y > 5 && Math.abs(Ts.sunHalf.glow - 0.5) < 0.05 && Ts.sunCity.glow === 0 && !Ts.sunCity.glowVisible && Ts.sunCity.x === -70 && Ts.sunCity.y === 28 && !Ts.sunNeon.glowVisible && /^#e/.test(Ts.sunTram.fog) &&
     Ts.rails[0] === true && Ts.rails[1] === false && Ts.rails[2] === false && Ts.rails[3] === false, JSON.stringify({ tram: Ts.sunTram, half: Ts.sunHalf, city: Ts.sunCity, rails: Ts.rails }));
-  T('the lettered signs are drawn on one small canvas atlas (14 cells: POLYCLINIQUE blade, VERHAEGEN fascia, TRAM plate, shop boards, BRICO, the parking, ZONE P and no-entry signs, three murals) with one shared material; the landmark, the school, the shop houses, the stop, the street signs and the entrance carry textured panels, the plain houses none',
-    Ts.cells === 14 && Ts.canvas && Object.values(Ts.signs).every(Boolean) && Ts.blade.poly && Ts.blade.tall, JSON.stringify({ cells: Ts.cells, canvas: Ts.canvas, signs: Ts.signs, blade: Ts.blade }));
+  T('the lettered signs are drawn on one small canvas atlas (17 cells: POLYCLINIQUE blade, VERHAEGEN fascia, TRAM plate, shop boards, BRICO, the parking, ZONE P and no-entry signs, three murals, the BRUXELLES-MIDI, quai and BRUSSEL-ZUID boards of the station) with one shared material; the landmark, the school, the shop houses, the stop, the street signs and the entrance carry textured panels, the plain houses none',
+    Ts.cells === 17 && Ts.canvas && Object.values(Ts.signs).every(Boolean) && Ts.blade.poly && Ts.blade.tall, JSON.stringify({ cells: Ts.cells, canvas: Ts.canvas, signs: Ts.signs, blade: Ts.blade }));
   const Bl = await pg.evaluate(async () => {
     const mat = BlossomSprite.material(); for (let i = 0; i < 60 && !mat.visible; i++) await new Promise(q => setTimeout(q, 100));
     const m = ENV3D.tram.props.blossom(), g = m.sprite; g.computeBoundingBox(); const bb = g.boundingBox, pc = g.attributes.position.count;

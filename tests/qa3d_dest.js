@@ -192,7 +192,9 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const out = { seed, want6, picks: [], biomes: [], offRoad: 0, otherRoad: 0, backwards: 0, maxEdge: 0, maxCamDx: 0, maxCamDy: 0, deaths: 0 };
     const key = c => g.onKey({ code: c, key: c === 'Space' ? ' ' : c, repeat: false, preventDefault() {} }, true);
     let zP = 0, cP = 0, scP = 0, camP = null, nFork = 0, want = null, lastUid = -1, f = 0; const seenUid = new Set();
-    while (out.picks.length < 6 && f < 60 * 60 * 10 && g.state === 'play') {
+    out.scenes = 0; let wasScene = false;
+    while (out.picks.length < 6 && f < 60 * 60 * 10 && (g.state === 'play' || g.state === 'scene')) {
+      if (g.state === 'scene') { if (!wasScene) out.scenes++; wasScene = true; g.advance(1 / 60); f++; zP = g.p.z; cP = g.coins; scP = g.score(); camP = null; if (f % 3 === 0) r.draw(g); continue; } wasScene = false;      /* the Gare du Midi cutscene: the bot lets it play (qa3d_gare checks it) */
       const p = g.p, w = g.world, F = w.openFork();
       if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = wants[nFork++]; }
       g.keys.left = g.keys.right = false; if (F && want && p.z > F.z0 - 500 && p.z < F.z0 - 400) g.keys[want] = true;
@@ -206,13 +208,13 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       if (bs.length === 2 && ch && bs.some(q => !q.chosen) && g.p.z > 0) { const o = bs.find(q => !q.chosen); if (o.hi < ch.lo - 0.1 || o.lo > ch.hi + 0.1) { if (g.p.x > o.lo && g.p.x < o.hi) out.otherRoad++; } }
       if (f % 3 === 0) {
         r.draw(g); const E = r.road.edge; for (let i = 0; i < r.road.N - 1; i++) { out.maxEdge = Math.max(out.maxEdge, Math.abs(E.loA[i + 1] - E.loA[i]), Math.abs(E.hiB[i + 1] - E.hiB[i])); if (E.two[i] && E.two[i + 1]) out.maxEdge = Math.max(out.maxEdge, Math.abs(E.hiA[i + 1] - E.hiA[i]), Math.abs(E.loB[i + 1] - E.loB[i])); }
-        const cp = { x: r.look.x, y: r.camera.position.y }; if (camP) { out.maxCamDx = Math.max(out.maxCamDx, Math.abs(cp.x - camP.x)); out.maxCamDy = Math.max(out.maxCamDy, Math.abs(cp.y - camP.y)); } camP = cp;
+        const cp = { x: r.look.x, y: r.camera.position.y }; if (g.fadeIn > 0.5) camP = null; /* (the cut at the end of the station scene is behind the black fade-in) */ if (camP) { out.maxCamDx = Math.max(out.maxCamDx, Math.abs(cp.x - camP.x)); out.maxCamDy = Math.max(out.maxCamDy, Math.abs(cp.y - camP.y)); } camP = cp;
       }
     }
     Game.runSeed = orig; out.state = g.state; out.dist = Math.round(g.p.z / 10); out.coins = g.coins; out.dropped = r.dropped + r.items.dropped; return out;
   });
-  T('a whole run through the new destinations (seed ' + Run.seed + ': ' + Run.biomes.join(' > ') + '): six junctions, at each one a new destination taken when offered, every choice reaches the intended road, still running at ' + Run.dist + ' m; the runner never leaves its road nor enters the other one; distance, score and coins never go back',
-    Run.seed > 0 && Run.state === 'play' && Run.picks.length === 6 && Run.biomes.join() === Run.want6.join() && ['coast', 'ruins', 'neon'].every(b => Run.biomes.includes(b)) && Run.offRoad === 0 && Run.otherRoad === 0 && Run.backwards === 0 && Run.coins > 30, JSON.stringify({ seed: Run.seed, biomes: Run.biomes, want: Run.want6, state: Run.state, dist: Run.dist, off: Run.offRoad, other: Run.otherRoad, back: Run.backwards, coins: Run.coins }));
+  T('a whole run through the new destinations (seed ' + Run.seed + ': ' + Run.biomes.join(' > ') + '): six junctions, at each one a new destination taken when offered, every choice reaches the intended road, still running at ' + Run.dist + ' m (' + Run.scenes + ' station cutscene passed); the runner never leaves its road nor enters the other one; distance, score and coins never go back',
+    Run.seed > 0 && Run.state === 'play' && Run.scenes >= 1 && Run.picks.length === 6 && Run.biomes.join() === Run.want6.join() && ['coast', 'ruins', 'neon'].every(b => Run.biomes.includes(b)) && Run.offRoad === 0 && Run.otherRoad === 0 && Run.backwards === 0 && Run.coins > 30, JSON.stringify({ seed: Run.seed, biomes: Run.biomes, want: Run.want6, state: Run.state, dist: Run.dist, off: Run.offRoad, other: Run.otherRoad, back: Run.backwards, coins: Run.coins }));
   T('and its road and camera are continuous at every junction and merge (max edge step ' + Run.maxEdge.toFixed(2) + ' m between sections, look-at step ' + Run.maxCamDx.toFixed(2) + ' m, camera height step ' + Run.maxCamDy.toFixed(2) + ' m per 3 frames), nothing dropped from a pool',
     Run.maxEdge < 1.6 && Run.maxCamDx < 1.0 && Run.maxCamDy < 0.3 && Run.dropped === 0, JSON.stringify({ edge: +Run.maxEdge.toFixed(2), dx: +Run.maxCamDx.toFixed(2), dy: +Run.maxCamDy.toFixed(2), dropped: Run.dropped }));
 

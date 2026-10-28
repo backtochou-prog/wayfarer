@@ -106,6 +106,7 @@ class Game {
     const ahead0 = this.world.playerBand(300, 0);                                    // the atmosphere starts as the road ahead looks (the run opens in the neon quarter), not eased in from the base look
     this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0;
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
+    this.scene = null; this.fadeIn = 0;                                                 // no cutscene running, no fade
     this.riding = false; this.vehicle = 'scooter'; this.scooterHint = null;                                     // on foot, no indicator
     this.carryC = 0; this.lean = 0; this.kick = null; this.sway = 0; this.prompt = null; this.banner = null;
     if (this.r.onReset) this.r.onReset(this);
@@ -180,9 +181,10 @@ class Game {
     if (this.sfx) this.sfx.tick(this, dt);                                          // beat clock, music volume and state-change sounds (also while paused)
     if (this.state === 'pause') return;
     this.time += dt;
-    if (this.riding && !((this.bgTo === 'tram' || this.bgTo === 'neon') && this.bgT > 0.25)) this.riding = false;          // the vehicles belong to Saint-Gilles and the Neon Quarter: getting out of those zones puts the runner back on foot
+    if (this.riding && !((this.bgTo === 'tram' || this.bgTo === 'gare' || this.bgTo === 'neon') && this.bgT > 0.25)) this.riding = false;          // the vehicles belong to Saint-Gilles and the Neon Quarter: getting out of those zones puts the runner back on foot
     this.updateFx(dt);
     if (this.state === 'play') this.step(dt);
+    else if (this.state === 'scene') this.sceneStep(dt);
     else if (this.state === 'title') {
       const z0 = p.z;
       p.z += 110 * dt; w.extend(p.z);
@@ -206,15 +208,54 @@ class Game {
       if (this.kick.t >= 1.8) { this.kick = null; this.sway = 0; }
     }
     if (this.banner) this.banner.t -= dt;
+    if (this.fadeIn > 0) this.fadeIn = Math.max(0, this.fadeIn - dt / 1.1);
 
     // sky/parallax/canopy follow the road ahead of the player (leaning side before the choice is made)
     const ahead = w.playerBand(p.z + 300, p.x);
     let to = ahead.to, tt = ahead.t;
+    const A = id => (BIOMES[id] && BIOMES[id].atmo) || id;
+    if (to !== this.bgTo && A(to) === A(this.bgTo)) this.bgTo = to;                // same sky, fog and light (Saint-Gilles -> the station): switch at once, no dip back to the base look
     if (to !== this.bgTo && this.bgT > 0.02) tt = 0; // finish easing out the old biome first
     this.bgT += (tt - this.bgT) * Math.min(1, dt * 1.5);
     if (this.bgT <= 0.02 && to !== this.bgTo) this.bgTo = to;
     const here = w.playerBand(p.z + 60, p.x);
     this.canopy += ((here.to === 'forest' ? here.t : 0) - this.canopy) * Math.min(1, dt * 2);
+  }
+
+  // ---- THE CUTSCENE at the end of Saint-Gilles (the Gare du Midi). The player has no control: the runner carries on by itself to the platform door, boards the train, the train leaves, the
+  // screen fades and the run resumes further on (a new zone). Timeline of S.t (seconds): run [0, T] (an ease-out from about the running speed to a stop at the door, drifting over to the
+  // platform), board [T, T+1.2] (steps into the doorway), doors [.., +0.9] (the beeps, they close), depart [.., +2.8] (the horn, the train pulls out, the fade to black in the last second). Hazards and coins are
+  // ignored, no input is read, pause is off. The score, the coins and the distance carry on; nothing else changes. There is no music in the scene: GameAudio fades it out and plays the station's
+  // sounds, cut to this timeline by the emit() calls below (station bed, steps, doors, whistle, horn, pull).
+  beginScene(P) {
+    const p = this.p, sc = P.seg.scene; P.sceneDone = true;
+    const doorZ = P.z0 + sc.at + sc.run;
+    this.scene = { P, t: 0, phase: 'run', z0: p.z, x0: p.x, doorZ, doorX: sc.x, T: Math.max(2.4, Math.min(5, 3 * (doorZ - p.z) / Math.max(150, p.speed))), speed0: p.speed, trainS: 0, fade: 0, caption: 'GARE DU MIDI', boarded: false, open: 0, honked: false, stepAcc: 0, stepK: 0, bs: 0, openHeard: false, luggage: false, whistled: false, beeped: false, closed: false };
+    this.state = 'scene'; this.riding = false; this.scooterHint = null; this.keys = {}; this.releaseTouch(); p.vx = 0; p.slide = 0; this.jumpBuf = 0;
+    this.emit('train'); this.emit('station', this.scene.T + 5.3);                                                       // the chime and the bed of the station (no music in the scene: see GameAudio.tick)
+  }
+  sceneStep(dt) {
+    const S = this.scene, p = this.p, ease3 = u => 1 - Math.pow(1 - u, 3), sm = u => u * u * (3 - 2 * u), cl = u => Math.max(0, Math.min(1, u));
+    S.t += dt; const tb = S.T, td = tb + 1.2, tc = td + 0.9, te = tc + 2.8;
+    if (p.jy > 0) { p.vy -= GRAV * dt; p.jy += p.vy * dt; if (p.jy <= 0) { p.jy = 0; p.vy = 0; } }                      // a jump in the air when the scene starts comes down
+    if (S.t < tb) {                                                                                                     // run to the door
+      const u = S.t / tb, D = S.doorZ - S.z0; S.phase = 'run'; p.z = S.z0 + D * ease3(u); p.x = S.x0 + (S.doorX - S.x0) * sm(cl((u - 0.2) / 0.8)); p.speed = 3 * D * (1 - u) * (1 - u) / tb; S.open = cl((u - 0.55) / 0.35); S.caption = u < 0.6 ? 'GARE DU MIDI' : '';
+      S.stepAcc += dt * (0.9 + p.speed / 80); if (p.speed > 8 && S.stepAcc >= 1) { S.stepAcc = 0; this.emit('step', S.stepK ^= 1); }                    // footsteps to the stride, slowing with the runner
+      if (S.open > 0.02 && !S.openHeard) { S.openHeard = true; this.emit('doorOpen'); } if (S.t > 0.9 && !S.luggage) { S.luggage = true; this.emit('luggage'); }
+    } else if (S.t < td) {                                                                                              // board
+      const v = (S.t - tb) / 1.2; S.phase = 'board'; p.z = S.doorZ; p.x = S.doorX + 0.5 * sm(v); p.speed = 40 * (1 - v); S.open = 1; S.caption = 'ALL ABOARD'; if (v > 0.72) S.boarded = true;
+      if (v > 0.1 && S.bs < 1) { S.bs = 1; this.emit('step', S.stepK ^= 1); } if (v > 0.5 && S.bs < 2) { S.bs = 2; this.emit('step', S.stepK ^= 1); } if (v > 0.8 && !S.whistled) { S.whistled = true; this.emit('whistle'); }
+    } else if (S.t < tc) {                                                                                              // doors close
+      S.phase = 'doors'; p.speed = 0; S.boarded = true; S.open = 1 - cl((S.t - td) / 0.6); S.caption = 'ALL ABOARD';
+      if (!S.beeped) { S.beeped = true; this.emit('doorBeep'); } if (S.t > td + 0.55 && !S.closed) { S.closed = true; this.emit('doorClose'); }
+    } else if (S.t < te) {                                                                                              // the train leaves
+      const q = S.t - tc; S.phase = 'depart'; S.open = 0; S.boarded = true; if (!S.honked) { S.honked = true; this.emit('horn'); this.emit('pull'); } S.trainS = 0.5 * 75 * q * q; S.caption = q > 1.2 ? 'NEXT ZONE' : ''; S.fade = cl((q - 1.8) / 1.0);
+    } else this.endScene();
+  }
+  endScene() {
+    const S = this.scene, p = this.p, w = this.world;
+    p.x = 0; p.z = S.doorZ + 100; p.vx = 0; p.jy = 0; p.vy = 0; p.slide = 0; p.speed = Math.max(BASE_SPEED, S.speed0 * 0.85); this.jumpBuf = 0; this.keys = {};
+    this.scene = null; this.state = 'play'; this.fadeIn = 1; w.extend(p.z); this.camRel = 0; this.camErr = 0;
   }
 
   updateFx(dt) {
@@ -243,6 +284,7 @@ class Game {
     this.dust(dt);
     w.extend(p.z);
     if (Math.floor(p.z / 100) !== Math.floor(prevZ / 100)) w.prune(p.z);
+    if (this.r.supportsScene) { const P = w.pieceAt(p.z); if (P && P.type === 'seg' && P.seg.scene && !P.sceneDone && p.z >= P.z0 + P.seg.scene.at) { this.beginScene(P); return; } }   // the station: the cutscene (only in a front end that can show it)
 
     const top = p.slide > 0 ? 8 : 24;
     for (const it of w.items) {

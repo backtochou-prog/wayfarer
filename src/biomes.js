@@ -91,6 +91,9 @@ BIOMES.ruins = {
   scenery: ['rock', 'conifer', 'fenceW', 'rock', 'broad', 'bush', 'rock', 'conifer', 'fenceW', 'bush'],
 };
 
+// the Gare du Midi (the end of Saint-Gilles): the same atmosphere as BIOMES.tram (`atmo`: the sky, fog and light do not dip back to the city's when the road enters the station)
+BIOMES.gare = Object.assign({}, BIOMES.tram, { name: 'GARE DU MIDI', atmo: 'tram', density: 0.2 });
+
 const _rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 function lerpHex(a, b, t) {
   if (t <= 0) return a;

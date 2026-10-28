@@ -70,6 +70,7 @@ class Renderer3D {
                   neonWire: 40, neonPole: 24, neonPuddle: 30,                                                   // the neon district's cables, poles and wet road
                   seaStrip: 36, cottageA: 24, cottageB: 24, cottageC: 24, cottageD: 24, seaFence: 70, tuft: 80, tuftBig: 50, driftwood: 30, dune: 30, cliff: 24, boat: 24, buoy: 40, crates: 30, lampSea: 40, lighthouse: 6, pier: 6, gateCoast: 8,   // the sunset coast
                   wallLow: 40, wallHigh: 40, wallLowB: 40, column: 60, columnLow: 60, columnTall: 20, archHalf: 24, lantern: 50, blocks: 40, ivy: 50, patchA: 40, patchB: 40, ruinTemple: 6, obelisk: 6, gateRuins: 8,   // the mossy ruins
+                  garePlat: 20, stationFlankA: 12, stationFlankB: 12, platLamp: 20, gareHall: 3, tourMidi: 3,                  // the Gare du Midi
                   neonHotel: 6, neonMoroccanLamp: 80, neonPendantLamp: 50, neonLanternPierced: 50, neonPillarLamp: 50, neonLightbox: 30 };                                                              // entrance markers where the biome changes
     this.props = {}; this.propUsed = {};
     for (const id of Object.keys(envs)) {
@@ -107,6 +108,8 @@ class Renderer3D {
     this.runner = /[?&]avatar=(3d|model)\b/.test(location.search) ? new Runner3D() : new RunnerSprite();   // the user's retouched artwork by default; ?avatar=3d selects the 3D model
     this.scene.add(this.runner.group); this.scene.add(this.runner.shadow);
 
+    this.supportsScene = true;                                                      // Game plays the Gare du Midi cutscene only with a front end that sets this
+    this.train = new Train3D(this.scene); this.crowd = new Crowd3D(this.scene); this.crowdT = 0; this.sceneK = 0; this.scCam = new THREE.Vector3(); this.scLook = new THREE.Vector3(); this.garePiece = null;
     this.spots = []; this.usedSpots = new Set(); this.armedSpot = null; this._v = new THREE.Vector3();         // parked scooters / stations seen this frame; the ones already taken
     this.menu = 1; this.lookX = 0; this.heading = 0;                         // menu blend (1 = menu camera, 0 = chase) and smoothed look-ahead
     this.cam = new THREE.Vector3(); this.look = new THREE.Vector3();
@@ -221,6 +224,7 @@ class Renderer3D {
     const w = g.world, p = g.p, U = U3, dt = Math.min(0.05, this.lastT ? (g.time - this.lastT) : 0.016) || 0.016;
     if (g.state !== 'pause') this.lastT = g.time;
     const rz = p.z * U.Z, Lref = (g.camX + g.camOff) * U.X, SL = SEG_LEN;
+    const SC = g.state === 'scene' ? g.scene : null;                                      // the Gare du Midi cutscene, if one is running
     this.applyAtmosphere(g.bgTo, g.bgT);
     // the music's beat (g.sfx.beat(): pulse 1 on each kick, decaying), scaled by how loud the track is at that moment, drives the animation: the sun-side light, the glowing
     // neon parts (one shared material), the PLAY button, the avatar. Stronger in the neon quarter. Without sound (the pulse is a clock at the same tempo) it still moves.
@@ -291,11 +295,23 @@ class Renderer3D {
     for (const name in this.props) { const pool = this.props[name]; for (let n = this.propUsed[name]; n < pool.length; n++) pool[n].visible = false; }
     this.items.end(g.time);
     this.fx.update(g.time, rz, Lref);
+    { // the station's train: standing at the platform from afar (the boarding door at the door point), the leaves slide in the cutscene, it pulls out in the 'depart' phase
+      if (!this.garePiece || w.pieces.indexOf(this.garePiece) < 0) this.garePiece = w.pieces.find(q => q.type === 'seg' && q.seg.scene) || null;
+      const GP = this.garePiece, T = this.train, C = this.crowd, inView = !!GP && p.z > GP.z0 - 2400 && p.z < GP.z1 + 200;
+      if (inView) {
+        const sc = GP.seg.scene, doorZ = GP.z0 + sc.at + sc.run, S2 = SC && SC.P === GP ? SC : null, wz = rz - doorZ * U.Z;
+        T.group.visible = !(GP.sceneDone && !S2) && !(S2 && S2.phase === 'depart' && S2.trainS * U.Z > 120);                    // (the train has left for good once the scene is over)
+        T.group.position.set(11.1 - Lref, -0.02 + dy(doorZ), wz - (S2 ? S2.trainS * U.Z : 0)); T.setOpen(S2 ? S2.open : 0);
+        this.crowdT = S2 ? S2.t : GP.sceneDone ? this.crowdT + dt : 0;                                                           // the walkers start walking with the scene and go on after it
+        C.group.visible = true; C.place(Lref, 0.78 + dy(doorZ), wz, this.crowdT, !!S2 && (S2.phase === 'depart' || S2.phase === 'doors' || (S2.phase === 'board' && S2.t > S2.T + 0.6)));
+      } else { T.group.visible = false; C.group.visible = false; }
+    }
 
     // ---- runner (absolute lateral on its road, jump height in metres)
     const pb = w.playerBand(p.z, p.x), relX = (p.x + pb.off) * U.X - Lref;
-    this.runner.group.position.set(relX, p.jy * U.Y, 0);
-    { const sh = this.runner.shadow, k = Math.max(0.25, 1 - p.jy * U.Y / 3.5); sh.position.set(relX, 0.04, 0); sh.scale.set(0.5 * k, 1, 0.42 * k); sh.material.opacity = 0.3 * k; sh.visible = this.runner.group.visible; }   // contact shadow, fading as the runner leaves the ground
+    const lift = SC ? 0.85 * Math.max(0, Math.min(1, ((p.x + pb.off) * U.X - 6.6) / 0.8)) : 0;       // in the cutscene the runner steps up onto the platform (0.85 m)
+    this.runner.group.position.set(relX, p.jy * U.Y + lift, 0); this.runner.group.visible = !(SC && SC.boarded);
+    { const sh = this.runner.shadow, k = Math.max(0.25, 1 - p.jy * U.Y / 3.5); sh.position.set(relX, 0.04 + lift, 0); sh.scale.set(0.5 * k, 1, 0.42 * k); sh.material.opacity = 0.3 * k; sh.visible = this.runner.group.visible; }   // contact shadow, fading as the runner leaves the ground
     const ms = 1 - Math.exp(-3.5 * dt);
     this.menu += ((g.state === 'title' ? 1 : 0) - this.menu) * ms;
     const mm = this.menu * this.menu * (3 - 2 * this.menu);
@@ -314,6 +330,15 @@ class Renderer3D {
     this.lookX += (ahead * 0.8 - this.lookX) * (1 - Math.exp(-4 * dt));
     this.look.set(this.lookX + ((relX - 1.0) - this.lookX) * mm, 0.8 + 0.3 * mm, -20 * (1 - mm));
     if (g.shake > 0) { this.cam.x += Math.sin(g.time * 90) * g.shake * 0.5; this.cam.y += Math.cos(g.time * 70) * g.shake * 0.3; }
+    // the cutscene's camera: from the road side, beside the runner (run, board, doors), then following the train out (depart); it eases in and out of the chase camera
+    this.sceneK += ((SC ? 1 : 0) - this.sceneK) * (1 - Math.exp(-(SC ? 2.2 : 5) * dt));
+    if (this.sceneK > 0.002) {
+      const k = this.sceneK * this.sceneK * (3 - 2 * this.sceneK), dep = SC && SC.phase === 'depart', ts = SC ? SC.trainS * U.Z : 0, fz = dep ? -ts * 0.8 - 1 : -2.5;
+      const tx = relX - 6.5, ty = 2.1 + lift, tz = dep ? 4.5 - ts * 0.5 : 4.5, lx = relX + 3.2, ly = 1.5 + lift, lz = fz;
+      if (this.sceneK < 0.02 && SC) { this.scCam.copy(this.cam); this.scLook.copy(this.look); }
+      const a = 1 - Math.exp(-5 * dt); this.scCam.x += (tx - this.scCam.x) * a; this.scCam.y += (ty - this.scCam.y) * a; this.scCam.z += (tz - this.scCam.z) * a; this.scLook.x += (lx - this.scLook.x) * a; this.scLook.y += (ly - this.scLook.y) * a; this.scLook.z += (lz - this.scLook.z) * a;
+      this.cam.lerp(this.scCam, k); this.look.lerp(this.scLook, k);
+    }
     this.camera.position.copy(this.cam); this.camera.lookAt(this.look);
     this.sky.position.copy(this.camera.position);
     this.sunDisc.position.set(this.camera.position.x + this.sunOff.x, this.camera.position.y + this.sunOff.y, this.camera.position.z - 250);

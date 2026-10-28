@@ -2,7 +2,7 @@
 // and a couple of shop boards), drawn once on a small canvas atlas at start-up: no image file. One shared texture and material, same contract as NeonArt:
 // a prop factory returns { merged, sprite, material: () => TramArt.material() } and Renderer3D pools both together.
 const TramArt = {
-  W: 512, H: 1024, cells: {},
+  W: 512, H: 1152, cells: {},
   _mat: null,
   // name: [x, y, w, h, background, text colour, text, orientation]
   SPEC: {
@@ -20,6 +20,9 @@ const TramArt = {
     mural1: [0, 704, 160, 256, null, null, null, 'mural'],                       // the three murals of the school's arched windows (drawn here, in the spirit of the photo)
     mural2: [160, 704, 160, 256, null, null, null, 'mural'],
     mural3: [320, 704, 160, 256, null, null, null, 'mural'],
+    midi:  [0, 960, 400, 96, '#1d3f78', '#f4efe2', 'BRUXELLES-MIDI', 'h'],        // the station's name board (the Gare du Midi)
+    quai:  [400, 960, 112, 96, '#f4efe2', '#1d3f78', 'QUAI 3', 'h'],                // a platform sign
+    zuid:  [0, 1056, 400, 90, '#f4efe2', '#1d3f78', 'BRUSSEL-ZUID', 'h'],
   },
   _build() {
     const c = document.createElement('canvas'); c.width = this.W; c.height = this.H;

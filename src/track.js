@@ -65,8 +65,14 @@ const TRACK = {
     neonRun:   { name: 'NEON QUARTER',  biome: 'neon',   length: 5000, curve: -0.8, first: 140, spacing: 210, district: 1200,
                  patterns: ['line', 'trailR', 'crateJump', 'dodgeL', 'hurdle', 'risky', 'slideGate', 'zig'] },
     // the TRAM STREET: a Brussels street at sunset (low sun ahead, tram rails in the cobbles, overhead wires); a district like the neon quarter, fading in and out over 120 m
-    tramRun:   { name: 'SAINT-GILLES',   biome: 'tram',   length: 4500, curve: 0.6,  first: 140, spacing: 210, district: 1200, grade: 0.07,   // grade: the street runs downhill (7 %), like in the photos
+    tramRun:   { name: 'SAINT-GILLES',   biome: 'tram',   length: 4500, curve: 0.6,  first: 140, spacing: 210, district: 1200, stay: true, grade: 0.07,   // grade: the street runs downhill (7 %), like in the photos
                  patterns: ['line', 'hurdle', 'trailL', 'crateJump', 'dodgeR', 'risky', 'slideGate', 'zig', 'trailR'] },
+    // the GARE DU MIDI: where Saint-Gilles ends. Saint-Gilles (`tramRun`, `stay`: it does not fade out) runs into the station (a district fully in at its start); coins on the way in, then at `scene.at` the
+    // run hands over to the cutscene (Game.beginScene): the runner carries on by itself for `scene.run` units to the platform door at lateral `scene.x` and boards the train, which leaves; the
+    // run resumes 100 units further on, while the station fades out and the fork after it (the next zone) comes up. `itemsEnd`: no coins or hazards after that point; `props`: world props (z from the start).
+    gareMidi:  { name: 'GARE DU MIDI',  biome: 'gare',   length: 1700, curve: 0,    first: 100, spacing: 210, district: 700, opening: true, calmStart: true, itemsEnd: 440,
+                 patterns: ['line', 'coastWave'], scene: { at: 500, run: 400, x: 2.82 },
+                 props: [{ spr: 'gareHall', dz: 900, x: 4.5 }, { spr: 'tourMidi', dz: 1180, x: 6.4 }] },
     // second variants of the repeating pieces (same biomes and names, a different bend, length and pattern mix) so each lap along the loop is not a copy of the last
     cityRunB:  { name: 'OLD TOWN',      biome: 'city',   length: 1150, curve: -1.0, first: 90,  spacing: 210,
                  patterns: ['trailR', 'crateJump', 'dodgeR', 'risky', 'line', 'hurdle', 'slideGate', 'rowL', 'trailL', 'zig'] },
@@ -110,7 +116,7 @@ const TRACK = {
   // Every route choice is a fork with a signpost on each side. The two fork slots of a lap (A and B) pick one of three pairs each (see `picks`), so the destinations come in a different order
   // from lap to lap and, in a real run, from run to run (World.seed). Between them the five destinations (forest, market, coast, ruins, neon district) are all reachable.
   base: 'city',          // the biome every segment's palette blends from (the "unblended" look); NOT the biome of the first piece, which is the neon quarter
-  sequence: [{ seg: 'neonStart' }, { seg: 'cityRun' }, { pick: 'A' }, { seg: 'plaza' }, { seg: 'neonRun' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { pick: 'B' }, { seg: 'plazaB' }],
+  sequence: [{ seg: 'neonStart' }, { seg: 'cityRun' }, { pick: 'A' }, { seg: 'plaza' }, { seg: 'neonRun' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { seg: 'gareMidi' }, { pick: 'B' }, { seg: 'plazaB' }],
   picks: { A: ['gate', 'gate3', 'gate4'], B: ['gate2', 'gate3B', 'gate4B'] },       // the fork pairs a `pick` slot chooses from (the first lap, with seed 0, takes the first: forest / market)
   loopFrom: 1,
 };

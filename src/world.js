@@ -74,7 +74,8 @@ class World {
   // gap to the next spot is the base spacing plus 0-49 seeded units, never less. Hazards sit 55-70 units into every pattern, so the
   // distance between consecutive hazards stays >= spacing - 15 whatever the order. Deterministic: same track -> same items.
   genSegment(id, z0, len, tag, cx, tail = 0) {
-    const seg = this.track.segments[id], end = z0 + len - tail, L = seg.patterns.length;
+    const seg = this.track.segments[id], end = Math.min(z0 + len - tail, seg.itemsEnd !== undefined ? z0 + seg.itemsEnd : 1e12), L = seg.patterns.length;
+    for (const pr of seg.props || []) this.items.push({ kind: 'prop', spr: pr.spr, z: z0 + pr.dz, x: pr.x, tag: 'prop' });          // fixed props of the segment (the station hall ...)
     let n = this.cursor[id] || 0, last = this.lastPat[id] === undefined ? -1 : this.lastPat[id];
     const h = hashStr(id);
     for (let z = z0 + seg.first; z + seg.spacing <= end; z += seg.spacing + Math.floor(rnd(h, n * 3 + 2) * 50)) {
@@ -114,8 +115,11 @@ class World {
   // blend 0..1 of a district segment at z: in over its first `district` units, out over its last (an `opening` one is already fully in at the start)
   districtT(P, z) {
     const s = P.seg, d = s.district === true ? 0.3 * (P.z1 - P.z0) : s.district;
+    if (s.stay) return ease(clamp(Math.min(z - P.z0, d) / d, 0, 1));                 // `stay`: fades in, then stays in to the end of the segment (the next piece takes over at full strength)
     return ease(clamp(Math.min(s.opening ? d : z - P.z0, P.z1 - z) / d, 0, 1));
   }
+  // how much of a segment's grade applies at z: a `stay` district still eases its slope out over its last `district` units (the road levels off before the next piece)
+  gradeT(P, z) { const s = P.seg; if (!s.district) return 1; if (!s.stay) return this.districtT(P, z); const d = s.district; return ease(clamp(Math.min(z - P.z0, P.z1 - z) / d, 0, 1)); }
 
   // DESCENT. A segment with `grade` (fall per unit of run, e.g. 0.07) slopes downhill along its length in proportion to its district blend, so the slope eases in and out with the
   // atmosphere. Gameplay stays flat (the runner is always at height 0); only the drawing follows the slope. dropAt(z) is the fall, in units of run, from the start of the graded pieces held
@@ -129,10 +133,10 @@ class World {
     }
     return d;
   }
-  gradeAt(z) { const P = this.pieceAt(z); return P.type === 'seg' && P.seg.grade ? P.seg.grade * (P.seg.district ? this.districtT(P, z) : 1) : 0; }
+  gradeAt(z) { const P = this.pieceAt(z); return P.type === 'seg' && P.seg.grade ? P.seg.grade * this.gradeT(P, z) : 0; }
   dropTable(P) {                                        // running integral of the blend every 20 units (trapezoids)
-    const n = Math.ceil((P.z1 - P.z0) / 20) + 2, tab = new Float32Array(n); let prev = P.seg.district ? this.districtT(P, P.z0) : 1;
-    for (let j = 1; j < n; j++) { const t = P.seg.district ? this.districtT(P, Math.min(P.z1, P.z0 + j * 20)) : 1; tab[j] = tab[j - 1] + 20 * (prev + t) / 2; prev = t; }
+    const n = Math.ceil((P.z1 - P.z0) / 20) + 2, tab = new Float32Array(n); let prev = this.gradeT(P, P.z0);
+    for (let j = 1; j < n; j++) { const t = this.gradeT(P, Math.min(P.z1, P.z0 + j * 20)); tab[j] = tab[j - 1] + 20 * (prev + t) / 2; prev = t; }
     return tab;
   }
 
