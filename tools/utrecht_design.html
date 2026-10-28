@@ -1,0 +1,86 @@
+<!doctype html>
+<!-- Design sandbox for the Utrecht canal zone (not part of the game). tools/utrecht_design.html?view=oudegracht|wharf|bridge|vehicles  [&t=0..1 to move along the canal]
+     Renders src3d/env_utrecht.js with the game's own kit, light and camera, a water ribbon in place of the road, and the real avatar card on a surfboard. -->
+<html><head><meta charset="utf-8"><title>Utrecht canal design</title>
+<style>html,body{margin:0;background:#111}canvas{display:block}</style></head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<script src="../vendor/three.min.js"></script>
+<script src="../src/track.js"></script><script src="../src/world.js"></script><script src="../src3d/kit.js"></script>
+<script src="../src3d/avatar_assets.js"></script><script src="../src3d/runner_sprite.js"></script><script src="../src3d/env_utrecht.js"></script>
+<script>
+window.onerror = m => { window.__err = String(m); };
+const q = new URLSearchParams(location.search), view = q.get('view') || 'oudegracht', T0 = +(q.get('t') || 0);
+const W = 1280, H = 720, env = ENV3D.utrecht;
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, preserveDrawingBuffer: true }); renderer.setSize(W, H, false);
+const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 700);
+scene.fog = new THREE.Fog(env.fog.color, env.fog.near, env.fog.far);
+scene.add(new THREE.HemisphereLight(env.hemi.sky, env.hemi.ground, env.hemi.intensity));
+const sun = new THREE.DirectionalLight(env.sun.color, env.sun.intensity); sun.position.set(...env.sun.position); scene.add(sun);
+{ const cv = document.createElement('canvas'); cv.width = 4; cv.height = 256; const x = cv.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, env.sky.top); g.addColorStop(0.55, env.sky.mid); g.addColorStop(0.92, env.sky.horizon); g.addColorStop(1, env.sky.horizon); x.fillStyle = g; x.fillRect(0, 0, 4, 256);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; const dome = new THREE.Mesh(new THREE.SphereGeometry(400, 24, 16), new THREE.MeshBasicMaterial({ map: t, side: THREE.BackSide, fog: false })); dome.position.y = -20; scene.add(dome); window.__dome = dome; }
+const lit = c => new THREE.MeshLambertMaterial({ color: c });
+const soft = (r, g, bl, shape) => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'); const gr = shape === 'streak' ? x.createLinearGradient(0, 0, 0, 64) : x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, `rgba(${r},${g},${bl},0)`); gr.addColorStop(shape === 'streak' ? 0.5 : 0.01, `rgba(${r},${g},${bl},1)`); gr.addColorStop(1, `rgba(${r},${g},${bl},0)`); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(cv); return t; };
+const TEX = { warm: soft(255, 176, 96, 'streak'), foam: soft(244, 251, 255), ripple: soft(190, 225, 232, 'streak') };
+const flat = (w, d, x, y, z, tex, op, add) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: TEX[tex], transparent: true, opacity: op, depthWrite: false, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending })); m.position.set(x, y, z); m.renderOrder = 2; scene.add(m); return m; };
+// the canal: water (the ribbon) lit by the sky, pale ripple marks on the lanes and soft streaks, the ground beyond
+const rd = env.road, wcv = document.createElement('canvas'); wcv.width = 64; wcv.height = 8; { const x = wcv.getContext('2d'), g = x.createLinearGradient(0, 0, 64, 0); g.addColorStop(0, '#2c4a56'); g.addColorStop(0.5, '#4f8794'); g.addColorStop(1, '#2c4a56'); x.fillStyle = g; x.fillRect(0, 0, 64, 8); }
+const wt = new THREE.CanvasTexture(wcv); wt.colorSpace = THREE.SRGBColorSpace; const wat = new THREE.Mesh(new THREE.BoxGeometry(2 * ROAD_HALF + 0.4, 0.4, 420), [lit(rd.curbFace), lit(rd.curbFace), new THREE.MeshBasicMaterial({ map: wt }), lit(rd.curbFace), lit(rd.curbFace), lit(rd.curbFace)]); wat.position.set(0, -0.2, -190); scene.add(wat);
+for (let z = 20; z > -300; z -= 3.2) for (const x of [-1.1, 1.1]) flat(0.12, 1.2, x + 0.05 * Math.sin(z), 0.012, z, 'ripple', 0.5);
+for (let k = 0; k < 150; k++) flat(0.6 + rnd(k, 1) * 1.8, 0.35, (rnd(k, 2) - 0.5) * 5.6, 0.015, 20 - rnd(k, 3) * 300, 'foam', 0.12 + rnd(k, 4) * 0.12);
+const ground = new THREE.Mesh(new THREE.BoxGeometry(160, 0.6, 420), lit(env.groundFar)); ground.position.set(0, -0.36, -190); scene.add(ground);
+const props = {}; for (const k of Object.keys(env.props)) props[k] = env.props[k]();
+const put = (name, x, z, ry) => { const m = Kit.mesh(props[name]); m.position.set(x, 0, z); m.rotation.y = ry || 0; scene.add(m); return m; };
+const stretch = view === 'basin' ? env.stretches.basin : view === 'tunnel' ? env.stretches.tunnel : env.layout;
+for (let i = -2; i < 22; i++) for (const pl of stretch(i, rnd)) { const m = put(pl.prop, pl.x, -i * SEG_LEN - pl.dist, pl.x < 0 ? Math.PI : 0); }
+put('dom', view === 'basin' ? 36 : -28, -255, 0);
+if (view === 'basin') { const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 160; const x = cv.getContext('2d'); x.fillStyle = '#1d2f66'; x.fillRect(0, 0, 1024, 160); x.fillStyle = '#fff'; x.font = 'bold 92px Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('UTRECHT CENTRAAL', 512, 86);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; for (const i of [3, 4, 9]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.4).rotateY(Math.PI / 2), new THREE.MeshBasicMaterial({ map: t })); m.position.set(-9.7, 10.4, -i * SEG_LEN - 6); scene.add(m); } }
+// warm reflections of the cellar doors and lamps on the water (soft additive streaks leaning out from each wharf)
+for (let i = -2; i < 22; i++) if (i % 8 !== 5) for (const side of [-1, 1]) for (const dz of [-3.4, 3.4]) flat(0.9, 5.5, side * 2.4, 0.02, -i * SEG_LEN - 6 + dz * side, 'warm', 0.5, true);
+// the surfboard and the runner
+function surf(c1 = '#e8e0cc', c2 = '#1f8f8a') {
+  const p = [Kit.box(0.56, 0.1, 1.3, 0, 0, 0.0, c1), Kit.box(0.46, 0.1, 0.5, 0, 0, -0.85, c1), Kit.box(0.3, 0.1, 0.4, 0, 0, -1.2, c1), Kit.box(0.16, 0.1, 0.25, 0, 0, -1.47, c1), Kit.box(0.48, 0.1, 0.4, 0, 0, 0.8, c1), Kit.box(0.34, 0.1, 0.2, 0, 0, 1.08, c1),
+    Kit.box(0.16, 0.115, 2.2, 0, 0, -0.1, c2), Kit.box(0.4, 0.125, 0.55, 0, 0, 0.35, '#2a2a32'), Kit.box(0.06, 0.22, 0.34, 0, -0.2, 0.95, '#2a2a32')];
+  const g = Kit.mesh(Kit.merge(p)); g.position.y = 0.02; return g;
+}
+function wake(g, len = 9) {                                                    // white foam: a V behind the board, a collar at the nose, a few soft dashes
+  const add = (w, d, x, z, ry, op) => { const m = flat(w, d, x, 0.03, z, 'foam', op); m.rotation.y = ry; g.add(m); scene.remove(m); };
+  add(0.7, len, 0.75, 0.8 + len * 0.45, 0.17, 0.5); add(0.7, len, -0.75, 0.8 + len * 0.45, -0.17, 0.5); add(1.2, 1.8, 0, 1.5, 0, 0.55); add(1.5, 0.7, 0, -1.2, 0, 0.5);
+  for (let k = 0; k < 7; k++) add(0.4, 0.8, (k % 2 ? 1 : -1) * (0.8 + k * 0.28), 2.2 + k * 1.0, 0.2 * (k % 2 ? -1 : 1), 0.3);
+}
+function kayak(c1 = '#f0b42a', c2 = '#c43a2a') {
+  const p = [Kit.box(0.6, 0.26, 1.7, 0, 0.0, 0, c1), Kit.box(0.5, 0.24, 0.55, 0, 0.0, -1.1, c1), Kit.box(0.34, 0.22, 0.5, 0, 0.02, -1.55, c1), Kit.box(0.18, 0.2, 0.3, 0, 0.05, -1.88, c2), Kit.box(0.5, 0.24, 0.55, 0, 0.0, 1.1, c1), Kit.box(0.34, 0.22, 0.5, 0, 0.02, 1.55, c1), Kit.box(0.18, 0.2, 0.3, 0, 0.05, 1.88, c2),
+    Kit.box(0.12, 0.28, 3.4, 0, 0.0, 0, c2)];                                                                                    // hull in steps toward both ends, a red keel line
+  const g = Kit.mesh(Kit.merge(p)); return g;
+}
+function paddler(x, z) {
+  const g = new THREE.Group(), k = kayak(); g.add(k); wake(g, 11);
+  const R = new RunnerSprite(); R.board.visible = false; R.scooter.visible = false; g.add(R.group); R.group.position.set(0, 0.0, 0.0); for (let k2 = 0; k2 < 30; k2++) R.update(1 / 60, { state: 'play', time: 1 + k2 / 60, runRate: 1.2, airborne: false, vy: 0, sliding: false, lean: 0, faceYaw: 0 });
+  const rim = Kit.mesh(Kit.merge([Kit.box(0.74, 0.36, 0.5, 0, 0.1, 0.3, '#2a2a32')])); g.add(rim);          // the cockpit coaming in front of the legs: it hides them to the knee
+  const pad = Kit.mesh(Kit.merge([Kit.cyl(0.03, 0.03, 2.6, 0, 0.95, 0.6, '#cfd2d8', { rz: Math.PI / 2, seg: 5 }), Kit.box(0.5, 0.05, 0.3, -1.5, 0.6, 0.6, '#c43a2a', { rz: 0.5 }), Kit.box(0.5, 0.05, 0.3, 1.5, 0.95, 0.6, '#c43a2a', { rz: -0.5 })])); pad.position.y = 0; g.add(pad);
+  g.position.set(x, 0, z); scene.add(g); return g;
+}
+let runnerGroup = null; const S = -T0 * 72;
+function rider(x, z, lean = 0, sc = 1) {
+  const g = new THREE.Group(), s = surf(); g.add(s); wake(g);
+  const R = new RunnerSprite(); R.board.visible = false; R.scooter.visible = false; g.add(R.group);
+  R.group.position.set(0, 0.16, 0); for (let k = 0; k < 30; k++) R.update(1 / 60, { state: 'play', time: 1 + k / 60, runRate: 1.2, airborne: false, vy: 0, sliding: false, lean, faceYaw: 0 });
+  g.position.set(x, 0, z); g.scale.setScalar(sc); scene.add(g); return g;
+}
+const views = {
+  oudegracht: () => { rider(0, S); camera.position.set(0, 3.7, 8 + S); camera.lookAt(0, 1.6, -14 + S); },
+  hero: () => { rider(0, S, 0.0, 1); camera.position.set(-3.0, 1.9, 5.2 + S); camera.lookAt(0.2, 1.0, -2 + S); camera.fov = 52; },
+  wharf: () => { rider(1.1, S, 0.1); camera.position.set(-0.2, 1.7, 5.5 + S); camera.lookAt(5.5, 2.6, -8 + S); camera.fov = 66; },
+  basin: () => { rider(0, S); camera.position.set(1.4, 3.4, 9 + S); camera.lookAt(-4.5, 4.6, -16 + S); camera.fov = 64; },
+  tunnel: () => { rider(0, S); camera.position.set(0, 2.6, 7 + S); camera.lookAt(0, 1.9, -30 + S); },
+  vehicles: () => { rider(-1.5, S); paddler(1.7, S); camera.position.set(-4.0, 2.0, 5.6 + S); camera.lookAt(0.2, 0.95, -0.5 + S); camera.fov = 54; },
+  bridge: () => { rider(0, S); camera.position.set(0, 3.3, 6 + S); camera.lookAt(0, 2.0, -60 + S); },
+};
+(views[view] || views.oudegracht)();
+camera.updateProjectionMatrix();
+function go() { renderer.render(scene, camera); window.__ready = true; }
+setTimeout(go, 900);
+</script>
+</body></html>
