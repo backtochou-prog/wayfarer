@@ -48,11 +48,11 @@ class Road3D {
   }
 
   // blended road palette (Three colours) between the opening biome and `toId`, quantised to 8 steps
-  pal(toId, t) {
-    const q = Math.round(t * 8), row = this.pals[toId] || (this.pals[toId] = []);
+  pal(toId, t, fromId) {
+    const S = fromId ? 16 : 8, q = Math.round(t * S), key = fromId ? toId + '<' + fromId : toId, row = this.pals[key] || (this.pals[key] = []);       // (`fromId`: blended from that biome's road instead of the opening one: the tunnel under the sea, in 16 steps)
     let p = row[q];
     if (!p) {
-      const a = this.envs[this.baseId].road, b = this.envs[toId].road, f = q / 8, C = () => new THREE.Color();
+      const a = this.envs[fromId || this.baseId].road, b = this.envs[toId].road, f = q / S, C = () => new THREE.Color();
       const mixC = (x, y) => C().set(x).lerp(C().set(y), f);
       p = { asphalt: [mixC(a.asphalt[0], b.asphalt[0]), mixC(a.asphalt[1], b.asphalt[1])], mark: mixC(a.mark, b.mark), edge: mixC(a.edge, b.edge),
             curb: [mixC(a.curb[0], b.curb[0]), mixC(a.curb[1], b.curb[1])], curbFace: mixC(a.curbFace, b.curbFace),
@@ -62,6 +62,9 @@ class Road3D {
     }
     return p;
   }
+
+  // the palette of a road at section z: the tunnel under the sea blends in from the coast by DEPTH (never a cut at its mouths), every other road by its biome blend
+  palBand(w, b, zm) { return b.to === 'coastAqua' && b.pre ? this.pal('coastAqua', World.seaK(w.seaDepth(zm / U3.Z)), b.pre) : this.pal(b.to, b.t); }
 
   update(w, rzm, Lref) {
     const N = this.N, DS = TRACK3D.SECTION, n0 = Math.floor((rzm - TRACK3D.BEHIND) / DS), E = this.edge, OUT = this.OUT, P = this.P, X = U3.X;
@@ -73,7 +76,7 @@ class Road3D {
       const bands = slot.bands; let bA = bands[0], bB = bands.length > 1 ? bands[1] : null;
       if (bB && this.hide) { if (bA.side === this.hide) bA = bB; bB = null; }                     // `hide` (-1 / 1): that road of a junction is not drawn (from inside the tunnel under the sea the coast road is not seen): the other one is drawn as a single road
       const loA = (bA.lo + bA.off) * X - Lref, hiA = (bA.hi + bA.off) * X - Lref;
-      let palA = this.pal(bA.to, bA.t);
+      let palA = this.palBand(w, bA, zm);
       E.z[i] = sz; E.two[i] = bB ? 1 : 0;
       P[5] = -(w.dropAt(zm / U3.Z) - d0) * U3.Z;
       if (this.wat) this.waterSection(i, zm, sz, loA, hiA, bB ? 0 : this.envs[bA.to].road.water ? bA.t : 0, P[5], Lref);
@@ -85,7 +88,7 @@ class Road3D {
         continue;
       }
       const loB = (bB.lo + bB.off) * X - Lref, hiB = (bB.hi + bB.off) * X - Lref;
-      let palB = this.pal(bB.to, bB.t);
+      let palB = this.palBand(w, bB, zm);
       const mid = (hiA + loB) / 2;
       if (hiA > loB) {                                          // roads overlap (merge): both wear the chosen road's colours
         const ch = bA.chosen ? bA : bB.chosen ? bB : null;

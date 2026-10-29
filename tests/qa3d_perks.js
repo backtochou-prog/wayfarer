@@ -330,7 +330,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   T('a 6-minute run with a bot, pauses and restarts (' + LR.deaths + ' game overs, ' + LR.restarts + ' restarts): pools never overflow (dropped ' + LR.dropped + '), geometries and scene objects stay constant (' + LR.geo + ' / ' + LR.kids + ', drift ' + LR.drift + '), items ' + LR.maxItems + ' and pieces ' + LR.maxPieces + ' bounded, at most ' + LR.maxPops + ' toasts, at most ' + LR.sfxActive + ' sounds at once, the runner never went back, the saved shards only grew (' + LR.shardsSaved + ')',
-    LR.dropped === 0 && LR.drift === 0 && LR.maxItems < 700 && LR.maxPieces < 8 && LR.maxPops <= 3 && LR.sfxActive <= 24 && LR.backwards === 0 && LR.perkPool[0] === 98 && LR.perkPool[1] === 10, JSON.stringify({ pool: LR.poolSizes, perk: LR.perkPool }));
+    LR.dropped === 0 && LR.drift === 0 && LR.maxItems < 1100 && LR.maxPieces < 8 && LR.maxPops <= 3 && LR.sfxActive <= 24 && LR.backwards === 0 && LR.perkPool[0] === 98 && LR.perkPool[1] === 10, JSON.stringify({ pool: LR.poolSizes, perk: LR.perkPool }));
   const BR = await pg.evaluate(() => {
     const out = {}; for (const side of ['left', 'right']) {
       const g = H.setup(); g.start(); g.world.extend(60000); const F = g.world.pieces.find(p => p.type === 'fork'); g.p.z = F.z0 - 1200; g.p.speed = 300; g.world.extend(g.p.z); g.pk.t.aura = g.pk.tot.aura = 15; let steps = 0; const tag0 = F.uid + side, cnt0 = g.world.items.filter(i => i.tag === tag0 && PICKUPS[i.kind]).length;

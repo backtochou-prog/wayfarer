@@ -107,7 +107,7 @@ class Game {
     this.p = { x: 0, z: 0, vx: 0, jy: 0, vy: 0, slide: 0, speed: BASE_SPEED };
     this.coins = 0; if (this.pk) this.pk.reset(); if (this.portal) this.portal.reset(); this.camX = 0; this.camOff = 0; this.camRel = 0; this.camErr = 0; this.prevTgt = 0;
     const ahead0 = this.world.playerBand(300, 0);                                    // the atmosphere starts as the road ahead looks (the run opens in the neon quarter), not eased in from the base look
-    this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.splash = 0; this.overT = 0;
+    this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0;
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
     this.scene = null; this.fadeIn = 0;                                                 // no cutscene running, no fade
     this.riding = false; this.vehicle = 'scooter'; this.scooterHint = null; this.surf = false;                // on foot, no indicator, not on the water
@@ -212,16 +212,13 @@ class Game {
     }
     if (this.banner) this.banner.t -= dt;
     if (this.fadeIn > 0) this.fadeIn = Math.max(0, this.fadeIn - dt / 1.1);
-    if (this.splash > 0) this.splash = Math.max(0, this.splash - dt / 0.7);
 
     // sky/parallax/canopy follow the road ahead of the player (leaning side before the choice is made)
-    let ahead = w.playerBand(p.z + 300, p.x);
-    const A = id => (BIOMES[id] && BIOMES[id].atmo) || id, S = id => !!(BIOMES[id] && BIOMES[id].swap);
-    const near = w.playerBand(p.z + 30, p.x);
-    if (near.to !== ahead.to && (S(near.to) || S(ahead.to))) ahead = near;         // a `swap` look (the aquarium tunnel) starts and ends right at its mouth, not 30 m before it
+    const ahead = w.playerBand(p.z + 300, p.x);
+    const A = id => (BIOMES[id] && BIOMES[id].atmo) || id;
     let to = ahead.to, tt = ahead.t;
+    if (BIOMES[to] && BIOMES[to].keep) { to = this.bgTo; tt = this.bgT; }             // the aquarium tunnel (`keep`): the atmosphere stays what it was; the 3D renderer blends the look under the sea in by depth (Renderer3D.seaMix)
     if (to !== this.bgTo && A(to) === A(this.bgTo)) this.bgTo = to;                // same sky, fog and light (Saint-Gilles -> the station): switch at once, no dip back to the base look
-    else if (to !== this.bgTo && (S(to) || S(this.bgTo)) && this.bgT > 0.5) { this.bgTo = to; this.splash = 1; }    // the mouth of the tunnel under the sea: the look changes at once, under a splash of light
     if (to !== this.bgTo && this.bgT > 0.02) tt = 0; // finish easing out the old biome first
     this.bgT += (tt - this.bgT) * Math.min(1, dt * 1.5);
     if (this.bgT <= 0.02 && to !== this.bgTo) this.bgTo = to;

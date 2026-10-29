@@ -1,7 +1,8 @@
-// THE AQUARIUM TUNNEL: the way to the island goes UNDER THE SEA (src/track.js `tube` of the island junctions `gateIsland*`: the first 700 m of the right branch wear the biome `coastAqua`; from the user's sketch of a trajectory
+// THE AQUARIUM TUNNEL: the way to the island goes UNDER THE SEA (src/track.js `tube` of the island junctions `gateIsland*`: the first 900 m of the right branch wear the biome `coastAqua`; from the user's sketch of a trajectory
 // "aquarium style, under the sea, toward the island"): a glass tube along the road, held by thick half-ring ribs in the pink-red of the Stargate rings, with thin dark lines running along its vault, and the road
-// running away between them. Outside, the sea seen from inside: deep teal water that swallows the distance (a short fog), shoals of fish, a manta ray and a whale shark high above, jellyfish, sea turtles, kelp and coral on the sea bed, columns of bubbles (the creatures drift a little: `live`). It is long (700 m, about 25 s) to play and enjoy.
-// The look changes at once at the mouths of the tunnel (BIOMES.coastAqua.swap, Game.step: a splash of light hides the cut), so the coast and the island keep their own sunsets.
+// running away between them. Outside, the sea seen from inside: deep teal water that swallows the distance (a short fog), shoals of fish, a manta ray and a whale shark high above, jellyfish, sea turtles, kelp and coral on the sea bed, columns of bubbles (the creatures drift a little: `live`). It is long (900 m, about 30 s) to play and enjoy.
+// The look comes in GRADUALLY with the depth of the road (it dives 13 m over 300 m at each mouth): Renderer3D blends the light and the fog from the coast's own to the deep, Road3D the colours of the road (World.seaK), and the sea life
+// only shows where the water is deep enough (`under`). The coast and the island keep their own sunsets.
 (() => {
   const mod = (a, n) => ((a % n) + n) % n, RIB = '#ff1a55', INK = '#0b1230', R = 6.9, ARCH = 20, T = 0.36, SLOT = 12;
   // one rib: a half ring (20 straight pieces) standing on the road's edges, a thin dark outline ring beside it, and the dark lines of the vault that run along the slot (the next rib's lines start where these end)

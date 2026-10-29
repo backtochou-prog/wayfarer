@@ -71,7 +71,7 @@ class Renderer3D {
                   neonBlockD: 24, neonBlockE: 24, neonShopC: 24, neonBlade: 80, neonBanner: 40, neonBucket: 80, neonBottle: 60, neonHalo: 6,      // props made of the user's materials
                   neonSwirlR: 24, neonSwirlP: 24, neonSwirlG: 24, neonSwirlT: 24, neonStreetBlock: 24, neonDotsBlock: 24, neonRaysTower: 28, neonSwirlSign: 40, neonCapSign: 40, neonDotScreen: 28, neonLinesBanner: 40,
                   neonShopD: 24, neonCar: 40, neonBoardVortex: 6, neonBoardSphere: 6, neonBoardRings: 6, neonBoardSpiral: 6,
-                  rowA: 26, rowB: 26, rowC: 26, rowD: 26, rowE: 26, rowF: 26, rowG: 26, rowH: 26, pole: 24, wire: 36, swan: 40, blossom: 60, cobbles: 44, carA: 20, carB: 20, carC: 20, van: 20,   // the tram street
+                  rowA: 26, rowB: 26, rowC: 26, rowD: 26, rowE: 26, rowF: 26, rowG: 26, rowH: 26, pole: 24, wire: 36, swan: 40, blossom: 76, cobbles: 44, carA: 20, carB: 20, carC: 20, van: 20,   // the tram street
                   polyclinique: 6, tramStop: 6, cornerCafe: 6, gateTram: 8, school: 6, glassTower: 6,
                   rowI: 26, rowJ: 26, rowK: 26, rowL: 26, lantern: 40, posts: 40, streetSign: 24, hedge: 30, tent: 24, scooter: 40, steps: 24, zebra: 8, scooterDock: 10, board: 40, boardDock: 12, neonHover: 40, neonHoverDock: 14, neonShopF: 24, neonShopG: 24, neonShopH: 24, neonShopI: 24,
                   neonWire: 40, neonPole: 24, neonPuddle: 30,                                                   // the neon district's cables, poles and wet road
@@ -142,11 +142,11 @@ class Renderer3D {
   }
 
   // sky, fog, background and light colours blended from the opening biome toward `toId` (quantised, so only ~16 repaints)
-  applyAtmosphere(toId, t) {
-    const q = Math.round(t * 16) / 16;
-    if (toId === this.atmoTo && q === this.atmoQ) return;
-    this.atmoTo = toId; this.atmoQ = q; this.atmoKey = toId + q;
-    const a = this.envs[this.baseId], b = this.envs[toId], [c0, c1, top, mid, hor] = this._c;
+  applyAtmosphere(toId, t, fromId) {                       // (`fromId`: blend from that biome's look instead of the opening one, in 32 steps: the tunnel under the sea)
+    const S = fromId ? 32 : 16, q = Math.round(t * S) / S, from = fromId || this.baseId;
+    if (toId === this.atmoTo && q === this.atmoQ && from === this.atmoFrom) return;
+    this.atmoTo = toId; this.atmoQ = q; this.atmoFrom = from; this.atmoKey = toId + q + from;
+    const a = this.envs[from], b = this.envs[toId], [c0, c1, top, mid, hor] = this._c;
     const lerpTo = (out, x, y) => out.set(x).lerp(c1.set(y), q);
     lerpTo(this.scene.fog.color, a.fog.color, b.fog.color); this.scene.fog.near = a.fog.near + (b.fog.near - a.fog.near) * q; this.scene.fog.far = a.fog.far + (b.fog.far - a.fog.far) * q;
     this.scene.background.copy(this.scene.fog.color);
@@ -265,7 +265,7 @@ class Renderer3D {
     if (g.state !== 'pause') this.lastT = g.time;
     const rz = p.z * U.Z, Lref = (g.camX + g.camOff) * U.X, SL = SEG_LEN;
     const SC = g.state === 'scene' ? g.scene : null;                                      // the Gare du Midi cutscene, if one is running
-    this.applyAtmosphere(g.bgTo, g.bgT);
+    { const tp = w.tubeFork(g.p.z); if (tp) this.applyAtmosphere('coastAqua', World.seaK(w.seaDepth(g.p.z)), tp.fork.tube.pre); else this.applyAtmosphere(g.bgTo, g.bgT); }       // in the tunnel under the sea the look follows the DEPTH: from the coast's own light to the deep, and back (never a cut)
     // the music's beat (g.sfx.beat(): pulse 1 on each kick, decaying), scaled by how loud the track is at that moment, drives the animation: the sun-side light, the glowing
     // neon parts (one shared material), the PLAY button, the avatar. Stronger in the neon quarter. Without sound (the pulse is a clock at the same tempo) it still moves.
     const bt = g.sfx ? g.sfx.beat() : null, nw = g.bgTo === 'neon' ? g.bgT : 0, pulse = bt ? bt.pulse * (0.4 + 0.6 * bt.energy) : 0;
@@ -277,9 +277,14 @@ class Renderer3D {
     // descent: how far below the runner's level a point z (design units) lies (0 on flat road); the slope of the far ground follows the steepest slope seen from here to 150 m ahead
     const d0 = w.dropAt(p.z), dy = z => -(w.dropAt(z) - d0) * U.Z;
     this.groundPivot.rotation.x = -Math.atan(Math.max(w.gradeAt(p.z), w.gradeAt(p.z + 1500)));
-    // under the sea (inside the aquarium tunnel): the coast road beside it is not seen (hide = the side of the junction not drawn) and the surface of the sea hangs above, at the sea's own height
-    const hide = w.playerBand(p.z + 30, p.x).to === 'coastAqua' ? -1 : 0; this.road.hide = hide; this.hide = hide;
-    const sea = d0 * U.Z; this.seaTop.visible = !!hide && sea > 6; if (this.seaTop.visible) { this.seaTop.position.y = sea; this.seaTop.material.opacity = 0.7 * Math.min(1, (sea - 6) / 3); this.seaTex.offset.set(g.time * 0.012, g.time * 0.007); }      // (only once it is above the camera: before that the road is still near the surface)
+    // under the sea: the coast road beside the tunnel is not seen once the runner is deep (hide = the side of the junction not drawn); the surface of the sea is a plane at the sea's own height over the whole
+    // tunnel, from mouth to mouth (seen from above on the way down and up, from below in the deep), so the road, the plants and the fish are plainly UNDER the water
+    const depthM = w.seaDepth(p.z) * U.Z, hide = depthM >= 2.5 ? -1 : 0; this.road.hide = hide; this.hide = hide;
+    const tf = w.tubeFork(p.z, 3000, 1000);
+    this.seaTop.visible = !!tf; if (tf) {
+      const lenM = tf.fork.tube.len * U.Z, st = this.seaTop; st.scale.set(1, lenM / 700, 1); st.position.set(0, depthM + 0.04, rz - (tf.fe + tf.fork.tube.len / 2) * U.Z); this.seaTex.repeat.set(24, 24 * lenM / 700);
+      st.material.opacity = (this.camera.position.y > st.position.y ? 0.4 : 0.7); this.seaTex.offset.set(g.time * 0.012, g.time * 0.007);
+    }
     this.road.update(w, rz, Lref);
 
     // ---- scenery: slots of SEG_LEN, per road and side; the biome of each side is chosen by the blend at that spot

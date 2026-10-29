@@ -189,7 +189,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
 
   // ================================================================ 3b. the neon quarter: a district that fades in and out, and its scenery
   const Nq = await pg.evaluate(() => {
-    const w = new World(TRACK); w.extend(80000); const out = { segs: 0, bad: [], maxStep: 0, mid: 0, ends: 0, ids: [] };
+    const w = new World(TRACK); w.extend(100000); const out = { segs: 0, bad: [], maxStep: 0, mid: 0, ends: 0, ids: [] };
     for (const P of w.pieces.filter(p => p.type === 'seg' && p.id === 'neonRun')) {
       out.segs++; out.len = P.z1 - P.z0; let prev = null;
       for (let z = P.z0 + 0.5; z < P.z1 - 0.5; z += 5) {

@@ -192,6 +192,10 @@ class World {
   }
   gradeAt(z) { const P = this.pieceAt(z); if (P.type === 'fork') return P.fork.tube && P.choice === 'right' ? (this.tubeDip(P, z + 10) - this.tubeDip(P, z - 10)) / 20 : 0; return P.type === 'seg' && P.seg.grade ? P.seg.grade * this.gradeT(P, z) : 0; }
   // how deep the sea is over the road at z (units of run; 0 on the coast and the island): the dive of the aquarium tunnel for a runner who took it. Sea life is only drawn where this is deep enough (ENV3D.coastAqua `under`)
+  // the aquarium tunnel (fork piece with `tube`, taken to the right) the runner is in or near: z within `before` units ahead of its mouth and `after` units past its exit (null otherwise)
+  tubeFork(z, before = 0, after = 0) { for (const P of this.pieces) if (P.type === 'fork' && P.fork.tube && P.choice === 'right' && z >= P.fe - before && z <= P.fe + P.fork.tube.len + after) return P; return null; }
+  // how much of the look under the sea is in at a depth (units of run): 0 down to 1 m, 1 from 9 m, smooth between (the light, the fog and the colours of the road follow the depth: no cut at the mouths)
+  static seaK(d) { const v = Math.max(0, Math.min(1, (d * 0.1 - 1) / 8)); return v * v * (3 - 2 * v); }
   seaDepth(z) { let d = 0; for (const P of this.pieces) if (P.type === 'fork' && P.fork.tube && P.choice === 'right') d += this.tubeDip(P, z); return d; }
   // the fall (units of run) of the aquarium tunnel's road at z: 0 at its two mouths, `depth` on the sea bed between, smooth ramps of `ramp` units (a fork piece with `tube`, see src/track.js)
   tubeDip(P, z) {
@@ -241,6 +245,7 @@ class World {
       let to = seg.biome; const tb = F.tube;
       if (tb && side === 'right') { const d = z - P.fe; to = d < 0 ? tb.pre : d < tb.len ? tb.biome : to; }   // `tube`: the right road keeps the look of the piece before while the roads part, runs through the tunnel (its own look, BIOMES[biome].swap) and then comes up on the island
       const bd = { lo: Math.min(a, b2), hi: Math.max(a, b2), side: sg, route: F[side].route, off, to, t, chosen: P.choice === side };
+      if (tb && side === 'right') bd.pre = tb.pre;                                                // (the look the tunnel blends in from: the coast of this fork's light)
       bd.eL = bd.eR = { to, t };
       out.push(bd);
     }
