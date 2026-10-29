@@ -41,6 +41,7 @@ class Renderer {
   drawUI(g) {
     const ctx = this.ctx;
     if (g.state === 'over' && g.flash > 0) { ctx.globalAlpha = 0.5; ctx.fillStyle = C.burg; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
+    if (g.splash > 0.01 && g.state !== 'title') this.drawSplash(g);                                                               // the mouth of the tunnel under the sea
     if (g.portal && (g.portal.k > 0.004 || g.portal.flash > 0.01) && g.state !== 'title') this.drawPortalFx(g);              // the journey through a Stargate, under the HUD
     if (g.state !== 'title') this.drawHud(g);
     this.drawTouch(g);
@@ -367,7 +368,7 @@ class Renderer {
       [[5, '#d9baff'], [4.4, '#ff2a8a'], [3.8, '#62d444'], [2.8, '#e9f7a8'], [2.1, '#8dff1f'], [1.4, '#52ff2e'], [0.7, '#c8ffb8']].forEach(([r, col]) => { this.ctx.fillStyle = col; this.ctx.beginPath(); this.ctx.arc(cx, cy, r, 0, 6.2832); this.ctx.fill(); });
     } else this.ctx.drawImage(SPR.coin[pulse ? 1 : 0], 7, pulse ? 14 : 15);
     this.txt('' + g.coins, 18, 17, pulse ? C.bone : C.amberL);
-    const nm = T.segments[w.playerBand(p.z, p.x).route].name, nw = textW(nm) + 8;
+    const pb = w.playerBand(p.z, p.x), lb = BIOMES[pb.to] && BIOMES[pb.to].label, nm = lb && pb.t > 0.5 ? lb : T.segments[pb.route].name, nw = textW(nm) + 8;     // inside the aquarium tunnel the plate shows its own name
     this.plate(VW - 3 - nw, 3, nw, 11);
     this.txt(nm, VW - 3 - nw + 4, 6, C.tealL);
     if (pk) this.drawPerksHud(g);
@@ -388,6 +389,13 @@ class Renderer {
 
   // The journey through a Stargate (3D build, Portal): between the entry door and the exit door of a passage the screen is lit pink from its corners (the middle stays clear: the road is still played),
   // thin light streaks fly outward from the centre, and a flash goes over the screen as each door is crossed. `portal.k` / `portal.flash` are set by Portal.update.
+  // the mouth of the aquarium tunnel (and its exit): the look changes at once, hidden under a wash of light that clears in 0.7 s, with a few rings of bubbles rising from the bottom of the screen (`g.splash`: 1 -> 0)
+  drawSplash(g) {
+    const c = this.ctx, s = g.splash, e = s * s;
+    c.fillStyle = 'rgba(190,244,255,' + (0.7 * e).toFixed(3) + ')'; c.fillRect(0, 0, VW, VH);
+    if (!(g.portal && g.portal.reduced)) for (let i = 0; i < 14; i++) { const x = (i * 83 + 17) % VW, y = VH - (1 - s) * (VH + 20) * (0.7 + (i % 4) * 0.12) + (i % 3) * 9, r = 2 + (i % 4); c.strokeStyle = 'rgba(255,255,255,' + (0.8 * s).toFixed(3) + ')'; c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.stroke(); }
+  }
+
   drawPortalFx(g) {
     const c = this.ctx, P = g.portal, k = P.k, f = P.flash, R = Math.hypot(VW, VH) / 2, still = P.reduced;
     if (k > 0.004) {

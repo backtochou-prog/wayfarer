@@ -36,9 +36,10 @@ class World {
     if (!sp.pick) return sp;
     const key = this.seqCount;                                          // the absolute index of the piece being resolved
     if (this.picked[key]) return this.picked[key];
-    if (T.pickSegs && T.pickSegs[sp.pick]) {                           // a slot that takes a segment by turns: the passage number plus a seeded start (0 for the canonical seed)
-      const so = T.pickSegs[sp.pick], n = this.pickLap[sp.pick] || 0, sd = this.seed || 0, off = sd ? Math.floor(rnd(sd * 13 + 5, hashStr((T.pickSalt && T.pickSalt[sp.pick]) || sp.pick)) * so.length) : 0;
-      this.pickLap[sp.pick] = n + 1; return (this.picked[key] = { seg: so[(n + off) % so.length] });
+    const by = (T.pickSegs && T.pickSegs[sp.pick]) || (T.pickForks && T.pickForks[sp.pick]);
+    if (by) {                                                          // a slot that takes a segment (pickSegs) or a fork (pickForks) by turns: the passage number plus a seeded start (0 for the canonical seed)
+      const n = this.pickLap[sp.pick] || 0, sd = this.seed || 0, off = sd ? Math.floor(rnd(sd * 13 + 5, hashStr((T.pickSalt && T.pickSalt[sp.pick]) || sp.pick)) * by.length) : 0;
+      this.pickLap[sp.pick] = n + 1; return (this.picked[key] = T.pickSegs && T.pickSegs[sp.pick] ? { seg: by[(n + off) % by.length] } : { fork: by[(n + off) % by.length] });
     }
     const opts = T.picks[sp.pick], lap = this.pickLap[sp.pick] || 0, seed = this.seed || 0, h = hashStr(sp.pick);
     let k = lap === 0 && !seed ? 0 : Math.floor(rnd(seed * 31 + lap, h) * opts.length);
@@ -210,7 +211,7 @@ class World {
       const b = { lo: -0.9, hi: 0.9, side: 0, route: P.id, off: s.curve * bump((z - P.z0) / (P.z1 - P.z0)), to, t, chosen: true };
       b.eL = b.eR = { to, t };
       const F = this.pieces[this.pieces.indexOf(P) + 1];
-      if (F && F.type === 'fork' && z > F.z0 - APPROACH) { // edges lean toward the branch biomes
+      if (F && F.type === 'fork' && !F.fork.hold && z > F.z0 - APPROACH) { // edges lean toward the branch biomes (not at a `hold` junction: it keeps the look of this piece)
         const k = 0.5 * (z - (F.z0 - APPROACH)) / APPROACH;
         b.eL = { to: T.segments[F.fork.left.route].biome, t: k };
         b.eR = { to: T.segments[F.fork.right.route].biome, t: k };
@@ -225,11 +226,13 @@ class World {
       else if (z < P.be) { c = FORK_C; off = seg.curve * bump((z - P.fe) / F.branchLen); }
       else c = FORK_C * (1 - ease((z - P.be) / F.merge));
       const a = sg * (c - hw), b2 = sg * (c + hw);
-      const up = clamp((z - P.z0) / (F.zone + F.blend), 0, 1);
+      const up = F.hold ? 1 : clamp((z - P.z0) / (F.zone + F.blend), 0, 1);               // `hold`: the look of the piece before goes through the junction (no fade in from the base look)
       const down = z > P.be ? clamp(1 - (z - P.be) / (F.merge + 250), 0, 1) : 1;
       const t = Math.min(up, down);
-      const bd = { lo: Math.min(a, b2), hi: Math.max(a, b2), side: sg, route: F[side].route, off, to: seg.biome, t, chosen: P.choice === side };
-      bd.eL = bd.eR = { to: seg.biome, t };
+      let to = seg.biome; const tb = F.tube;
+      if (tb && side === 'right') { const d = z - P.fe; to = d < 0 ? tb.pre : d < tb.len ? tb.biome : to; }   // `tube`: the right road keeps the look of the piece before while the roads part, runs through the tunnel (its own look, BIOMES[biome].swap) and then comes up on the island
+      const bd = { lo: Math.min(a, b2), hi: Math.max(a, b2), side: sg, route: F[side].route, off, to, t, chosen: P.choice === side };
+      bd.eL = bd.eR = { to, t };
       out.push(bd);
     }
     return out;

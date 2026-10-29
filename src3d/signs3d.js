@@ -26,6 +26,13 @@ window.ENV3D = window.ENV3D || {};
         p.push(Kit.cyl(0.4, 0.4, 0.1, 0, 2.55, 0.12, '#ffd27a', { rx: Math.PI / 2, seg: 10, glow: true }), Kit.box(2.0, 0.16, 0.1, 0, 2.28, 0.14, '#9fe0e8'), Kit.box(1.5, 0.14, 0.1, 0.1, 2.06, 0.14, '#e6fbff'), Kit.box(1.8, 0.14, 0.1, -0.1, 1.86, 0.14, '#9fe0e8'));
         return Kit.merge(p);
       },
+      signIsland: () => {                                                 // a painted tower (yellow, red outline, cream window columns) over the water, on a blue board
+        const p = board('#e8a33d', '#1f2f9d');
+        p.push(Kit.box(0.7, 0.95, 0.1, 0, 2.7, 0.12, '#f4c21c'), Kit.box(0.78, 0.09, 0.12, 0, 3.65, 0.13, '#d8392b'), Kit.box(0.08, 0.95, 0.12, -0.37, 2.7, 0.13, '#d8392b'), Kit.box(0.08, 0.95, 0.12, 0.37, 2.7, 0.13, '#d8392b'),
+               Kit.box(0.1, 0.7, 0.12, -0.15, 2.8, 0.14, '#f7e9c6'), Kit.box(0.1, 0.7, 0.12, 0.15, 2.8, 0.14, '#f7e9c6'), Kit.box(0.1, 0.5, 0.12, 0, 3.0, 0.15, '#ff4fd8', { glow: true }),
+               Kit.box(1.9, 0.16, 0.1, 0, 2.24, 0.14, '#9fe0e8'), Kit.box(1.4, 0.14, 0.1, 0.1, 2.46, 0.14, '#e6fbff'));
+        return Kit.merge(p);
+      },
       signRuins: () => {                                                  // a stone arch with a glowing green keystone on a dark green board
         const p = board('#9aa690', '#16301f');
         p.push(Kit.box(0.34, 1.3, 0.12, -0.6, 1.75, 0.12, '#a8b09c'), Kit.box(0.34, 1.3, 0.12, 0.6, 1.75, 0.12, '#a8b09c'), Kit.box(1.5, 0.3, 0.12, 0, 3.05, 0.12, '#a8b09c'), Kit.box(0.5, 0.2, 0.12, 0, 2.82, 0.12, '#a8b09c'),

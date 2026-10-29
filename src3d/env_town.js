@@ -1,4 +1,5 @@
-// THE COASTAL TOWN: the second half of the beach zone (src/track.js `townSunset` / `townMidday` / `townBlueHour` / `townMorning`, the same light as the coastal piece before it), from the user's painting of a
+// THE COASTAL TOWN, a small ISLAND beside the coast (src/track.js `islandSunset` / `islandMidday` / `islandBlue` / `islandMorning`: the right branch of the island junction `gateIsland*`, reached by an OPTIONAL passage; the left
+// branch goes on along the coast), in the same light as the coastal piece before it, from the user's painting of a
 // seaside town: tall painted towers with bold outlines, cream window columns and neon strips along the land side (yellow, red, blue, peach), flower roundabouts with the user's flowers, a turquoise landing
 // pad where a dark flying saucer hovers and takes off when the runner comes near (Saucer3D), giant sunburst parasols, and the two clubs (the Strawberry Beach Club, Club Delphi: long buildings like the towers).
 // THE LONG BUILDINGS (towers, clubs) ARE SEPARATE FROM THE CHALETS: the cottages of the beach stand only in the coastal piece, the towers and the clubs only in the town. The sea side is the coast's own (the sea, the fence, boats, a lighthouse or a pier).
@@ -26,21 +27,32 @@
   // the landing pad: a turquoise disc with a white rim, a neon ring and a little blue beacon (the saucer hovers over it: Saucer3D)
   const pad = () => Kit.merge([Kit.cyl(3.55, 3.6, 0.1, 0, 0, 0, '#f2efe6', { seg: 18 }), Kit.cyl(3.4, 3.5, 0.18, 0, 0, 0, '#1ee0b0', { seg: 18 }), Kit.cyl(2.7, 2.7, 0.07, 0, 0.18, 0, '#35e6ff', { seg: 18, glow: true }), Kit.cyl(2.5, 2.5, 0.08, 0, 0.19, 0, '#14b890', { seg: 18 }),
     Kit.box(0.8, 0.8, 0.8, 2.6, 0.18, -2.2, '#1f2f9d'), Kit.box(0.5, 0.15, 0.5, 2.6, 1.0, -2.2, '#ffd27a', { glow: true })]);
-  const TOWN = { coastTower0: () => tower(0), coastTower1: () => tower(1), coastTower2: () => tower(2), coastTower3: () => tower(3), coastRound: round, coastPad: pad };
-  // the land side: a tower in nearly every slot, a club every 17th (Delphi, then the Strawberry Beach Club), a flower roundabout (with a giant parasol) every ninth, a landing pad every 23rd; the sea side is the coast's
+  // the canal between the island and the coast: a narrow strip of the coast's own sea (same colours as seaStrip) in the gap between the two roads, on the island's inner side (local x grows away from the road)
+  const canal = () => {
+    const W = 2.8, L = 12.8, p = [Kit.box(W, 0.3, L, W / 2, -0.24, 0, '#2a86c0'), Kit.box(W, 0.02, L, W / 2, 0.05, 0, '#5cc0e6'), Kit.box(0.3, 0.05, L, 0.15, 0.05, 0, '#ffffff'), Kit.box(0.3, 0.05, L, W - 0.15, 0.05, 0, '#ffffff')];
+    for (let k = 0; k < 7; k++) p.push(Kit.box(0.28, 0.05, 0.28, 0.6 + rnd(k, 4) * (W - 1.2), 0.08, -5.5 + k * 1.7 + rnd(k, 5) * 1.2, '#fff6d0', { glow: true }));      // scattered glints (not in a row: it must not read as a road marking)
+    return Kit.merge(p);
+  };
+  const TOWN = { coastCanal: canal, coastTower0: () => tower(0), coastTower1: () => tower(1), coastTower2: () => tower(2), coastTower3: () => tower(3), coastRound: round, coastPad: pad };
+  // The island is small (200 m: about 17 slots), so its sights come on a fixed beat of 12 slots (SEG_LEN, 144 m): every 17 slots hold at least one Club Delphi, one Strawberry Beach Club, one flower roundabout with
+  // its parasol, one landing pad with its saucer, and the green spaces and grounds between the towers. The land side keeps a bike lane on every slot; the sea side is the coast's own (the sea, the fence, boats),
+  // and BEHIND the towers (x = 17 m) the sea comes back, and between the island and the coast road a narrow canal (a channel of the same sea): an island is water all round.
+  const BEAT = ['tower', 'delphi', 'tower', 'park', 'round', 'tower', 'tower', 'club', 'court', 'tower', 'pad', 'play'];
   const layout = (i, rnd) => {
     const out = coastSea(i, rnd).filter(q => q.x < 0), r = n => rnd(i * 5 + 1, n);
-    out.push({ prop: 'coastBike', x: 3.7, dist: 6 });                                                                                          // the bike lane along the road, on every slot
-    if (mod(i, 17) === 2) out.push({ prop: 'coastDelphi', x: 5.4, dist: 6 }, { prop: 'tuft', x: 5.0, dist: 2 });            // Club Delphi, now and then: a long building, so in the town, never among the chalets
-    else if (mod(i, 17) === 8) out.push({ prop: 'coastClub', x: 5.4, dist: 6 }, { prop: 'tuft', x: 5.0, dist: 2 });       // the Strawberry Beach Club, now and then
-    else if (mod(i, 9) === 4) out.push({ prop: 'coastRound', x: 9.8, dist: 6 }, { prop: 'coastParasol', x: 6.6, dist: 3 });
-    else if (mod(i, 23) === 11) out.push({ prop: 'coastPad', x: 9.6, dist: 6 });
-    else if (mod(i, 7) === 3) out.push({ prop: 'coastPark', x: 7.4, dist: 6 }, { prop: 'tree', x: 11.8, dist: 2.5 }, { prop: 'tree', x: 13.0, dist: 9.5 });     // a green space between the towers
-    else if (mod(i, 11) === 6) out.push({ prop: 'coastCourt', x: 7.4, dist: 6 });                                                                         // a sports court
-    else if (mod(i, 13) === 9) out.push({ prop: 'coastPlay', x: 7.4, dist: 6 });                                                                          // a youth playground
-    else out.push({ prop: 'coastTower' + Math.min(3, Math.floor(r(1) * 4)), x: 7.3 + r(2) * 0.5, dist: 6 });
+    out.push({ prop: 'coastBike', x: 3.7, dist: 6 }, { prop: 'seaStrip', x: 17.0, dist: 6 }, { prop: 'coastCanal', x: -6.9, dist: 6 });                                                   // the bike lane along the road, on every slot; the sea behind the island
+    switch (BEAT[mod(i, 12)]) {
+      case 'delphi': out.push({ prop: 'coastDelphi', x: 5.4, dist: 6 }, { prop: 'tuft', x: 5.0, dist: 2 }); break;                              // Club Delphi: a long building, so on the island, never among the chalets
+      case 'club': out.push({ prop: 'coastClub', x: 5.4, dist: 6 }, { prop: 'tuft', x: 5.0, dist: 2 }); break;                                  // the Strawberry Beach Club
+      case 'round': out.push({ prop: 'coastRound', x: 9.8, dist: 6 }, { prop: 'coastParasol', x: 6.6, dist: 3 }); break;
+      case 'pad': out.push({ prop: 'coastPad', x: 9.6, dist: 6 }); break;
+      case 'park': out.push({ prop: 'coastPark', x: 7.4, dist: 6 }, { prop: 'tree', x: 11.8, dist: 2.5 }, { prop: 'tree', x: 13.0, dist: 9.5 }); break;     // a green space between the towers
+      case 'court': out.push({ prop: 'coastCourt', x: 7.4, dist: 6 }); break;                                                                  // a sports court
+      case 'play': out.push({ prop: 'coastPlay', x: 7.4, dist: 6 }); break;                                                                    // a youth playground
+      default: out.push({ prop: 'coastTower' + Math.min(3, Math.floor(r(1) * 4)), x: 7.3 + r(2) * 0.5, dist: 6 });
+    }
     return out;
   };
   for (const [id, base, name] of [['coastTown', 'coast', 'SUNSET TOWN'], ['coastTownNoon', 'coastNoon', 'MIDDAY TOWN'], ['coastTownBlue', 'coastBlue', 'BLUE HOUR TOWN'], ['coastTownMorning', 'coastMorning', 'MORNING TOWN']])
-    ENV3D[id] = Object.assign({}, ENV3D[base], { name, props: Object.assign({}, ENV3D[base].props, TOWN), layout, entrance: null });
+    ENV3D[id] = Object.assign({}, ENV3D[base], { name, props: Object.assign({}, ENV3D[base].props, TOWN), layout, entrance: null, innerOk: new Set([...ENV3D[base].innerOk, 'coastCanal']) });
 })();

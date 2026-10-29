@@ -24,7 +24,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const R = await pg.evaluate(() => {
     const out = { dest: {}, firstPairs: new Set(), pairs: new Set(), rep: 0, same: 0, seed0: [], forks: 0, perSeed: [] };
     for (let seed = 0; seed < 40; seed++) {
-      const w = new World(TRACK); w.seed = seed; w.reset(); w.extend(120000); const fk = w.pieces.filter(p => p.type === 'fork'); out.forks += fk.length;
+      const w = new World(TRACK); w.seed = seed; w.reset(); w.extend(120000); const fk = w.pieces.filter(p => p.type === 'fork' && !p.fork.tube); out.forks += fk.length;        // (the junction of Saint-Gilles: the island junction of the beach is tested in qa3d_town)
       fk.forEach((F, n) => {
         const L = TRACK.segments[F.fork.left.route].biome, Rr = TRACK.segments[F.fork.right.route].biome;
         out.dest[L] = (out.dest[L] || 0) + 1; out.dest[Rr] = (out.dest[Rr] || 0) + 1; if (L === Rr) out.same++;
@@ -78,7 +78,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   const fk = Object.values(F.forks);
-  T('every fork type (' + fk.map(f => f.id).join(', ') + '): two roads from one, back to one; no jump in the road edge (max ' + Math.max(...fk.map(f => f.maxJump)) + ' per 0.5 m of running, the same for the original forks), the merge meets the road after it (seam <= 0.03), branches are their own biome', fk.length === 8 && fk.every(f => f.maxJump < 0.06 && f.badBands === 0 && f.seam < 0.03 && f.tl.length === 2 && f.tl[0] !== f.tl[1]), JSON.stringify(fk.map(f => [f.id, f.maxJump, f.badBands, f.seam, f.tl])));
+  T('every fork type (' + fk.map(f => f.id).join(', ') + '): two roads from one, back to one; no jump in the road edge (max ' + Math.max(...fk.map(f => f.maxJump)) + ' per 0.5 m of running, the same for the original forks), the merge meets the road after it (seam <= 0.03), branches are their own biome', fk.length === 12 && fk.every(f => f.maxJump < 0.06 && f.badBands === 0 && f.seam < 0.03 && f.tl.length === 2 && f.tl[0] !== f.tl[1]), JSON.stringify(fk.map(f => [f.id, f.maxJump, f.badBands, f.seam, f.tl])));
   T('every fork has signs with advance warning: two signposts per side 42 m and 14 m before the junction, each with a 3D sign and a 2D sprite; every branch has its coin trail through the junction and its own coins and hazards, all inside its own road',
     fk.every(f => f.signsOk && f.misplaced === 0 && f.coinTrail >= 10 && f.cnt.L.coin > 10 && f.cnt.R.coin > 10 && f.cnt.L.hz > 0 && f.cnt.R.hz >= 0), JSON.stringify(fk.map(f => [f.id, f.signs.length, f.misplaced, f.coinTrail, f.cnt.L, f.cnt.R])));
 
@@ -175,8 +175,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     g.world.track = TRACK; g.world.reset();                                       // (the forced one-fork tracks are only for these runs)
     return out;
   });
-  T('every fork type (the five that are no longer on the circuit too), both choices (16 runs), played through at the top speed by a hazard-avoiding bot: it survives past the merge, collects coins on the branch, takes the chosen route, nothing runs backwards, nothing is dropped from any pool (peak ' + Math.round(Pl.peak * 100) + ' %)',
-    Pl.runs.length === 16 && Pl.runs.every(x => x.alive && x.reached && x.coins > 5 && x.route === x.want && x.back === 0) && Pl.dropped === 0 && Pl.peak <= 0.85, JSON.stringify(Pl.runs.map(x => [x.id, x.want, x.alive, x.coins, x.routes])));
+  T('every fork type (the five that are no longer on the circuit and the four island junctions too), both choices (24 runs), played through at the top speed by a hazard-avoiding bot: it survives past the merge, collects coins on the branch, takes the chosen route, nothing runs backwards, nothing is dropped from any pool (peak ' + Math.round(Pl.peak * 100) + ' %)',
+    Pl.runs.length === 24 && Pl.runs.every(x => x.alive && x.reached && x.coins > 5 && x.route === x.want && x.back === 0) && Pl.dropped === 0 && Pl.peak <= 0.85, JSON.stringify(Pl.runs.map(x => [x.id, x.want, x.alive, x.coins, x.routes])));
 
   // ---------------------------------------------------------------- 5b. a whole run through the new destinations (real play, camera and road checked every few frames)
   const Run = await pg.evaluate(() => {
@@ -184,24 +184,25 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     // a seed whose first three forks offer the forest, the market and the ruins; at each fork the run takes a destination it has not taken yet (else alternates left / right)
     let seed = -1, want6 = [], wants = [];
     for (let sd = 1; sd < 200 && seed < 0; sd++) {
-      const w = new World(TRACK); w.seed = sd; w.reset(); w.extend(200000); const fk = w.pieces.filter(p => p.type === 'fork').slice(0, 3), got = new Set(), ws = [], bs = [];
+      const w = new World(TRACK); w.seed = sd; w.reset(); w.extend(200000); const fk = w.pieces.filter(p => p.type === 'fork' && !p.fork.tube).slice(0, 3), got = new Set(), ws = [], bs = [];
       fk.forEach((F, k) => { const L = TRACK.segments[F.fork.left.route].biome, R2 = TRACK.segments[F.fork.right.route].biome, fresh = b => ['forest', 'market', 'ruins'].includes(b) && !got.has(b); const side = fresh(L) ? 'left' : fresh(R2) ? 'right' : (k % 2 ? 'right' : 'left'); got.add(side === 'left' ? L : R2); ws.push(side); bs.push(side === 'left' ? L : R2); });
       if (['forest', 'market', 'ruins'].every(b => got.has(b))) { seed = sd; want6 = bs; wants = ws; }
     }
     Game.runSeed = () => seed; g.start(); g.world.items = []; g.start();
     const out = { seed, want6, picks: [], biomes: [], offRoad: 0, otherRoad: 0, backwards: 0, maxEdge: 0, maxCamDx: 0, maxCamDy: 0, deaths: 0 };
     const key = c => g.onKey({ code: c, key: c === 'Space' ? ' ' : c, repeat: false, preventDefault() {} }, true);
-    let zP = 0, cP = 0, scP = 0, camP = null, nFork = 0, want = null, lastUid = -1, f = 0; const seenUid = new Set();
+    let zP = 0, cP = 0, scP = 0, camP = null, nFork = 0, nIsle = 0, want = null, lastUid = -1, f = 0; out.tunnel = 0; const seenUid = new Set();
     out.scenes = 0; let wasScene = false;
     while (out.picks.length < 3 && f < 60 * 60 * 10 && (g.state === 'play' || g.state === 'scene')) {
       if (g.state === 'scene') { if (!wasScene) out.scenes++; wasScene = true; g.advance(1 / 60); f++; zP = g.p.z; cP = g.coins; scP = g.score(); camP = null; if (f % 3 === 0) r.draw(g); continue; } wasScene = false;      /* the Gare du Midi cutscene: the bot lets it play (qa3d_gare checks it) */
       const p = g.p, w = g.world, F = w.openFork();
-      if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = wants[nFork++]; }
+      if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = F.fork.tube ? (nIsle++ === 0 ? 'right' : 'left') : wants[nFork++]; }      // the island junction of the beach: the first time the run takes the tunnel under the sea to the island, then the coast
       g.keys.left = g.keys.right = false; if (F && want && p.z > F.z0 - 500 && p.z < F.z0 - 400) g.keys[want] = true;
       let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * 0.5) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
       if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || tg.kind !== 'over')) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
       g.advance(1 / 60); f++;
-      for (const P of w.pieces) if (P.type === 'fork' && P.choice && !seenUid.has(P.uid)) { seenUid.add(P.uid); out.picks.push(P.choice); out.biomes.push(TRACK.segments[P.fork[P.choice].route].biome); }
+      if (g.bgTo === 'coastAqua') out.tunnel++;
+      for (const P of w.pieces) if (P.type === 'fork' && !P.fork.tube && P.choice && !seenUid.has(P.uid)) { seenUid.add(P.uid); out.picks.push(P.choice); out.biomes.push(TRACK.segments[P.fork[P.choice].route].biome); }
       if (g.p.z < zP) out.backwards++; if (g.coins < cP) out.backwards++; if (g.score() < scP) out.backwards++; zP = g.p.z; cP = g.coins; scP = g.score();
       const bs = w.bandsAt(g.p.z), ch = bs.find(q => q.chosen) || (bs.length === 1 ? bs[0] : null);
       if (ch && (g.p.x < ch.lo - 0.02 || g.p.x > ch.hi + 0.02)) out.offRoad++;
@@ -213,8 +214,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     }
     Game.runSeed = orig; out.state = g.state; out.dist = Math.round(g.p.z / 10); out.coins = g.coins; out.dropped = r.dropped + r.items.dropped; return out;
   });
-  T('a whole run through the junction detours (seed ' + Run.seed + ': ' + Run.biomes.join(' > ') + '): three junctions (three laps), at each one a destination not taken yet, every choice reaches the intended road, still running at ' + Run.dist + ' m (' + Run.scenes + ' station cutscene passed); the runner never leaves its road nor enters the other one; distance, score and coins never go back',
-    Run.seed > 0 && Run.state === 'play' && Run.scenes >= 1 && Run.picks.length === 3 && Run.biomes.join() === Run.want6.join() && ['forest', 'market', 'ruins'].every(b => Run.biomes.includes(b)) && Run.offRoad === 0 && Run.otherRoad === 0 && Run.backwards === 0 && Run.coins > 30, JSON.stringify({ seed: Run.seed, biomes: Run.biomes, want: Run.want6, state: Run.state, dist: Run.dist, off: Run.offRoad, other: Run.otherRoad, back: Run.backwards, coins: Run.coins }));
+  T('a whole run through the junction detours (seed ' + Run.seed + ': ' + Run.biomes.join(' > ') + '): three junctions (three laps), at each one a destination not taken yet, every choice reaches the intended road, still running at ' + Run.dist + ' m (' + Run.scenes + ' station cutscene passed, and ' + Run.tunnel + ' frames in the aquarium tunnel of the beach\'s island junction); the runner never leaves its road nor enters the other one; distance, score and coins never go back',
+    Run.seed > 0 && Run.state === 'play' && Run.scenes >= 1 && Run.tunnel > 100 && Run.picks.length === 3 && Run.biomes.join() === Run.want6.join() && ['forest', 'market', 'ruins'].every(b => Run.biomes.includes(b)) && Run.offRoad === 0 && Run.otherRoad === 0 && Run.backwards === 0 && Run.coins > 30, JSON.stringify({ seed: Run.seed, biomes: Run.biomes, want: Run.want6, state: Run.state, dist: Run.dist, off: Run.offRoad, other: Run.otherRoad, back: Run.backwards, coins: Run.coins }));
   T('and its road and camera are continuous at every junction and merge (max edge step ' + Run.maxEdge.toFixed(2) + ' m between sections, look-at step ' + Run.maxCamDx.toFixed(2) + ' m, camera height step ' + Run.maxCamDy.toFixed(2) + ' m per 3 frames), nothing dropped from a pool',
     Run.maxEdge < 1.6 && Run.maxCamDx < 1.0 && Run.maxCamDy < 0.3 && Run.dropped === 0, JSON.stringify({ edge: +Run.maxEdge.toFixed(2), dx: +Run.maxCamDx.toFixed(2), dy: +Run.maxCamDy.toFixed(2), dropped: Run.dropped }));
 

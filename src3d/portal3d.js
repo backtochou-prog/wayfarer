@@ -1,6 +1,6 @@
 // Portal: the passages between the zones as a JOURNEY THROUGH A STARGATE (3D build only; it only draws, plays sounds and clears the road: the rules and the scoring are not touched).
 //
-// THE ZONES in order: Neon > Beach (the coast) > Saint-Gilles > Utrecht > Neon again (src/track.js `sequence`). A zone is a family of biomes: Saint-Gilles = city + tram + gare and the forest / market /
+// THE ZONES in order: Neon > Beach (the coast, and the island junction) > Saint-Gilles > Utrecht > Neon again (src/track.js `sequence`). A zone is a family of biomes: Saint-Gilles = city + tram + gare and the forest / market /
 // ruins detours of its junction (no door there: they are part of the zone), the coast in all its lights, Utrecht, the neon quarter. There is ONE passage between a zone and the next, with two doors, both the
 // user's picture: the ENTRY door (the transmitter) 15 m before the boundary of the two segments and the EXIT door (the receiver) 55 m after it, 70 m from the entry door, so far that it cannot be seen from
 // it (an exit door only fades in when it is less than 70 m away, an entry door from 120 m). Between them the screen is lit pink (a vignette and light streaks flying outward, the middle of the screen kept
@@ -19,11 +19,12 @@ class Portal {
 
   // the passages between the pieces the world has built so far (it builds ahead and forgets behind, so each pair of neighbours is looked at once, when it first appears)
   scan(w) {
-    const P = w.pieces, T = w.track, fam = id => Portal.fam(T.segments[id].biome); let added = false;
+    const P = w.pieces, T = w.track, fam = id => Portal.fam(T.segments[id].biome), famOf = p => p.type === 'fork' ? fam(p.fork.left.route) : fam(p.id); let added = false;
     for (let i = 0; i + 1 < P.length; i++) {
       const A = P[i], B = P[i + 1], key = A.uid + '>' + B.uid; if (this.seen.has(key)) continue; this.seen.add(key);
-      if (A.type !== 'seg' || B.type !== 'seg' || A.seg.scene || fam(A.id) === fam(B.id)) continue;
-      const q = { zIn: B.z0 - 150, zOut: B.z0 + 550, hit: false, out: false, id: key, from: fam(A.id), to: fam(B.id) }; this.list.push(q); added = true;
+      if (B.type !== 'seg' || (A.type === 'seg' && A.seg.scene) || famOf(A) === fam(B.id)) continue;
+      // after a junction (the island one: the beach zone ends where its two roads have merged) the doors stand further on, 5 m into the next piece, so that neither is drawn across two converging roads
+      const sh = A.type === 'fork' ? 200 : 0, q = { zIn: B.z0 - 150 + sh, zOut: B.z0 + 550 + sh, hit: false, out: false, id: key, from: famOf(A), to: fam(B.id) }; this.list.push(q); added = true;
       const a = q.zIn - Portal.PULL, b = q.zOut + Portal.SETTLE; for (const it of w.items) if (OBST[it.kind] && it.z >= a && it.z <= b) it.taken = true;                 // the journey's road has no hazards
     }
     if (added) this.list.sort((a, b) => a.zIn - b.zIn);
