@@ -194,12 +194,13 @@ class World {
   // how deep the sea is over the road at z (units of run; 0 on the coast and the island): the dive of the aquarium tunnel for a runner who took it. Sea life is only drawn where this is deep enough (ENV3D.coastAqua `under`)
   // the aquarium tunnel (fork piece with `tube`, taken to the right) the runner is in or near: z within `before` units ahead of its mouth and `after` units past its exit (null otherwise)
   tubeFork(z, before = 0, after = 0) { for (const P of this.pieces) if (P.type === 'fork' && P.fork.tube && P.choice === 'right' && z >= P.fe - before && z <= P.fe + P.fork.tube.len + after) return P; return null; }
-  // how much of the look under the sea is in at a depth (units of run): 0 down to 1 m, 1 from 9 m, smooth between (the light, the fog and the colours of the road follow the depth: no cut at the mouths)
-  static seaK(d) { const v = Math.max(0, Math.min(1, (d * 0.1 - 1) / 8)); return v * v * (3 - 2 * v); }
+  // how much of the look under the sea is in at a depth (units of run): 0 down to 2.5 m (the entrance, and what is round it, is DRY land: nothing of the sea there), 1 from 10 m, smooth between (the light, the fog and the colours of the road follow the depth: no cut at the mouths)
+  static seaK(d) { const v = Math.max(0, Math.min(1, (d * 0.1 - 2.5) / 7.5)); return v * v * (3 - 2 * v); }
   seaDepth(z) { let d = 0; for (const P of this.pieces) if (P.type === 'fork' && P.fork.tube && P.choice === 'right') d += this.tubeDip(P, z); return d; }
   // the fall (units of run) of the aquarium tunnel's road at z: 0 at its two mouths, `depth` on the sea bed between, smooth ramps of `ramp` units (a fork piece with `tube`, see src/track.js)
-  tubeDip(P, z) {
-    const tb = P.fork.tube, u = z - P.fe; if (u <= 0 || u >= tb.len) return 0;
+  tubeDip(P, z) { return World.dipAt(P.fork.tube, z - P.fe); }
+  static dipAt(tb, u) {                                        // the profile of the dive at `u` units into the tunnel
+    if (u <= 0 || u >= tb.len) return 0;
     const s = v => { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); };
     return tb.depth * Math.min(s(u / tb.ramp), s((tb.len - u) / tb.ramp));
   }

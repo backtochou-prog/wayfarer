@@ -45,9 +45,9 @@
     return Kit.merge(p); };
   const PROPS = { aquaJelly: jelly, aquaTurtle: turtle, aquaWhale: whale, aquaRib: rib, aquaShoal0: shoal(0), aquaShoal1: shoal(1), aquaShoal2: shoal(2), aquaRay: ray, aquaKelp: kelp, aquaCoral: coral, aquaBubbles: bubbles };
   // THE SEA IS ABOVE: a creature or a plant is only drawn where the sea is deep enough over the road to hold it (Renderer3D `under`, in metres: World.seaDepth at its place must be at least that: the height of the
-  // animal above the road plus its drift, for the plants the least depth to stand in the water). At the mouths of the tunnel, where the road comes up to the surface, and for a runner who took the coast road
+  // animal above the road plus its drift, for the plants 3.6 m: where the surface of the sea has come in). At the mouths of the tunnel, where the road comes up to the surface, and for a runner who took the coast road
   // (the tunnel beside it is not under the sea for them: nothing dives), nothing of the sea life floats in the air: only the ribs of the tunnel are there.
-  const UNDER = { aquaJelly: 6.5, aquaTurtle: 5.9, aquaRay: 10.5, aquaWhale: 12.8, aquaKelp: 0.8, aquaCoral: 0.8, aquaBubbles: 9.5 };
+  const UNDER = { aquaJelly: 6.5, aquaTurtle: 5.9, aquaRay: 10.5, aquaWhale: 12.8, aquaKelp: 3.6, aquaCoral: 3.6, aquaBubbles: 9.5 };
   // every slot: a rib across the road (x = 0: it is drawn once, with the road's own lean); outside (the right side of the island road), kelp, coral, bubbles and a shoal of fish; on the inner side, towards the coast road, a few fish (nothing tall: the coast road's runner must not have it in the way)
   const layout = (i, rnd) => {
     const out = [{ prop: 'aquaRib', x: 0, dist: 6 }], k = i * 2 + 1, r = n => rnd(k, n);

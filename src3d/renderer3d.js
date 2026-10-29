@@ -54,7 +54,11 @@ class Renderer3D {
       for (let pass = 0; pass < 2; pass++) for (let k = 0; k < 7; k++) { c.strokeStyle = 'rgba(214,255,255,' + (0.35 + 0.1 * (k % 3)) + ')'; c.lineWidth = 2 + (k % 3); c.beginPath(); const base = 18 + k * 36, A = 7 + (k % 4) * 3, ph = k * 1.9 + pass, f = 1 + (k % 3);
         for (let t = 0; t <= 256; t += 4) { const o = base + A * Math.sin(t / 256 * Math.PI * 2 * f + ph); if (pass) { t ? c.lineTo(o, t) : c.moveTo(o, t); } else { t ? c.lineTo(t, o) : c.moveTo(t, o); } } c.stroke(); }
       const tex = new THREE.CanvasTexture(cv); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(24, 24); this.seaTex = tex;
-      this.seaTop = new THREE.Mesh(new THREE.PlaneGeometry(700, 700), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false, fog: false })); }
+      // the plane runs from mouth to mouth (the length of the tunnel) in 90 rows; its alpha follows the DEPTH of the road under it (0 down to 2 m, 1 from 5 m: smooth), so the entrance and its surroundings stay DRY and the water comes in gradually
+      const tb = TRACK.forks.gateIslandSunset.tube, ROWS = 90, geo = new THREE.PlaneGeometry(700, tb.len * U3.Z, 1, ROWS), n = geo.attributes.position.count, rgba = new Float32Array(n * 4);
+      for (let k = 0; k < n; k++) { const row = Math.floor(k / 2), d = World.dipAt(tb, row * tb.len / ROWS) * 0.1, v = Math.max(0, Math.min(1, (d - 2) / 3)); rgba.set([1, 1, 1, v * v * (3 - 2 * v)], k * 4); }
+      geo.setAttribute('color', new THREE.BufferAttribute(rgba, 4));
+      this.seaTop = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false, fog: false })); }
     this.seaTop.rotation.x = Math.PI / 2; this.seaTop.position.set(0, 20, -150); this.seaTop.visible = false; this.scene.add(this.seaTop);
     this._c = [new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color()];   // scratch colours for blending
     this.atmoTo = ''; this.atmoQ = -1; this.atmoKey = ''; this.applyAtmosphere(this.baseId, 0);
@@ -277,12 +281,12 @@ class Renderer3D {
     // descent: how far below the runner's level a point z (design units) lies (0 on flat road); the slope of the far ground follows the steepest slope seen from here to 150 m ahead
     const d0 = w.dropAt(p.z), dy = z => -(w.dropAt(z) - d0) * U.Z;
     this.groundPivot.rotation.x = -Math.atan(Math.max(w.gradeAt(p.z), w.gradeAt(p.z + 1500)));
-    // under the sea: the coast road beside the tunnel is not seen once the runner is deep (hide = the side of the junction not drawn); the surface of the sea is a plane at the sea's own height over the whole
-    // tunnel, from mouth to mouth (seen from above on the way down and up, from below in the deep), so the road, the plants and the fish are plainly UNDER the water
-    const depthM = w.seaDepth(p.z) * U.Z, hide = depthM >= 2.5 ? -1 : 0; this.road.hide = hide; this.hide = hide;
+    // under the sea: the coast road beside the tunnel is not seen once the runner is deep (hide = the side of the junction not drawn); the surface of the sea is a plane at the sea's own height over the tunnel, from mouth
+    // to mouth, but only visible where the road under it is deep (its alpha follows the depth: the entrance and its surroundings stay dry), seen from above on the way down and up and from below in the deep
+    const depthM = w.seaDepth(p.z) * U.Z, hide = depthM >= 3.5 ? -1 : 0; this.road.hide = hide; this.hide = hide;
     const tf = w.tubeFork(p.z, 3000, 1000);
     this.seaTop.visible = !!tf; if (tf) {
-      const lenM = tf.fork.tube.len * U.Z, st = this.seaTop; st.scale.set(1, lenM / 700, 1); st.position.set(0, depthM + 0.04, rz - (tf.fe + tf.fork.tube.len / 2) * U.Z); this.seaTex.repeat.set(24, 24 * lenM / 700);
+      const lenM = tf.fork.tube.len * U.Z, st = this.seaTop; st.position.set(0, depthM + 0.04, rz - (tf.fe + tf.fork.tube.len / 2) * U.Z); this.seaTex.repeat.set(24, 24 * lenM / 700);
       st.material.opacity = (this.camera.position.y > st.position.y ? 0.4 : 0.7); this.seaTex.offset.set(g.time * 0.012, g.time * 0.007);
     }
     this.road.update(w, rz, Lref);
