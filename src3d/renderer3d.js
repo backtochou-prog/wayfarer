@@ -71,7 +71,7 @@ class Renderer3D {
                   seaStrip: 36, cottageA: 24, cottageB: 24, cottageC: 24, cottageD: 24, seaFence: 70, tuft: 80, tuftBig: 50, driftwood: 30, dune: 30, cliff: 24, boat: 24, buoy: 40, crates: 30, lampSea: 40, lighthouse: 6, pier: 6, gateCoast: 8,   // the sunset coast
                   wallLow: 40, wallHigh: 40, wallLowB: 40, column: 60, columnLow: 60, columnTall: 20, archHalf: 24, lantern: 50, blocks: 40, ivy: 50, patchA: 40, patchB: 40, ruinTemple: 6, obelisk: 6, gateRuins: 8,   // the mossy ruins
                   garePlat: 20, stationFlankA: 12, stationFlankB: 12, platLamp: 20, gareHall: 3, tourMidi: 3,                  // the Gare du Midi
-                  coastClub: 6, coastDelphi: 6,
+                  coastClub: 6, coastDelphi: 6, portalGate: 14,
                   utQuayA: 30, utQuayB: 30, utQuayC: 30, utRowA: 16, utRowB: 16, utRowC: 16, utRowD: 16, utRowE: 16, utRowF: 16, utRowG: 16, utRowH: 16, utRowP1905: 10, utRowP1912: 10, utRowPChoor: 10, utRowPWhite: 10, utRowPShut: 10,   // Utrecht
                   utWetA: 14, utWetB: 14, utWetC: 14, utWetD: 14, utPlatane: 24, utPlataneB: 24, utBridge: 3, utDom: 3, utStationHall: 24, utPark: 24, utPlane: 30, utFootBridge: 4, utTunnel: 24,
                   neonHotel: 6, neonMoroccanLamp: 80, neonPendantLamp: 50, neonLanternPierced: 50, neonPillarLamp: 50, neonLightbox: 30 };                                                              // entrance markers where the biome changes
@@ -91,14 +91,18 @@ class Renderer3D {
         this.props[name] = list; this.propUsed[name] = 0;
       }
     }
+    if (typeof PortalArt !== 'undefined') {                // the doors of the passages between zones (Portal): one pooled plane per door, each with its own material (its opacity is set every frame)
+      const list = []; for (let i = 0; i < CAP.portalGate; i++) { const g = new THREE.Group(), hole = new THREE.Mesh(PortalArt.hole(), PortalArt.holeMaterial()), pic = new THREE.Mesh(PortalArt.gate(), PortalArt.material()); pic.renderOrder = 1; hole.renderOrder = 2; g.add(pic, hole); g.visible = false; this.scene.add(g); list.push(g); }
+      this.props.portalGate = list; this.propUsed.portalGate = 0;
+    }
     // upload the art textures to the GPU as soon as their images have loaded, so the first frames that show them do not hitch (a big atlas upload is a one-off spike)
     // and warm up once: compile every material variant and draw one frame with every pooled prop visible, so geometries, textures and shaders are all on the GPU before
     // the first prop of each kind comes into view (otherwise that first sight costs a one-off hitch of hundreds of ms in a software renderer)
-    let pending = 11 + (typeof UtrechtArt !== 'undefined' ? 3 : 0) + (typeof CoastArt !== 'undefined' ? 3 : 0);
+    let pending = 11 + (typeof UtrechtArt !== 'undefined' ? 3 : 0) + (typeof CoastArt !== 'undefined' ? 3 : 0) + (typeof PortalArt !== 'undefined' ? 1 : 0);
     const warm = () => { const hid = []; this.scene.traverse(o => { if (!o.visible && o.parent) { hid.push(o); o.visible = true; } });
       try { this.renderer.compile(this.scene, this.camera); this.renderer.render(this.scene, this.camera); this.renderer.clear(); } catch (e) {}   // drawn on screen (that is the program variant that must be ready) and cleared in the same task: a canvas is only shown after the next game frame
       for (const o of hid) o.visible = false; };
-    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3(), () => TramArt.material(), () => this.sunGlow.material, () => BlossomSprite.material(), () => BoardArt.material(), () => NeonShopArt.material(), () => NeonArt.material4(), () => (typeof FlowerArt !== 'undefined' ? FlowerArt.material() : TreeSprite.material())].concat(typeof UtrechtArt !== 'undefined' ? [() => UtrechtArt.material(), () => UtrechtArt.paveMaterial(), () => UtrechtArt.waterMaterial()] : []).concat(typeof CoastArt !== 'undefined' ? [() => CoastArt.material(), () => CoastArt.signMaterial(), () => CoastArt.delphiMaterial()] : [])) {
+    for (const get of [() => TreeSprite.material(), () => NeonArt.material(), () => NeonArt.material2(), () => NeonArt.material3(), () => TramArt.material(), () => this.sunGlow.material, () => BlossomSprite.material(), () => BoardArt.material(), () => NeonShopArt.material(), () => NeonArt.material4(), () => (typeof FlowerArt !== 'undefined' ? FlowerArt.material() : TreeSprite.material())].concat(typeof UtrechtArt !== 'undefined' ? [() => UtrechtArt.material(), () => UtrechtArt.paveMaterial(), () => UtrechtArt.waterMaterial()] : []).concat(typeof CoastArt !== 'undefined' ? [() => CoastArt.material(), () => CoastArt.signMaterial(), () => CoastArt.delphiMaterial()] : []).concat(typeof PortalArt !== 'undefined' ? [() => ({ map: PortalArt.texture() })] : [])) {
       const tex = get().map, go = () => { tex.needsUpdate = true; try { this.renderer.initTexture(tex); } catch (e) {}   // (needsUpdate first: an image that was already decoded when checked has no upload version yet, and initTexture skips such a texture)
       if (--pending === 0) setTimeout(warm, 50); };
       if (!(tex.image instanceof HTMLImageElement) || (tex.image.complete && tex.image.naturalWidth)) go(); else tex.image.addEventListener('load', () => setTimeout(go, 0));   // (a canvas texture, the tram signs, is ready at once)
@@ -112,7 +116,7 @@ class Renderer3D {
     this.scene.add(this.runner.group); this.scene.add(this.runner.shadow);
 
     this.supportsScene = true;                                                      // Game plays the Gare du Midi cutscene only with a front end that sets this
-    this.supportsPerks = true; this.perk = new Perk3D(this.scene);                  // Game builds its power-ups, shards and missions (Perks) only with a front end that sets this; Perk3D draws their effects
+    this.supportsPerks = true; this.supportsPortals = true; this.perk = new Perk3D(this.scene);                  // Game builds its power-ups, shards and missions (Perks) only with a front end that sets this; Perk3D draws their effects
     this.train = new Train3D(this.scene); this.crowd = new Crowd3D(this.scene); this.crowdT = 0; this.sceneK = 0; this.scCam = new THREE.Vector3(); this.scLook = new THREE.Vector3(); this.garePiece = null;
     this.spots = []; this.usedSpots = new Set(); this.armedSpot = null; this._v = new THREE.Vector3();         // parked scooters / stations seen this frame; the ones already taken
     this.menu = 1; this.lookX = 0; this.heading = 0;                         // menu blend (1 = menu camera, 0 = chase) and smoothed look-ahead
@@ -225,11 +229,27 @@ class Renderer3D {
   }
   onScooter(g, hint) { if (hint) { this.usedSpots.add(hint.key); this.armedSpot = null; } }
 
-  place(name, x, y, z, rotY) {
+  // The journey through a Stargate (Portal): the runner is pulled into the black hole at the middle of the entry door, spiralling in, turning and shrinking away, is out of sight between the two doors,
+  // then falls out of the middle of the exit door and settles back onto its road. Only how it is drawn: its real position (and the camera that follows it) is the road's.
+  journey(g, relX, ry) {
+    const R = this.runner, sh = R.shadow, pz = g.portal ? g.portal.pose : null; R.group.scale.setScalar(1); R.group.rotation.z = 0;
+    if (!pz || pz.mode === 'none') return;
+    const want = pz.mode === 'pull' ? 'in' : 'out'; let d = null, bd = 1e9;
+    for (const c of this.doorsNow) if (c.q === g.portal.act && c.kind === want) { const dd = Math.abs(c.x - relX); if (dd < bd) { bd = dd; d = c; } }
+    if (pz.mode === 'hidden' || !d) { if (pz.mode !== 'pull') { R.group.visible = false; sh.visible = false; } return; }
+    // the path: a straight pull toward the middle of the hole whose swirl only builds up near it (the turn goes with the cube of the progress, so the runner stays in view and in front of the door, and
+    // comes out of the exit door the same way in reverse: the turn dies away as it settles), shrinking as it goes
+    const e = pz.e, pull = pz.mode === 'pull', m = pull ? e : 1 - e, ang = m * m * m * 2 * Math.PI * (pull ? 1 : -1), co = Math.cos(ang), si = Math.sin(ang), dx = relX - d.x, dy = ry - d.y, k = pull ? 1 - e : e;
+    R.group.position.set(d.x + (dx * co - dy * si) * k, d.y + (dx * si + dy * co) * k, pull ? d.z * e : d.z * (1 - e));
+    const s = pull ? Math.pow(1 - e, 1.2) : Math.pow(e, 0.8); R.group.scale.setScalar(Math.max(0.001, s)); R.group.rotation.z = (pull ? 1 : -1) * m * m * m * 4 * Math.PI;
+    R.group.visible = s > 0.02; sh.visible = R.group.visible && s > 0.85;
+  }
+
+  place(name, x, y, z, rotY, sc) {
     const pool = this.props[name], n = this.propUsed[name];
     if (!pool || n >= pool.length) { this.dropped++; this.droppedBy[name] = (this.droppedBy[name] || 0) + 1; return; }
     this.propUsed[name] = n + 1;
-    const o = pool[n]; o.position.set(x, y, z); o.rotation.y = rotY; o.visible = true;
+    const o = pool[n]; o.position.set(x, y, z); o.rotation.y = rotY; if (sc || o.scale.x !== 1) o.scale.setScalar(sc || 1); o.visible = true;
   }
 
   draw(g) {
@@ -255,6 +275,7 @@ class Renderer3D {
     for (const k in this.propUsed) this.propUsed[k] = 0;
     this.spots.length = 0;
     const i0 = Math.floor(rz / SL) - 2, i1 = i0 + TRACK3D.SLOTS - 1;
+    this.doorsNow = [];                                       // the doors placed this frame (for the runner's journey)
     for (let i = i0; i <= i1; i++) {
       const zs = i * SL, sc = this.slotCache[((i % 20) + 20) % 20];
       if (sc.i !== i || sc.ver !== w.ver) { sc.i = i; sc.ver = w.ver; sc.mid = w.bandsAt((zs + SL / 2) / U.Z); sc.a = w.bandsAt(zs / U.Z); sc.b = w.bandsAt((zs + SL) / U.Z); }
@@ -287,6 +308,18 @@ class Renderer3D {
               this.spots.push({ key, dock: /Dock$/.test(pl.prop), kind: /^(board|neonHover)/.test(pl.prop) ? 'board' : 'scooter', x: cx + pl.x, y: WALK_Y + dy((zs + pl.dist) / U.Z), z: rz - zs - pl.dist, ahead: zs + pl.dist - rz });
             }
             this.place(pl.prop, cx + pl.x, WALK_Y + dy((zs + pl.dist) / U.Z), rz - zs - pl.dist, (pl.x < 0 ? Math.PI : 0) + (pl.rotY || 0) - Math.atan2(c1 - c0, SL));
+          }
+        }
+        // the doors of a passage between two zones (Portal) that stand across this road in this slot: the user's picture on a plane, additive, faded in with the distance and out as the runner goes through
+        if (g.portal) for (const gt of g.portal.gatesIn(zs / U.Z, (zs + SL) / U.Z, b.route)) {
+          if (c0 === null) { c0 = this.centreOf(sc.a, b.side) - Lref; c1 = this.centreOf(sc.b, b.side) - Lref; }
+          const dist = gt.z * U.Z - zs, ahead = gt.z * U.Z - rz, far = gt.kind === 'out' ? Math.max(0, Math.min(1, (70 - ahead) / 20)) : Math.max(0, Math.min(1, (120 - ahead) / 30)), near = Math.max(0, Math.min(1, (ahead + 7) / 11));
+          this.place('portalGate', c0 + (c1 - c0) * (dist / SL), dy(gt.z), rz - zs - dist, -Math.atan2(c1 - c0, SL), two ? 0.68 : 1);
+          const o = this.props.portalGate[this.propUsed.portalGate - 1];
+          if (o) {
+            o.children[0].material.opacity = o.children[1].material.opacity = far * far * (3 - 2 * far) * near;
+            const [lx, ly] = PortalArt.centre(), sc = o.scale.x, ry = o.rotation.y;                      // the middle of its black hole, in the scene: where the runner is pulled to and comes out from
+            this.doorsNow.push({ q: gt.q, kind: gt.kind, x: o.position.x + lx * sc * Math.cos(ry), y: o.position.y + ly * sc, z: o.position.z - lx * sc * Math.sin(ry) });
           }
         }
       }
@@ -324,6 +357,7 @@ class Renderer3D {
     const lift = SC ? 0.85 * Math.max(0, Math.min(1, ((p.x + pb.off) * U.X - 6.6) / 0.8)) : 0;       // in the cutscene the runner steps up onto the platform (0.85 m)
     this.runner.group.position.set(relX, p.jy * U.Y + lift, 0); this.runner.group.visible = !(SC && SC.boarded);
     { const sh = this.runner.shadow, k = Math.max(0.25, 1 - p.jy * U.Y / 3.5); sh.position.set(relX, 0.04 + lift, 0); sh.scale.set(0.5 * k, 1, 0.42 * k); sh.material.opacity = 0.3 * k; sh.visible = this.runner.group.visible; }   // contact shadow, fading as the runner leaves the ground
+    this.journey(g, relX, p.jy * U.Y + lift);
     this.perk.update(g, rz, Lref, relX, this.runner.group.position.y);
     if (Math.abs(this.camera.fov - this.perk.fov) > 0.02) { this.camera.fov = this.perk.fov; this.camera.updateProjectionMatrix(); }       // the dash opens the view a few degrees
     const ms = 1 - Math.exp(-3.5 * dt);

@@ -31,6 +31,7 @@ class Game {
     try { this.best = +localStorage.getItem('wayfarer.best') || 0; } catch (e) {}
     this.pk = (this.r.supportsPerks && typeof Perks !== 'undefined') ? new Perks(this) : null;               // the 3D build's power-ups, shards and missions (Perks); the classic game has none
     this.world.extras = !!this.pk;
+    this.portal = (this.r.supportsPortals && typeof Portal !== 'undefined') ? new Portal(this) : null;      // the passages between zones as a journey through a Stargate (3D build only; it draws and sounds, nothing else)
     this.state = 'title';
     this.resetRun();
     addEventListener('keydown', e => this.onKey(e, true));
@@ -104,7 +105,7 @@ class Game {
     this.world.seed = Game.runSeed();
     this.world.reset();
     this.p = { x: 0, z: 0, vx: 0, jy: 0, vy: 0, slide: 0, speed: BASE_SPEED };
-    this.coins = 0; if (this.pk) this.pk.reset(); this.camX = 0; this.camOff = 0; this.camRel = 0; this.camErr = 0; this.prevTgt = 0;
+    this.coins = 0; if (this.pk) this.pk.reset(); if (this.portal) this.portal.reset(); this.camX = 0; this.camOff = 0; this.camRel = 0; this.camErr = 0; this.prevTgt = 0;
     const ahead0 = this.world.playerBand(300, 0);                                    // the atmosphere starts as the road ahead looks (the run opens in the neon quarter), not eased in from the base look
     this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0;
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
@@ -290,6 +291,7 @@ class Game {
     this.dust(dt);
     w.extend(p.z);
     if (Math.floor(p.z / 100) !== Math.floor(prevZ / 100)) w.prune(p.z);
+    if (this.portal) this.portal.update(this, prevZ);                                                 // the doors crossed this step, and the light of the journey
     if (this.r.supportsScene) { const P = w.pieceAt(p.z); if (P && P.type === 'seg' && P.seg.scene && !P.sceneDone && p.z >= P.z0 + P.seg.scene.at) { this.beginScene(P); return; } }   // the station: the cutscene (only in a front end that can show it)
 
     const top = p.slide > 0 ? 8 : 24;

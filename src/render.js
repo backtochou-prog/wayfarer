@@ -41,6 +41,7 @@ class Renderer {
   drawUI(g) {
     const ctx = this.ctx;
     if (g.state === 'over' && g.flash > 0) { ctx.globalAlpha = 0.5; ctx.fillStyle = C.burg; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
+    if (g.portal && (g.portal.k > 0.004 || g.portal.flash > 0.01) && g.state !== 'title') this.drawPortalFx(g);              // the journey through a Stargate, under the HUD
     if (g.state !== 'title') this.drawHud(g);
     this.drawTouch(g);
     if (g.state === 'play') this.drawScooterHint(g);
@@ -349,10 +350,11 @@ class Renderer {
     // the vehicle floating above the disc, bobbing, in its own colour with a dark edge (translucent, no plate)
     const bob = Math.round(Math.sin(g.time * 4) * 2), gx = Math.round(h.x - 14), gy = Math.round(h.y - ry - 28) + bob, col = board ? '#35e6ff' : '#8ff04a';
     c.globalAlpha = 0.55 * a; this.vehicleGlyph(h.kind, gx + 1, gy + 1, C.ink); c.globalAlpha = 0.92 * a; this.vehicleGlyph(h.kind, gx, gy, col);
-    // what to press, and for what
-    const ty = Math.min(VH - 24, Math.round(h.y + ry + 2));
-    c.globalAlpha = 0.95 * a; this.txt(label, Math.round(h.x - textW(label, 2) / 2), ty, '#d8ffb0', 2);
-    c.globalAlpha = 0.9 * a; this.txt(what, Math.round(h.x - textW(what, 1) / 2), ty + 12, board ? '#9ff4ff' : '#d8ffb0', 1);
+    // what to press, and for what: text only (no plate, like the rest of the indicator), at the left edge under the counters, out of the road's way; the disc and the vehicle above it stay on the spot
+    const px = 5, py = 62, tcol = board ? '#9ff4ff' : '#d8ffb0';
+    c.globalAlpha = 0.6 * a; this.txt(label, px + 1, py + 1, C.ink, 2); this.txt(what, px + 1, py + 14, C.ink, 1);
+    c.globalAlpha = 0.98 * a; this.txt(label, px, py, '#d8ffb0', 2);
+    c.globalAlpha = 0.95 * a; this.txt(what, px, py + 13, tcol, 1);
     c.globalAlpha = 1;
   }
 
@@ -382,6 +384,21 @@ class Renderer {
       this.plate(Math.round((VW - bw) / 2), 30 + dy, bw, 15, C.amber);
       this.ctr(g.banner.text, 33 + dy, C.amberL, 2);
     }
+  }
+
+  // The journey through a Stargate (3D build, Portal): between the entry door and the exit door of a passage the screen is lit pink from its corners (the middle stays clear: the road is still played),
+  // thin light streaks fly outward from the centre, and a flash goes over the screen as each door is crossed. `portal.k` / `portal.flash` are set by Portal.update.
+  drawPortalFx(g) {
+    const c = this.ctx, P = g.portal, k = P.k, f = P.flash, R = Math.hypot(VW, VH) / 2, still = P.reduced;
+    if (k > 0.004) {
+      const gr = c.createRadialGradient(VW / 2, VH / 2, R * 0.34, VW / 2, VH / 2, R); gr.addColorStop(0, 'rgba(255,46,150,0)'); gr.addColorStop(1, 'rgba(255,46,150,' + (0.62 * k).toFixed(3) + ')');
+      c.fillStyle = gr; c.fillRect(0, 0, VW, VH); c.lineWidth = 1;
+      for (let i = 0; i < 28; i++) {
+        const a = i / 28 * 6.2832 + Math.sin(i * 12.9898) * 0.2, ph = still ? 0.5 : (g.time * (0.9 + (i % 5) * 0.17) + i * 0.37) % 1, r0 = R * (0.4 + 0.5 * ph * ph), r1 = r0 + R * 0.12 * (0.4 + ph);
+        c.strokeStyle = 'rgba(255,214,238,' + (k * (0.12 + 0.55 * ph)).toFixed(3) + ')'; c.beginPath(); c.moveTo(VW / 2 + Math.cos(a) * r0, VH / 2 + Math.sin(a) * r0 * 0.5625); c.lineTo(VW / 2 + Math.cos(a) * r1, VH / 2 + Math.sin(a) * r1 * 0.5625); c.stroke();
+      }
+    }
+    if (f > 0.01) { c.fillStyle = 'rgba(255,238,248,' + (0.5 * f).toFixed(3) + ')'; c.fillRect(0, 0, VW, VH); }
   }
 
   // The 3D build's depth layer on the HUD, kept to the edges and the sky so the road stays clear: under the coin count the shards of this run and the saved total, top right the mission (run progress),
