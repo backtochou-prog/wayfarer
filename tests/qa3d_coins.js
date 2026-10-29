@@ -35,7 +35,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       add(dz, x, h, tag) { const it = { kind: 'coin', z: g.p.z + dz, x, h: h === undefined ? 12 : h, tag: tag || 'main' }; g.world.items.push(it); return it; },
       // every visible mesh that uses the coin geometry, wherever it sits in the scene (pooled coins AND any effect that reuses the coin)
       coinMeshes() { const out = []; r.scene.traverse(o => { if (o.isMesh && (o.geometry === coinLit || o.geometry === coinGlow) && visible(o)) { const p = new THREE.Vector3(); (o.parent || o).getWorldPosition(p); out.push({ lit: o.geometry === coinLit, x: p.x, y: p.y, z: p.z }); } }); return out; },
-      untakenInRange() { let n = 0; for (const it of g.world.items) { const dz = it.z - g.p.z; if (it.kind === 'coin' && !it.taken && dz >= -150 && dz <= 1500) n++; } return n; },
+      untakenInRange() { let n = 0; for (const it of g.world.items) { const dz = it.z - g.p.z; if (it.kind === 'coin' && !it.taken && dz >= -150 && dz <= 1500 && !(g.r.hide && it.sd === g.r.hide)) n++; } return n; },      // (the other road of a junction is not drawn from inside the aquarium tunnel: Renderer3D `hide`)
       // where the renderer would draw this coin right now (scene metres, runner at z = 0)
       sceneSpot(it) { const U = U3, Lref = (g.camX + g.camOff) * U.X, off = g.world.bandNear(it.z, it.x).off; return { x: (it.x + off) * U.X - Lref, y: it.h * U.Y, z: -(it.z - g.p.z) * U.Z }; },
       // one frame: advance, draw, then check the invariant; returns what was found

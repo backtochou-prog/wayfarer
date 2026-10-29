@@ -49,6 +49,13 @@ class Renderer3D {
     ground.geometry = new THREE.PlaneGeometry(900, 450); ground.rotation.x = -Math.PI / 2; ground.position.set(0, 0, -225);
     this.groundPivot = new THREE.Group(); this.groundPivot.position.y = -0.03; this.groundPivot.add(ground); this.scene.add(this.groundPivot);
     const groundBack = new THREE.Mesh(new THREE.PlaneGeometry(900, 450), this.groundMat); groundBack.rotation.x = -Math.PI / 2; groundBack.position.set(0, -0.03, 225); this.scene.add(groundBack);
+    // the sea seen from under it (the aquarium tunnel dives below the level of the sea): its surface, a bright translucent ceiling that stays at the sea's own height while the road goes down (see draw)
+    { const cv = document.createElement('canvas'); cv.width = cv.height = 256; const c = cv.getContext('2d'); c.fillStyle = '#2fb0d2'; c.fillRect(0, 0, 256, 256); c.lineCap = 'round';        // the light of the surface: wavy bright lines in two directions (whole periods: the picture tiles)
+      for (let pass = 0; pass < 2; pass++) for (let k = 0; k < 7; k++) { c.strokeStyle = 'rgba(214,255,255,' + (0.35 + 0.1 * (k % 3)) + ')'; c.lineWidth = 2 + (k % 3); c.beginPath(); const base = 18 + k * 36, A = 7 + (k % 4) * 3, ph = k * 1.9 + pass, f = 1 + (k % 3);
+        for (let t = 0; t <= 256; t += 4) { const o = base + A * Math.sin(t / 256 * Math.PI * 2 * f + ph); if (pass) { t ? c.lineTo(o, t) : c.moveTo(o, t); } else { t ? c.lineTo(t, o) : c.moveTo(t, o); } } c.stroke(); }
+      const tex = new THREE.CanvasTexture(cv); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(24, 24); this.seaTex = tex;
+      this.seaTop = new THREE.Mesh(new THREE.PlaneGeometry(700, 700), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false, fog: false })); }
+    this.seaTop.rotation.x = Math.PI / 2; this.seaTop.position.set(0, 20, -150); this.seaTop.visible = false; this.scene.add(this.seaTop);
     this._c = [new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color(), new THREE.Color()];   // scratch colours for blending
     this.atmoTo = ''; this.atmoQ = -1; this.atmoKey = ''; this.applyAtmosphere(this.baseId, 0);
 
@@ -71,7 +78,7 @@ class Renderer3D {
                   seaStrip: 36, cottageA: 24, cottageB: 24, cottageC: 24, cottageD: 24, seaFence: 70, tuft: 80, tuftBig: 50, driftwood: 30, dune: 30, cliff: 24, boat: 24, buoy: 40, crates: 30, lampSea: 40, lighthouse: 6, pier: 6, gateCoast: 8,   // the sunset coast
                   wallLow: 40, wallHigh: 40, wallLowB: 40, column: 60, columnLow: 60, columnTall: 20, archHalf: 24, lantern: 50, blocks: 40, ivy: 50, patchA: 40, patchB: 40, ruinTemple: 6, obelisk: 6, gateRuins: 8,   // the mossy ruins
                   garePlat: 20, stationFlankA: 12, stationFlankB: 12, platLamp: 20, gareHall: 3, tourMidi: 3,                  // the Gare du Midi
-                  coastClub: 6, coastDelphi: 6, portalGate: 14, coastCanal: 18, aquaRib: 18, aquaJelly: 10, aquaTurtle: 8, aquaWhale: 3, aquaShoal0: 16, aquaShoal1: 16, aquaShoal2: 16, aquaRay: 4, aquaKelp: 12, aquaCoral: 8, aquaBubbles: 8, coastTower0: 16, coastTower1: 16, coastTower2: 16, coastTower3: 16, coastRound: 6, coastPad: 4, coastParasol: 6, coastBike: 18, coastPark: 6, coastCourt: 4, coastPlay: 4,
+                  coastClub: 6, coastDelphi: 6, portalGate: 14, coastCanal: 18, aquaRib: 18, aquaJelly: 18, aquaTurtle: 14, aquaWhale: 4, aquaShoal0: 28, aquaShoal1: 28, aquaShoal2: 28, aquaRay: 6, aquaKelp: 28, aquaCoral: 22, aquaBubbles: 22, coastTower0: 16, coastTower1: 16, coastTower2: 16, coastTower3: 16, coastRound: 6, coastPad: 4, coastParasol: 6, coastBike: 18, coastPark: 6, coastCourt: 4, coastPlay: 4,
                   utQuayA: 30, utQuayB: 30, utQuayC: 30, utRowA: 16, utRowB: 16, utRowC: 16, utRowD: 16, utRowE: 16, utRowF: 16, utRowG: 16, utRowH: 16, utRowP1905: 10, utRowP1912: 10, utRowPChoor: 10, utRowPWhite: 10, utRowPShut: 10,   // Utrecht
                   utWetA: 14, utWetB: 14, utWetC: 14, utWetD: 14, utPlatane: 24, utPlataneB: 24, utBridge: 3, utDom: 3, utStationHall: 24, utPark: 24, utPlane: 30, utFootBridge: 4, utTunnel: 24,
                   neonHotel: 6, neonMoroccanLamp: 80, neonPendantLamp: 50, neonLanternPierced: 50, neonPillarLamp: 50, neonLightbox: 30 };                                                              // entrance markers where the biome changes
@@ -270,6 +277,9 @@ class Renderer3D {
     // descent: how far below the runner's level a point z (design units) lies (0 on flat road); the slope of the far ground follows the steepest slope seen from here to 150 m ahead
     const d0 = w.dropAt(p.z), dy = z => -(w.dropAt(z) - d0) * U.Z;
     this.groundPivot.rotation.x = -Math.atan(Math.max(w.gradeAt(p.z), w.gradeAt(p.z + 1500)));
+    // under the sea (inside the aquarium tunnel): the coast road beside it is not seen (hide = the side of the junction not drawn) and the surface of the sea hangs above, at the sea's own height
+    const hide = w.playerBand(p.z + 30, p.x).to === 'coastAqua' ? -1 : 0; this.road.hide = hide; this.hide = hide;
+    const sea = d0 * U.Z; this.seaTop.visible = !!hide && sea > 6; if (this.seaTop.visible) { this.seaTop.position.y = sea; this.seaTop.material.opacity = 0.7 * Math.min(1, (sea - 6) / 3); this.seaTex.offset.set(g.time * 0.012, g.time * 0.007); }      // (only once it is above the camera: before that the road is still near the surface)
     this.road.update(w, rz, Lref);
 
     // ---- scenery: slots of SEG_LEN, per road and side; the biome of each side is chosen by the blend at that spot
@@ -280,8 +290,9 @@ class Renderer3D {
     for (let i = i0; i <= i1; i++) {
       const zs = i * SL, sc = this.slotCache[((i % 20) + 20) % 20];
       if (sc.i !== i || sc.ver !== w.ver) { sc.i = i; sc.ver = w.ver; sc.mid = w.bandsAt((zs + SL / 2) / U.Z); sc.a = w.bandsAt(zs / U.Z); sc.b = w.bandsAt((zs + SL) / U.Z); }
-      const bands = sc.mid, two = bands.length > 1;
+      const bands = sc.mid, two = bands.length > 1 && !hide;
       for (let bi = 0; bi < bands.length; bi++) {
+        if (hide && bands[bi].side === hide) continue;
         const b = bands[bi], hwM = (b.hi - b.lo) / 2 * U.X;
         let c0 = null, c1 = null;
         for (let sg = -1; sg <= 1; sg += 2) {
@@ -336,7 +347,8 @@ class Renderer3D {
     for (const it of w.items) {
       const dz = it.z - p.z;
       if (it.taken || dz < -150 || dz > 1500) continue;         // design units: 15 m behind .. 150 m ahead
-      if (it.offV !== w.ver) { const bn = w.bandNear(it.z, it.x); it.off = bn.off; it.wet = bn.t > 0.5 && !!(this.envs[bn.to] && this.envs[bn.to].road.water); it.offV = w.ver; }   // road curve offset and water (a canal: hazards get their water look) at the item, cached until the track changes
+      if (it.offV !== w.ver) { const bn = w.bandNear(it.z, it.x); it.off = bn.off; it.sd = bn.side; it.wet = bn.t > 0.5 && !!(this.envs[bn.to] && this.envs[bn.to].road.water); it.offV = w.ver; }   // road curve offset and water (a canal: hazards get their water look) at the item, cached until the track changes
+      if (hide && it.sd === hide) continue;                      // (the other road of the junction is not seen from under the sea)
       const x = (it.x + it.off) * U.X - Lref, zr = -dz * U.Z;
       const iy = dy(it.z);                                     // on a descent the item sits on the sloping road
       if (it.kind === 'prop') { this.place(it.spr, x, WALK_Y + iy, zr, 0); continue; }

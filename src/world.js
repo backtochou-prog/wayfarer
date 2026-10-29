@@ -183,13 +183,20 @@ class World {
   dropAt(z) {
     let d = 0;
     for (const P of this.pieces) {
+      if (P.type === 'fork') { if (P.fork.tube && P.choice === 'right') d += this.tubeDip(P, z); continue; }                  // the way to the island: a runner who took it dives below the sea (and comes back up)
       if (P.type !== 'seg' || !P.seg.grade || z <= P.z0) continue;
       const tab = P.dropTab || (P.dropTab = this.dropTable(P)), k = (Math.min(z, P.z1) - P.z0) / 20, i = Math.min(tab.length - 2, Math.floor(k));
       d += P.seg.grade * (tab[i] + (tab[i + 1] - tab[i]) * (k - i));
     }
     return d;
   }
-  gradeAt(z) { const P = this.pieceAt(z); return P.type === 'seg' && P.seg.grade ? P.seg.grade * this.gradeT(P, z) : 0; }
+  gradeAt(z) { const P = this.pieceAt(z); if (P.type === 'fork') return P.fork.tube && P.choice === 'right' ? (this.tubeDip(P, z + 10) - this.tubeDip(P, z - 10)) / 20 : 0; return P.type === 'seg' && P.seg.grade ? P.seg.grade * this.gradeT(P, z) : 0; }
+  // the fall (units of run) of the aquarium tunnel's road at z: 0 at its two mouths, `depth` on the sea bed between, smooth ramps of `ramp` units (a fork piece with `tube`, see src/track.js)
+  tubeDip(P, z) {
+    const tb = P.fork.tube, u = z - P.fe; if (u <= 0 || u >= tb.len) return 0;
+    const s = v => { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); };
+    return tb.depth * Math.min(s(u / tb.ramp), s((tb.len - u) / tb.ramp));
+  }
   dropTable(P) {                                        // running integral of the blend every 20 units (trapezoids)
     const n = Math.ceil((P.z1 - P.z0) / 20) + 2, tab = new Float32Array(n); let prev = this.gradeT(P, P.z0);
     for (let j = 1; j < n; j++) { const t = this.gradeT(P, Math.min(P.z1, P.z0 + j * 20)); tab[j] = tab[j - 1] + 20 * (prev + t) / 2; prev = t; }

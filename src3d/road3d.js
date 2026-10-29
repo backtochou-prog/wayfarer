@@ -70,7 +70,8 @@ class Road3D {
       const n = n0 + i, zm = n * DS, sz = rzm - zm, par = n & 1, dash = !par;
       const slot = this.bc[((n % N) + N) % N];
       if (slot.n !== n || slot.ver !== w.ver) { slot.n = n; slot.ver = w.ver; slot.bands = w.bandsAt(zm / U3.Z); }   // bands per section: computed once per section, not per frame
-      const bands = slot.bands, bA = bands[0], bB = bands.length > 1 ? bands[1] : null;
+      const bands = slot.bands; let bA = bands[0], bB = bands.length > 1 ? bands[1] : null;
+      if (bB && this.hide) { if (bA.side === this.hide) bA = bB; bB = null; }                     // `hide` (-1 / 1): that road of a junction is not drawn (from inside the tunnel under the sea the coast road is not seen): the other one is drawn as a single road
       const loA = (bA.lo + bA.off) * X - Lref, hiA = (bA.hi + bA.off) * X - Lref;
       let palA = this.pal(bA.to, bA.t);
       E.z[i] = sz; E.two[i] = bB ? 1 : 0;
