@@ -40,7 +40,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       }
       out.seeds[s] = { n: P.list.length, kinds: 'seg', gare, inside, missing, gares: fam, ordered: P.list.every((q, i) => !i || P.list[i - 1].zIn <= q.zIn), forks: pieces.filter(p => p.type === 'fork' && !p.fork.tube).length, isl: pieces.filter(p => p.type === 'fork' && p.fork.tube).length, islOk: pieces.filter(p => p.type === 'fork' && p.fork.tube).every(p => ['left', 'right'].every(sd => Portal.fam(TRACK.segments[p.fork[sd].route].biome) === 'coast')), forkOk: pieces.filter(p => p.type === 'fork' && !p.fork.tube).every(p => ['left', 'right'].every(sd => Portal.fam(TRACK.segments[p.fork[sd].route].biome) === 'saintgilles')), ok: P.list.every(q => q.zOut - q.zIn >= 700 && q.from !== q.to), apart: P.list.every((q, i) => !i || q.zIn - Portal.PULL >= P.list[i - 1].zOut + Portal.SETTLE), pairs: [...new Set(P.list.map(q => q.from + '>' + q.to))].sort().join(' ') };
     }
-    const w = new World(TRACK); w.seed = 0; w.reset(); w.extend(60000); const P = new Portal({}); P.scan(w); out.lap1 = P.list.filter(q => q.zIn < 36000).map(q => q.from + '>' + q.to); out.lap = w.pieces.slice(0, 13).map(p => p.type === 'fork' ? 'fork' : p.id).join('>');
+    const w = new World(TRACK); w.seed = 0; w.reset(); w.extend(60000); const P = new Portal({}); P.scan(w); out.lap1 = P.list.filter(q => q.zIn < 43000).map(q => q.from + '>' + q.to); out.lap = w.pieces.slice(0, 13).map(p => p.type === 'fork' ? 'fork' : p.id).join('>');
     return out;
   });
   const S = Object.values(A.seeds);

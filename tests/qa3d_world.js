@@ -137,14 +137,14 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const g = __wf, r = g.r, { key } = { key: c => g.onKey({ code: c, repeat: false, preventDefault() {} }, true) };
     g.start(); g.world.items = []; g.world.reset(); g.start();
     const out = { picks: [], wants: [], deaths: 0, backwards: 0, offRoad: 0, otherRoad: 0, maxEdge: 0, maxCamDx: 0, maxCamDy: 0, seen: new Set(), gates: new Set(), forkRoutes: new Set(), dropped: 0 };
-    const LM = ['fountain', 'clockTower', 'statue', 'cabin', 'giantOak', 'standingStones', 'marketHall', 'bigTent'], GATES = ['gateCity', 'gateWood', 'gateMarket'];
-    let zP = 0, cP = 0, sP = 0, scP = 0, camP = null, nFork = 0, want = null, lastUid = -1, f = 0;
+    const LM = ['fountain', 'clockTower', 'statue', 'cabin', 'giantOak', 'standingStones', 'marketHall', 'bigTent'], GATES = ['gateCity', 'gateWood', 'gateMarket', 'gateCoast', 'gateRuins'];      // (an entrance marker of a fork's branch only shows where the seeded blend changes cleanly, which depends on the slot: so the coast's own marker counts too)
+    let zP = 0, cP = 0, sP = 0, scP = 0, camP = null, nFork = 0, nIsle = 0, want = null, lastUid = -1, f = 0;
     const vis = o => { for (let n = o; n; n = n.parent) if (!n.visible) return false; return true; };
     out.scenes = 0; let wasScene = false;
     while (out.picks.length < 6 && f < 60 * 60 * 10 && (g.state === 'play' || g.state === 'scene')) {
       if (g.state === 'scene') { if (!wasScene) out.scenes++; wasScene = true; g.advance(1 / 60); f++; zP = g.p.z; cP = g.coins; sP = 0; scP = g.score(); camP = null; if (f % 3 === 0) r.draw(g); continue; } wasScene = false;      /* the Gare du Midi cutscene: the bot lets it play (qa3d_gare checks it) */
       const p = g.p, w = g.world, F = w.openFork();
-      if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = nFork++ % 2 === 0 ? 'left' : 'right'; out.wants.push(want); }
+      if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = F.fork.tube ? (nIsle++ % 2 === 0 ? 'right' : 'left') : (nFork++ % 2 === 0 ? 'left' : 'right'); out.wants.push(want); }      // (the island junction of the beach alternates tunnel / coast road; the Saint-Gilles junctions alternate forest / market)
       g.keys.left = g.keys.right = false;
       if (F && want && p.z > F.z0 - 500 && p.z < F.z0 - 400) g.keys[want] = true;
       let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * 0.5) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }

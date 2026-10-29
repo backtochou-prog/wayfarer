@@ -1,6 +1,6 @@
-// THE AQUARIUM TUNNEL: the way to the island goes UNDER THE SEA (src/track.js `tube` of the island junctions `gateIsland*`: the first 100 m of the right branch wear the biome `coastAqua`; from the user's sketch of a trajectory
+// THE AQUARIUM TUNNEL: the way to the island goes UNDER THE SEA (src/track.js `tube` of the island junctions `gateIsland*`: the first 700 m of the right branch wear the biome `coastAqua`; from the user's sketch of a trajectory
 // "aquarium style, under the sea, toward the island"): a glass tube along the road, held by thick half-ring ribs in the pink-red of the Stargate rings, with thin dark lines running along its vault, and the road
-// running away between them. Outside, the sea seen from inside: deep teal water that swallows the distance (a short fog), shoals of fish, a manta ray high above, kelp and coral on the sea bed, columns of bubbles.
+// running away between them. Outside, the sea seen from inside: deep teal water that swallows the distance (a short fog), shoals of fish, a manta ray and a whale shark high above, jellyfish, sea turtles, kelp and coral on the sea bed, columns of bubbles (the creatures drift a little: `live`). It is long (700 m, about 25 s) to play and enjoy.
 // The look changes at once at the mouths of the tunnel (BIOMES.coastAqua.swap, Game.step: a splash of light hides the cut), so the coast and the island keep their own sunsets.
 (() => {
   const mod = (a, n) => ((a % n) + n) % n, RIB = '#ff1a55', INK = '#0b1230', R = 6.9, ARCH = 20, T = 0.36, SLOT = 12;
@@ -30,16 +30,31 @@
   const kelp = () => { const p = []; for (let s = 0; s < 3; s++) for (let k = 0; k < 7; k++) p.push(Kit.box(0.34, 0.9, 0.12, s * 0.7 - 0.7 + Math.sin(k * 0.8 + s) * 0.25, k * 0.85, (s - 1) * 0.5, (s + k) % 2 ? '#2e9e5a' : '#1d7a46', { rz: Math.sin(k * 0.8 + s) * 0.18 })); return Kit.merge(p); };
   const coral = () => { const p = [Kit.cyl(1.5, 1.7, 0.4, 0, 0, 0, '#7a6a5a', { seg: 7 })]; ['#ff6a8a', '#ffb347', '#c05cff', '#ff6a8a'].forEach((c, k) => { const a = k * 1.7; p.push(Kit.cone(0.32, 1.5 + k * 0.35, Math.cos(a) * 0.7, 0.3, Math.sin(a) * 0.7, c, { seg: 5, rz: Math.cos(a) * 0.3, rx: Math.sin(a) * 0.3 }), Kit.ico(0.24, Math.cos(a) * 0.7 + Math.cos(a) * 0.4, 1.9 + k * 0.35, Math.sin(a) * 0.7 + Math.sin(a) * 0.4, '#ffe0e8', { glow: true })); }); return Kit.merge(p); };
   const bubbles = () => { const p = []; for (let k = 0; k < 7; k++) p.push(Kit.ico(0.12 + (k % 3) * 0.06, Math.sin(k * 1.9) * 0.4, 0.6 + k * 1.15, Math.cos(k * 1.3) * 0.4, '#bff4ff', { glow: true })); return Kit.merge(p); };
-  const PROPS = { aquaRib: rib, aquaShoal0: shoal(0), aquaShoal1: shoal(1), aquaShoal2: shoal(2), aquaRay: ray, aquaKelp: kelp, aquaCoral: coral, aquaBubbles: bubbles };
+  // a jellyfish drifting: a glowing pink dome with a paler core and long trailing tentacles
+  const jelly = () => { const p = [Kit.ico(0.75, 0, 5.2, 0, '#ff9ee0', { sy: 0.62, glow: true }), Kit.ico(0.42, 0, 5.3, 0, '#fff0fa', { sy: 0.7, glow: true })];
+    for (let k = 0; k < 7; k++) { const a = k * 0.9; p.push(Kit.box(0.05, 1.7 + (k % 3) * 0.5, 0.05, Math.cos(a) * 0.45, 3.4 - (k % 3) * 0.5, Math.sin(a) * 0.45, k % 2 ? '#ffb3e6' : '#d58cff', { glow: true })); }
+    return Kit.merge(p); };
+  // a sea turtle: a domed shell with plates, a head and four flippers (its head toward -z, the runner's way)
+  const turtle = () => { const p = [Kit.ico(0.9, 0, 4.4, 0, '#3f8f5a', { sx: 1.05, sy: 0.55, sz: 1.4 }), Kit.ico(0.55, 0, 4.6, 0, '#7bc46a', { sx: 1.0, sy: 0.4, sz: 1.2 }), Kit.ico(0.3, 0, 4.4, -1.55, '#9bc87a', { sz: 1.3 })];
+    for (const [sx, sz] of [[-1, -0.7], [1, -0.7], [-1, 0.9], [1, 0.9]]) p.push(Kit.box(1.3, 0.1, 0.55, sx * 1.15, 4.3, sz, '#7bc46a', { rz: sx * 0.35, ry: sx * (sz < 0 ? 0.5 : -0.4) }));
+    return Kit.merge(p); };
+  // a whale shark gliding overhead, the great animal of an aquarium tunnel: a long slate body with pale spots, a dorsal fin and a tall tail
+  const whale = () => { const p = [Kit.ico(1.7, 0, 12, 0, '#3b5d7a', { sx: 1.0, sy: 0.85, sz: 4.4 }), Kit.ico(1.05, 0, 11.7, 0, '#9fc4d8', { sx: 0.9, sy: 0.5, sz: 4.2 }), Kit.cone(0.9, 2.2, 0, 13.3, 1.2, '#3b5d7a', { sx: 0.35 }), Kit.cone(1.0, 3.2, 0, 11.3, 7.7, '#3b5d7a', { rx: Math.PI / 2, sx: 0.3 }), Kit.cone(0.7, 1.6, -1.3, 11.3, -6.4, '#3b5d7a', { rz: 0.7 })];
+    for (let k = 0; k < 14; k++) { const r = q => rnd(k * 7, q); p.push(Kit.ico(0.17 + r(1) * 0.12, (r(2) - 0.5) * 2.2, 12.5 + r(3) * 0.9, (r(4) - 0.5) * 9, '#e8f6ff')); }
+    return Kit.merge(p); };
+  const PROPS = { aquaJelly: jelly, aquaTurtle: turtle, aquaWhale: whale, aquaRib: rib, aquaShoal0: shoal(0), aquaShoal1: shoal(1), aquaShoal2: shoal(2), aquaRay: ray, aquaKelp: kelp, aquaCoral: coral, aquaBubbles: bubbles };
   // every slot: a rib across the road (x = 0: it is drawn once, with the road's own lean); outside (the right side of the island road), kelp, coral, bubbles and a shoal of fish; on the inner side, towards the coast road, a few fish (nothing tall: the coast road's runner must not have it in the way)
   const layout = (i, rnd) => {
     const out = [{ prop: 'aquaRib', x: 0, dist: 6 }], k = i * 2 + 1, r = n => rnd(k, n);
-    out.push({ prop: 'aquaShoal' + mod(i, 3), x: 10 + r(1) * 10, dist: 6 });
+    out.push({ prop: 'aquaShoal' + mod(i, 3), x: 10 + r(1) * 10, dist: 6, live: true });
     if (mod(i, 3) === 0) out.push({ prop: 'aquaKelp', x: 8.2 + r(2) * 2.5, dist: 2 + r(3) * 8 });
     if (mod(i, 4) === 1) out.push({ prop: 'aquaCoral', x: 8.6 + r(4) * 2, dist: 3 + r(5) * 6 });
     if (mod(i, 5) === 2) out.push({ prop: 'aquaBubbles', x: 9 + r(6) * 3, dist: 4 + r(7) * 4 });
-    if (mod(i, 7) === 3) out.push({ prop: 'aquaRay', x: 0, dist: 6 });
-    if (mod(i, 3) === 1) out.push({ prop: 'aquaShoal' + mod(i + 1, 3), x: -7.4, dist: 6 });
+    if (mod(i, 23) === 11) out.push({ prop: 'aquaWhale', x: 0, dist: 6, live: true });                                           // (the creatures drift a little: `live`, Renderer3D)
+    else if (mod(i, 7) === 3) out.push({ prop: 'aquaRay', x: 0, dist: 6, live: true });
+    if (mod(i, 6) === 4) out.push({ prop: 'aquaJelly', x: 8.5 + r(8) * 9, dist: 3 + r(9) * 6, live: true });
+    if (mod(i, 9) === 5) out.push({ prop: 'aquaTurtle', x: 9 + r(10) * 7, dist: 6, live: true });
+    if (mod(i, 3) === 1) out.push({ prop: 'aquaShoal' + mod(i + 1, 3), x: -7.4, dist: 6, live: true });
     return out;
   };
   // the sea seen from inside: a deep teal that swallows the distance (a short fog), light from above
