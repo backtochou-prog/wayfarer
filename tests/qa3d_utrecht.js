@@ -1,4 +1,4 @@
-// WAYFARER regression test: Utrecht, the zone the train goes to (tramRun > gareMidi > utrechtA > utrechtB > utrechtC > the next fork). Checks the track and its hand-overs (the cutscene ends on the
+// WAYFARER regression test: Utrecht, the zone the train goes to (tramRun > gareMidi > utrechtA > utrechtB > utrechtC > the neon quarter). Checks the track and its hand-overs (the cutscene ends on the
 // station and the new zone's sky is in at once), the surfboard (the runner is on the water in these three stretches and only there, no scooter), the photographic water strip (visible only on the
 // canals, fading with the zone), the water looks of the three hazards (same sizes as the collision boxes), the camera clearance under the bridge and the gallery, the props (pools bounded through
 // the whole zone), a bot playing through all of it, the HUD names, and that the classic 2D game runs through it.
@@ -41,17 +41,16 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.door = G.z0 + G.seg.scene.at + G.seg.scene.run; out.toEnd = G.z1 - out.door;                       // the station ends 400 units after the door
     const t = z => w.bandsAt(z)[0]; out.t = [G.z1 - 2, A.z0 + 2, A.z1 - 2, B.z0 + 2, B.z1 - 2, C.z0 + 2, C.z0 + 4000, C.z1 - 350, C.z1 - 2].map(z => [t(z).to, +t(z).t.toFixed(2)]);
     let maxStep = 0, prev = null; for (let z = A.z0 + 1; z < C.z1 - 1; z += 5) { const v = t(z).t; if (prev !== null) maxStep = Math.max(maxStep, Math.abs(v - prev)); prev = v; } out.maxStep = +maxStep.toFixed(3);
-    out.nextIsFork = F.type === 'fork'; out.atmo = ['utrecht', 'utrechtA', 'utrechtB'].map(k => BIOMES[k] && BIOMES[k].atmo);
-    // the stretch before the junction is free of hazards, and the zone's hazards and pickups are all inside the three pieces
-    out.nearFork = w.items.filter(it => OBST[it.kind] && it.tag === 'main' && it.z > F.z0 - 390 && it.z < F.z0 + 1).length;
+    out.nextIsNeon = F.id === 'neonRun'; out.atmo = ['utrecht', 'utrechtA', 'utrechtB'].map(k => BIOMES[k] && BIOMES[k].atmo);
+    // the zone's hazards and pickups are all inside the three pieces
     const inZ = w.items.filter(it => it.kind !== 'prop' && it.z >= A.z0 && it.z < C.z1); out.hz = inZ.filter(it => OBST[it.kind]).length; out.kinds = [...new Set(inZ.map(it => it.kind))].sort();
     out.dom = w.items.filter(it => it.kind === 'prop' && it.spr === 'utDom').length;
     out.envs = ['utrecht', 'utrechtA', 'utrechtB'].map(k => !!ENV3D[k] && !!ENV3D[k].layout && ENV3D[k].road.water === true && ENV3D[k].props === ENV3D.utrecht.props);
     out.extraNames = [...new Set(inZ.map(it => it.pat).filter(n => n && PATTERNS_X[n]))].sort();
     return out;
   });
-  T('the track: ' + K.seq + '; the station is ' + K.len[0] + ' units (the door ' + K.toEnd + ' units before its end), then Utrecht in three pieces (' + K.len.slice(1).join(' + ') + ' units: ' + K.names.join(', ') + ') and a junction; one atmosphere for all three (' + K.atmo.join(', ') + '), fully in from the first unit and fading out only over the last 700 of the Oudegracht (largest step ' + K.maxStep + '); no hazard in the 390 units before the junction (' + K.nearFork + ')',
-    K.seq === 'tramRun>gareMidi>utrechtA>utrechtB>utrechtC>fork' && K.len[0] === 1300 && K.toEnd === 400 && K.biome.join() === 'utrechtA,utrechtB,utrecht' && K.names.join() === 'UTRECHT CENTRAAL,HOOG CATHARIJNE,OUDEGRACHT' && K.atmo.every(a => a === 'utrecht') && K.t.slice(0, 7).every(x => x[1] === 1) && K.t[8][1] === 0 && K.t[7][1] > 0.2 && K.t[7][1] < 0.8 && K.maxStep < 0.02 && K.nextIsFork && K.nearFork === 0 && K.envs.every(Boolean), JSON.stringify({ t: K.t, len: K.len }));
+  T('the track: ' + K.seq + '; the station is ' + K.len[0] + ' units (the door ' + K.toEnd + ' units before its end), then Utrecht in three pieces (' + K.len.slice(1).join(' + ') + ' units: ' + K.names.join(', ') + ') and then the neon quarter; one atmosphere for all three (' + K.atmo.join(', ') + '), fully in from the first unit and fading out only over the last 700 of the Oudegracht (largest step ' + K.maxStep + ')',
+    K.seq === 'tramRun>gareMidi>utrechtA>utrechtB>utrechtC>neonRun' && K.len[0] === 1300 && K.toEnd === 400 && K.biome.join() === 'utrechtA,utrechtB,utrecht' && K.names.join() === 'UTRECHT CENTRAAL,HOOG CATHARIJNE,OUDEGRACHT' && K.atmo.every(a => a === 'utrecht') && K.t.slice(0, 7).every(x => x[1] === 1) && K.t[8][1] === 0 && K.t[7][1] > 0.2 && K.t[7][1] < 0.8 && K.maxStep < 0.02 && K.nextIsNeon && K.envs.every(Boolean), JSON.stringify({ t: K.t, len: K.len }));
   T('the zone has coins, hazards (' + K.hz + ' of them), shards and power-ups, the skill patterns (' + K.extraNames.join(', ') + ') and the Dom tower as a fixed prop (' + K.dom + ')', ['coin', 'crate', 'barrier', 'over', 'shard'].every(k => K.kinds.includes(k)) && K.hz >= 15 && K.extraNames.length >= 3 && K.dom >= 1, JSON.stringify(K.kinds));
 
   // ================================================================ 2. the cutscene hands over to Utrecht: its sky and light are in at once (no dip back to the old look), the surfboard comes with the water
@@ -69,7 +68,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   // ================================================================ 3. the surfboard: on the water in the three stretches and only there; no scooter
   const SF = await pg.evaluate(() => {
     const out = {}; const probe = (seg, dz) => { const { g } = H.at(seg, dz); for (let i = 0; i < 40; i++) g.advance(1 / 60); H.draw(40); const R = g.r.runner; return { surf: g.surf, riding: g.riding, vehicle: R.vehicle, sf: R.surfB.visible, sc: R.scooter.visible, bd: R.board.visible, ride: +R.ride.toFixed(2), hint: g.scooterHint }; };
-    out.A = probe('utrechtA', 600); out.B = probe('utrechtB', 600); out.C = probe('utrechtC', 600); out.tram = probe('tramRun', 1500); out.gare = probe('gareMidi', 200); out.cityB = probe('plazaB', 300);
+    out.A = probe('utrechtA', 600); out.B = probe('utrechtB', 600); out.C = probe('utrechtC', 600); out.tram = probe('tramRun', 1500); out.gare = probe('gareMidi', 200); out.cityB = probe('neonRun', 300);
     // a scooter cannot be taken on the water (E and the indicator do nothing), and the runner's collision body is the same on the board
     const { g } = H.at('utrechtC', 600); g.advance(1 / 60); g.scooterHint = { x: 100, y: 100, rx: 20, ry: 5, kind: 'scooter' }; g.onKey({ code: 'KeyE', repeat: false, preventDefault() {} }, true); out.mount = { riding: g.riding, surf: g.surf };
     // jump and slide work on the board (same heights, same slide time)
@@ -85,7 +84,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   // ================================================================ 4. the water: a photographic strip on the canals only, with the zone's blend as its alpha
   const WT = await pg.evaluate(() => {
     const out = {}; const probe = (seg, dz) => { const { g } = H.at(seg, dz); H.draw(3); const W = g.r.road.wat, a = []; for (let i = 0; i < g.r.road.N; i += 4) a.push(W.col[i * 8 + 3]); return { vis: W.mesh.visible, any: Math.max(...a), min: Math.min(...a), tex: !!W.mesh.material.map.image && W.mesh.material.map.image.naturalWidth === 256 }; };
-    out.A = probe('utrechtA', 800); out.C = probe('utrechtC', 2000); out.city = probe('plazaB', 300); out.tram = probe('tramRun', 1500); out.fade = probe('utrechtC', 4950);
+    out.A = probe('utrechtA', 800); out.C = probe('utrechtC', 2000); out.city = probe('neonRun', 300); out.tram = probe('tramRun', 1500); out.fade = probe('utrechtC', 4950);
     const { g } = H.at('utrechtC', 2000); H.draw(3); const W = g.r.road.wat; const u = Array.from(W.uv.slice(0, 8)); out.uvStatic = []; const lat0 = W.uv[0] * 3.4 - g.r.road.edge.loA[0] * 0 ; g.p.z += 12; g.world.extend(g.p.z); H.draw(3); out.uvAfter = Array.from(W.uv.slice(0, 4));
     out.sat = { w: UTRECHT_WATER.w, src: UTRECHT_WATER.src.slice(0, 22) };
     return out;
@@ -122,7 +121,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   // ================================================================ 7. a bot plays the whole zone: from the cutscene to the junction, pools bounded, nothing dropped, coins and shards counted
   const RUN = await pg.evaluate(() => {
     const { g, P } = H.at('gareMidi', 0, 340); const r = g.r, sc = P.seg.scene; g.world.items = g.world.items.filter(i => i.kind === 'prop' || i.z > P.z1); g.die = Game.prototype.die; g.p.z = P.z0 + sc.at - 10; g.p.speed = 340; g.bgTo = 'gare'; g.bgT = 1; g.pk.reset(); g.pk.save = Perks.defaults();
-    const A = g.world.pieces.find(p => p.id === 'utrechtA'), Cc = g.world.pieces.find(p => p.id === 'utrechtC'), F = g.world.pieces.find(p => p.type === 'fork' && p.z0 >= Cc.z1 - 1), out = { names: new Set(), surfFrames: 0, frames: 0, maxItems: 0 };
+    const A = g.world.pieces.find(p => p.id === 'utrechtA'), Cc = g.world.pieces.find(p => p.id === 'utrechtC'), F = { z0: Cc.z1 + 100 }, out = { names: new Set(), surfFrames: 0, frames: 0, maxItems: 0 };
     let geo0 = -1, kids0 = r.scene.children.length, f = 0, drift = 0;
     while (g.p.z < F.z0 - 200 && (g.state === 'play' || g.state === 'scene') && f < 60 * 120) {
       if (g.state === 'play') H.bot(); g.advance(1 / 60); f++;

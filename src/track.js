@@ -158,13 +158,19 @@ const TRACK = {
     gate4:  { zone: 440, branchLen: 1300, merge: 360, blend: 40, left: { route: 'neonBranch', sign: 'signNeon' }, right: { route: 'forest', sign: 'signForest' } },
     gate3B: { zone: 480, branchLen: 1500, merge: 380, blend: 40, left: { route: 'coastRunB', sign: 'signCoast' }, right: { route: 'neonBranchB', sign: 'signNeon' } },
     gate4B: { zone: 480, branchLen: 1500, merge: 380, blend: 40, left: { route: 'ruinsRunB', sign: 'signRuins' }, right: { route: 'detourB', sign: 'signMarket' } },
+    // THE JUNCTIONS OF THE CIRCUIT. The coast and the neon quarter are zones of their own now (Neon > Beach > Saint-Gilles > Utrecht), so the pairs the junction of Saint-Gilles takes (picks.A) offer only the
+    // detours that stay in its neighbourhood: forest, market, ruins. The pairs above that lead to the coast or the neon quarter (gate3, gate4, gate2, gate3B, gate4B) are no longer on the circuit.
+    gate5: { zone: 440, branchLen: 1300, merge: 360, blend: 40, left: { route: 'ruinsRun', sign: 'signRuins' }, right: { route: 'detourB', sign: 'signMarket' } },
+    gate6: { zone: 480, branchLen: 1500, merge: 380, blend: 40, left: { route: 'forestB', sign: 'signForest' }, right: { route: 'ruinsRunB', sign: 'signRuins' } },
   },
   // Every route choice is a fork with a signpost on each side. The two fork slots of a lap (A and B) pick one of three pairs each (see `picks`), so the destinations come in a different order
   // from lap to lap and, in a real run, from run to run (World.seed). Between them the five destinations (forest, market, coast, ruins, neon district) are all reachable.
   base: 'city',          // the biome every segment's palette blends from (the "unblended" look); NOT the biome of the first piece, which is the neon quarter
-  sequence: [{ seg: 'neonStart' }, { seg: 'cityRun' }, { pick: 'A' }, { seg: 'plaza' }, { pick: 'C' }, { seg: 'neonRun' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { seg: 'gareMidi' }, { seg: 'utrechtA' }, { seg: 'utrechtB' }, { seg: 'utrechtC' }, { pick: 'B' }, { seg: 'plazaB' }],
+  // THE ZONES IN ORDER: Neon > Beach (the coast, in its four lights by turns) > Saint-Gilles (the street, a junction with forest / market / ruins detours, the tram street, the Gare du Midi) > Utrecht (by train) >
+  // Neon again, and so on: one door between each zone and the next (Saint-Gilles to Utrecht is the train, not a door). The run starts in the neon quarter (neonStart); the loop starts at the beach.
+  sequence: [{ seg: 'neonStart' }, { pick: 'C' }, { seg: 'cityRun' }, { pick: 'A' }, { seg: 'plaza' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { seg: 'gareMidi' }, { seg: 'utrechtA' }, { seg: 'utrechtB' }, { seg: 'utrechtC' }, { seg: 'neonRun' }],
   // a `pick` slot of `pickSegs` chooses a SEGMENT instead of a fork pair: one after the other at each passage (the first one with seed 0, a seeded starting point for a real run), so every ambiance of the coastal zone is met in turn
   pickSegs: { C: ['coastSunset', 'coastMidday', 'coastBlueHour', 'coastMorning'] },
-  picks: { A: ['gate', 'gate3', 'gate4'], B: ['gate2', 'gate3B', 'gate4B'] },       // the fork pairs a `pick` slot chooses from (the first lap, with seed 0, takes the first: forest / market)
+  picks: { A: ['gate', 'gate5', 'gate6'], B: ['gate2', 'gate3B', 'gate4B'] },       // the fork pairs a `pick` slot chooses from (the first lap, with seed 0, takes the first: forest / market); B is not on the circuit any more
   loopFrom: 1,
 };

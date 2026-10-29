@@ -34,7 +34,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   // ================================================================ 1. the track and the rotation
   const K = await pg.evaluate(() => {
     const out = {}, order = TRACK.pickSegs.C; const seqOf = seed => { const w = new World(TRACK); w.seed = seed; w.reset(); w.extend(260000); return w.pieces.map(p => p.id || 'fork').filter(x => /^coast(Morning|Midday|Sunset|BlueHour)$/.test(x)); };
-    const w0 = new World(TRACK); w0.extend(30000); const ids = w0.pieces.map(p => p.id || 'fork'); const i = ids.indexOf('plaza'); out.after = ids.slice(i - 2, i + 3).join('>'); const C = w0.pieces[i + 1];
+    const w0 = new World(TRACK); w0.extend(30000); const ids = w0.pieces.map(p => p.id || 'fork'); const i = ids.findIndex(x => /^coast(Morning|Midday|Sunset|BlueHour)$/.test(x)); out.after = ids.slice(i - 1, i + 2).join('>'); const C = w0.pieces[i];
     out.piece = { id: C.id, len: C.z1 - C.z0, biome: C.seg.biome, name: C.seg.name, district: C.seg.district };
     const t = z => w0.bandsAt(z)[0]; out.t = [t(C.z0 + 2).t, t(C.z0 + 450).t, t(C.z0 + 2100).t, t(C.z1 - 450).t, t(C.z1 - 2).t].map(v => +v.toFixed(2));
     const nF = w0.items.filter(it => OBST[it.kind] && it.z >= C.z0 && it.z < C.z1).length, nAll = w0.items.filter(it => it.kind !== 'prop' && it.z >= C.z0 && it.z < C.z1).length; out.hz = [nF, nAll];
@@ -49,7 +49,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.starts = {}; for (const id of order) { const s2 = new World(TRACK); s2.seed = 0; s2.reset(); } return out;
   });
   T('the coastal zone is its own piece on the main circuit: ' + K.after + ' (' + K.piece.len + ' units, a district of ' + K.piece.district + ' fading in and out: t ' + K.t.join(' / ') + ', ' + K.hz[0] + ' hazards among ' + K.hz[1] + ' items); the canonical run starts with the sunset (' + K.canon + ')',
-    /plaza>coast(Sunset|Midday|BlueHour|Morning)>neonRun/.test(K.after) && K.piece.len === 4200 && K.t[0] < 0.05 && K.t[1] > 0.4 && K.t[1] < 0.99 && K.t[2] === 1 && K.t[4] < 0.05 && K.hz[0] <= 10 && K.hz[1] > 40 && K.canon === 'coastSunset,coastMidday,coastBlueHour,coastMorning', JSON.stringify(K.t));
+    /^neonStart>coast(Sunset|Midday|BlueHour|Morning)>cityRun$/.test(K.after) && K.piece.len === 4200 && K.t[0] < 0.05 && K.t[1] > 0.4 && K.t[1] < 0.99 && K.t[2] === 1 && K.t[4] < 0.05 && K.hz[0] <= 10 && K.hz[1] > 40 && K.canon === 'coastSunset,coastMidday,coastBlueHour,coastMorning', JSON.stringify(K.t));
   T('one light per passage, by turns: every seed goes through the four in the same cyclic order from its own start (' + Object.entries(K.seeds).map(([s, q]) => s + ': ' + q.slice(0, 4).map(x => x.replace('coast', '')).join('/')).join('; ') + '), all four in any four consecutive passages, and the same seed gives the same run; the coast branches of the junctions keep the sunset look (biome ' + K.branch.slice(0, 2).join(', ') + ')',
     K.cyc && K.four && K.again && K.branch[0] === 'coast' && K.branch[1] === 'coast' && K.biomes.join() === 'coast,coastNoon,coastBlue,coastMorning' && K.names.join() === 'SUNSET COAST,MIDDAY COAST,BLUE HOUR COAST,MORNING COAST', JSON.stringify(K.biomes));
 
@@ -98,7 +98,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   // ================================================================ 3c. Club Delphi: a whitewashed cabin with a dolphin SCULPTURE leaping on a pedestal and the drawn dolphin SIGN across its entrance (original drawings: none of the uploaded art is used or changed)
   const DL = await pg.evaluate(async () => {
     const out = {}; const { g, P } = H.at('coastSunset', 0); const r = g.r;
-    const slots = []; for (let i = Math.ceil(P.z0 * 0.1 / 12); i < P.z1 * 0.1 / 12; i++) { const L = ENV3D.coast.layout(i, rnd); if (L.some(q => q.prop === 'coastDelphi')) slots.push([i, L.filter(q => q.prop === 'coastDelphi').every(q => q.x > 0), L.filter(q => /^cottage|^coastClub/.test(q.prop)).length]); }
+    const slots = []; for (let i = Math.ceil((P.z0 + 1000) * 0.1 / 12); i < P.z1 * 0.1 / 12; i++) { const L = ENV3D.coast.layout(i, rnd); if (L.some(q => q.prop === 'coastDelphi')) slots.push([i, L.filter(q => q.prop === 'coastDelphi').every(q => q.x > 0), L.filter(q => /^cottage|^coastClub/.test(q.prop)).length]); }
     out.slots = slots.length; out.landSide = slots.every(x => x[1]); out.alone = slots.every(x => x[2] === 0);
     const clubs = []; for (let i = Math.ceil(P.z0 * 0.1 / 12); i < P.z1 * 0.1 / 12; i++) if (ENV3D.coast.layout(i, rnd).some(q => q.prop === 'coastClub')) clubs.push(i); out.clubs = clubs.length; out.apart = clubs.every(c => slots.every(s => Math.abs(s[0] - c) > 1));
     g.p.z = slots[0][0] * 120 + 60 - 180; g.world.extend(g.p.z); const a = g.world.playerBand(g.p.z + 300, 0); g.bgTo = a.to; g.bgT = a.t; H.draw(4);

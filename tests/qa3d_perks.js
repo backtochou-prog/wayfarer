@@ -58,7 +58,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       out.seeds.push({ seed, kinds, minPU, nearHaz, puBefore700, early, minGap: Math.round(minGap), atFork, wayN, wayWithoutHazard, patterns: [...new Set(it.map(i => i.pat).filter(Boolean))].filter(n => PATTERNS_X[n]).length });
     }
     // both branches: over many forks every branch road gets power-ups and shards, and exactly one waymark
-    const w = new World(TRACK); w.extras = true; w.seed = 5; w.reset(); w.extend(160000);
+    const w = new World(TRACK); w.extras = true; w.seed = 5; w.reset(); w.extend(300000);          // (one junction per 29 250-unit lap now)
     const sides = { left: { pu: 0, sh: 0, wm: [] }, right: { pu: 0, sh: 0, wm: [] } };
     for (const P of w.pieces) if (P.type === 'fork') for (const sd of ['left', 'right']) { const its = w.items.filter(i => i.tag === P.uid + sd); sides[sd].pu += its.filter(i => i.kind === 'magnet' || i.kind === 'aura' || i.kind === 'dash').length; sides[sd].sh += its.filter(i => i.kind === 'shard').length; sides[sd].wm.push(its.filter(i => i.kind === 'waymark').length); }
     out.sides = sides; out.forks = w.pieces.filter(p => p.type === 'fork').length;

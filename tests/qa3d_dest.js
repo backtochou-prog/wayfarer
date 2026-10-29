@@ -31,8 +31,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
         out.pairs.add(F.fork.left.route + '|' + F.fork.right.route); if (n === 0) out.firstPairs.add(F.fork.left.route + '|' + F.fork.right.route);
         if (seed === 0) out.seed0.push(F.fork.left.route + '|' + F.fork.right.route);
       });
-      // never the same fork pair twice in a row in a slot (slot A = even index, B = odd)
-      for (let k = 2; k < fk.length; k++) if (fk[k].fork === fk[k - 2].fork) out.rep++;
+      // never the same fork pair twice in a row (the circuit has one junction slot, A, once a lap)
+      for (let k = 1; k < fk.length; k++) if (fk[k].fork === fk[k - 1].fork) out.rep++;
     }
     out.firstPairs = [...out.firstPairs]; out.pairs = [...out.pairs].sort();
     // the same seed gives the same route (reproducible)
@@ -42,10 +42,10 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const d = new World(TRACK); d.seed = 5; d.reset(); const pk = d.peekSpec(), nx = d.nextSpec(); out.peekOk = pk === nx || JSON.stringify(pk) === JSON.stringify(nx);
     return out;
   });
-  T('all five destinations are reachable through valid routes: ' + Object.keys(R.dest).sort().join(', ') + ' (' + R.pairs.length + ' different fork pairs; every fork offers two DIFFERENT destinations)',
-    ['forest', 'market', 'coast', 'ruins', 'neon'].every(d => R.dest[d] > 20) && R.same === 0 && R.pairs.length >= 6, JSON.stringify({ dest: R.dest, pairs: R.pairs, same: R.same }));
+  T('the three detours of the junction of Saint-Gilles are reachable through valid routes (the coast and the neon quarter are zones of their own now): ' + Object.keys(R.dest).sort().join(', ') + ' (' + R.pairs.length + ' different fork pairs; every fork offers two DIFFERENT destinations)',
+    ['forest', 'market', 'ruins'].every(d => R.dest[d] > 20) && !R.dest.coast && !R.dest.neon && R.same === 0 && R.pairs.length >= 3, JSON.stringify({ dest: R.dest, pairs: R.pairs, same: R.same }));
   T('the order varies: seed 0 is the canonical order (the first fork is forest / market), other seeds start with ' + R.firstPairs.length + ' different pairs; a fork slot never repeats its pair twice in a row (' + R.rep + ' repeats); the same seed is reproducible, peek and next agree',
-    R.seed0[0] === 'forest|detour' && R.seed0[1] === 'forestB|detourB' && R.firstPairs.length >= 3 && R.rep === 0 && R.repro && R.peekOk, JSON.stringify({ seed0: R.seed0.slice(0, 6), first: R.firstPairs, rep: R.rep, repro: R.repro }));
+    R.seed0[0] === 'forest|detour' && R.seed0[1] === 'forestB|ruinsRunB' && R.firstPairs.length >= 3 && R.rep === 0 && R.repro && R.peekOk, JSON.stringify({ seed0: R.seed0.slice(0, 6), first: R.firstPairs, rep: R.rep, repro: R.repro }));
   const Gs = await pg.evaluate(() => { const g = __wf; const seeds = [], saved = Game.runSeed; for (let k = 0; k < 6; k++) { g.start(); seeds.push(g.world.seed); } const wd = navigator.webdriver; return { webdriver: !!wd, seeds, canon: seeds.every(s => s === 0) }; });
   T('in an automated browser a run is the canonical seed 0 (reproducible tests); Game.runSeed gives a real player a random seed from ?seed=N or Math.random', Gs.canon === Gs.webdriver && (Gs.webdriver ? Gs.canon : true), JSON.stringify(Gs));
   const Rs = await pg.evaluate(() => { const orig = Object.getOwnPropertyDescriptor(navigator, 'webdriver'); Object.defineProperty(navigator, 'webdriver', { get: () => false, configurable: true }); const a = new Set(); for (let k = 0; k < 12; k++) a.add(Game.runSeed()); if (orig) Object.defineProperty(navigator, 'webdriver', orig); else delete navigator.webdriver; return { distinct: a.size, nonzero: [...a].every(v => v >= 1) }; });
@@ -78,7 +78,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   const fk = Object.values(F.forks);
-  T('every fork type (' + fk.map(f => f.id).join(', ') + '): two roads from one, back to one; no jump in the road edge (max ' + Math.max(...fk.map(f => f.maxJump)) + ' per 0.5 m of running, the same for the original forks), the merge meets the road after it (seam <= 0.03), branches are their own biome', fk.length === 6 && fk.every(f => f.maxJump < 0.06 && f.badBands === 0 && f.seam < 0.03 && f.tl.length === 2 && f.tl[0] !== f.tl[1]), JSON.stringify(fk.map(f => [f.id, f.maxJump, f.badBands, f.seam, f.tl])));
+  T('every fork type (' + fk.map(f => f.id).join(', ') + '): two roads from one, back to one; no jump in the road edge (max ' + Math.max(...fk.map(f => f.maxJump)) + ' per 0.5 m of running, the same for the original forks), the merge meets the road after it (seam <= 0.03), branches are their own biome', fk.length === 8 && fk.every(f => f.maxJump < 0.06 && f.badBands === 0 && f.seam < 0.03 && f.tl.length === 2 && f.tl[0] !== f.tl[1]), JSON.stringify(fk.map(f => [f.id, f.maxJump, f.badBands, f.seam, f.tl])));
   T('every fork has signs with advance warning: two signposts per side 42 m and 14 m before the junction, each with a 3D sign and a 2D sprite; every branch has its coin trail through the junction and its own coins and hazards, all inside its own road',
     fk.every(f => f.signsOk && f.misplaced === 0 && f.coinTrail >= 10 && f.cnt.L.coin > 10 && f.cnt.R.coin > 10 && f.cnt.L.hz > 0 && f.cnt.R.hz >= 0), JSON.stringify(fk.map(f => [f.id, f.signs.length, f.misplaced, f.coinTrail, f.cnt.L, f.cnt.R])));
 
@@ -175,25 +175,25 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     g.world.track = TRACK; g.world.reset();                                       // (the forced one-fork tracks are only for these runs)
     return out;
   });
-  T('every fork type, both choices (12 runs), played through at the top speed by a hazard-avoiding bot: it survives past the merge, collects coins on the branch, takes the chosen route, nothing runs backwards, nothing is dropped from any pool (peak ' + Math.round(Pl.peak * 100) + ' %)',
-    Pl.runs.length === 12 && Pl.runs.every(x => x.alive && x.reached && x.coins > 5 && x.route === x.want && x.back === 0) && Pl.dropped === 0 && Pl.peak <= 0.85, JSON.stringify(Pl.runs.map(x => [x.id, x.want, x.alive, x.coins, x.routes])));
+  T('every fork type (the five that are no longer on the circuit too), both choices (16 runs), played through at the top speed by a hazard-avoiding bot: it survives past the merge, collects coins on the branch, takes the chosen route, nothing runs backwards, nothing is dropped from any pool (peak ' + Math.round(Pl.peak * 100) + ' %)',
+    Pl.runs.length === 16 && Pl.runs.every(x => x.alive && x.reached && x.coins > 5 && x.route === x.want && x.back === 0) && Pl.dropped === 0 && Pl.peak <= 0.85, JSON.stringify(Pl.runs.map(x => [x.id, x.want, x.alive, x.coins, x.routes])));
 
   // ---------------------------------------------------------------- 5b. a whole run through the new destinations (real play, camera and road checked every few frames)
   const Run = await pg.evaluate(() => {
     const g = __wf, r = g.r, orig = Game.runSeed;
-    // a seed whose first six forks offer the coast, the ruins and the neon district; at each fork the run takes a new destination if one is offered (else alternates left / right)
+    // a seed whose first three forks offer the forest, the market and the ruins; at each fork the run takes a destination it has not taken yet (else alternates left / right)
     let seed = -1, want6 = [], wants = [];
     for (let sd = 1; sd < 200 && seed < 0; sd++) {
-      const w = new World(TRACK); w.seed = sd; w.reset(); w.extend(200000); const fk = w.pieces.filter(p => p.type === 'fork').slice(0, 6), got = new Set(), ws = [], bs = [];
-      fk.forEach((F, k) => { const L = TRACK.segments[F.fork.left.route].biome, R2 = TRACK.segments[F.fork.right.route].biome, fresh = b => ['coast', 'ruins', 'neon'].includes(b) && !got.has(b); const side = fresh(L) ? 'left' : fresh(R2) ? 'right' : (k % 2 ? 'right' : 'left'); got.add(side === 'left' ? L : R2); ws.push(side); bs.push(side === 'left' ? L : R2); });
-      if (['coast', 'ruins', 'neon'].every(b => got.has(b))) { seed = sd; want6 = bs; wants = ws; }
+      const w = new World(TRACK); w.seed = sd; w.reset(); w.extend(200000); const fk = w.pieces.filter(p => p.type === 'fork').slice(0, 3), got = new Set(), ws = [], bs = [];
+      fk.forEach((F, k) => { const L = TRACK.segments[F.fork.left.route].biome, R2 = TRACK.segments[F.fork.right.route].biome, fresh = b => ['forest', 'market', 'ruins'].includes(b) && !got.has(b); const side = fresh(L) ? 'left' : fresh(R2) ? 'right' : (k % 2 ? 'right' : 'left'); got.add(side === 'left' ? L : R2); ws.push(side); bs.push(side === 'left' ? L : R2); });
+      if (['forest', 'market', 'ruins'].every(b => got.has(b))) { seed = sd; want6 = bs; wants = ws; }
     }
     Game.runSeed = () => seed; g.start(); g.world.items = []; g.start();
     const out = { seed, want6, picks: [], biomes: [], offRoad: 0, otherRoad: 0, backwards: 0, maxEdge: 0, maxCamDx: 0, maxCamDy: 0, deaths: 0 };
     const key = c => g.onKey({ code: c, key: c === 'Space' ? ' ' : c, repeat: false, preventDefault() {} }, true);
     let zP = 0, cP = 0, scP = 0, camP = null, nFork = 0, want = null, lastUid = -1, f = 0; const seenUid = new Set();
     out.scenes = 0; let wasScene = false;
-    while (out.picks.length < 6 && f < 60 * 60 * 10 && (g.state === 'play' || g.state === 'scene')) {
+    while (out.picks.length < 3 && f < 60 * 60 * 10 && (g.state === 'play' || g.state === 'scene')) {
       if (g.state === 'scene') { if (!wasScene) out.scenes++; wasScene = true; g.advance(1 / 60); f++; zP = g.p.z; cP = g.coins; scP = g.score(); camP = null; if (f % 3 === 0) r.draw(g); continue; } wasScene = false;      /* the Gare du Midi cutscene: the bot lets it play (qa3d_gare checks it) */
       const p = g.p, w = g.world, F = w.openFork();
       if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = wants[nFork++]; }
@@ -213,8 +213,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     }
     Game.runSeed = orig; out.state = g.state; out.dist = Math.round(g.p.z / 10); out.coins = g.coins; out.dropped = r.dropped + r.items.dropped; return out;
   });
-  T('a whole run through the new destinations (seed ' + Run.seed + ': ' + Run.biomes.join(' > ') + '): six junctions, at each one a new destination taken when offered, every choice reaches the intended road, still running at ' + Run.dist + ' m (' + Run.scenes + ' station cutscene passed); the runner never leaves its road nor enters the other one; distance, score and coins never go back',
-    Run.seed > 0 && Run.state === 'play' && Run.scenes >= 1 && Run.picks.length === 6 && Run.biomes.join() === Run.want6.join() && ['coast', 'ruins', 'neon'].every(b => Run.biomes.includes(b)) && Run.offRoad === 0 && Run.otherRoad === 0 && Run.backwards === 0 && Run.coins > 30, JSON.stringify({ seed: Run.seed, biomes: Run.biomes, want: Run.want6, state: Run.state, dist: Run.dist, off: Run.offRoad, other: Run.otherRoad, back: Run.backwards, coins: Run.coins }));
+  T('a whole run through the junction detours (seed ' + Run.seed + ': ' + Run.biomes.join(' > ') + '): three junctions (three laps), at each one a destination not taken yet, every choice reaches the intended road, still running at ' + Run.dist + ' m (' + Run.scenes + ' station cutscene passed); the runner never leaves its road nor enters the other one; distance, score and coins never go back',
+    Run.seed > 0 && Run.state === 'play' && Run.scenes >= 1 && Run.picks.length === 3 && Run.biomes.join() === Run.want6.join() && ['forest', 'market', 'ruins'].every(b => Run.biomes.includes(b)) && Run.offRoad === 0 && Run.otherRoad === 0 && Run.backwards === 0 && Run.coins > 30, JSON.stringify({ seed: Run.seed, biomes: Run.biomes, want: Run.want6, state: Run.state, dist: Run.dist, off: Run.offRoad, other: Run.otherRoad, back: Run.backwards, coins: Run.coins }));
   T('and its road and camera are continuous at every junction and merge (max edge step ' + Run.maxEdge.toFixed(2) + ' m between sections, look-at step ' + Run.maxCamDx.toFixed(2) + ' m, camera height step ' + Run.maxCamDy.toFixed(2) + ' m per 3 frames), nothing dropped from a pool',
     Run.maxEdge < 1.6 && Run.maxCamDx < 1.0 && Run.maxCamDy < 0.3 && Run.dropped === 0, JSON.stringify({ edge: +Run.maxEdge.toFixed(2), dx: +Run.maxCamDx.toFixed(2), dy: +Run.maxCamDy.toFixed(2), dropped: Run.dropped }));
 

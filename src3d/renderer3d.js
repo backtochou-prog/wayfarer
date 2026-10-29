@@ -311,7 +311,7 @@ class Renderer3D {
           }
         }
         // the doors of a passage between two zones (Portal) that stand across this road in this slot: the user's picture on a plane, additive, faded in with the distance and out as the runner goes through
-        if (g.portal) for (const gt of g.portal.gatesIn(zs / U.Z, (zs + SL) / U.Z, b.route)) {
+        if (g.portal) for (const gt of g.portal.gatesIn(zs / U.Z, (zs + SL) / U.Z)) {
           if (c0 === null) { c0 = this.centreOf(sc.a, b.side) - Lref; c1 = this.centreOf(sc.b, b.side) - Lref; }
           const dist = gt.z * U.Z - zs, ahead = gt.z * U.Z - rz, far = gt.kind === 'out' ? Math.max(0, Math.min(1, (70 - ahead) / 20)) : Math.max(0, Math.min(1, (120 - ahead) / 30)), near = Math.max(0, Math.min(1, (ahead + 7) / 11));
           this.place('portalGate', c0 + (c1 - c0) * (dist / SL), dy(gt.z), rz - zs - dist, -Math.atan2(c1 - c0, SL), two ? 0.68 : 1);

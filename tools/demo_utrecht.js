@@ -1,5 +1,5 @@
 // Renders a DEMONSTRATION of the Utrecht zone from a real run of the game, frame by frame: the runner reaches the Gare du Midi, the cutscene plays, the train takes it to Utrecht, and a small bot
-// plays the basin, the covered gallery and the Oudegracht up to the junction (the real game, rules, HUD and effects; nothing is staged but the start, and the bot that drives):
+// plays the basin, the covered gallery and the Oudegracht up to the passage to the neon quarter (the real game, rules, HUD and effects; nothing is staged but the start, and the bot that drives):
 //   docs/downloads/wayfarer-utrecht-demo.mp4   (960 x 540, 20 fps, captions in French) and docs/screenshots/utrecht-demo-sheet.jpg (eight stills)
 // Run:  node tools/demo_utrecht.js [outDir]   (needs playwright-core, a Chromium: CHROMIUM=/path/to/chrome, ffmpeg: FFMPEG=/path/to/ffmpeg, Pillow for the sheet)
 const http = require('http'), fs = require('fs'), path = require('path'), cp = require('child_process');
@@ -14,7 +14,7 @@ fs.mkdirSync(FRAMES, { recursive: true });
   await pg.goto('http://localhost:8161/', { timeout: 90000 }); await pg.waitForFunction(() => window.__wf, null, { timeout: 60000 }); await pg.waitForTimeout(1500);
   await pg.evaluate(() => {
     const g = __wf, r = g.r; window.G = g; window.ADV = g.advance.bind(g); window.DRAW = () => r.draw(g);
-    g.start(); g.world.extend(80000); const P = g.world.pieces.find(p => p.id === 'gareMidi'), A = g.world.pieces.find(p => p.id === 'utrechtA'), B = g.world.pieces.find(p => p.id === 'utrechtB'), C = g.world.pieces.find(p => p.id === 'utrechtC'), F = g.world.pieces.find(p => p.type === 'fork' && p.z0 >= C.z1 - 1);
+    g.start(); g.world.extend(80000); const P = g.world.pieces.find(p => p.id === 'gareMidi'), A = g.world.pieces.find(p => p.id === 'utrechtA'), B = g.world.pieces.find(p => p.id === 'utrechtB'), C = g.world.pieces.find(p => p.id === 'utrechtC'), F = { z0: C.z1 + 100 };                                 // (after the Oudegracht comes the Stargate passage to the neon quarter: the demo ends just before it)
     g.state = 'play'; g.p.z = P.z0 - 100; g.p.x = 0; g.p.speed = 300; g.world.extend(g.p.z); g.world.items = g.world.items.filter(i => i.kind === 'prop' || i.z > P.z0 + 1300);        // the run starts just before the station
     const a = g.world.playerBand(g.p.z + 300, 0); g.bgTo = a.to; g.bgT = a.t;
     window.Z = { P, A, B, C, F }; g.advance = () => {}; g.draw = () => {};                                                   // the page's own loop is frozen: the frames are stepped from here
@@ -35,7 +35,7 @@ fs.mkdirSync(FRAMES, { recursive: true });
       if (z < A.z1) return 'Utrecht Centraal : le bassin devant la gare';
       if (z < B.z1) return 'Hoog Catharijne : le canal sous le centre commercial';
       if (z > C.z0 + 2900 && z < C.z0 + 4300) return 'La tour Dom, sous échafaudage, comme sur vos photos';
-      if (z > F.z0 - 800) return 'Le carrefour : on choisit la zone suivante';
+      if (z > F.z0 - 800) return 'Fin d\'Utrecht : un portail mène au quartier néon';
       return 'L\'Oudegracht : quais, caves voûtées, ponts (l\'eau est votre photo)';
     };
     window.STEP = () => {
