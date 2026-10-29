@@ -313,6 +313,7 @@ class Renderer3D {
           for (const pl of this.layoutFor(envId, i)) {
             if ((pl.x < 0 ? -1 : 1) !== sg) continue;
             if (inner && (!env.innerOk.has(pl.prop) || Math.abs(pl.x) - hwM > avail - 0.8)) continue;
+            if (pl.under !== undefined && w.seaDepth((zs + pl.dist) / U.Z) * U.Z < pl.under) continue;                    // sea life only where the sea is deep enough over the road (never in the air)
             const t = pl.dist / SL, cx = c0 + (c1 - c0) * t;
             if (/^(scooter|board|neonHover)/.test(pl.prop)) {                    // a parked scooter or a scooter station: offered to the player (an indicator above it), unless it was already taken
               const key = i + ':' + pl.prop + ':' + pl.x.toFixed(2);

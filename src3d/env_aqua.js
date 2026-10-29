@@ -43,6 +43,10 @@
     for (let k = 0; k < 14; k++) { const r = q => rnd(k * 7, q); p.push(Kit.ico(0.17 + r(1) * 0.12, (r(2) - 0.5) * 2.2, H + 0.5 + r(3) * 0.9, (r(4) - 0.5) * 9, '#e8f6ff')); }
     return Kit.merge(p); };
   const PROPS = { aquaJelly: jelly, aquaTurtle: turtle, aquaWhale: whale, aquaRib: rib, aquaShoal0: shoal(0), aquaShoal1: shoal(1), aquaShoal2: shoal(2), aquaRay: ray, aquaKelp: kelp, aquaCoral: coral, aquaBubbles: bubbles };
+  // THE SEA IS ABOVE: a creature or a plant is only drawn where the sea is deep enough over the road to hold it (Renderer3D `under`, in metres: World.seaDepth at its place must be at least that: the height of the
+  // animal above the road plus its drift, for the plants the least depth to stand in the water). At the mouths of the tunnel, where the road comes up to the surface, and for a runner who took the coast road
+  // (the tunnel beside it is not under the sea for them: nothing dives), nothing of the sea life floats in the air: only the ribs of the tunnel are there.
+  const UNDER = { aquaJelly: 6.5, aquaTurtle: 5.9, aquaRay: 10.5, aquaWhale: 12.8, aquaKelp: 0.8, aquaCoral: 0.8, aquaBubbles: 9.5 };
   // every slot: a rib across the road (x = 0: it is drawn once, with the road's own lean); outside (the right side of the island road), kelp, coral, bubbles and a shoal of fish; on the inner side, towards the coast road, a few fish (nothing tall: the coast road's runner must not have it in the way)
   const layout = (i, rnd) => {
     const out = [{ prop: 'aquaRib', x: 0, dist: 6 }], k = i * 2 + 1, r = n => rnd(k, n);
@@ -58,12 +62,13 @@
       if (mod(i, 6) === (sg > 0 ? 4 : 1)) out.push({ prop: 'aquaJelly', x: sg * (8.5 + q(8) * 9), dist: 3 + q(9) * 6, live: true });
       if (mod(i, 9) === (sg > 0 ? 5 : 8)) out.push({ prop: 'aquaTurtle', x: sg * (9 + q(10) * 7), dist: 6, live: true });
     }
+    for (const q of out) { const u = /^aquaShoal/.test(q.prop) ? 8.9 : UNDER[q.prop]; if (u !== undefined) q.under = u; }
     return out;
   };
   // the sea seen from inside: a deep teal that swallows the distance (a short fog), light from above
   ENV3D.coastAqua = Object.assign({}, ENV3D.coastBlue, {
     name: 'AQUARIUM TUNNEL', props: Object.assign({}, ENV3D.coastBlue.props, PROPS), layout, entrance: null, innerOk: new Set(['aquaShoal0', 'aquaShoal1', 'aquaShoal2', 'aquaJelly', 'aquaTurtle', 'aquaBubbles', 'aquaCoral']),
-    sky: { top: '#06304f', mid: '#0c5a7c', horizon: '#1b8ca6' }, sunDisc: { color: '#7fe0f0', size: 2 }, sunPos: [-10, 40], sunGlow: 0, fog: { color: '#0d5a7a', near: 14, far: 100 },
+    sky: { top: '#06304f', mid: '#0c5a7c', horizon: '#1b8ca6' }, sunDisc: { color: '#0d5a7a', size: 0.1 }, sunPos: [-10, 40], sunGlow: 0, fog: { color: '#0d5a7a', near: 14, far: 100 },
     hemi: { sky: '#8fe6ff', ground: '#0a3a58', intensity: 1.7 }, sun: { color: '#c4f6ff', intensity: 1.8, position: [-3, 10, -4] }, groundFar: '#0a4c66',
     road: { asphalt: ['#27395c', '#223253'], mark: '#ff7aa0', edge: '#ff1a55', curb: ['#ff1a55', '#e0124a'], curbFace: '#9c0c38', walk: ['#1d4d6c', '#194560'], court: '#1d4d6c', verge: ['#0c4f68', '#0a4760'] },
   });

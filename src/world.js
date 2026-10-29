@@ -191,6 +191,8 @@ class World {
     return d;
   }
   gradeAt(z) { const P = this.pieceAt(z); if (P.type === 'fork') return P.fork.tube && P.choice === 'right' ? (this.tubeDip(P, z + 10) - this.tubeDip(P, z - 10)) / 20 : 0; return P.type === 'seg' && P.seg.grade ? P.seg.grade * this.gradeT(P, z) : 0; }
+  // how deep the sea is over the road at z (units of run; 0 on the coast and the island): the dive of the aquarium tunnel for a runner who took it. Sea life is only drawn where this is deep enough (ENV3D.coastAqua `under`)
+  seaDepth(z) { let d = 0; for (const P of this.pieces) if (P.type === 'fork' && P.fork.tube && P.choice === 'right') d += this.tubeDip(P, z); return d; }
   // the fall (units of run) of the aquarium tunnel's road at z: 0 at its two mouths, `depth` on the sea bed between, smooth ramps of `ramp` units (a fork piece with `tube`, see src/track.js)
   tubeDip(P, z) {
     const tb = P.fork.tube, u = z - P.fe; if (u <= 0 || u >= tb.len) return 0;
