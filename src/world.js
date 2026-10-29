@@ -37,7 +37,7 @@ class World {
     const key = this.seqCount;                                          // the absolute index of the piece being resolved
     if (this.picked[key]) return this.picked[key];
     if (T.pickSegs && T.pickSegs[sp.pick]) {                           // a slot that takes a segment by turns: the passage number plus a seeded start (0 for the canonical seed)
-      const so = T.pickSegs[sp.pick], n = this.pickLap[sp.pick] || 0, sd = this.seed || 0, off = sd ? Math.floor(rnd(sd * 13 + 5, hashStr(sp.pick)) * so.length) : 0;
+      const so = T.pickSegs[sp.pick], n = this.pickLap[sp.pick] || 0, sd = this.seed || 0, off = sd ? Math.floor(rnd(sd * 13 + 5, hashStr((T.pickSalt && T.pickSalt[sp.pick]) || sp.pick)) * so.length) : 0;
       this.pickLap[sp.pick] = n + 1; return (this.picked[key] = { seg: so[(n + off) % so.length] });
     }
     const opts = T.picks[sp.pick], lap = this.pickLap[sp.pick] || 0, seed = this.seed || 0, h = hashStr(sp.pick);

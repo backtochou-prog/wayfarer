@@ -40,14 +40,14 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       }
       out.seeds[s] = { n: P.list.length, kinds: 'seg', gare, inside, missing, gares: fam, ordered: P.list.every((q, i) => !i || P.list[i - 1].zIn <= q.zIn), forks: pieces.filter(p => p.type === 'fork').length, forkOk: pieces.filter(p => p.type === 'fork').every(p => ['left', 'right'].every(sd => Portal.fam(TRACK.segments[p.fork[sd].route].biome) === 'saintgilles')), ok: P.list.every(q => q.zOut - q.zIn >= 700 && q.from !== q.to), apart: P.list.every((q, i) => !i || q.zIn - Portal.PULL >= P.list[i - 1].zOut + Portal.SETTLE), pairs: [...new Set(P.list.map(q => q.from + '>' + q.to))].sort().join(' ') };
     }
-    const w = new World(TRACK); w.seed = 0; w.reset(); w.extend(60000); const P = new Portal({}); P.scan(w); out.lap1 = P.list.filter(q => q.zIn < 30000).map(q => q.from + '>' + q.to); out.lap = w.pieces.slice(0, 12).map(p => p.type === 'fork' ? 'fork' : p.id).join('>');
+    const w = new World(TRACK); w.seed = 0; w.reset(); w.extend(60000); const P = new Portal({}); P.scan(w); out.lap1 = P.list.filter(q => q.zIn < 36000).map(q => q.from + '>' + q.to); out.lap = w.pieces.slice(0, 13).map(p => p.type === 'fork' ? 'fork' : p.id).join('>');
     return out;
   });
   const S = Object.values(A.seeds);
   T('every change of zone has doors, none inside Saint-Gilles (city, tram, gare are one zone) and none out of the Gare du Midi, where the train takes over, every exit door at least 70 m after its entry door and no two journeys overlapping (' + S.map(s => s.n + ' passages').join(', ') + ' for seeds 0, 1, 7, 99, 12345; ' + S[0].gares + ' gare pieces without a door)',
     S.every(s => s.n >= 15 && s.kinds === 'seg' && s.gare === 0 && s.inside === 0 && s.missing === 0 && s.gares >= 2 && s.ordered && s.ok && s.apart), JSON.stringify(A.seeds[0]));
   T('the circuit goes through the zones in order, Neon > Beach > Saint-Gilles > Utrecht > Neon again (' + A.lap + '), with ONE passage between a zone and the next (' + A.lap1.join(', ') + '; Saint-Gilles to Utrecht is the train), and the detours of the junction (forest, market, ruins: ' + S.map(s => s.forks).join('/') + ' junctions over five seeds) are part of Saint-Gilles, without doors',
-    A.lap === 'neonStart>coastSunset>cityRun>fork>plaza>cityRunB>tramRun>gareMidi>utrechtA>utrechtB>utrechtC>neonRun' && A.lap1.join() === 'neon>coast,coast>saintgilles,utrecht>neon' && A.seeds[0].pairs === 'coast>saintgilles neon>coast utrecht>neon' && S.every(s => s.forks >= 4 && s.forkOk), A.seeds[0].pairs);
+    A.lap === 'neonStart>coastSunset>townSunset>cityRun>fork>plaza>cityRunB>tramRun>gareMidi>utrechtA>utrechtB>utrechtC>neonRun' && A.lap1.join() === 'neon>coast,coast>saintgilles,utrecht>neon' && A.seeds[0].pairs === 'coast>saintgilles neon>coast utrecht>neon' && S.every(s => s.forks >= 4 && s.forkOk), A.seeds[0].pairs);
 
   // ================================================================ 2. the picture: the user's own, additive, one plane per door
   const PA = await pg.evaluate(async () => {

@@ -116,3 +116,4 @@ function paletteFor(toId, t) {
 }
 // the independent coastal zone's other lights (the 3D build gives them their own sky: ENV3D.coastMorning / coastNoon / coastBlue; the 2D game just uses the coast's palette)
 for (const id of ['coastMorning', 'coastNoon', 'coastBlue']) BIOMES[id] = Object.assign({}, BIOMES.coast, { name: 'SUNSET COAST' });
+for (const [id, base] of [['coastTown', 'coast'], ['coastTownNoon', 'coastNoon'], ['coastTownBlue', 'coastBlue'], ['coastTownMorning', 'coastMorning']]) BIOMES[id] = Object.assign({}, BIOMES[base], { atmo: base });          // the coastal town: the coast's palettes and the coast's atmosphere (the game switches to it at once: no dip, and no break in the coast music, between the coast and the town)

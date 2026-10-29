@@ -165,7 +165,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     };
     for (const id of Object.keys(TRACK.forks)) for (const want of ['left', 'right']) {
       const T2 = Object.assign({}, TRACK, { sequence: [{ seg: 'neonStart' }, { seg: 'cityRun' }, { fork: id }, { seg: 'plaza' }, { seg: 'cityRunB' }], loopFrom: 3 });
-      g.start(); g.world.track = T2; g.world.reset(); g.world.items = []; g.world.reset(); g.start(); g.world.track = T2; g.world.reset(); g.world.extend(9000);
+      g.start(); g.world.track = T2; g.world.reset(); g.world.items = []; g.world.reset(); g.start(); g.world.track = T2; g.world.reset(); g.world.extend(14000);
       const F0 = g.world.openFork(); g.p.z = F0.z0 - 1500; g.p.speed = 340; g.world.extend(g.p.z); g.world.items = g.world.items.filter(i => i.z > g.p.z + 700);
       const c0 = g.coins; let f = 0, coinsBack = 0, cPrev = g.coins, zPrev = g.p.z, zBack = 0, tags = new Set();
       for (; f < 60 * 80 && g.state === 'play' && g.p.z < F0.z1 + 1200; f++) { bot(want); g.p.speed = 340; g.advance(1 / 60); if (f % 4 === 0) r.draw(g); if (g.coins < cPrev) coinsBack++; cPrev = g.coins; if (g.p.z < zPrev) zBack++; zPrev = g.p.z; const pb = g.world.playerBand(g.p.z, g.p.x); tags.add(pb.route); for (const k in r.propUsed) { const fr = r.propUsed[k] / r.props[k].length; if (fr > out.peak) out.peak = fr; } }

@@ -166,7 +166,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.state = g.state; out.dist = Math.round(g.p.z / 10); out.coins = g.coins; out.dropped = r.dropped + r.items.dropped; out.seen = [...out.seen].sort(); out.gates = [...out.gates].sort(); out.forkRoutes = out.forkRoutes.size;
     return out;
   });
-  T('six junctions played, alternating left/right (' + Run.picks.join(',') + '): still running at ' + Run.dist + ' m (' + Run.scenes + ' station cutscene passed), every choice took the intended road, both junction types used', Run.state === 'play' && Run.scenes >= 1 && Run.picks.length === 6 && Run.picks.join() === Run.wants.slice(0, 6).join() && Run.dist > 1500, JSON.stringify({ state: Run.state, picks: Run.picks, wants: Run.wants, dist: Run.dist, scenes: Run.scenes }));
+  T('the junctions of the first laps played, alternating left/right (' + Run.picks.join(',') + '): still running at ' + Run.dist + ' m (' + Run.scenes + ' station cutscene passed), every choice took the intended road, both junction types used', Run.state === 'play' && Run.scenes >= 1 && Run.picks.length >= 4 && Run.picks.join() === Run.wants.slice(0, Run.picks.length).join() && Run.dist > 1500, JSON.stringify({ state: Run.state, picks: Run.picks, wants: Run.wants, dist: Run.dist, scenes: Run.scenes }));
   T('branch lock: the runner always stays on its chosen road and never enters the other road of a junction', Run.offRoad === 0 && Run.otherRoad === 0, JSON.stringify({ offRoad: Run.offRoad, otherRoad: Run.otherRoad }));
   T('distance, speed, score and coins never go backwards across segments and junctions (' + Run.coins + ' coins)', Run.backwards === 0 && Run.coins > 30, JSON.stringify({ backwards: Run.backwards, coins: Run.coins }));
   T('road ribbon stays continuous and the chase camera glitch-free through all of it (max edge step between sections ' + Run.maxEdge.toFixed(2) + ' m, look-at step ' + Run.maxCamDx.toFixed(2) + ' m / camera height step ' + Run.maxCamDy.toFixed(2) + ' m per 3 frames)', Run.maxEdge < 1.6 && Run.maxCamDx < 1.0 && Run.maxCamDy < 0.3, JSON.stringify({ edge: +Run.maxEdge.toFixed(2), dx: +Run.maxCamDx.toFixed(2), dy: +Run.maxCamDy.toFixed(2) }));
@@ -189,7 +189,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
 
   // ================================================================ 3b. the neon quarter: a district that fades in and out, and its scenery
   const Nq = await pg.evaluate(() => {
-    const w = new World(TRACK); w.extend(60000); const out = { segs: 0, bad: [], maxStep: 0, mid: 0, ends: 0, ids: [] };
+    const w = new World(TRACK); w.extend(80000); const out = { segs: 0, bad: [], maxStep: 0, mid: 0, ends: 0, ids: [] };
     for (const P of w.pieces.filter(p => p.type === 'seg' && p.id === 'neonRun')) {
       out.segs++; out.len = P.z1 - P.z0; let prev = null;
       for (let z = P.z0 + 0.5; z < P.z1 - 0.5; z += 5) {
@@ -365,7 +365,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('the trees of Saint-Gilles are the user photo of a blossom tree (a ' + Bl.size.join(' x ') + ' WebP cut out along the outline they drew): the image loads, two crossed planes 7.5 m tall standing on the ground, one shared alpha-tested material, placed by the street layout',
     Bl.loaded && Bl.webp && Bl.height === 7.5 && Bl.foot === 0 && Bl.verts === 8 && Bl.shared && Bl.alpha && Bl.stalk && Bl.used, JSON.stringify(Bl));
   const Tg = await pg.evaluate(async () => {
-    const g = __wf, r = g.r, realRender = window.__realRender; r.renderer.render = () => {}; g.start(); g.world.items = []; g.world.reset(); g.start(); g.world.extend(9000); for (let n = 9000; !g.world.pieces.find(p => p.type === 'seg' && p.id === 'tramRun') && n < 90000; n += 4000) g.world.extend(n);
+    const g = __wf, r = g.r, realRender = window.__realRender; r.renderer.render = () => {}; g.start(); g.world.items = []; g.world.reset(); g.start(); g.world.extend(14000); for (let n = 9000; !g.world.pieces.find(p => p.type === 'seg' && p.id === 'tramRun') && n < 90000; n += 4000) g.world.extend(n);
     const P = g.world.pieces.find(p => p.type === 'seg' && p.id === 'tramRun'); g.state = 'play'; g.world.items = []; r.dropped = 0; r.droppedBy = {};
     let used = 0, rows = 0, wires = 0, peak = 0;
     for (let z = P.z0 + 100; z < P.z1 - 100; z += 40) {

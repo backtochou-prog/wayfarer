@@ -111,14 +111,24 @@ const TRACK = {
                  props: [{ spr: 'utDom', dz: 3600, x: -9 }] },
     // THE COASTAL ZONE, on the main circuit (after the first plaza of every lap), one of four pieces by turns (`pickSegs.C`): the same safe sprint of coin waves, dunes and a few barriers, on a 420 m
     // coast road, under four lights: the sunset (the look of the coast branches of the junctions), the morning haze, the midday sun and the blue hour. A district fading in and out over 90 m.
-    coastMorning:  { name: 'MORNING COAST',   biome: 'coastMorning', length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, calmStart: true,
+    coastMorning:  { name: 'MORNING COAST',   biome: 'coastMorning', length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
                      patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave', 'crateJump'], extra: ['crateBarrier', 'hopWeave'] },
-    coastMidday:   { name: 'MIDDAY COAST',    biome: 'coastNoon',    length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, calmStart: true,
+    coastMidday:   { name: 'MIDDAY COAST',    biome: 'coastNoon',    length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
                      patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave', 'crateJump'], extra: ['crateBarrier', 'hopWeave'] },
-    coastSunset:   { name: 'SUNSET COAST',    biome: 'coast',        length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, calmStart: true,
+    coastSunset:   { name: 'SUNSET COAST',    biome: 'coast',        length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
                      patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave', 'crateJump'], extra: ['crateBarrier', 'hopWeave'] },
-    coastBlueHour: { name: 'BLUE HOUR COAST', biome: 'coastBlue',    length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, calmStart: true,
+    coastBlueHour: { name: 'BLUE HOUR COAST', biome: 'coastBlue',    length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
                      patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave', 'crateJump'], extra: ['crateBarrier', 'hopWeave'] },
+    // THE COASTAL TOWN, the second half of the beach zone (`pickSegs.D`, the same light as the coastal piece before it): a seaside town of painted towers, flower roundabouts, a landing pad with a flying saucer
+    // (src3d/env_town.js), the same safe sprint on 480 m. The coastal piece before it stays in to its end (`stay`) and the town is fully in from its first unit (`opening`) and fades out at its end.
+    townMorning:  { name: 'MORNING TOWN',   biome: 'coastTownMorning', length: 4800, curve: 0.7, first: 140, spacing: 210, district: 900, opening: true,
+                    patterns: ['coastWave', 'line', 'coastDunes', 'trailL', 'coastWave', 'hurdle', 'trailR', 'crateJump', 'coastWave', 'rowL'], extra: ['crateBarrier', 'hopWeave'] },
+    townMidday:   { name: 'MIDDAY TOWN',    biome: 'coastTownNoon',    length: 4800, curve: 0.7, first: 140, spacing: 210, district: 900, opening: true,
+                    patterns: ['coastWave', 'line', 'coastDunes', 'trailL', 'coastWave', 'hurdle', 'trailR', 'crateJump', 'coastWave', 'rowL'], extra: ['crateBarrier', 'hopWeave'] },
+    townSunset:   { name: 'SUNSET TOWN',    biome: 'coastTown',        length: 4800, curve: 0.7, first: 140, spacing: 210, district: 900, opening: true,
+                    patterns: ['coastWave', 'line', 'coastDunes', 'trailL', 'coastWave', 'hurdle', 'trailR', 'crateJump', 'coastWave', 'rowL'], extra: ['crateBarrier', 'hopWeave'] },
+    townBlueHour: { name: 'BLUE HOUR TOWN', biome: 'coastTownBlue',    length: 4800, curve: 0.7, first: 140, spacing: 210, district: 900, opening: true,
+                    patterns: ['coastWave', 'line', 'coastDunes', 'trailL', 'coastWave', 'hurdle', 'trailR', 'crateJump', 'coastWave', 'rowL'], extra: ['crateBarrier', 'hopWeave'] },
     // second variants of the repeating pieces (same biomes and names, a different bend, length and pattern mix) so each lap along the loop is not a copy of the last
     cityRunB:  { name: 'OLD TOWN',      biome: 'city',   length: 1150, curve: -1.0, first: 90,  spacing: 210,
                  patterns: ['trailR', 'crateJump', 'dodgeR', 'risky', 'line', 'hurdle', 'slideGate', 'rowL', 'trailL', 'zig'], extra: ['crateBarrier', 'gateTrail', 'hopWeave'] },
@@ -166,11 +176,12 @@ const TRACK = {
   // Every route choice is a fork with a signpost on each side. The two fork slots of a lap (A and B) pick one of three pairs each (see `picks`), so the destinations come in a different order
   // from lap to lap and, in a real run, from run to run (World.seed). Between them the five destinations (forest, market, coast, ruins, neon district) are all reachable.
   base: 'city',          // the biome every segment's palette blends from (the "unblended" look); NOT the biome of the first piece, which is the neon quarter
-  // THE ZONES IN ORDER: Neon > Beach (the coast, in its four lights by turns) > Saint-Gilles (the street, a junction with forest / market / ruins detours, the tram street, the Gare du Midi) > Utrecht (by train) >
+  // THE ZONES IN ORDER: Neon > Beach (the coast and then the coastal town, in the four lights by turns) > Saint-Gilles (the street, a junction with forest / market / ruins detours, the tram street, the Gare du Midi) > Utrecht (by train) >
   // Neon again, and so on: one door between each zone and the next (Saint-Gilles to Utrecht is the train, not a door). The run starts in the neon quarter (neonStart); the loop starts at the beach.
-  sequence: [{ seg: 'neonStart' }, { pick: 'C' }, { seg: 'cityRun' }, { pick: 'A' }, { seg: 'plaza' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { seg: 'gareMidi' }, { seg: 'utrechtA' }, { seg: 'utrechtB' }, { seg: 'utrechtC' }, { seg: 'neonRun' }],
+  sequence: [{ seg: 'neonStart' }, { pick: 'C' }, { pick: 'D' }, { seg: 'cityRun' }, { pick: 'A' }, { seg: 'plaza' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { seg: 'gareMidi' }, { seg: 'utrechtA' }, { seg: 'utrechtB' }, { seg: 'utrechtC' }, { seg: 'neonRun' }],
   // a `pick` slot of `pickSegs` chooses a SEGMENT instead of a fork pair: one after the other at each passage (the first one with seed 0, a seeded starting point for a real run), so every ambiance of the coastal zone is met in turn
-  pickSegs: { C: ['coastSunset', 'coastMidday', 'coastBlueHour', 'coastMorning'] },
+  pickSegs: { C: ['coastSunset', 'coastMidday', 'coastBlueHour', 'coastMorning'], D: ['townSunset', 'townMidday', 'townBlueHour', 'townMorning'] },
+  pickSalt: { D: 'C' },         // the town takes its light from the same turn as the coastal piece before it (the same seeded start)
   picks: { A: ['gate', 'gate5', 'gate6'], B: ['gate2', 'gate3B', 'gate4B'] },       // the fork pairs a `pick` slot chooses from (the first lap, with seed 0, takes the first: forest / market); B is not on the circuit any more
   loopFrom: 1,
 };

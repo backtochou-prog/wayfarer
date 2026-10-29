@@ -95,6 +95,43 @@ window.ENV3D = window.ENV3D || {};
     return { merged: Kit.merge(p), sprite: CoastArt.delphiBlade(5.1, 0.3, 3.1, 2.4, 5.2), material: () => CoastArt.delphiMaterial() };
   };
 
+  // ---- THE EVERYDAY LIFE OF THE COAST: green spaces, a bike lane, a youth and sports ground. These stand on the land side, on the beach and in the town (src3d/env_coast.js uses them too).
+  // the BIKE LANE: a terracotta strip with white dashes and a bicycle sign, one slot long, on the pavement along the road (the strips of consecutive slots make one lane)
+  const bike = () => {
+    const p = [Kit.box(1.2, 0.03, SLOT + 0.02, 0.6, 0, 0, '#c8553d')]; for (const z of [-5.2, -3.2, 3.2, 5.2]) p.push(Kit.box(0.07, 0.01, 1.0, 0.6, 0.03, z, '#f4efe2'));
+    for (const dz of [-0.42, 0.42]) p.push(Kit.cyl(0.25, 0.25, 0.012, 0.6, 0.03, dz, '#f4efe2', { seg: 10 }), Kit.cyl(0.17, 0.17, 0.014, 0.6, 0.03, dz, '#c8553d', { seg: 10 }));
+    p.push(Kit.box(0.05, 0.012, 0.84, 0.6, 0.034, 0, '#f4efe2'), Kit.box(0.05, 0.012, 0.4, 0.78, 0.034, -0.16, '#f4efe2', { ry: 0.5 })); return Kit.merge(p);
+  };
+  // a GREEN SPACE: a lawn with a lighter border, a gravel path across it, clumps of bushes at the back and a bench (trees are added by the layout)
+  const park = () => {
+    const p = [Kit.box(8.4, 0.14, 10.4, 4.2, 0, 0, '#b4d27c'), Kit.box(8.0, 0.16, 10.0, 4.2, 0, 0, '#69a64e'), Kit.box(8.0, 0.17, 1.2, 4.2, 0, 0.6, '#e6d4a4')];
+    for (const [x, z, r] of [[7.2, -3.6, 0.9], [7.4, -1.6, 0.75], [7.1, 2.6, 1.0], [7.3, 4.2, 0.7], [1.2, -4.2, 0.7]]) p.push(Kit.ico(r, x, 0.16 + r * 0.55, z, '#3f8a3f', { sy: 0.8, detail: 1 }));
+    p.push(Kit.box(0.5, 0.45, 2.0, 3.2, 0.16, -2.6, '#a87447'), Kit.box(0.12, 0.5, 2.0, 3.45, 0.55, -2.6, '#a87447'), Kit.box(0.1, 0.4, 0.1, 3.0, 0.16, -3.5, '#2a2630'), Kit.box(0.1, 0.4, 0.1, 3.0, 0.16, -1.7, '#2a2630')); return Kit.merge(p);
+  };
+  // a SPORTS COURT: a green multi-sport pitch with white lines and a centre circle, two football goals and a basketball hoop, a low blue wall round it
+  const court = () => {
+    const W = 8.6, L = 10.6, p = [Kit.box(W + 0.5, 0.12, L + 0.5, W / 2 + 0.2, 0, 0, '#3d6f9a'), Kit.box(W, 0.14, L, W / 2 + 0.2, 0, 0, '#4f9a6a')], X = W / 2 + 0.2, wl = '#f4efe2';
+    p.push(Kit.box(W - 0.3, 0.15, 0.08, X, 0, 0, wl), Kit.box(0.08, 0.15, L - 0.3, 0.45, 0, 0, wl), Kit.box(0.08, 0.15, L - 0.3, W - 0.05, 0, 0, wl), Kit.box(W - 0.3, 0.15, 0.08, X, 0, -L / 2 + 0.25, wl), Kit.box(W - 0.3, 0.15, 0.08, X, 0, L / 2 - 0.25, wl));
+    p.push(Kit.cyl(1.35, 1.35, 0.16, X, 0, 0, wl, { seg: 16 }), Kit.cyl(1.25, 1.25, 0.17, X, 0, 0, '#4f9a6a', { seg: 16 }));
+    for (const z of [-L / 2 + 0.3, L / 2 - 0.3]) p.push(Kit.box(0.1, 1.6, 0.1, X - 1.1, 0.14, z, wl), Kit.box(0.1, 1.6, 0.1, X + 1.1, 0.14, z, wl), Kit.box(2.3, 0.1, 0.1, X, 1.7, z, wl));
+    p.push(Kit.cyl(0.06, 0.06, 3.0, W - 0.2, 0.14, L / 2 - 1.6, '#2a2630', { seg: 5 }), Kit.box(0.06, 0.8, 1.1, W - 0.3, 2.6, L / 2 - 1.6, '#f4efe2'), Kit.cyl(0.25, 0.25, 0.05, W - 0.55, 2.55, L / 2 - 1.6, '#e8702a', { seg: 8 }));
+    for (const z of [-L / 2 - 0.2, L / 2 + 0.2]) p.push(Kit.box(W + 0.5, 0.6, 0.12, W / 2 + 0.2, 0.12, z, '#1f4f8a')); return Kit.merge(p);
+  };
+  // a YOUTH PLAYGROUND: a rubber surface, a swing set, a slide with its platform and a sandpit, in the colours of the painting
+  const play = () => {
+    const p = [Kit.box(8.6, 0.12, 9.6, 4.3, 0, 0, '#c8553d'), Kit.box(2.8, 0.2, 2.4, 6.7, 0.1, 3.0, '#e6d3a0')];
+    for (const z of [-3.9, -1.9]) p.push(Kit.cyl(0.07, 0.09, 2.6, 1.6, 0.12, z, '#2a5fc8', { seg: 5, rx: 0.18 }), Kit.cyl(0.07, 0.09, 2.6, 3.4, 0.12, z, '#2a5fc8', { seg: 5, rx: -0.18 }));
+    p.push(Kit.box(2.0, 0.1, 0.1, 2.5, 2.65, -2.9, '#2a5fc8', { rz: 0 }));
+    for (const z of [-3.3, -2.5]) p.push(Kit.box(0.04, 1.8, 0.04, 2.5, 0.85, z, '#9a9aa8'), Kit.box(0.5, 0.06, 0.34, 2.5, 0.8, z, '#f2c21c'));
+    p.push(Kit.box(1.6, 0.1, 1.6, 6.4, 1.5, -2.8, '#f2c21c'), Kit.box(0.1, 1.5, 0.1, 5.7, 0.12, -3.5, '#2a5fc8'), Kit.box(0.1, 1.5, 0.1, 7.1, 0.12, -3.5, '#2a5fc8'), Kit.box(0.1, 1.5, 0.1, 5.7, 0.12, -2.1, '#2a5fc8'), Kit.box(0.1, 1.5, 0.1, 7.1, 0.12, -2.1, '#2a5fc8'));
+    p.push(Kit.box(0.7, 0.08, 3.0, 6.4, 0.75, -0.6, '#e0483a', { rx: 0.5 }), Kit.box(0.08, 0.35, 3.0, 6.05, 0.95, -0.6, '#e0483a', { rx: 0.5 }), Kit.box(0.08, 0.35, 3.0, 6.75, 0.95, -0.6, '#e0483a', { rx: 0.5 }));
+    p.push(Kit.cone(0.9, 0.9, 6.4, 1.6, -2.8, '#2a5fc8', { seg: 4, ry: 0.78 })); return Kit.merge(p);
+  };
+
+  // THE GIANT PARASOL: a pole, a base and, as the canopy, the user's red and cream sunburst picture wound on a cone (ParasolArt), 3.4 m in radius, 4.8 m high. On the verge of the land side, now and then.
+  const parasol = () => ({ merged: Kit.merge([Kit.cyl(0.07, 0.09, 3.9, 0, 0, 0, '#f4eee0', { seg: 6 }), Kit.cyl(0.26, 0.32, 0.12, 0, 0, 0, '#c8c4b8', { seg: 8 }), Kit.ico(0.15, 0, 4.78, 0, '#f4eee0')]),
+    sprite: ParasolArt.canopy(3.4, 1.3, 3.5), material: () => ParasolArt.material() });
+
   ENV3D.coast = {
     name: 'SUNSET COAST',
     sky: { top: '#4a5aa0', mid: '#e87f78', horizon: '#ffc57e' },
@@ -110,7 +147,7 @@ window.ENV3D = window.ENV3D || {};
     innerOk: new Set(['tuft', 'tuftBig', 'seaFence', 'lampSea']),
 
     props: {
-      seaStrip: seaStrip, coastClub: club, coastDelphi: delphi,
+      seaStrip: seaStrip, coastClub: club, coastDelphi: delphi, coastParasol: parasol, coastBike: bike, coastPark: park, coastCourt: court, coastPlay: play, tree: ENV3D.city.props.tree,
       cottageA: () => cottage(7.4, 6, 3.6, C.white, C.roof, 1), cottageB: () => cottage(6.4, 5.5, 3.4, '#a9d0e0', C.roofB, 2), cottageC: () => cottage(8.0, 6, 3.8, '#f2d9a8', C.roof, 3), cottageD: () => cottage(6.8, 5.5, 3.2, C.white, C.roofB, 4),
       seaFence: fenceRun(SLOT - 0.4), tuft: tuft(6, 0.9), tuftBig: tuft(11, 1.3),
       driftwood: () => Kit.merge([Kit.cyl(0.16, 0.2, 2.8, 0, 0.2, 0, '#c8b898', { rz: Math.PI / 2, ry: 0.5, seg: 5 }), Kit.cyl(0.08, 0.1, 1.2, 0.5, 0.35, 0.4, '#b8a888', { rz: 1.2, seg: 5 })]),
@@ -152,8 +189,11 @@ window.ENV3D = window.ENV3D || {};
           if (S.variant === 2 || S.variant === 3) if (mod(i, 2) === 0) out.push({ prop: 'lampSea', x: -4.3, dist: 9 });
           continue;
         }
-        if (mod(i, 17) === 2) { out.push({ prop: 'coastDelphi', x: 5.4, dist: 6 }, { prop: 'tuft', x: 5.0, dist: 2 }); continue; }          // Club Delphi, now and then
-        if (mod(i, 17) === 8) { out.push({ prop: 'coastClub', x: 5.4, dist: 6 }, { prop: 'tuft', x: 5.0, dist: 2 }); continue; }          // the Strawberry Beach Club, now and then
+        out.push({ prop: 'coastBike', x: 3.7, dist: 6 });                                                                                                        // the bike lane along the road, on every slot
+        if (mod(i, 13) === 5) { out.push({ prop: 'coastParasol', x: 8.8, dist: 6 }, { prop: 'tuft', x: 5.4, dist: 2 }, { prop: 'seaFence', x: 4.9, dist: 6 }); continue; }          // a giant parasol, now and then
+        if (mod(i, 11) === 3) { out.push({ prop: 'coastPark', x: 5.8, dist: 6 }, { prop: 'tree', x: 10.4, dist: 2.5 }, { prop: 'tree', x: 11.6, dist: 9.5 }); continue; }                 // a green space: a lawn, bushes, a bench, trees
+        if (mod(i, 19) === 7) { out.push({ prop: 'coastCourt', x: 5.8, dist: 6 }, { prop: 'tuft', x: 5.2, dist: 2 }); continue; }                                                // a sports court
+        if (mod(i, 15) === 10) { out.push({ prop: 'coastPlay', x: 5.8, dist: 6 }, { prop: 'tuft', x: 5.2, dist: 2 }); continue; }                                               // a youth playground
         switch (S.variant) {
           case 0: out.push({ prop: COT[mod(i * 3 + S.b, 4)], x: 8.4 + r(1) * 1.2, dist: 6 + (r(2) - 0.5) * 1.2 }, { prop: 'seaFence', x: 4.9, dist: 6 }, { prop: 'tuft', x: 5.7 + r(3), dist: 2 + r(4) * 8 }); if (r(5) < 0.4) out.push({ prop: 'tuftBig', x: 6.3 + r(6), dist: 8 }); break;
           case 1: out.push({ prop: 'dune', x: 8 + r(1) * 4, dist: 3 + r(2) * 6 }, { prop: 'tuftBig', x: 5.4 + r(3) * 1.5, dist: 2 + r(4) * 4 }, { prop: 'tuft', x: 5.2 + r(5) * 2, dist: 7 + r(6) * 4 }); if (r(7) < 0.35) out.push({ prop: 'seaFence', x: 4.9, dist: 6 }); if (r(8) < 0.3) out.push({ prop: 'driftwood', x: 6 + r(9), dist: 5 }); break;

@@ -24,7 +24,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       window.frames = n => { for (let i = 0; i < n; i++) { g.time += 1 / 60; g.draw(); } };
       // put the player in the tram street, `back` metres before the first slot that has `want` in its layout (any prop kind), the zone fully in
       window.goto = (want, back = 30, nth = 0) => {
-        g.start(); g.world.items = []; g.world.reset(); g.start(); g.world.extend(9000); for (let n = 9000; !g.world.pieces.find(p => p.type === 'seg' && p.id === 'tramRun') && n < 90000; n += 4000) g.world.extend(n);
+        g.start(); g.world.items = []; g.world.reset(); g.start(); g.world.extend(14000); for (let n = 9000; !g.world.pieces.find(p => p.type === 'seg' && p.id === 'tramRun') && n < 90000; n += 4000) g.world.extend(n);
         for (let n = 100000; n <= 260000; n += 20000) g.world.extend(n);                                   // (the later laps too: the layout is a pure function of the slot, so any lap with the wanted prop will do)
         const Ps = g.world.pieces.filter(p => p.type === 'seg' && p.id === 'tramRun'); let P = Ps[0]; g.state = 'play'; g.world.items = []; let slot = null, seen = 0;
         if (!window.__L0) window.__L0 = ENV3D.tram.layout; ENV3D.tram.layout = window.__L0; for (const m of Object.values(r.layouts)) m.clear();      // (the real layout, unless 'clean')

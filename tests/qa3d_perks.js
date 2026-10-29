@@ -21,7 +21,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const HELPERS = () => {
     window.H = {
       // a fresh run with nothing on the road except what the scenario puts there; the runner stands at z 0 in lane `lane`, at the top speed
-      setup(lane = 0, speed = 340) { const g = __wf; g.r.renderer.render = () => {}; g.start(); g.world.extend(9000); g.world.items = g.world.items.filter(i => i.kind === 'prop'); g.p.z = 0; g.p.x = lane * LANE_W; g.p.speed = speed; g.state = 'play'; g.keys = {}; return g; },
+      setup(lane = 0, speed = 340) { const g = __wf; g.r.renderer.render = () => {}; g.start(); g.world.extend(14000); g.world.items = g.world.items.filter(i => i.kind === 'prop'); g.p.z = 0; g.p.x = lane * LANE_W; g.p.speed = speed; g.state = 'play'; g.keys = {}; return g; },
       put(kind, dz, lane = 0, h = 12, extra) { const g = __wf, it = Object.assign({ kind, z: g.p.z + dz, x: lane * LANE_W, h, tag: 'main' }, extra); g.world.items.push(it); return it; },
       run(n, dt = 1 / 60) { for (let i = 0; i < n && __wf.state === 'play'; i++) __wf.advance(dt); },
       // a player who jumps or slides at the hazards in its own lane, timed to its real speed (a jump may end a slide, but never while still inside a gate)

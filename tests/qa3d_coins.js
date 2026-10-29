@@ -105,7 +105,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     };
     for (const want of ['left', 'right']) {
       CT.fresh(); g.world.reset(); g.start();
-      const F0 = (g.world.extend(9000), g.world.openFork()); g.p.z = F0.z0 - 1500; g.world.extend(g.p.z); g.world.items = g.world.items.filter(i => i.z > g.p.z + 700);   // the jump can land inside a pattern: clear the first 70 m
+      const F0 = (g.world.extend(14000), g.world.openFork()); g.p.z = F0.z0 - 1500; g.world.extend(g.p.z); g.world.items = g.world.items.filter(i => i.z > g.p.z + 700);   // the jump can land inside a pattern: clear the first 70 m
       const other = F0.uid + (want === 'left' ? 'right' : 'left'), mine = F0.uid + want, tags = [];
       let calls = 0, bad = 0, first = null, otherSeen = 0; const orig = r.onCoin.bind(r); r.onCoin = (gg, it) => { calls++; tags.push(it.tag); orig(gg, it); };
       const c0 = g.coins;
