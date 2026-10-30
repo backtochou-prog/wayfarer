@@ -112,9 +112,9 @@ if os.path.exists(EDITS):
             tex[..., :3] = np.clip(tex[..., :3] * (1 - wgt[..., None]) + up[..., :3] * wgt[..., None], 0, 255).astype(np.uint8); edited[key] = int((wgt > 0.5).sum())
         print('the user\'s edits: front', edited['front'], 'px, back', edited['back'], 'px')
 
-# ---- 3c. THE BOOTS SEEN FROM BEHIND (her red strokes on the sheet: '\\' on the left boot, '/' on the right one): from behind the toes are the FAR end of the foot, so a splayed boot shows its toe wedge going OUTWARD
-# and UP (away from the camera), not down and out as in the front picture. In the back texture each boot is straightened (the slanted boot of the picture is re-centred on the leg: a heel block, the picture's own pixels) and
-# its toe becomes a small dark wedge pointing outward and up. The mesh of the back face of each leg is built from this new silhouette (the front face keeps the front's).
+# ---- 3c. THE BOOTS OF THE BACK ARE TURNED THE OTHER WAY ROUND (her red strokes '\\' on the left boot and '/' on the right one, and 'the feet are turned the wrong way round'): in the front picture the toes of the boots
+# point down and OUT; on the back they point down and IN. Each boot of the back texture (the user's own pixels, her lime-spotted boots) is turned about its leg: flipped left to right about the middle of the leg,
+# the picture and its silhouette together. The mesh of the back face of each leg is built from this silhouette (the front face keeps the front's).
 mb = back[..., 3] > 40; YS = int(H * 0.93); runs = []
 xs_ = np.where(mb[YS])[0]
 if len(xs_):
@@ -123,35 +123,20 @@ if len(xs_):
         if v != pv + 1: runs.append((st, pv)); st = v
         pv = v
     runs.append((st, pv))
-back0 = back.copy(); wedge = {}
+back0 = back.copy(); turned = {}
 if len(runs) == 2:
-    dkpx = back0[int(H * 0.945):][(back0[int(H * 0.945):][..., :3].max(axis=2) < 90) & (back0[int(H * 0.945):][..., 3] > 200)]
-    DK = dkpx[:, :3].mean(axis=0) if len(dkpx) else np.array([24, 10, 52.0])
     for kk, (sx0, sx1) in enumerate(runs):
-        sg = -1 if kk == 0 else 1; cs = (sx0 + sx1) / 2.0; wsh = sx1 - sx0 + 1; w0, w1 = max(0, sx0 - 45), min(W, sx1 + 46); ext = {}
+        cs = (sx0 + sx1) / 2.0; wsh = sx1 - sx0 + 1; w0, w1 = max(0, sx0 - 45), min(W, sx1 + 46); y0 = None
         for y in range(YS, H):
             xx = np.where(mb[y, w0:w1])[0]
-            if len(xx) == 0: break
-            ext[y] = (w0 + xx.min(), w0 + xx.max())
-        y0 = next((y for y in sorted(ext) if ext[y][1] - ext[y][0] + 1 > 1.4 * wsh), None)
+            if len(xx) and xx.max() - xx.min() + 1 > 1.4 * wsh and y0 is None: y0 = y
         if y0 is None: continue
-        yend = max(ext); back[y0:yend + 1, w0:w1] = 0
-        for y in range(y0, yend + 1):
-            a_, b_ = ext[y]; c_ = (a_ + b_) / 2.0; wd = b_ - a_ + 1; na = int(round(cs - wd / 2.0))
-            for x in range(na, na + wd):
-                sx = int(round(min(max(c_ + (x - cs), a_), b_)))
-                if 0 <= x < W: back[y, x] = back0[y, sx]
-        wb = ext[y0][1] - ext[y0][0] + 1
-        Pa = np.array([cs + sg * wsh / 2.0, y0 - 4.0]); Pb = np.array([cs + sg * wb / 2.0, y0 + 10.0]); Pt = np.array([cs + sg * (wb / 2.0 + 20), y0 - 24.0])      # the toe wedge: outward and up
-        x_lo, x_hi = int(min(Pa[0], Pb[0], Pt[0])) - 1, int(max(Pa[0], Pb[0], Pt[0])) + 2; y_lo, y_hi = int(Pt[1]) - 1, int(max(Pa[1], Pb[1])) + 2
-        yy2, xx2 = np.mgrid[y_lo:y_hi, x_lo:x_hi]; P_ = np.stack([xx2, yy2], axis=-1).astype(np.float64)
-        v0, v1, v2 = Pb - Pa, Pt - Pa, P_ - Pa; d00, d01, d11 = v0 @ v0, v0 @ v1, v1 @ v1; d20 = v2 @ v0; d21 = v2 @ v1; den = d00 * d11 - d01 * d01
-        bv = (d11 * d20 - d01 * d21) / den; bw = (d00 * d21 - d01 * d20) / den; inside_t = (bv >= 0) & (bw >= 0) & (bv + bw <= 1)
-        for (yw, xw) in zip(*np.where(inside_t)):
-            yy3, xx3 = yy2[yw, xw], xx2[yw, xw]
-            if back[yy3, xx3, 3] == 0: back[yy3, xx3] = (DK[0], DK[1], DK[2], 255)
-        wedge[kk] = (float(cs), int(y0), int(yend))
-    print('boots of the back reshaped:', wedge)
+        ytop = y0 - 8
+        for y in range(ytop, H):
+            for x in range(w0, w1):
+                sx = int(round(2 * cs - x)); back[y, x] = back0[y, sx] if w0 <= sx < w1 else 0
+        turned[kk] = (float(cs), int(ytop))
+    print('boots of the back turned about their legs:', turned)
 else:
     print('boots of the back: expected two legs at row', YS, 'found', runs)
 
