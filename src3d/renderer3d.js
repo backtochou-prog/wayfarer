@@ -124,7 +124,7 @@ class Renderer3D {
     this.items = new Items3D(this.scene);
     this.fx = new Fx3D(this.scene);
     this.saucers = typeof Saucer3D !== 'undefined' ? new Saucer3D(this.scene) : null;                  // the flying saucers of the coastal town (one per landing pad in view)
-    this.runner = /[?&]avatar=(3d|model)\b/.test(location.search) ? new Runner3D() : new RunnerSprite();   // the user's retouched artwork by default; ?avatar=3d selects the 3D model
+    this.characters = {}; this.character = Renderer3D.savedCharacter(); this.runner = this.makeRunner(this.character);   // the playable characters: the strawberry (the user's retouched artwork by default; ?avatar=3d selects its 3D model) and Zagla (a 3D body)
     this.scene.add(this.runner.group); this.scene.add(this.runner.shadow);
 
     this.supportsScene = true;                                                      // Game plays the Gare du Midi cutscene only with a front end that sets this
@@ -144,6 +144,25 @@ class Renderer3D {
     this.camera.fov = w / h < 1.5 ? 62 + (1.5 - w / h) * 26 : 62;       // keep all three lanes in view on narrow screens
     this.camera.updateProjectionMatrix();
   }
+
+  // THE CHARACTERS: 'strawberry' and 'zagla'. The choice is made on the title screen (the button, or the C key), kept in localStorage, and ?avatar=zagla / ?avatar=strawberry forces one for a visit.
+  static get CHARACTERS() { return ['strawberry', 'zagla']; }
+  static savedCharacter() {
+    const q = (location.search.match(/[?&]avatar=(zagla|strawberry)\b/) || [])[1]; if (q) return q;
+    try { const v = localStorage.getItem('wayfarer.character'); if (v === 'zagla' && typeof RunnerZagla !== 'undefined') return v; } catch (e) {}
+    return 'strawberry';
+  }
+  makeRunner(id) {
+    if (!this.characters[id]) this.characters[id] = id === 'zagla' && typeof RunnerZagla !== 'undefined' ? new RunnerZagla() : /[?&]avatar=(3d|model)\b/.test(location.search) ? new Runner3D() : new RunnerSprite();
+    return this.characters[id];
+  }
+  setCharacter(id) {
+    if (id === this.character || !Renderer3D.CHARACTERS.includes(id)) return;
+    const old = this.runner, nu = this.makeRunner(id);
+    nu.group.position.copy(old.group.position); this.scene.remove(old.group); this.scene.remove(old.shadow); this.scene.add(nu.group); this.scene.add(nu.shadow);
+    this.runner = nu; this.character = id; try { localStorage.setItem('wayfarer.character', id); } catch (e) {}
+  }
+  nextCharacter() { const L = Renderer3D.CHARACTERS; this.setCharacter(L[(L.indexOf(this.character) + 1) % L.length]); return this.character; }
 
   // sky, fog, background and light colours blended from the opening biome toward `toId` (quantised, so only ~16 repaints)
   applyAtmosphere(toId, t, fromId) {                       // (`fromId`: blend from that biome's look instead of the opening one, in 32 steps: the tunnel under the sea)

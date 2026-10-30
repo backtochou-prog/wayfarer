@@ -6,6 +6,7 @@ const BTN = {
   title: { x: 110, y: 123, w: 100, h: 16, label: 'START', art: 'startImg' },   // art: the name of a renderer image to draw as the button face (the 3D front end sets it; without it the button is plain amber)
   pause: { x: 110, y: 88, w: 100, h: 16, label: 'RESUME' },
   over:  { x: 100, y: 114, w: 120, h: 16, label: 'RUN AGAIN' },
+  char:  { x: 216, y: 123, w: 96, h: 16, label: 'CHARACTER' },   // the 3D front end's character button on the title screen (strawberry / Zagla; the C key too)
   sound: { x: 298, y: 158, w: 18, h: 16 },     // the sound on / off icon (menu, pause and game-over screens; only when the front end has a GameAudio, g.sfx)
 };
 // touch controls (canvas pixels): hold left/right to steer, tap jump/slide/pause; each finger is tracked separately
@@ -61,6 +62,7 @@ class Game {
       lift(e);
       const was = this.mouse.down; this.mouse.down = false; at(e);
       if (was && this.sfx && this.state !== 'play' && this.overButton(BTN.sound)) { this.sfx.toggle(); return; }
+      if (was && this.state === 'title' && this.r.nextCharacter && this.overButton(BTN.char)) { this.nextCharacter(); return; }
       const b = this.activeButton();
       if (was && b && this.overButton(b)) {
         if (this.state === 'pause') this.state = 'play';
@@ -115,6 +117,8 @@ class Game {
     if (this.r.onReset) this.r.onReset(this);
   }
 
+  nextCharacter() { this.r.nextCharacter(); if (this.sfx) this.sfx.play('click'); }                // strawberry <-> Zagla (3D front end only)
+
   activeButton() {
     if (this.state === 'title') return BTN.title;
     if (this.state === 'pause') return BTN.pause;
@@ -167,6 +171,7 @@ class Game {
     if (R) this.keys.right = down;
     if (!down || e.repeat) return;
     if (c === 'KeyM' && this.sfx) { this.sfx.toggle(); return; }                      // M: sound on / off
+    if (c === 'KeyC' && this.state === 'title' && this.r.nextCharacter) { this.nextCharacter(); return; }   // C (menu): the other character
     const s = this.state;
     if (s === 'title' && (c === 'Enter' || c === 'Space')) this.start();
     else if (s === 'over' && this.overT > 0.5 && (c === 'Enter' || c === 'Space' || c === 'KeyR')) this.start();

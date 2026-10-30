@@ -458,7 +458,8 @@ class Renderer {
     if (g.touch) { this.txt('HOLD < > STEER', 14, 74, tc, 1); this.txt('UP JUMP  DOWN SLIDE', 14, 84, tc, 1); this.txt('II PAUSE', 14, 94, tc, 1); }
     else { this.txt('Q D / ARROWS STEER', 14, 74, tc, 1); this.txt('Z / SPACE / UP  JUMP', 14, 84, tc, 1); this.txt('S / DOWN SLIDE  P PAUSE', 14, 94, tc, 1); }
     this.button(BTN.title, g);
-    if (!g.touch) this.txt('OR PRESS ENTER', 24, 144, C.stoneL, 1);
+    if (g.r && g.r.nextCharacter) this.button({ x: BTN.char.x, y: BTN.char.y, w: BTN.char.w, h: BTN.char.h, label: g.r.character === 'zagla' ? 'ZAGLA' : 'STRAWBERRY' }, g);       // the character button: who runs (the other one on click, or the C key)
+    if (!g.touch) { this.txt('OR PRESS ENTER', 24, 144, C.stoneL, 1); if (g.r && g.r.nextCharacter) this.txt('C CHARACTER', 232, 144, C.stoneL, 1); }
   }
 
   drawTitle(g) {

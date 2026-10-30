@@ -1,0 +1,56 @@
+// RunnerZagla: ZAGLA, the second character, as a real 3D body (ZAGLA_ASSETS, made by tools/make_zagla_assets.py from the user's picture of her): her silhouette inflated into a volume (a round cross-section),
+// wearing the user's picture on the FRONT (its own colours) and the BACK of C.Strawberry, fitted onto her shape and recoloured into her palette, as the material of the BACK (the view the chase camera sees).
+// The body is one piece; the two legs are their own pieces, pivoting at the hips, and swing in the run. It has the same interface as RunnerSprite (group, shadow, update(dt, state), cur, the vehicles: it stands
+// on the scooter, the board and the surfboard like the strawberry does), so the renderer and the tests treat both alike; unlike the flat cards it is a true 3D body: it keeps the heading of its group (it turns with the
+// road), and in the menu it faces the camera (its front) while the camera drifts round it.
+// Facing -Z like the other runners: the BACK surface is at +Z (toward the chase camera), the FRONT at -Z.
+class RunnerZagla extends RunnerSprite {
+  constructor() {
+    super();
+    for (const k in this.cards) this.pivot.remove(this.cards[k]);                    // not the strawberry's artwork
+    const A = ZAGLA_ASSETS, MP = A.mpp, S = A.step, u8 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+    const tex = {};
+    for (const k of ['front', 'back']) {
+      const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;
+      img.onload = () => { t.needsUpdate = true; }; img.src = A[k]; tex[k] = t;
+    }
+    this.tex = tex;
+    // lit, glossy (a specular sheen on the black), and the picture's own colours kept bright by an emissive copy of it (so the neon stays neon in every biome's light)
+    const mat = t => new THREE.MeshPhongMaterial({ map: t, emissiveMap: t, emissive: 0xffffff, emissiveIntensity: 0.6, specular: 0x666666, shininess: 60 });
+    this.mats = { front: mat(tex.front), back: mat(tex.back) };
+    const surface = (P, face, ox, oy) => {                                           // one face of a piece: the grid vertices (x, y, +-z), the picture's coordinates as the UVs (the back one mirrored: it is the view from behind)
+      const n = P.n, ij = new Uint16Array(u8(P.ij).buffer), zz = new Int16Array(u8(P.z).buffer), tri = new Uint16Array(u8(P.tri).buffer), sg = face === 'front' ? -1 : 1;
+      const pos = new Float32Array(n * 3), uv = new Float32Array(n * 2);
+      for (let k = 0; k < n; k++) {
+        const x = ij[2 * k] * S, y = ij[2 * k + 1] * S;
+        pos[3 * k] = (A.axis - x) * MP - ox; pos[3 * k + 1] = (A.h - y) * MP - oy; pos[3 * k + 2] = sg * zz[k] / 8 * MP;
+        uv[2 * k] = face === 'front' ? x / A.w : 1 - x / A.w; uv[2 * k + 1] = 1 - y / A.h;
+      }
+      const idx = new Uint16Array(tri);
+      // the winding that makes the normals point outward (+Z for the back face, -Z for the front one): checked on the first triangle, the whole list flipped if need be
+      const a = idx[0] * 3, b = idx[1] * 3, c = idx[2] * 3, nz = (pos[b] - pos[a]) * (pos[c + 1] - pos[a + 1]) - (pos[b + 1] - pos[a + 1]) * (pos[c] - pos[a]);
+      if ((nz > 0) !== (sg > 0)) for (let k = 0; k < idx.length; k += 3) { const t = idx[k + 1]; idx[k + 1] = idx[k + 2]; idx[k + 2] = t; }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.setIndex(new THREE.BufferAttribute(idx, 1));
+      g.computeVertexNormals(); g.computeBoundingSphere(); g.computeBoundingBox(); return g;
+    };
+    this.parts = {}; this.legs = []; this.tris = 0;
+    for (const P of A.pieces) {
+      const leg = P.name !== 'body', ox = leg ? (A.axis - P.pivot[0]) * MP : 0, oy = leg ? (A.h - P.pivot[1]) * MP : 0, grp = new THREE.Group();
+      grp.position.set(ox, oy, 0);
+      for (const face of ['front', 'back']) { const g = surface(P, face, ox, oy), m = new THREE.Mesh(g, this.mats[face]); grp.add(m); this.tris += g.index.count / 3; }
+      this.pivot.add(grp); this.parts[P.name] = grp; if (leg) this.legs.push(grp);
+    }
+    this.legAmp = 0;
+  }
+
+  update(dt, s) {
+    if (s.state === 'pause') return;                                                  // hold the pose
+    super.update(dt, s);
+    this.pivot.rotation.y = this.pivot.rotation.y + this.group.rotation.y - (s.faceYaw || 0);   // a 3D body keeps the heading of the group (the card cancels it); only the showcase spin stays
+    const T = s.time, run = s.state === 'play' && !s.sliding && !s.airborne && this.ride < 0.5, show = s.state === 'title' && T % 10 >= 7.6;
+    const amp = run ? 1 : show ? 0.8 : 0, k = 1 - Math.exp(-12 * dt); this.legAmp += (amp - this.legAmp) * k;
+    const a = Math.sin(this.phase) * 0.75 * this.legAmp, tuck = s.airborne ? -0.55 : s.sliding ? -0.9 : 0;                  // in the air the legs tuck forward, in the slide they stick out
+    this.legs[0].rotation.x += (a + tuck - this.legs[0].rotation.x) * Math.min(1, k * 1.5);
+    if (this.legs[1]) this.legs[1].rotation.x += (-a + tuck - this.legs[1].rotation.x) * Math.min(1, k * 1.5);
+  }
+}
