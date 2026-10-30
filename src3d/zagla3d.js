@@ -19,12 +19,13 @@ class RunnerZagla extends RunnerSprite {
     const mat = t => new THREE.MeshPhongMaterial({ map: t, emissiveMap: t, emissive: 0xffffff, emissiveIntensity: 0.6, specular: 0x666666, shininess: 60 });
     this.mats = { front: mat(tex.front), back: mat(tex.back) };
     const surface = (P, face, ox, oy) => {                                           // one face of a piece: the grid vertices (x, y, +-z), the picture's coordinates as the UVs (the back one mirrored: it is the view from behind)
-      const n = P.n, ij = new Uint16Array(u8(P.ij).buffer), zz = new Int16Array(u8(P.z).buffer), tri = new Uint16Array(u8(P.tri).buffer), sg = face === 'front' ? -1 : 1;
+      // a back face with its own silhouette (P.b: the legs, whose boots seen from behind are not the front's) has its grid in the back texture's coordinates; otherwise it is the front's grid, mirrored
+      const own = face === 'back' && P.b, D = own ? P.b : P, n = D.n, ij = new Uint16Array(u8(D.ij).buffer), zz = new Int16Array(u8(D.z).buffer), tri = new Uint16Array(u8(D.tri).buffer), sg = face === 'front' ? -1 : 1;
       const pos = new Float32Array(n * 3), uv = new Float32Array(n * 2);
       for (let k = 0; k < n; k++) {
-        const x = ij[2 * k] * S, y = ij[2 * k + 1] * S;
-        pos[3 * k] = (A.axis - x) * MP - ox; pos[3 * k + 1] = (A.h - y) * MP - oy; pos[3 * k + 2] = sg * zz[k] / 8 * MP;
-        uv[2 * k] = face === 'front' ? x / A.w : 1 - x / A.w; uv[2 * k + 1] = 1 - y / A.h;
+        const x = ij[2 * k] * S, y = ij[2 * k + 1] * S, xf = own ? (A.w - 1) - x : x;
+        pos[3 * k] = (A.axis - xf) * MP - ox; pos[3 * k + 1] = (A.h - y) * MP - oy; pos[3 * k + 2] = sg * zz[k] / 8 * MP;
+        uv[2 * k] = own ? x / A.w : face === 'front' ? x / A.w : 1 - x / A.w; uv[2 * k + 1] = 1 - y / A.h;
       }
       const idx = new Uint16Array(tri);
       // the winding that makes the normals point outward (+Z for the back face, -Z for the front one): checked on the first triangle, the whole list flipped if need be

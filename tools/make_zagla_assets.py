@@ -3,13 +3,17 @@
 #   - the BACK texture = the user's back picture (the view the chase camera sees), only cropped and scaled, cut out with the silhouette of the front (the back picture has a white background, and a soft haze at the
 #     edge of its torso: where it is white, and along the rim of the silhouette, the front mirrored shows through, so no white fringe is ever seen). The back is the view from behind: it is read mirrored about her body axis;
 #   - the MESH = her silhouette inflated into a volume (a round cross-section from the distance to the edge), in three pieces: the body and the two legs (which swing in the run).
-# Run:  python3 tools/make_zagla_assets.py [front picture] [back picture]       (needs Pillow and numpy; writes src3d/zagla_assets.js and docs/screenshots/zagla-textures.jpg)
+#   - THE USER'S OWN EDITS of the two textures (tools/zagla_sheet_edits.png: the sheet docs/screenshots/zagla-textures.jpg, F and B, painted over by the user: the lower torso, the skirt and the boots of the back): wherever the
+#     user's sheet differs from the sheet this script makes without them, the user's pixels replace the generated ones (feathered, and never on the rim of the silhouette, where the sheet is blended with its grey ground).
+# Run:  python3 tools/make_zagla_assets.py [front picture] [back picture] [edited sheet]       (needs Pillow and numpy; writes src3d/zagla_assets.js and docs/screenshots/zagla-textures.jpg)
 import base64, io, sys, json
 import numpy as np
 from PIL import Image
 U = '/root/.claude/uploads/65b8bc1c-1985-5345-a2d7-9387f9b1700d/'
 SRC = sys.argv[1] if len(sys.argv) > 1 else U + '4b334d3f-image.png'
 SRCB = sys.argv[2] if len(sys.argv) > 2 else U + '900ea59d-image.png'
+import os
+EDITS = sys.argv[3] if len(sys.argv) > 3 else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'zagla_sheet_edits.png')
 H = 800; STEP = 4; M_PER_PX = 1.9 / H                                     # 1.9 m tall like the strawberry's cards; mesh grid step in texture pixels
 
 # ---- 1. the front picture: cut out (it has its own alpha), cropped to its silhouette, scaled to 800 px tall (premultiplied so the edge keeps no halo)
@@ -87,6 +91,70 @@ k = np.maximum(white, rim)[..., None]
 back_rgb = back_px * (1 - k) + fall * k
 back = np.concatenate([back_rgb, mirror[..., 3:4]], axis=2).clip(0, 255).astype(np.uint8)
 
+# ---- 3b. the user's edits of the two textures, taken from her painted-over sheet (the sheet this script makes: F at (10, 10), B at (W + 20, 10) on grey, JPEG 88, 2W + 30 x H + 20)
+def sheet_of(fr, bk):
+    sh = Image.new('RGB', (W * 2 + 30, H + 20), (90, 100, 120)); a = Image.fromarray(fr, 'RGBA'); b2 = Image.fromarray(bk, 'RGBA'); sh.paste(a, (10, 10), a); sh.paste(b2, (W + 20, 10), b2); return sh
+def box(a, r):                                                              # separable box blur, radius r
+    k = 2 * r + 1; p = np.pad(a, ((r, r), (0, 0)) if a.ndim == 2 else ((r, r), (0, 0), (0, 0)), mode='edge'); c = np.cumsum(p, axis=0, dtype=np.float64); c = np.concatenate([np.zeros_like(c[:1]), c], axis=0); a = (c[k:] - c[:-k]) / k
+    p = np.pad(a, ((0, 0), (r, r)) if a.ndim == 2 else ((0, 0), (r, r), (0, 0)), mode='edge'); c = np.cumsum(p, axis=1, dtype=np.float64); c = np.concatenate([np.zeros_like(c[:, :1]), c], axis=1); return (c[:, k:] - c[:, :-k]) / k
+edited = {'front': 0, 'back': 0}
+if os.path.exists(EDITS):
+    us = Image.open(EDITS).convert('RGBA')
+    if us.size != (W * 2 + 30, H + 20): print('the edited sheet is', us.size, 'not', (W * 2 + 30, H + 20), ': its edits are not applied')
+    else:
+        buf0 = io.BytesIO(); sheet_of(front, back).save(buf0, 'JPEG', quality=88); pre = np.array(Image.open(io.BytesIO(buf0.getvalue())).convert('RGB')).astype(np.float32); ua = np.array(us).astype(np.float32)
+        er = (dist >= 3.0)                                                   # the silhouette without its rim (front); the back's is its mirror image
+        for key, tex, x0, deep in (('front', front, 10, er), ('back', back, W + 20, er[:, ::-1])):
+            up = ua[10:10 + H, x0:x0 + W]; pp = pre[10:10 + H, x0:x0 + W]; dd = np.abs(up[..., :3] - pp).mean(axis=2)
+            ok = deep & (up[..., 3] > 200) & (tex[..., 3] > 200)
+            ch = box((dd > 30).astype(np.float32), 2) > 0.45                 # a real edit, not the noise of the JPEG: a blob of pixels that changed, not a lone one
+            wgt = np.clip(box(box(ch.astype(np.float32), 2), 2) * 1.6, 0, 1) * ok
+            tex[..., :3] = np.clip(tex[..., :3] * (1 - wgt[..., None]) + up[..., :3] * wgt[..., None], 0, 255).astype(np.uint8); edited[key] = int((wgt > 0.5).sum())
+        print('the user\'s edits: front', edited['front'], 'px, back', edited['back'], 'px')
+
+# ---- 3c. THE BOOTS SEEN FROM BEHIND (her red strokes on the sheet: '\\' on the left boot, '/' on the right one): from behind the toes are the FAR end of the foot, so a splayed boot shows its toe wedge going OUTWARD
+# and UP (away from the camera), not down and out as in the front picture. In the back texture each boot is straightened (the slanted boot of the picture is re-centred on the leg: a heel block, the picture's own pixels) and
+# its toe becomes a small dark wedge pointing outward and up. The mesh of the back face of each leg is built from this new silhouette (the front face keeps the front's).
+mb = back[..., 3] > 40; YS = int(H * 0.93); runs = []
+xs_ = np.where(mb[YS])[0]
+if len(xs_):
+    st = xs_[0]; pv = xs_[0]
+    for v in xs_[1:]:
+        if v != pv + 1: runs.append((st, pv)); st = v
+        pv = v
+    runs.append((st, pv))
+back0 = back.copy(); wedge = {}
+if len(runs) == 2:
+    dkpx = back0[int(H * 0.945):][(back0[int(H * 0.945):][..., :3].max(axis=2) < 90) & (back0[int(H * 0.945):][..., 3] > 200)]
+    DK = dkpx[:, :3].mean(axis=0) if len(dkpx) else np.array([24, 10, 52.0])
+    for kk, (sx0, sx1) in enumerate(runs):
+        sg = -1 if kk == 0 else 1; cs = (sx0 + sx1) / 2.0; wsh = sx1 - sx0 + 1; w0, w1 = max(0, sx0 - 45), min(W, sx1 + 46); ext = {}
+        for y in range(YS, H):
+            xx = np.where(mb[y, w0:w1])[0]
+            if len(xx) == 0: break
+            ext[y] = (w0 + xx.min(), w0 + xx.max())
+        y0 = next((y for y in sorted(ext) if ext[y][1] - ext[y][0] + 1 > 1.4 * wsh), None)
+        if y0 is None: continue
+        yend = max(ext); back[y0:yend + 1, w0:w1] = 0
+        for y in range(y0, yend + 1):
+            a_, b_ = ext[y]; c_ = (a_ + b_) / 2.0; wd = b_ - a_ + 1; na = int(round(cs - wd / 2.0))
+            for x in range(na, na + wd):
+                sx = int(round(min(max(c_ + (x - cs), a_), b_)))
+                if 0 <= x < W: back[y, x] = back0[y, sx]
+        wb = ext[y0][1] - ext[y0][0] + 1
+        Pa = np.array([cs + sg * wsh / 2.0, y0 - 4.0]); Pb = np.array([cs + sg * wb / 2.0, y0 + 10.0]); Pt = np.array([cs + sg * (wb / 2.0 + 20), y0 - 24.0])      # the toe wedge: outward and up
+        x_lo, x_hi = int(min(Pa[0], Pb[0], Pt[0])) - 1, int(max(Pa[0], Pb[0], Pt[0])) + 2; y_lo, y_hi = int(Pt[1]) - 1, int(max(Pa[1], Pb[1])) + 2
+        yy2, xx2 = np.mgrid[y_lo:y_hi, x_lo:x_hi]; P_ = np.stack([xx2, yy2], axis=-1).astype(np.float64)
+        v0, v1, v2 = Pb - Pa, Pt - Pa, P_ - Pa; d00, d01, d11 = v0 @ v0, v0 @ v1, v1 @ v1; d20 = v2 @ v0; d21 = v2 @ v1; den = d00 * d11 - d01 * d01
+        bv = (d11 * d20 - d01 * d21) / den; bw = (d00 * d21 - d01 * d20) / den; inside_t = (bv >= 0) & (bw >= 0) & (bv + bw <= 1)
+        for (yw, xw) in zip(*np.where(inside_t)):
+            yy3, xx3 = yy2[yw, xw], xx2[yw, xw]
+            if back[yy3, xx3, 3] == 0: back[yy3, xx3] = (DK[0], DK[1], DK[2], 255)
+        wedge[kk] = (float(cs), int(y0), int(yend))
+    print('boots of the back reshaped:', wedge)
+else:
+    print('boots of the back: expected two legs at row', YS, 'found', runs)
+
 # ---- 4. the MESH: the silhouette inflated (round cross-section from the distance to the edge), in a grid of STEP px: the body and the two legs
 YCUT = int(H * 0.77)                                                        # just under the skirt: the legs start here (they overlap the skirt a little, hidden inside it)
 gx = np.arange(0, W, STEP); gy = np.arange(0, H, STEP)
@@ -99,8 +167,9 @@ def maxfilter(d, r):
         o3[k:] = np.maximum(o3[k:], out2[:-k]); o3[:-k] = np.maximum(o3[:-k], out2[k:])
     return o3
 Rloc = maxfilter(dist, 20)                                                  # (window 41 px; sampled every 2 px below for speed)
-def zof(px, py):
-    d = dist[py, px]; R = max(Rloc[py, px], d, 1.0); return float(np.sqrt(max(0.0, d * (2 * R - d))))
+def zof(px, py, dm=None, Rm=None):
+    dm = dist if dm is None else dm; Rm = Rloc if Rm is None else Rm
+    d = dm[py, px]; R = max(Rm[py, px], d, 1.0); return float(np.sqrt(max(0.0, d * (2 * R - d))))
 pieces = []
 def comps(region):                                                          # connected components (4-neighbour) of a boolean image
     lab = np.zeros(region.shape, np.int32); n = 0
@@ -118,17 +187,17 @@ for k in range(1, nl + 1):
     ysk, xsk = np.where(lab == k)
     if len(ysk) > 600: legs.append((xsk.min(), xsk.max()))
 legs.sort(); print('legs', legs)
-def piece(name, sel, pivot):                                                # sel: boolean pixel image of the piece
+def surf(sel, mk, dm, Rm):                                                  # one face of a piece: the grid vertices inside sel & mk, the depth from the distance map dm
     vin = np.zeros((len(gy), len(gx)), bool)
     for j, y in enumerate(gy):
-        for i, x in enumerate(gx): vin[j, i] = sel[y, x] and mask[y, x]
+        for i, x in enumerate(gx): vin[j, i] = sel[y, x] and mk[y, x]
     # rim vertices (a neighbour outside): z = 0, so that the front and the back of the body meet along the silhouette
     idx = -np.ones(vin.shape, np.int32); ij = []; zz = []
     for j in range(vin.shape[0]):
         for i in range(vin.shape[1]):
             if not vin[j, i]: continue
             nb = [vin[j - 1, i] if j else False, vin[j + 1, i] if j + 1 < vin.shape[0] else False, vin[j, i - 1] if i else False, vin[j, i + 1] if i + 1 < vin.shape[1] else False]
-            rim = not all(nb); idx[j, i] = len(ij); ij.append((i, j)); zz.append(0.0 if rim else zof(gx[i], gy[j]))
+            rim = not all(nb); idx[j, i] = len(ij); ij.append((i, j)); zz.append(0.0 if rim else zof(gx[i], gy[j], dm, Rm))
     tris = []
     for j in range(vin.shape[0] - 1):
         for i in range(vin.shape[1] - 1):
@@ -137,24 +206,29 @@ def piece(name, sel, pivot):                                                # se
             else:
                 ok = [v for v in q if v >= 0]
                 if len(ok) == 3: tris.append(tuple(ok))
-    print(name, 'verts', len(ij), 'tris', len(tris), 'zmax', max(zz))
-    return dict(name=name, pivot=list(pivot), n=len(ij), ij=np.array(ij, np.uint16), z=np.round(np.array(zz) * 8).astype(np.int16), tri=np.array(tris, np.uint16))
+    return dict(n=len(ij), ij=np.array(ij, np.uint16), z=np.round(np.array(zz) * 8).astype(np.int16), tri=np.array(tris, np.uint16), zmax=max(zz) if zz else 0)
+def piece(name, sel, pivot, back_face=None):                                 # back_face: (sel in back coordinates, mask, distance, local radius) when the back face has its own silhouette (the legs: the boots seen from behind)
+    P = surf(sel, mask, dist, Rloc)
+    if back_face is not None: P['b'] = surf(*back_face)
+    print(name, 'verts', P['n'], 'tris', len(P['tri']), 'zmax', P['zmax'], '| back face' if back_face is not None else '', P['b']['n'] if back_face is not None else '')
+    P.update(name=name, pivot=list(pivot)); return P
 body_sel = np.zeros_like(mask); body_sel[:YCUT + 10] = True
 pieces.append(piece('body', body_sel, (xc, YCUT)))
+mask_b = back[..., 3] > 40; dist_b = edt(mask_b); Rloc_b = maxfilter(dist_b, 20)                  # the silhouette of the back face (in the back texture's coordinates)
 for k, (lx0, lx1) in enumerate(legs[:2]):
     sel = np.zeros_like(mask); sel[YCUT - 24:, lx0 - 1:lx1 + 2] = True
-    pieces.append(piece('legL' if k == 0 else 'legR', sel, ((lx0 + lx1) / 2, YCUT - 14)))
+    sel_b = np.zeros_like(mask); sel_b[YCUT - 24:, max(0, W - 1 - lx1 - 26):W - 1 - lx0 + 27] = True
+    pieces.append(piece('legL' if k == 0 else 'legR', sel, ((lx0 + lx1) / 2, YCUT - 14), (sel_b, mask_b, dist_b, Rloc_b)))
 
 # ---- 5. write the asset
 def b64(arr): return base64.b64encode(arr.tobytes()).decode()
 def webp(arr, q=95):
     buf = io.BytesIO(); Image.fromarray(arr, 'RGBA').save(buf, 'WEBP', quality=q, method=6); return buf.getvalue()
 fw, bw = webp(front), webp(back)
-js = "// ZAGLA, the second character, as a 3D body (made by tools/make_zagla_assets.py from the user's picture of her, front view): `front` = the picture cut out and scaled (its own colours), `back` = the BACK of C.Strawberry\n"
-js += "// (AVATAR_ASSETS.back) as the material of the back, fitted onto her shape and recoloured into her palette, `pieces` = her silhouette inflated into a volume (grid of `step` texture px: ij = grid column / row,\n"
+js = "// ZAGLA, the second character, as a 3D body (made by tools/make_zagla_assets.py from the user's pictures of her, front and back, and her own edits of the textures): `front` = her front picture cut out and scaled\n"
+js += "// (its own colours), `back` = her back picture, the view from behind (the hood, the rest in the opposite position), `pieces` = her silhouette inflated into a volume (grid of `step` texture px: ij = grid column / row,\n"
 js += "// z = depth in 1/8 px, tri = triangles; the back of the body is the front mirrored in z), cut in the body and two legs that swing. Sizes: w x h texture px, `mpp` = metres per texture px (1.9 m tall).\n"
-js += "const ZAGLA_ASSETS = " + json.dumps(dict(w=W, h=H, mpp=M_PER_PX, step=STEP, axis=float(xc), pieces=[dict(name=p['name'], pivot=p['pivot'], n=p['n'], ij=b64(p['ij']), z=b64(p['z']), tri=b64(p['tri'])) for p in pieces],
+js += "const ZAGLA_ASSETS = " + json.dumps(dict(w=W, h=H, mpp=M_PER_PX, step=STEP, axis=float(xc), pieces=[dict(name=p['name'], pivot=p['pivot'], n=p['n'], ij=b64(p['ij']), z=b64(p['z']), tri=b64(p['tri']), **({'b': dict(n=p['b']['n'], ij=b64(p['b']['ij']), z=b64(p['b']['z']), tri=b64(p['b']['tri']))} if 'b' in p else {})) for p in pieces],
       front='data:image/webp;base64,' + base64.b64encode(fw).decode(), back='data:image/webp;base64,' + base64.b64encode(bw).decode())) + ";\n"
 open('src3d/zagla_assets.js', 'w').write(js); print('zagla_assets.js', len(js) // 1024, 'KB (front', len(fw) // 1024, 'KB, back', len(bw) // 1024, 'KB)')
-sheet = Image.new('RGB', (W * 2 + 30, H + 20), (90, 100, 120)); fr = Image.fromarray(front, 'RGBA'); bk = Image.fromarray(back, 'RGBA')
-sheet.paste(fr, (10, 10), fr); sheet.paste(bk, (W + 20, 10), bk); sheet.save('docs/screenshots/zagla-textures.jpg', quality=88)
+sheet_of(front, back).save('docs/screenshots/zagla-textures.jpg', quality=88)
