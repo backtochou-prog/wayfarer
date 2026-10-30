@@ -16,7 +16,7 @@ const ISLAND_PLACES = (() => {
   const photo = (cell, p, x0, x1, y0) => { const y1 = y0 + (x1 - x0) / ISLAND_ASSETS[cell].ar; frame(p, x0, x1, y0, y1, ZE); return IslandArt.join([IslandArt.blade(cell, ZE, x0, x1, y0, y1)]); };
   // the frame goes into the parts before they are merged
   const finish = (p, cell, x0, x1, y0, ...para) => {
-    const canopies = para.map(([k, z, x = 5.6, R = 1.35]) => ({ sprite: ParasolArt.islandCanopy(k, R, 0.5, 2.45, x, z), material: () => ParasolArt.islandMaterial() }));          // [swirl picture, z, x, radius]
+    const canopies = para.map(([k, z, x = 5.6, R = 2.2]) => ({ sprite: ParasolArt.islandCanopy(k, R, 0.8, 3.4, x, z), material: () => ParasolArt.islandMaterial() }));          // [swirl picture, z, x, radius]
     const sprite = cell ? photo(cell, p, x0, x1, y0) : null, m = { merged: Kit.merge(p) };                                                      // (the frame of the photo goes into the parts before they are merged)
     if (cell) { m.sprite = sprite; m.material = () => IslandArt.material(); m.extra = canopies; }
     else { m.sprite = canopies[0].sprite; m.material = canopies[0].material; m.extra = canopies.slice(1); }                    // (no photo: the textured part is the first parasol; the renderer draws the 3D scenery with a textured part)
@@ -29,24 +29,24 @@ const ISLAND_PLACES = (() => {
     for (let a = 0; a < 2; a++) for (let b = 0; b < 3; b++) p.push(Kit.ico(r, x - 0.3 + a * 0.6 + (rnd(a * 3 + b, 41) - 0.5) * 0.12, 0.76 + (rnd(a * 3 + b, 42)) * 0.05, z - 0.36 + b * 0.36, (a + b) % 2 ? col : col2));
     p.push(Kit.ico(r * 1.05, x, 0.9, z, col));
   };
-  // THE FRUIT SHOP: the photo of the stall (only the part above the line the user drew under it: the bench, the crates, the price boards, the ladder shelf and the shop window, cut out along that line) is the FRONT
-  // of a small shop, 4.6 m wide and 6.7 m high, under a green name board 'FRUITERIA'; in front of it stands the same stall in 3D (a low wooden bench with crates of strawberries, apricots, oranges, cherries,
-  // plums and custard apples, hand-written price boards, green crates) under a striped awning sloping down to the road.
-  const SHOP_X = 4.0, SHOP_W = 2.3, SHOP_H = 6.7;                                                                               // the front wall of the shop (x), half the width of the photo, its height
+  // THE FRUIT SHOP: the photo of the stall (only the part above the line the user drew under it, cut out along that line, and reframed as a SQUARE) is the whole FRONT of a small shop, 7.2 m wide and 7.2 m
+  // high, under a green name board 'FRUITERIA'; in front of it stands the same stall in 3D (a low wooden bench with crates of strawberries, apricots, oranges, cherries, plums and custard apples,
+  // hand-written price boards, green crates) under a striped awning sloping down to the road.
+  const SHOP_X = 4.0, SHOP_W = 3.6, SHOP_H = 7.2;                                                                               // the front wall of the shop (x), half the width of the photo, its height
   const fruit = () => {
     const p = [], KINDS = [['#e0262e', '#c91f2a', 0.2], ['#e0262e', '#cf1f2a', 0.2], ['#7a1230', '#9a1a3a', 0.15], ['#f39a2c', '#f0b04a', 0.2], ['#f58a14', '#f6a02c', 0.22], ['#e0262e', '#c91f2a', 0.2],
                    ['#e0262e', '#cf1f2a', 0.2], ['#6a2c5e', '#82386f', 0.2], ['#a9c06f', '#8fae55', 0.27], ['#e0262e', '#c91f2a', 0.2], ['#f0b04a', '#f39a2c', 0.2], ['#f58a14', '#f6a02c', 0.22]];
-    // the shop: a cream body behind the photo, dark wooden side walls and a roof cornice, a dark back so the cut-out corners of the photo show a wall
-    p.push(Kit.box(3.6, SHOP_H + 1.1, 8.6, SHOP_X + 1.8, 0, 0, '#5a4636'), Kit.box(0.2, SHOP_H, 2 * SHOP_W + 0.3, SHOP_X + 0.1, 0, 0, '#3a2c20'), Kit.box(0.5, 0.18, 8.9, SHOP_X + 0.2, SHOP_H + 1.1, 0, '#7a5230'), Kit.box(4.4, 0.35, 9.0, SHOP_X + 1.8, SHOP_H + 1.1, 0, '#8a5a3a'));
-    for (const z of [-3.6, 3.6]) p.push(Kit.box(0.3, SHOP_H + 1.1, 1.0, SHOP_X + 0.05, 0, z, '#a87447'));                          // the two wooden pilasters of the front
+    // the shop: a dark body behind the photo (it shows through the corner of the photo that is cut away), the front framed by two wooden pilasters, a roof cornice
+    p.push(Kit.box(3.6, SHOP_H + 1.1, 2 * SHOP_W + 0.6, SHOP_X + 1.8, 0, 0, '#5a4636'), Kit.box(0.2, SHOP_H, 2 * SHOP_W + 0.2, SHOP_X + 0.1, 0, 0, '#3a2c20'), Kit.box(0.5, 0.18, 2 * SHOP_W + 1.0, SHOP_X + 0.2, SHOP_H + 1.1, 0, '#7a5230'), Kit.box(4.4, 0.35, 2 * SHOP_W + 1.2, SHOP_X + 1.8, SHOP_H + 1.1, 0, '#8a5a3a'));
+    for (const z of [-SHOP_W - 0.15, SHOP_W + 0.15]) p.push(Kit.box(0.3, SHOP_H + 1.1, 0.5, SHOP_X + 0.05, 0, z, '#a87447'));
     // the stall in front of the shop, in 3D: the bench, two rows of crates, the boards
-    p.push(Kit.box(3.5, 0.32, 8.8, 2.0, 0, 0, '#b4814d'), Kit.box(3.6, 0.05, 8.9, 2.0, 0.32, 0, '#c99a62'));
-    for (let z = -4.0; z <= 4.01; z += 1.0) p.push(Kit.box(3.55, 0.02, 0.05, 2.0, 0.375, z, WD));
-    for (let r = 0; r < 2; r++) for (let k = 0; k < 6; k++) { const q = KINDS[r * 6 + k]; crate(p, 1.0 + r * 1.9, -3.9 + k * 1.56, q[0], q[1], q[2]); }
-    for (const z of [-3.9, -1.6, 0.8, 3.1]) p.push(Kit.cyl(0.02, 0.02, 0.55, 0.25, 0.9, z, IRON, { seg: 4 }), Kit.box(0.04, 0.3, 0.42, 0.25, 1.4, z, '#5a3a2a', { rz: -0.15 }), Kit.box(0.045, 0.22, 0.34, 0.2, 1.44, z, '#f6efe4', { rz: -0.15 }));   // hand-written price boards
-    p.push(Kit.box(0.9, 0.35, 1.2, 3.3, 0.32, -4.7, '#2f9a4a'), Kit.box(0.9, 0.35, 1.2, 3.3, 0.67, -4.7, '#27863e'), Kit.box(0.9, 0.35, 1.2, 3.3, 0.32, 4.7, '#2f9a4a'));   // green crates
-    for (let k = 0; k < 11; k++) p.push(Kit.box(3.6, 0.08, 0.8, 2.1, 3.5, -4.0 + k * 0.8, k % 2 ? '#f4ece0' : '#d8392b', { rz: 0.16 }));   // the striped awning, from the shop wall down to the road
-    for (const z of [-4.4, 4.4]) p.push(Kit.cyl(0.07, 0.07, 3.4, 0.35, 0, z, WD, { seg: 6 }));
+    p.push(Kit.box(3.5, 0.32, 8.2, 2.0, 0, 0, '#b4814d'), Kit.box(3.6, 0.05, 8.3, 2.0, 0.32, 0, '#c99a62'));
+    for (let z = -3.6; z <= 3.61; z += 1.0) p.push(Kit.box(3.55, 0.02, 0.05, 2.0, 0.375, z, WD));
+    for (let r = 0; r < 2; r++) for (let k = 0; k < 6; k++) { const q = KINDS[r * 6 + k]; crate(p, 1.0 + r * 1.9, -3.5 + k * 1.4, q[0], q[1], q[2]); }
+    for (const z of [-3.5, -1.4, 0.7, 2.8]) p.push(Kit.cyl(0.02, 0.02, 0.55, 0.25, 0.9, z, IRON, { seg: 4 }), Kit.box(0.04, 0.3, 0.42, 0.25, 1.4, z, '#5a3a2a', { rz: -0.15 }), Kit.box(0.045, 0.22, 0.34, 0.2, 1.44, z, '#f6efe4', { rz: -0.15 }));   // hand-written price boards
+    p.push(Kit.box(0.9, 0.35, 1.2, 3.3, 0.32, -4.5, '#2f9a4a'), Kit.box(0.9, 0.35, 1.2, 3.3, 0.67, -4.5, '#27863e'), Kit.box(0.9, 0.35, 1.2, 3.3, 0.32, 4.5, '#2f9a4a'));   // green crates
+    for (let k = 0; k < 10; k++) p.push(Kit.box(3.6, 0.08, 0.8, 2.1, 3.5, -3.6 + k * 0.8, k % 2 ? '#f4ece0' : '#d8392b', { rz: 0.16 }));   // the striped awning, from the shop wall down to the road
+    for (const z of [-4.1, 4.1]) p.push(Kit.cyl(0.07, 0.07, 3.4, 0.35, 0, z, WD, { seg: 6 }));
     const sprite = IslandArt.join([IslandArt.panel('fruit', SHOP_X - 0.02, -SHOP_W, SHOP_W, 0.04, 0.04 + 2 * SHOP_W / ISLAND_ASSETS.fruit.ar)]);
     return { merged: Kit.merge(p), sprite, material: () => IslandArt.material(), extra: [{ sprite: IslandArt.signPanel(SHOP_X - 0.02, -SHOP_W, SHOP_W, SHOP_H + 0.2, SHOP_H + 1.0), material: () => IslandArt.signMaterial('FRUITERIA') }] };
   };
@@ -64,7 +64,7 @@ const ISLAND_PLACES = (() => {
       p.push(Kit.cyl(0.14, 0.14, 0.5, x - 0.1, 1.21, z - 0.2, '#fff3d0', { glow: true, seg: 8 }), Kit.ico(0.09, x - 0.1, 1.78, z - 0.2, '#ffd36a', { glow: true }));                              // the candle
       p.push(Kit.cyl(0.1, 0.07, 0.3, x + 0.25, 1.21, z + 0.2, '#ffa81c', { seg: 8 }), Kit.box(0.03, 0.34, 0.03, x + 0.27, 1.4, z + 0.2, '#ff6fb0', { rz: 0.3 }), Kit.cyl(0.1, 0.1, 0.03, x + 0.14, 1.5, z + 0.28, '#f58a14', { rz: 1.2, seg: 8 }));   // the orange juice, its pink straw and its slice
       chair(p, x - 1.2, z, -1); chair(p, x + 1.2, z, 1);
-      if (k !== 1) p.push(Kit.cyl(0.04, 0.04, 2.5, x, 1.2, z, '#e8e2d0', { seg: 5 }), Kit.cone(1.6, 0.6, x, 3.45, z, WH, { seg: 10 }));       // a white parasol over two of the tables
+      if (k !== 1) p.push(Kit.cyl(0.05, 0.05, 3.1, x, 1.2, z, '#e8e2d0', { seg: 5 }), Kit.cone(2.4, 0.8, x, 4.05, z, WH, { seg: 12 }));       // a big white parasol over two of the tables
     });
     p.push(Kit.cyl(0.03, 0.03, 2.6, 0.7, 0.3, -2.0, '#e8e2d0', { seg: 4 }), Kit.box(0.02, 0.45, 0.75, 0.7, 2.4, -1.62, '#7ee62e'));            // the little green flag
     for (let z = -5.2, k = 0; z <= 5.2; z += 0.9, k++) p.push(Kit.box(0.14, 0.14, 0.14, 0.9, 3.1 - 0.25 * Math.sin(Math.PI * (z + 5.2) / 10.4), z, '#ffe2a8', { glow: true }));          // a string of lights
@@ -90,7 +90,7 @@ const ISLAND_PLACES = (() => {
     p.push(Kit.box(3.6, 5.0, 6.8, 9.3, 0.12, -2.2, '#cf9e86'), Kit.box(3.9, 0.3, 7.1, 9.3, 5.12, -2.2, '#a9785f'), Kit.box(3.7, 0.5, 6.9, 9.3, 3.6, -2.2, '#b98e78'));    // the riad
     p.push(Kit.box(0.14, 2.5, 1.5, 7.43, 0.12, -2.2, '#3a2822'), Kit.cyl(0.75, 0.75, 0.14, 7.43, 2.62, -2.2, '#3a2822', { rz: Math.PI / 2, seg: 10 }), Kit.box(0.9, 0.1, 1.9, 7.1, 3.4, -2.2, '#2d6a3e', { rz: -0.32 }));      // the arched door, the green awning
     for (const z of [-4.6, -0.1]) p.push(Kit.box(0.12, 1.3, 0.9, 7.44, 1.0, z, '#2a2630'), Kit.box(0.14, 1.3, 0.9, 7.42, 3.9, z, '#2a2630'));       // the windows
-    for (const z of [-4.2, -0.4]) { p.push(Kit.cyl(0.04, 0.04, 2.4, 5.6, 0.12, z, '#e8e2d0', { seg: 5 }), Kit.cyl(0.45, 0.45, 0.05, 5.6, 0.82, z, '#2a2630', { seg: 8 })); chair(p, 4.6, z, -1); chair(p, 6.6, z, 1); }
+    for (const z of [-4.2, -0.4]) { p.push(Kit.cyl(0.05, 0.05, 3.3, 5.6, 0.12, z, '#e8e2d0', { seg: 5 }), Kit.cyl(0.45, 0.45, 0.05, 5.6, 0.82, z, '#2a2630', { seg: 8 })); chair(p, 4.6, z, -1); chair(p, 6.6, z, 1); }
     return finish(p, null, 0, 0, 0, [3, -4.2], [1, -0.4]);                                                                                // (two parasols over the tables, in the island's swirl pictures: magenta and teal)
   };
 
@@ -104,12 +104,12 @@ const ISLAND_PLACES = (() => {
       Kit.ico(1.8, 9.2, 2.4, 3.6, rockCol[4]), Kit.ico(1.6, 6.6, 1.2, -3.8, rockCol[3]));                                                         // the cliff of red rock
     p.push(Kit.box(0.3, 2.6, 1.7, 6.15, 0.1, 1.9, '#2a1814'), Kit.box(1.8, 0.8, 2.2, 6.9, 2.7, 1.9, '#a54631', { rz: 0.05 }));                       // the cave in its foot, and the lintel of its arch
     for (const [x, y, z, r, c] of [[0.8, 0.45, -4.4, 0.9, '#6b4a3a'], [1.3, 0.4, 3.8, 0.8, '#7a5644'], [0.5, 0.3, 0.9, 0.55, '#6b4a3a'], [1.9, 0.35, -2.6, 0.6, '#7a5644']]) p.push(Kit.ico(r, x, y, z, c, { sy: 0.8 }));   // dark rocks in front
-    p.push(Kit.cyl(0.04, 0.04, 2.3, 2.4, 0.12, -2.8, '#e8e2d0', { seg: 5 }));
-    return finish(p, null, 0, 0, 0, [2, -2.8, 2.4, 1.5]);                                                                                // a beach parasol on the sand, in the island's swirl pictures (teal on dark green)
+    p.push(Kit.cyl(0.05, 0.05, 3.3, 2.4, 0.12, -2.8, '#e8e2d0', { seg: 5 }));
+    return finish(p, null, 0, 0, 0, [2, -2.8, 2.4, 2.4]);                                                                                // a beach parasol on the sand, in the island's swirl pictures (teal on dark green)
   };
 
-  // THE ISLAND'S GIANT PARASOLS (3.4 m in radius, 4.8 m high, like the coast's): the same pole and the canopy wound from one of the user's nine recoloured swirl pictures (ParasolArt.islandCanopy), coastParasolI0 .. I8
-  const giant = k => () => ({ merged: Kit.merge([Kit.cyl(0.07, 0.09, 3.9, 0, 0, 0, '#f4eee0', { seg: 6 }), Kit.cyl(0.26, 0.32, 0.12, 0, 0, 0, '#c8c4b8', { seg: 8 }), Kit.ico(0.15, 0, 4.78, 0, '#f4eee0')]), sprite: ParasolArt.islandCanopy(k, 3.4, 1.3, 3.5), material: () => ParasolArt.islandMaterial() });
+  // THE ISLAND'S GIANT PARASOLS (4.8 m in radius, 6.6 m high: half as big again as the coast's): the same pole and the canopy wound from one of the user's nine recoloured swirl pictures (ParasolArt.islandCanopy), coastParasolI0 .. I8
+  const giant = k => () => ({ merged: Kit.merge([Kit.cyl(0.09, 0.12, 5.2, 0, 0, 0, '#f4eee0', { seg: 6 }), Kit.cyl(0.34, 0.42, 0.14, 0, 0, 0, '#c8c4b8', { seg: 8 }), Kit.ico(0.2, 0, 6.3, 0, '#f4eee0')]), sprite: ParasolArt.islandCanopy(k, 4.8, 1.8, 4.8), material: () => ParasolArt.islandMaterial() });
   const out = { coastFruit: fruit, coastCafe: cafe, coastPool: pool, coastCove: cove };
   for (let k = 0; k < 9; k++) out['coastParasolI' + k] = giant(k);
   return out;

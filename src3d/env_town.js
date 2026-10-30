@@ -45,7 +45,7 @@
     switch (BEAT[mod(i, 14)]) {
       case 'delphi': out.push({ prop: 'coastDelphi', x: 5.4, dist: 6 }, { prop: 'tuft', x: 5.0, dist: 2 }); break;                              // Club Delphi: a long building, so on the island, never among the chalets
       case 'club': out.push({ prop: 'coastClub', x: 5.4, dist: 6 }, { prop: 'tuft', x: 5.0, dist: 2 }); break;                                  // the Strawberry Beach Club
-      case 'round': out.push({ prop: 'coastRound', x: 9.8, dist: 6 }, { prop: 'coastParasolI' + SWIRLS[mod(Math.floor(i / 14), 9)], x: 6.6, dist: 3 }); break;                    // the giant parasol over the roundabout: one of the user's nine swirls, never all red (a different one at each roundabout)
+      case 'round': out.push({ prop: 'coastRound', x: 9.8, dist: 6 }, { prop: 'coastParasolI' + SWIRLS[mod(Math.floor(i / 14), 9)], x: 8.6, dist: 3 }); break;                    // the giant parasol over the roundabout: one of the user's nine swirls, never all red (a different one at each roundabout)
       case 'pad': out.push({ prop: 'coastPad', x: 9.6, dist: 6 }); break;
       case 'park': out.push({ prop: 'coastPark', x: 7.4, dist: 6 }, { prop: 'tree', x: 11.8, dist: 2.5 }, { prop: 'tree', x: 13.0, dist: 9.5 }); break;     // a green space between the towers
       case 'place': out.push({ prop: PLACES[mod(Math.floor(i / 14) * 2 + (mod(i, 14) === 13 ? 1 : 0), 4)], x: 5.4, dist: 6 }); break;                                              // the empty lots: the fruit stall, the beach cafe, the pool and the cove, in turn (four neighbouring lots hold all four: an island, 25 lots, shows three or four of them)

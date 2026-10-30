@@ -1,7 +1,7 @@
 # Builds src3d/island_assets.js: the user's two photos kept for the places that fill the empty lots of the island, ONE WebP atlas (scaled; the cafe photo, whose lower part is only floor, is cropped to its upper part;
 # never recoloured or redrawn). The pool and the cove photos were removed at the user's request. Run:  python3 tools/make_island_assets.py [folder of the uploads]
 #   fruit = the fruit stall (strawberries, apricots, cherries, oranges, custard apples in wooden crates, with hand-written price boards): only the part ABOVE the line the user drew under the stall (the
-#           bench and the crates; the pavement is cut away with that line, as transparency), it is the FRONT OF THE FRUIT SHOP   -> coastFruit
+#           bench and the crates; the pavement is cut away with that line, as transparency), it is the FRONT OF THE FRUIT SHOP, reframed as a square to fill its square front   -> coastFruit
 #   cafe  = the table on the beach terrace (a candle and an orange juice with a pink straw, black rattan chairs, a white parasol with a green flag, the sea)   -> coastCafe
 import base64, io, sys
 import numpy as np
@@ -17,8 +17,9 @@ im = img['fruit']; f = im.width / 972.0; top = int(max(y for _, y in LINE) * f) 
 cut = np.interp(np.arange(im.width) / f, [x for x, _ in LINE], [y for _, y in LINE]) * f - 6          # the line, in pixels of the full photo, a little above it so that no red stroke remains
 for x in range(im.width):
     y0 = int(cut[x]); a[y0:, x, 3] = 0; a[y0:, x, :3] = a[y0 - 3, x, :3]                           # transparent below the line, the colour of the edge underneath (no grey fringe when the picture is filtered)
-img['fruit'] = Image.fromarray(a, 'RGBA')
-H = 640; cells = {k: img[k].resize((round(im.width * H / im.height), H), Image.LANCZOS) for k, im in img.items()}
+SQ = int(1240 * f)                                                                               # the bottom of the square, a little above the lowest point of the line (the left of the bench), so that little of it is transparent
+img['fruit'] = Image.fromarray(a, 'RGBA').crop((0, SQ - im.width, im.width, SQ))                         # reframed as a SQUARE (the width of the photo) to fill the square front of the shop
+H = 800; cells = {k: img[k].resize((round(im.width * H / im.height), H), Image.LANCZOS) for k, im in img.items()}
 order = ['fruit', 'cafe']; W = sum(cells[k].width for k in order) + 4 * (len(order) - 1); atlas = Image.new('RGBA', (W, H), (0, 0, 0, 0)); pos = {}; x = 0
 for k in order: atlas.paste(cells[k], (x, 0)); pos[k] = x; x += cells[k].width + 4
 buf = io.BytesIO(); atlas.save(buf, 'WEBP', quality=84, method=6, alpha_quality=100)
