@@ -11,7 +11,21 @@ SRC = sys.argv[1] if len(sys.argv) > 1 else '/root/.claude/uploads/65b8bc1c-1985
 H = 800; STEP = 4; M_PER_PX = 1.9 / H                                     # 1.9 m tall like the strawberry's cards; mesh grid step in texture pixels
 
 # ---- 1. the picture: cut out (it has its own alpha), cropped to its silhouette, scaled to 800 px tall (premultiplied so the edge keeps no halo)
-im = Image.open(SRC).convert('RGBA'); a0 = np.array(im)[..., 3]
+im = Image.open(SRC).convert('RGBA')
+# her left arm (a long black whip with its violet cuff) and her left boot (the toe turned out) are the model: the RIGHT arm (a green cuff and a straight blade) and the RIGHT boot are replaced by their mirror
+# image (measured on the 1280 x 1280 picture: the body axis x = 641, the shoulder pads end at x = 402 / 884, the legs are mirror images about x = 641.5), so both arms and both boots are the same, whatever the
+# viewer's side: her body, her head, her pads and her skirt are untouched.
+arr = np.array(im); Hh0, Ww0 = arr.shape[:2]
+def mirror_over(x0, x1, y0, y1, ex0, ex1, ey0, ey1, k):                       # erase the right box, paste the left region (x0..x1, y0..y1) mirrored: x' = k - x
+    src = arr[y0:y1, x0:x1].copy(); arr[ey0:ey1, ex0:ex1] = 0
+    for yy_ in range(src.shape[0]):
+        for xx_ in range(src.shape[1]):
+            if src[yy_, xx_, 3] == 0: continue
+            nx = k - (x0 + xx_)
+            if 0 <= nx < Ww0: arr[y0 + yy_, nx] = src[yy_, xx_]
+mirror_over(180, 401, 485, 645, 884, 1060, 540, 860, 1282)                    # the arm
+mirror_over(480, 625, 1120, 1280, 658, 805, 1120, 1280, 1283)                 # the boot (with the ankle: the legs are already mirror images)
+im = Image.fromarray(arr, 'RGBA'); a0 = arr[..., 3]
 ys, xs = np.where(a0 > 16); x0, x1, y0, y1 = xs.min() - 6, xs.max() + 7, ys.min() - 6, ys.max() + 7
 crop = im.crop((x0, y0, x1, y1)); W = int(round(crop.width * H / crop.height))
 c = np.array(crop).astype(np.float32); al = c[..., 3:4] / 255.0; c[..., :3] *= al
