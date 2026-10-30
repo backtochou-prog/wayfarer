@@ -33,20 +33,22 @@
     for (let k = 0; k < 7; k++) p.push(Kit.box(0.28, 0.05, 0.28, 0.6 + rnd(k, 4) * (W - 1.2), 0.08, -5.5 + k * 1.7 + rnd(k, 5) * 1.2, '#fff6d0', { glow: true }));      // scattered glints (not in a row: it must not read as a road marking)
     return Kit.merge(p);
   };
-  const TOWN = { coastCanal: canal, coastTower0: () => tower(0), coastTower1: () => tower(1), coastTower2: () => tower(2), coastTower3: () => tower(3), coastRound: round, coastPad: pad };
-  // The island is small (200 m: about 17 slots), so its sights come on a fixed beat of 12 slots (SEG_LEN, 144 m): every 17 slots hold at least one Club Delphi, one Strawberry Beach Club, one flower roundabout with
-  // its parasol, one landing pad with its saucer, and the green spaces and grounds between the towers. The land side keeps a bike lane on every slot; the sea side is the coast's own (the sea, the fence, boats),
+  const TOWN = Object.assign({ coastCanal: canal, coastTower0: () => tower(0), coastTower1: () => tower(1), coastTower2: () => tower(2), coastTower3: () => tower(3), coastRound: round, coastPad: pad }, ISLAND_PLACES);
+  // The island is 600 m long (50 slots), so its sights come on a fixed beat of 14 slots (SEG_LEN, 168 m): every 17 slots hold at least one Club Delphi, one Strawberry Beach Club, one flower roundabout with
+  // its parasol, one landing pad with its saucer, and the green spaces and grounds between the towers; the two lots of the beat that were empty hold one of the four PLACES of the user's photos in turn
+  // (src3d/island_places.js: a fruit stall, a beach cafe, a pool terrace with a riad, a rocky cove, each with its photo in a frame). The land side keeps a bike lane on every slot; the sea side is the coast's own (the sea, the fence, boats),
   // and BEHIND the towers (x = 17 m) the sea comes back, and between the island and the coast road a narrow canal (a channel of the same sea): an island is water all round.
-  const BEAT = ['tower', 'delphi', 'tower', 'park', 'round', 'tower', 'tower', 'club', 'court', 'tower', 'pad', 'play'];
+  const BEAT = ['tower', 'delphi', 'tower', 'park', 'round', 'tower', 'tower', 'place', 'club', 'court', 'tower', 'pad', 'play', 'place'], PLACES = ['coastFruit', 'coastCafe', 'coastPool', 'coastCove'], SWIRLS = [0, 5, 1, 7, 2, 4, 3, 6, 8];      // SWIRLS: the nine canopies of the giant parasols in turn, a pinwheel (0..3: red and cream, teal, teal on green, magenta) on every second one
   const layout = (i, rnd) => {
     const out = coastSea(i, rnd).filter(q => q.x < 0), r = n => rnd(i * 5 + 1, n);
     out.push({ prop: 'coastBike', x: 3.7, dist: 6 }, { prop: 'seaStrip', x: 17.0, dist: 6 }, { prop: 'coastCanal', x: -6.9, dist: 6 });                                                   // the bike lane along the road, on every slot; the sea behind the island
-    switch (BEAT[mod(i, 12)]) {
+    switch (BEAT[mod(i, 14)]) {
       case 'delphi': out.push({ prop: 'coastDelphi', x: 5.4, dist: 6 }, { prop: 'tuft', x: 5.0, dist: 2 }); break;                              // Club Delphi: a long building, so on the island, never among the chalets
       case 'club': out.push({ prop: 'coastClub', x: 5.4, dist: 6 }, { prop: 'tuft', x: 5.0, dist: 2 }); break;                                  // the Strawberry Beach Club
-      case 'round': out.push({ prop: 'coastRound', x: 9.8, dist: 6 }, { prop: 'coastParasol', x: 6.6, dist: 3 }); break;
+      case 'round': out.push({ prop: 'coastRound', x: 9.8, dist: 6 }, { prop: 'coastParasolI' + SWIRLS[mod(Math.floor(i / 14), 9)], x: 6.6, dist: 3 }); break;                    // the giant parasol over the roundabout: one of the user's nine swirls, never all red (a different one at each roundabout)
       case 'pad': out.push({ prop: 'coastPad', x: 9.6, dist: 6 }); break;
       case 'park': out.push({ prop: 'coastPark', x: 7.4, dist: 6 }, { prop: 'tree', x: 11.8, dist: 2.5 }, { prop: 'tree', x: 13.0, dist: 9.5 }); break;     // a green space between the towers
+      case 'place': out.push({ prop: PLACES[mod(Math.floor(i / 14) * 2 + (mod(i, 14) === 13 ? 1 : 0), 4)], x: 5.4, dist: 6 }); break;                                              // the empty lots: the fruit stall, the beach cafe, the pool and the cove, in turn (four neighbouring lots hold all four: an island, 25 lots, shows three or four of them)
       case 'court': out.push({ prop: 'coastCourt', x: 7.4, dist: 6 }); break;                                                                  // a sports court
       case 'play': out.push({ prop: 'coastPlay', x: 7.4, dist: 6 }); break;                                                                    // a youth playground
       default: out.push({ prop: 'coastTower' + Math.min(3, Math.floor(r(1) * 4)), x: 7.3 + r(2) * 0.5, dist: 6 });

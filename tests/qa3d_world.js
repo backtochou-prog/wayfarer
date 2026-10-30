@@ -312,7 +312,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
 
   // ================================================================ 3c. the tram street: a sunset district from the user's street photos
   const Ts = await pg.evaluate(async () => {
-    const out = { bad: [], maxStep: 0, mid: 0, ends: 0, ids: [] }, w = new World(TRACK); w.extend(70000);
+    const out = { bad: [], maxStep: 0, mid: 0, ends: 0, ids: [] }, w = new World(TRACK); w.extend(92000);
     for (const P of w.pieces.filter(p => p.type === 'seg' && p.id === 'tramRun')) {
       out.segs = (out.segs || 0) + 1; out.len = P.z1 - P.z0; let prev = null;
       for (let z = P.z0 + 0.5; z < P.z1 - 0.5; z += 5) {

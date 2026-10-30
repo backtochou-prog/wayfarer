@@ -25,7 +25,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       // put the player in the tram street, `back` metres before the first slot that has `want` in its layout (any prop kind), the zone fully in
       window.goto = (want, back = 30, nth = 0) => {
         g.start(); g.world.items = []; g.world.reset(); g.start(); g.world.extend(14000); for (let n = 9000; !g.world.pieces.find(p => p.type === 'seg' && p.id === 'tramRun') && n < 90000; n += 4000) g.world.extend(n);
-        for (let n = 100000; n <= 260000; n += 20000) g.world.extend(n);                                   // (the later laps too: the layout is a pure function of the slot, so any lap with the wanted prop will do)
+        for (let n = 100000; n <= 420000; n += 20000) g.world.extend(n);                                   // (the later laps too: the layout is a pure function of the slot, so any lap with the wanted prop will do)
         const Ps = g.world.pieces.filter(p => p.type === 'seg' && p.id === 'tramRun'); let P = Ps[0]; g.state = 'play'; g.world.items = []; let slot = null, seen = 0;
         if (!window.__L0) window.__L0 = ENV3D.tram.layout; ENV3D.tram.layout = window.__L0; for (const m of Object.values(r.layouts)) m.clear();      // (the real layout, unless 'clean')
         for (const Q of Ps) { for (let i = Math.ceil((Q.z0 + 1800) * 0.1 / 12); i < (Q.z1 - 1500) * 0.1 / 12; i++) if (!/^clean/.test(want) && ENV3D.tram.layout(i, rnd).some(q => q.prop === want) && (want !== 'scooterDock' || ![-2, -1, 0, 1].some(d => ENV3D.tram.layout(i + d, rnd).some(q => /^(scooter|board)$/.test(q.prop)))) && seen++ >= nth) { slot = i; break; } if (slot !== null) { P = Q; break; } }       /* (a station with no other scooter around it, so that it is the one offered) */
@@ -45,7 +45,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const pg = await open('');
   const I = await pg.evaluate(() => {
     const g = G, r = g.r, out = {}; out.slotDock = goto('scooterDock'); frames(3); out.dock = g.scooterHint && { dock: g.scooterHint.dock, ahead: Math.round(g.scooterHint.ahead), x: Math.round(g.scooterHint.x), y: Math.round(g.scooterHint.y), rx: Math.round(g.scooterHint.rx), ry: Math.round(g.scooterHint.ry) }; out.onFoot = !g.riding && r.runner.ride < 0.05;
-    out.slotOne = goto('scooter'); frames(3); out.one = g.scooterHint && { dock: g.scooterHint.dock, ahead: Math.round(g.scooterHint.ahead) };
+    for (let k = 0; k < 12; k++) { out.slotOne = goto('scooter', 30, k); frames(3); out.one = g.scooterHint && { dock: g.scooterHint.dock, ahead: Math.round(g.scooterHint.ahead) }; if (out.one && !out.one.dock) break; }      // (a lone scooter: the first one with no station between it and the runner)
     // far away (> 70 m) and in another zone: nothing
     goto('scooter', 220); frames(3); out.far = g.scooterHint && g.scooterHint.ahead > 140 ? g.scooterHint : null; out.city = true;
     goto('scooter', 30); g.state = 'pause'; frames(2); out.paused = g.scooterHint; g.state = 'play';
