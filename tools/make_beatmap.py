@@ -5,7 +5,7 @@
     ffmpeg -i track.m4a -vn -af volume=-3dB -codec:a libmp3lame -b:a 128k -ar 44100 assets/music.mp3
     python3 tools/make_beatmap.py /tmp/mono.f32 > src3d/music_beats.js
 
-For a short clip cut from a track whose beat period is known (the coast loop: 28 beats of 0.49703 s) pass the period as a second argument; the tempo search is then skipped,
+For a short clip cut from a track whose beat period is known (the island loop: 28 beats of 0.49705 s) pass the period as a second argument; the tempo search is then skipped,
 it is unreliable on a few seconds of music (it found 1.5 times the period on the coast loop). A third argument gives the time of the first beat when it is known:
 
     python3 tools/make_beatmap.py /tmp/mono.f32 0.49703 0.0035 > src3d/music_beats_coast.js        (period, then the time of the first beat inside the clip)
