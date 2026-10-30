@@ -9,16 +9,19 @@
 #     wedge). It is fitted onto the silhouette of the mesh (the body form of Zagla is kept): rows matched by landmarks (head, torso, skirt, legs, soles), each row scaled to the run of the silhouette (the two legs
 #     separately), the picture sampled bilinearly; where it has nothing (the hair above the top of its canvas, the long arms) the texture below shows through. The boots of the back (rows of the legs) take HER
 #     silhouette for the back face of the legs.
-# Run:  python3 tools/make_zagla_assets.py [front picture] [back picture] [edited sheet] [her new back]       (needs Pillow and numpy; writes src3d/zagla_assets.js and docs/screenshots/zagla-textures.jpg)
-import base64, io, sys, json
+# THE LATEST BACK is "Le dos" (tools/zagla_back.png, 1280 px: the front's canvas at half size, transparent background, soft painting): it is the back texture as it is (the arms, the hood, the shoulders, the red lettering on the green
+# shoulder, the skirt, the boots), read as the view from behind and lined up on her body axis; its transparent or half-transparent places show her front mirrored. The two earlier backs (the sheet she painted over, and
+# "Zagla back side") are only applied when their files are given on the command line (arguments 3 and 4).
+# Run:  python3 tools/make_zagla_assets.py [front picture] [back picture] [edited sheet] [her older back]       (needs Pillow and numpy; writes src3d/zagla_assets.js and docs/screenshots/zagla-textures.jpg)
+import base64, io, os, sys, json
 import numpy as np
 from PIL import Image
 U = '/root/.claude/uploads/65b8bc1c-1985-5345-a2d7-9387f9b1700d/'
 SRC = sys.argv[1] if len(sys.argv) > 1 else U + '4b334d3f-image.png'
-SRCB = sys.argv[2] if len(sys.argv) > 2 else U + '900ea59d-image.png'
+SRCB = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'zagla_back.png')
 import os
-EDITS = sys.argv[3] if len(sys.argv) > 3 else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'zagla_sheet_edits.png')
-NEWBACK = sys.argv[4] if len(sys.argv) > 4 else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'zagla_back_user.png')
+EDITS = sys.argv[3] if len(sys.argv) > 3 else None
+NEWBACK = sys.argv[4] if len(sys.argv) > 4 else None
 H = 800; STEP = 4; M_PER_PX = 1.9 / H                                     # 1.9 m tall like the strawberry's cards; mesh grid step in texture pixels
 
 # ---- 1. the front picture: cut out (it has its own alpha), cropped to its silhouette, scaled to 800 px tall (premultiplied so the edge keeps no halo)
@@ -63,10 +66,30 @@ def edt(m):                                                               # dist
     return d / 3.0
 dist = edt(mask)
 
-# ---- 2. the back picture: the window of the picture that is the MIRROR of the front window about her axis (so that the back view lines up with the mesh), scaled alike; read as it is (no flip: it is the view from behind)
-bk = Image.open(SRCB).convert('RGB'); bx0, bx1 = int(round(2 * XA - x1)), int(round(2 * XA - x0))
+# ---- 2. the back picture: scaled to the canvas of the front picture if it is smaller (the latest back is the front's canvas at half size), then the window of it that is the MIRROR of the front window about her axis (so that the
+# back view lines up with the mesh), scaled alike; read as it is (no flip: it is the view from behind). Its transparency is kept: where it is transparent the front mirrored shows through.
+bk = Image.open(SRCB).convert('RGBA')
+if bk.size != im.size:
+    pmk = np.array(bk).astype(np.float32); pmk[..., :3] *= pmk[..., 3:4] / 255.0
+    ch2 = [np.array(Image.fromarray(pmk[..., k]).resize(im.size, Image.LANCZOS), dtype=np.float32) for k in range(4)]
+    al2 = np.clip(ch2[3], 0, 255); rg2 = np.where(al2[..., None] > 1, np.stack(ch2[:3], axis=2) / np.maximum(al2[..., None], 1) * 255.0, 0)
+    bk = Image.fromarray(np.concatenate([np.clip(rg2, 0, 255), al2[..., None]], axis=2).astype(np.uint8), 'RGBA')
+bx0, bx1 = int(round(2 * XA - x1)), int(round(2 * XA - x0))
 assert bx0 >= 0 and bx1 <= bk.width, (bx0, bx1, bk.width)
-back_px = np.array(bk.crop((bx0, y0, bx1, y1)).resize((W, H), Image.LANCZOS)).astype(np.float32)
+bcrop = np.array(bk.crop((bx0, y0, bx1, y1))).astype(np.float32); bcrop[..., :3] *= bcrop[..., 3:4] / 255.0
+bch = [np.array(Image.fromarray(bcrop[..., k]).resize((W, H), Image.LANCZOS), dtype=np.float32) for k in range(4)]
+back_a = np.clip(bch[3], 0, 255) / 255.0; back_px = np.where(back_a[..., None] > 0.004, np.stack(bch[:3], axis=2) / np.maximum(back_a[..., None], 0.004), 255.0).clip(0, 255)
+def _box(a, r):                                                              # separable box blur, radius r (also used below)
+    k = 2 * r + 1; p = np.pad(a, ((r, r), (0, 0)) if a.ndim == 2 else ((r, r), (0, 0), (0, 0)), mode='edge'); c = np.cumsum(p, axis=0, dtype=np.float64); c = np.concatenate([np.zeros_like(c[:1]), c], axis=0); a = (c[k:] - c[:-k]) / k
+    p = np.pad(a, ((0, 0), (r, r)) if a.ndim == 2 else ((0, 0), (r, r), (0, 0)), mode='edge'); c = np.cumsum(p, axis=1, dtype=np.float64); c = np.concatenate([np.zeros_like(c[:, :1]), c], axis=1); return (c[:, k:] - c[:, :-k]) / k
+# her thin strokes (the blades of her arms, the hair) are narrower on the back picture than on the mesh: the colours of the picture are bled outward by up to 14 px, so the mesh blade wears the picture's own blade
+px_b = back_px.copy(); a_b = back_a.copy()
+for _ in range(14):
+    m_ = (a_b >= 0.5).astype(np.float32); den = _box(m_, 1) * 9.0; num = _box(px_b * m_[..., None], 1) * 9.0
+    fill = (m_ < 0.5) & (den > 0.5); px_b = np.where(fill[..., None], num / np.maximum(den[..., None], 1e-6), px_b); a_b = np.where(fill, 0.95, a_b)
+bled = (a_b >= 0.5) & (back_a < 0.5)
+back_px = np.where(bled[..., None], px_b, back_px); back_a_eff = np.where(bled, 0.95, back_a)
+FLIP_REST = False                                                           # (only the earlier back needed its arms, hair and boots flipped about her axis)
 # THE BACK OF ZAGLA IS A HOOD (her words): the head and the torso of her back picture (the black pointed hood, its black V edge, the green and yellow pattern of the cloak, the skirt) are the back as she drew it; the REST of
 # the picture (the arms and their cuffs, the strokes of her hair, the legs and the boots) is in the OPPOSITE position, as in a real view from behind: what is on the left in the front is on the right in the back (the
 # violet cuff on the right, the green one on the left). Her picture draws those parts on the same side as in the front, so outside the hood / torso block the picture is flipped about her axis.
@@ -76,7 +99,7 @@ for _ in range(16):                                                         # gr
     g = core.copy(); g[1:] |= core[:-1]; g[:-1] |= core[1:]; g[:, 1:] |= core[:, :-1]; g[:, :-1] |= core[:, 1:]; core = g
 core &= mask[:, ::-1]
 cols = np.clip(np.round(2 * xb - np.arange(W)).astype(int), 0, W - 1)
-back_px = np.where(core[..., None], back_px, back_px[:, cols])
+if FLIP_REST: back_px = np.where(core[..., None], back_px, back_px[:, cols])
 mirror = front[:, ::-1].astype(np.float32)                                  # the front seen from behind: the fallback of the back
 # ... except the BOOTS: from behind a boot is a heel, not the pink toe of the front picture (that would put the front's feet on her back: the feet would be the wrong way round). Her back picture draws them as dark
 # green heels; where it is white or at the rim, the fallback below the ankles is the dark of those heels (darker toward the soles), never the front's pink and blue.
@@ -85,16 +108,19 @@ heel = back_px[YB:][(back_px[YB:].min(axis=2) < 150)]; dk = heel.mean(axis=0) if
 dk = np.minimum(dk, 70.0)
 tt = np.clip((np.arange(H)[:, None] - YB) / float(H - YB), 0, 1)[..., None]                                  # 0 at the ankle, 1 at the soles
 shoe = (dk * (1 - 0.6 * tt) + np.array([18, 0, 40], np.float32) * 0.6 * tt)[:, None, :] if False else None
-fall = mirror[..., :3].copy()
+fall = (front[..., :3].astype(np.float32) if not FLIP_REST else mirror[..., :3]).copy()        # (her back picture draws the arms on the same side as the front: the violet cuff at the left, the green one at the right)
 band = np.clip((np.arange(H)[:, None] - (YB - 10)) / 10.0, 0, 1)[..., None]                                    # a short blend at the ankle
 heelc = dk[None, None, :] * (1 - 0.6 * tt) + np.array([18, 0, 40], np.float32)[None, None, :] * 0.6 * tt
 fall = fall * (1 - band) + np.broadcast_to(heelc, fall.shape) * band
 inside = mask[:, ::-1]; dback = dist[:, ::-1]
 white = np.clip((back_px.min(axis=2) - 205.0) / 40.0, 0, 1)                 # the back picture's white background and haze
 rim = np.clip((12.0 - dback) / 8.0, 0, 1)                                   # a rim of the front's outline stays at the edge of the silhouette
-k = np.maximum(white, rim)[..., None]
+k = np.maximum(np.maximum(white, rim), np.clip((0.9 - back_a_eff) / 0.4, 0, 1))[..., None]            # (and where the back picture is transparent or half transparent)
 back_rgb = back_px * (1 - k) + fall * k
 back = np.concatenate([back_rgb, mirror[..., 3:4]], axis=2).clip(0, 255).astype(np.uint8)
+# the back face of each leg has the silhouette of the boots as she drew them on the back (rows of the ankles and soles)
+legs_rows = np.arange(H)[:, None] >= 735
+back[..., 3] = np.where(legs_rows & (back_a > 0.02), (back_a > 0.5) * 255, back[..., 3]).astype(np.uint8)
 
 # ---- 3b. the user's edits of the two textures, taken from her painted-over sheet (the sheet this script makes: F at (10, 10), B at (W + 20, 10) on grey, JPEG 88, 2W + 30 x H + 20)
 def sheet_of(fr, bk):
@@ -103,7 +129,7 @@ def box(a, r):                                                              # se
     k = 2 * r + 1; p = np.pad(a, ((r, r), (0, 0)) if a.ndim == 2 else ((r, r), (0, 0), (0, 0)), mode='edge'); c = np.cumsum(p, axis=0, dtype=np.float64); c = np.concatenate([np.zeros_like(c[:1]), c], axis=0); a = (c[k:] - c[:-k]) / k
     p = np.pad(a, ((0, 0), (r, r)) if a.ndim == 2 else ((0, 0), (r, r), (0, 0)), mode='edge'); c = np.cumsum(p, axis=1, dtype=np.float64); c = np.concatenate([np.zeros_like(c[:, :1]), c], axis=1); return (c[:, k:] - c[:, :-k]) / k
 edited = {'front': 0, 'back': 0}
-if os.path.exists(EDITS):
+if EDITS and os.path.exists(EDITS):
     us = Image.open(EDITS).convert('RGBA')
     if us.size != (W * 2 + 30, H + 20): print('the edited sheet is', us.size, 'not', (W * 2 + 30, H + 20), ': its edits are not applied')
     else:
@@ -127,7 +153,7 @@ def runs_of(m):
         if v != pv + 1: out.append((int(st), int(pv))); st = v
         pv = v
     out.append((int(st), int(pv))); return out
-if os.path.exists(NEWBACK):
+if NEWBACK and os.path.exists(NEWBACK):
     ub = np.array(Image.open(NEWBACK).convert('RGBA')).astype(np.float32); mu_ = ub[..., 3] > 40; mu_[800:] = False; UH, UW = mu_.shape
     def body_core(m, d):                                                                   # the egg and the legs without the thin parts (arms, hair): deep pixels (>= 9 px from the edge) grown back by 9 px
         c = d >= 9.0
@@ -202,7 +228,8 @@ if len(xs_):
         pv = v
     runs.append((st, pv))
 back0 = back.copy(); turned = {}
-if applied_back: print('boots of the back: her own (her new back), not turned')
+TURN_BOOTS = False                                                          # (the earlier back's boots were turned about their legs)
+if applied_back or not TURN_BOOTS: print('boots of the back: her own, as drawn')
 elif len(runs) == 2:
     for kk, (sx0, sx1) in enumerate(runs):
         cs = (sx0 + sx1) / 2.0; wsh = sx1 - sx0 + 1; w0, w1 = max(0, sx0 - 45), min(W, sx1 + 46); y0 = None
