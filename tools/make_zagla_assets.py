@@ -58,6 +58,16 @@ dist = edt(mask)
 bk = Image.open(SRCB).convert('RGB'); bx0, bx1 = int(round(2 * XA - x1)), int(round(2 * XA - x0))
 assert bx0 >= 0 and bx1 <= bk.width, (bx0, bx1, bk.width)
 back_px = np.array(bk.crop((bx0, y0, bx1, y1)).resize((W, H), Image.LANCZOS)).astype(np.float32)
+# THE BACK OF ZAGLA IS A HOOD (her words): the head and the torso of her back picture (the black pointed hood, its black V edge, the green and yellow pattern of the cloak, the skirt) are the back as she drew it; the REST of
+# the picture (the arms and their cuffs, the strokes of her hair, the legs and the boots) is in the OPPOSITE position, as in a real view from behind: what is on the left in the front is on the right in the back (the
+# violet cuff on the right, the green one on the left). Her picture draws those parts on the same side as in the front, so outside the hood / torso block the picture is flipped about her axis.
+xb = W - xc                                                                 # her axis in the back window (the window is the mirror of the front's about the axis)
+core = dist[:, ::-1] >= 12.0                                                # deep inside the silhouette: the egg of her body (not her thin hair strokes, arms and ankles)
+for _ in range(16):                                                         # grown by 16 px back to the rim of the egg
+    g = core.copy(); g[1:] |= core[:-1]; g[:-1] |= core[1:]; g[:, 1:] |= core[:, :-1]; g[:, :-1] |= core[:, 1:]; core = g
+core &= mask[:, ::-1]
+cols = np.clip(np.round(2 * xb - np.arange(W)).astype(int), 0, W - 1)
+back_px = np.where(core[..., None], back_px, back_px[:, cols])
 mirror = front[:, ::-1].astype(np.float32)                                  # the front seen from behind: the fallback of the back
 # ... except the BOOTS: from behind a boot is a heel, not the pink toe of the front picture (that would put the front's feet on her back: the feet would be the wrong way round). Her back picture draws them as dark
 # green heels; where it is white or at the rim, the fallback below the ankles is the dark of those heels (darker toward the soles), never the front's pink and blue.
