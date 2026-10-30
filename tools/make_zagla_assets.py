@@ -289,10 +289,17 @@ def b64(arr): return base64.b64encode(arr.tobytes()).decode()
 def webp(arr, q=95):
     buf = io.BytesIO(); Image.fromarray(arr, 'RGBA').save(buf, 'WEBP', quality=q, method=6); return buf.getvalue()
 fw, bw = webp(front), webp(back)
+# ---- the SIZE of Captain Strawberry: the same height, width and depth as his artwork in the game (AVATAR_ASSETS: the back view 1.2894 x 1.9 m with the arms, the side view 0.8257 m deep), measured on her silhouette
+sx_, sy_ = np.where(mask)[1], np.where(mask)[0]; BW = sx_.max() - sx_.min() + 1; BH = sy_.max() - sy_.min() + 1; FOOT = int(sy_.max()) + 1
+av = open('src3d/avatar_assets.js').read(); import re as _re
+def _m(name, key): return float(_re.search(name + r": \{ w: \d+, h: \d+, mw: ([\d.]+), mh: ([\d.]+)", av).group(1 if key == 'mw' else 2))
+SW_, SH_, SD_ = _m('back', 'mw'), _m('back', 'mh'), _m('side', 'mw')
+MPPX, MPPY = SW_ / BW, SH_ / BH; MPPZ = SD_ / (2 * pieces[0]['zmax'])
+print('her size: %.3f x %.3f x %.3f m (width, height, depth) = Captain Strawberry\'s %.4f x %.4f x %.4f' % (BW * MPPX, BH * MPPY, 2 * pieces[0]['zmax'] * MPPZ, SW_, SH_, SD_))
 js = "// ZAGLA, the second character, as a 3D body (made by tools/make_zagla_assets.py from the user's pictures of her, front and back, and her own edits of the textures): `front` = her front picture cut out and scaled\n"
 js += "// (its own colours), `back` = her back picture, the view from behind (the hood, the rest in the opposite position), `pieces` = her silhouette inflated into a volume (grid of `step` texture px: ij = grid column / row,\n"
-js += "// z = depth in 1/8 px, tri = triangles; the back of the body is the front mirrored in z), cut in the body and two legs that swing. Sizes: w x h texture px, `mpp` = metres per texture px (1.9 m tall).\n"
-js += "const ZAGLA_ASSETS = " + json.dumps(dict(w=W, h=H, mpp=M_PER_PX, step=STEP, axis=float(xc), pieces=[dict(name=p['name'], pivot=p['pivot'], n=p['n'], ij=b64(p['ij']), z=b64(p['z']), tri=b64(p['tri']), **({'b': dict(n=p['b']['n'], ij=b64(p['b']['ij']), z=b64(p['b']['z']), tri=b64(p['b']['tri']))} if 'b' in p else {})) for p in pieces],
+js += "// z = depth in 1/8 px, tri = triangles; the back of the body is the front mirrored in z), cut in the body and two legs that swing. Sizes: w x h texture px, `mppx` / `mppy` / `mppz` = metres per texture px (width, height, depth): her size is Captain Strawberry's (1.2894 x 1.9 m, 0.8257 m deep); `foot` = the row of her soles.\n"
+js += "const ZAGLA_ASSETS = " + json.dumps(dict(w=W, h=H, mpp=M_PER_PX, mppx=MPPX, mppy=MPPY, mppz=MPPZ, foot=FOOT, step=STEP, axis=float(xc), pieces=[dict(name=p['name'], pivot=p['pivot'], n=p['n'], ij=b64(p['ij']), z=b64(p['z']), tri=b64(p['tri']), **({'b': dict(n=p['b']['n'], ij=b64(p['b']['ij']), z=b64(p['b']['z']), tri=b64(p['b']['tri']))} if 'b' in p else {})) for p in pieces],
       front='data:image/webp;base64,' + base64.b64encode(fw).decode(), back='data:image/webp;base64,' + base64.b64encode(bw).decode())) + ";\n"
 open('src3d/zagla_assets.js', 'w').write(js); print('zagla_assets.js', len(js) // 1024, 'KB (front', len(fw) // 1024, 'KB, back', len(bw) // 1024, 'KB)')
 sheet_of(front, back).save('docs/screenshots/zagla-textures.jpg', quality=88)

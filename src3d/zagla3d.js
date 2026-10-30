@@ -1,4 +1,4 @@
-// RunnerZagla: ZAGLA, the second character, as a real 3D body (ZAGLA_ASSETS, made by tools/make_zagla_assets.py from the user's picture of her): her silhouette inflated into a volume (a round cross-section),
+// RunnerZagla: ZAGLA, the second character, as a real 3D body, the size of Captain Strawberry (1.29 m wide with the arms, 1.9 m tall, 0.83 m deep: his artwork's own dimensions), (ZAGLA_ASSETS, made by tools/make_zagla_assets.py from the user's picture of her): her silhouette inflated into a volume (a round cross-section),
 // wearing the user's picture on the FRONT (its own colours) and the BACK of C.Strawberry, fitted onto her shape and recoloured into her palette, as the material of the BACK (the view the chase camera sees).
 // The body is one piece; the two legs are their own pieces, pivoting at the hips, and swing in the run. It has the same interface as RunnerSprite (group, shadow, update(dt, state), cur, the vehicles: it stands
 // on the scooter, the board and the surfboard like the strawberry does), so the renderer and the tests treat both alike; unlike the flat cards it is a true 3D body: it keeps the heading of its group (it turns with the
@@ -8,7 +8,7 @@ class RunnerZagla extends RunnerSprite {
   constructor() {
     super();
     for (const k in this.cards) this.pivot.remove(this.cards[k]);                    // not the strawberry's artwork
-    const A = ZAGLA_ASSETS, MP = A.mpp, S = A.step, u8 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+    const A = ZAGLA_ASSETS, MX = A.mppx, MY = A.mppy, MZ = A.mppz, S = A.step, u8 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
     const tex = {};
     for (const k of ['front', 'back']) {
       const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;
@@ -24,7 +24,7 @@ class RunnerZagla extends RunnerSprite {
       const pos = new Float32Array(n * 3), uv = new Float32Array(n * 2);
       for (let k = 0; k < n; k++) {
         const x = ij[2 * k] * S, y = ij[2 * k + 1] * S, xf = own ? (A.w - 1) - x : x;
-        pos[3 * k] = (A.axis - xf) * MP - ox; pos[3 * k + 1] = (A.h - y) * MP - oy; pos[3 * k + 2] = sg * zz[k] / 8 * MP;
+        pos[3 * k] = (A.axis - xf) * MX - ox; pos[3 * k + 1] = (A.foot - y) * MY - oy; pos[3 * k + 2] = sg * zz[k] / 8 * MZ;
         uv[2 * k] = own ? x / A.w : face === 'front' ? x / A.w : 1 - x / A.w; uv[2 * k + 1] = 1 - y / A.h;
       }
       const idx = new Uint16Array(tri);
@@ -36,7 +36,7 @@ class RunnerZagla extends RunnerSprite {
     };
     this.parts = {}; this.legs = []; this.tris = 0;
     for (const P of A.pieces) {
-      const leg = P.name !== 'body', ox = leg ? (A.axis - P.pivot[0]) * MP : 0, oy = leg ? (A.h - P.pivot[1]) * MP : 0, grp = new THREE.Group();
+      const leg = P.name !== 'body', ox = leg ? (A.axis - P.pivot[0]) * MX : 0, oy = leg ? (A.foot - P.pivot[1]) * MY : 0, grp = new THREE.Group();
       grp.position.set(ox, oy, 0);
       for (const face of ['front', 'back']) { const g = surface(P, face, ox, oy), m = new THREE.Mesh(g, this.mats[face]); grp.add(m); this.tris += g.index.count / 3; }
       this.pivot.add(grp); this.parts[P.name] = grp; if (leg) this.legs.push(grp);
