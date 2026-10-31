@@ -17,8 +17,13 @@ import base64, io, os, sys, json
 import numpy as np
 from PIL import Image
 U = '/root/.claude/uploads/65b8bc1c-1985-5345-a2d7-9387f9b1700d/'
-SRC = sys.argv[1] if len(sys.argv) > 1 else U + '4b334d3f-image.png'
-SRCB = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'zagla_back.png')
+HERE = os.path.dirname(os.path.abspath(__file__))
+if len(sys.argv) > 1:
+    SRC = sys.argv[1]; SRCB = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, 'zagla_back.png')
+else:                                                                     # by default: the GLOSSY pair ("Zagla front" and "Zagla le dos", tools/zagla_front_glossy.png / zagla_back_glossy.png), the back registered onto the front
+    import subprocess, tempfile                                           # (tools/register_zagla_back.py: the two on one 2560 x 2560 canvas, the back warped until the outline of its body is the front's)
+    TMP = tempfile.mkdtemp(); SRC = os.path.join(TMP, 'front.png'); SRCB = os.path.join(TMP, 'back.png')
+    subprocess.run([sys.executable, os.path.join(HERE, 'register_zagla_back.py'), os.path.join(HERE, 'zagla_front_glossy.png'), os.path.join(HERE, 'zagla_back_glossy.png'), SRC, SRCB], check=True)
 import os
 EDITS = sys.argv[3] if len(sys.argv) > 3 else None
 NEWBACK = sys.argv[4] if len(sys.argv) > 4 else None
@@ -119,8 +124,10 @@ k = np.maximum(np.maximum(white, rim), np.clip((0.9 - back_a_eff) / 0.4, 0, 1))[
 back_rgb = back_px * (1 - k) + fall * k
 back = np.concatenate([back_rgb, mirror[..., 3:4]], axis=2).clip(0, 255).astype(np.uint8)
 # the back face of each leg has the silhouette of the boots as she drew them on the back (rows of the ankles and soles)
+OWN_LEGS = os.environ.get('ZAGLA_OWN_BACK_LEGS', '0') == '1'                  # 1: each leg's back face has the silhouette of the boots of the back picture (right for the clean flat pictures); 0 (the glossy pair): the front's, whose
+                                                                            # outline is clean (the glossy back's glow and highlights make a ragged silhouette)
 legs_rows = np.arange(H)[:, None] >= 735
-back[..., 3] = np.where(legs_rows & (back_a > 0.02), (back_a > 0.5) * 255, back[..., 3]).astype(np.uint8)
+if OWN_LEGS: back[..., 3] = np.where(legs_rows & (back_a > 0.02), (back_a > 0.5) * 255, back[..., 3]).astype(np.uint8)
 
 # ---- 3b. the user's edits of the two textures, taken from her painted-over sheet (the sheet this script makes: F at (10, 10), B at (W + 20, 10) on grey, JPEG 88, 2W + 30 x H + 20)
 def sheet_of(fr, bk):
@@ -227,8 +234,13 @@ if len(xs_):
         if v != pv + 1: runs.append((st, pv)); st = v
         pv = v
     runs.append((st, pv))
+    merged = [runs[0]]                                                    # (the glossy back's highlights and glow split a leg into pieces: runs closer than 14 px are one leg)
+    for r_ in runs[1:]:
+        if r_[0] - merged[-1][1] <= 14: merged[-1] = (merged[-1][0], r_[1])
+        else: merged.append(r_)
+    runs = merged
 back0 = back.copy(); turned = {}
-TURN_BOOTS = False                                                          # (the earlier back's boots were turned about their legs)
+TURN_BOOTS = os.environ.get('ZAGLA_TURN_BOOTS', '1') == '1'                 # the boots of the glossy back are turned about their legs (as the earlier back's were): from behind they must not point IN; ZAGLA_TURN_BOOTS=0 keeps them as drawn
 if applied_back or not TURN_BOOTS: print('boots of the back: her own, as drawn')
 elif len(runs) == 2:
     for kk, (sx0, sx1) in enumerate(runs):
@@ -309,7 +321,7 @@ mask_b = back[..., 3] > 40; dist_b = edt(mask_b); Rloc_b = maxfilter(dist_b, 20)
 for k, (lx0, lx1) in enumerate(legs[:2]):
     sel = np.zeros_like(mask); sel[YCUT - 24:, lx0 - 1:lx1 + 2] = True
     sel_b = np.zeros_like(mask); sel_b[YCUT - 24:, max(0, W - 1 - lx1 - 26):W - 1 - lx0 + 27] = True
-    pieces.append(piece('legL' if k == 0 else 'legR', sel, ((lx0 + lx1) / 2, YCUT - 14), (sel_b, mask_b, dist_b, Rloc_b)))
+    pieces.append(piece('legL' if k == 0 else 'legR', sel, ((lx0 + lx1) / 2, YCUT - 14), (sel_b, mask_b, dist_b, Rloc_b) if OWN_LEGS else None))
 
 # ---- 5. write the asset
 def b64(arr): return base64.b64encode(arr.tobytes()).decode()
