@@ -35,7 +35,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   await pg.keyboard.press('KeyX');                                           // any key is a gesture
   await pg.waitForFunction(() => __wf.sfx.music.currentTime > 0.5, null, { timeout: 90000 });
   const L1 = await pg.evaluate(async () => { const a = __wf.sfx, t0 = a.music.currentTime; await new Promise(r => setTimeout(r, 1200)); a.update(__wf, 0); return { unlocked: a.unlocked, state: a.ctx && a.ctx.state, advanced: +(a.music.currentTime - t0).toFixed(2), playing: a.beat().playing, dur: +a.music.duration.toFixed(1), loop: a.music.loop }; });
-  T('a key press unlocks the audio context (running) and starts the track: it advances in real time, loops, lasts ~172.7 s, and the beat clock follows its currentTime', L1.unlocked && L1.state === 'running' && L1.advanced > 0.8 && L1.playing && L1.loop && L1.dur > 172 && L1.dur < 174, JSON.stringify(L1));
+  T('a key press unlocks the audio context (running) and starts the track: it advances in real time, loops, lasts ~163.1 s (80 bars), and the beat clock follows its currentTime', L1.unlocked && L1.state === 'running' && L1.advanced > 0.8 && L1.playing && L1.loop && L1.dur > 162.5 && L1.dur < 163.7, JSON.stringify(L1));
 
   // ================================================================ 2. the beat map against the real audio
   const beatMap = which => pg.evaluate(async which => {
@@ -49,7 +49,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const at = t => { const i = Math.round(t / 0.004 - 0.5); return i >= 0 && i < M ? ons[i] : 0; };
     out.seg = {};
     // (the island track is the whole redone afro Mediterraneo: the loud groove at its start, its middle and the loud passage before its last break are checked; the quiet intro and outro are too soft for an onset grid)
-    for (const [name, t0, K] of which === 'coast' ? [['start', 8, 40], ['middle', 75, 60], ['late', 108, 40]] : [['start', 8, 60], ['middle', 80, 60], ['end', 135, 60]]) {
+    for (const [name, t0, K] of which === 'coast' ? [['start', 8, 40], ['middle', 75, 60], ['late', 108, 40]] : [['start', 2, 60], ['middle', 60, 60], ['end', 125, 60]]) {
       const per = B.beat, k0 = Math.ceil((t0 - B.first) / per), score = (ph, shift = 0) => { let e = 0; for (let k = 0; k < K; k++) e += at(B.first + (k0 + k) * per + ph + shift); return e / K; };
       const scan = []; for (let ph = -0.12; ph <= 0.12; ph += 0.004) scan.push([ph, score(ph)]);
       const best = scan.reduce((m, v) => v[1] > m[1] ? v : m), peakOn = Math.max(...scan.filter(v => Math.abs(v[0]) <= 0.02).map(v => v[1])), peakOff = Math.max(...scan.map(v => score(v[0], B.beat / 2)).slice(0, 61).concat(scan.filter(v => Math.abs(v[0]) <= 0.02).map(v => score(v[0], B.beat / 2))));
@@ -58,9 +58,22 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   }, which);
   const BM = await beatMap('main'), BMC = await beatMap('coast');
+  const LP = await pg.evaluate(async () => {                                                  // the loop of the main music: no silent start, no pause, no dead end, the end running into the start on the beat
+    const buf = await (await fetch('assets/music.mp3')).arrayBuffer(), au = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(buf), x = au.getChannelData(0), sr = au.sampleRate, W = Math.round(0.01 * sr), n = Math.floor(x.length / W), r = new Float32Array(n);
+    for (let i = 0; i < n; i++) { let a = 0; for (let j = 0; j < W; j++) a += x[i * W + j] * x[i * W + j]; r[i] = Math.sqrt(a / W); }
+    const med = [...r].sort((a, b) => a - b)[n >> 1], out = { med: +med.toFixed(3), dur: +au.duration.toFixed(3) };
+    const mean = (a, b) => { let t = 0; for (let i = a; i < b; i++) t += r[i]; return t / (b - a); };
+    out.start = +(mean(1, 7) / med).toFixed(2); out.end = +(mean(n - 7, n) / med).toFixed(2);                    // the first 70 ms (after the first 10) and the last 70 ms, against the median
+    let run = 0, longest = 0, at = 0; for (let i = 0; i < n; i++) { if (r[i] < 0.02 * med) { run++; if (run > longest) { longest = run; at = i - run + 1; } } else run = 0; } out.silence = { ms: longest * 10, at: +(at * 0.01).toFixed(2) };   // the longest run of near silence (< 2 % of the median level)
+    // the seam: the last and the first 30 ms together against the same width anywhere else: no hole
+    out.seamMin = +(Math.min(...[...r.slice(n - 3, n), ...r.slice(0, 3)].slice(0, 6).map((v, i) => i === 3 ? 1e9 : v)) / med).toFixed(2); out.first10 = +(r[0] / med).toFixed(3);
+    return out;
+  });
+  T('the music is a LOOP with no stop and no silence: ' + LP.dur + ' s of 80 bars from the first beat of the groove to the loud end, no silent start (the first 70 ms are at ' + LP.start + ' x the median level, the last 70 ms at ' + LP.end + ' x), the longest quiet stretch anywhere is ' + LP.silence.ms + ' ms (at ' + LP.silence.at + ' s: the rests of the groove; the 2 s of silence and the 0.5 s pauses of the intro are gone), and the join between the end and the start is only the first ' + (LP.first10 * 100).toFixed(1) + ' % of 10 ms',
+    LP.start > 0.5 && LP.end > 0.5 && LP.silence.ms <= 250 && LP.first10 < 0.2 && LP.seamMin > 0.5, JSON.stringify(LP));
   const ph = Object.values(BM.seg).map(s => s.bestPhase), phc = Object.values(BMC.seg).map(s => s.bestPhase);
-  T('the beat map is the track\'s: ~117.7 BPM, 25 frames per second for the whole ' + BM.dur + ' s (' + BM.frames + ' frames), the same length as the decoded mp3 (' + BM.decDur + ' s)', Math.abs(BM.bpm - 117.7) < 0.3 && BM.fps === 25 && Math.abs(BM.frames - BM.dur * 25) < 3 && Math.abs(BM.decDur - BM.dur) < 0.3 && BM.bytes === 2764657, JSON.stringify({ bpm: BM.bpm, frames: BM.frames, dur: BM.dur, decDur: BM.decDur, bytes: BM.bytes }));
-  T('the beat grid matches the decoded audio at the start, middle and end of the track (the kick onsets peak within 25 ms of the grid in each, and the three positions agree within 20 ms: no drift) and the kick onsets are clearly stronger on the beat than half a beat later',
+  T('the beat map is the track\'s: ~117.7 BPM, 25 frames per second for the whole ' + BM.dur + ' s (' + BM.frames + ' frames), the same length as the decoded mp3 (' + BM.decDur + ' s), exactly 80 bars of 4 beats (' + (BM.dur / (4 * BM.beat)).toFixed(2) + ')', Math.abs(BM.bpm - 117.7) < 0.3 && BM.fps === 25 && Math.abs(BM.frames - BM.dur * 25) < 3 && Math.abs(BM.decDur - BM.dur) < 0.3 && Math.abs(BM.dur / (4 * BM.beat) - 80) < 0.03 && BM.bytes === 2610616, JSON.stringify({ bpm: BM.bpm, frames: BM.frames, dur: BM.dur, decDur: BM.decDur, bytes: BM.bytes }));
+  T('the beat grid matches the decoded audio at the start, middle and end of the track (the kick onsets peak within 25 ms of the grid in each, the loop point included, and the three positions agree within 20 ms: no drift) and the kick onsets are clearly stronger on the beat than half a beat later',
     ph.every(p => Math.abs(p) <= 0.025) && Math.max(...ph) - Math.min(...ph) <= 0.02 && Object.values(BM.seg).every(s => s.onVsOff > 1.5), JSON.stringify(BM.seg));
   const BC = await pg.evaluate(async () => {            // the clock reads the audio's position: seek to a kick and to the middle of a beat
     const a = __wf.sfx, B = MUSIC_BEATS, mus = a.music, out = {};
