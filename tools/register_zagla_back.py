@@ -3,9 +3,10 @@
 torso, the skirt, the legs: not the thin arms and hair strokes, which are removed by an opening) coincides with the outline of the front's body. Used for the glossy pair of pictures ("Zagla front" / "Zagla le dos"),
 whose silhouettes differ a little (the back's skirt is rounder, its arms shorter).
 
-    python3 tools/register_zagla_back.py front.png back.png OUT_front_canvas.png OUT_back_canvas.png [--debug overlay.png]
+    python3 tools/register_zagla_back.py front.png back.png OUT_front_canvas.png OUT_back_canvas.png [--debug overlay.png] [--identity]
 
 Both outputs are the two pictures placed on the same 2560 x 2560 transparent canvas (what tools/make_zagla_assets.py expects: room on both sides of her axis), the back warped onto the front.
+--identity: no warp, the two pictures are only placed on the canvas (for a pair drawn on the same frame, like the latest one: its silhouettes already coincide at 94 %, and the warp would only blur that).
 Rows: a piecewise-linear map between the landmarks of the body (the apex of the hood, the bottom of the skirt, the soles); columns: per row, the run of the body of the back is stretched onto the run of the body of the front.
 """
 import sys
@@ -45,9 +46,10 @@ def sample(img, xs, ys):                                         # bilinear samp
     return (g(y0, x0) * (1 - fx) * (1 - fy) + g(y0, x0 + 1) * fx * (1 - fy) + g(y0 + 1, x0) * (1 - fx) * fy + g(y0 + 1, x0 + 1) * fx * fy)
 
 def main():
-    fp, bp, of, ob = sys.argv[1:5]; dbg = sys.argv[sys.argv.index('--debug') + 1] if '--debug' in sys.argv else None
+    fp, bp, of, ob = sys.argv[1:5]; ident = '--identity' in sys.argv; dbg = sys.argv[sys.argv.index('--debug') + 1] if '--debug' in sys.argv else None
     F = Image.open(fp).convert('RGBA'); B = Image.open(bp).convert('RGBA'); assert F.size == B.size, (F.size, B.size)
     fa = np.asarray(F)[..., 3]; ba = np.asarray(B)[..., 3]; fb = body(fa); bb = body(ba); H, W = fa.shape
+    if ident: reg = np.asarray(B).copy(); fb = fb; bb = bb
     fL, fR = (smooth(v, 101, 121) for v in runs(fb)); bL, bR = (smooth(v, 101, 121) for v in runs(bb))
     lf = landmarks(fa, fb); lb = landmarks(ba, bb); print('landmarks (apex, skirt bottom, soles): front', lf, 'back', lb)
     yf = np.arange(H, dtype=np.float64); yb = np.interp(yf, lf, lb, left=None, right=None); yb = np.where(yf < lf[0], lb[0] + (yf - lf[0]), yb); yb = np.where(yf > lf[2], lb[2] + (yf - lf[2]), yb)
@@ -59,8 +61,9 @@ def main():
     f0, f1 = block(fa > 128, lf[1] + 90, lf[2] - 4); b0, b1 = block(ba > 128, lb[1] + 90, lb[2] - 4); sB = (b1 - b0) / float(f1 - f0)
     xbB = (b0 + b1) / 2.0 + (X - (f0 + f1) / 2.0) * sB
     wgt = np.clip((yf - (lf[1] - 30)) / 60.0, 0, 1); wgt = (wgt * wgt * (3 - 2 * wgt))[:, None]; xb = xbA * (1 - wgt) + xbB * wgt; Yb = np.repeat(yb[:, None], W, axis=1)
-    arr = np.asarray(B).astype(np.float32); arr[..., :3] *= arr[..., 3:4] / 255.0                                                 # premultiplied
-    out = sample(arr, xb, Yb); a = out[..., 3:4]; rgb = np.where(a > 1, out[..., :3] / np.maximum(a, 1) * 255.0, 0); reg = np.concatenate([np.clip(rgb, 0, 255), np.clip(a, 0, 255)], axis=2).astype(np.uint8)
+    if not ident:
+        arr = np.asarray(B).astype(np.float32); arr[..., :3] *= arr[..., 3:4] / 255.0                                             # premultiplied
+        out = sample(arr, xb, Yb); a = out[..., 3:4]; rgb = np.where(a > 1, out[..., :3] / np.maximum(a, 1) * 255.0, 0); reg = np.concatenate([np.clip(rgb, 0, 255), np.clip(a, 0, 255)], axis=2).astype(np.uint8)
     # both on one 2560 x 2560 canvas, centred on the front's axis
     ox, oy = (2560 - W) // 2, 65
     for im, path in ((np.asarray(F), of), (reg, ob)):

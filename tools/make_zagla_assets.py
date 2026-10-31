@@ -20,10 +20,12 @@ U = '/root/.claude/uploads/65b8bc1c-1985-5345-a2d7-9387f9b1700d/'
 HERE = os.path.dirname(os.path.abspath(__file__))
 if len(sys.argv) > 1:
     SRC = sys.argv[1]; SRCB = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, 'zagla_back.png')
-else:                                                                     # by default: the GLOSSY pair ("Zagla front" and "Zagla le dos", tools/zagla_front_glossy.png / zagla_back_glossy.png), the back registered onto the front
+else:                                                                     # by default: the latest PAIR of pictures ("1 face, 2 dos": tools/zagla_front_3.png / zagla_back_3.png; ZAGLA_PAIR=glossy: the chrome-shaded pair before it), the back registered onto the front
     import subprocess, tempfile                                           # (tools/register_zagla_back.py: the two on one 2560 x 2560 canvas, the back warped until the outline of its body is the front's)
+    PAIR = os.environ.get('ZAGLA_PAIR', '3'); FILES = {'3': ('zagla_front_3.png', 'zagla_back_3.png', '1', '1', '1'), 'glossy': ('zagla_front_glossy.png', 'zagla_back_glossy.png', '0', '0', '0')}[PAIR]      # (the boots of the back: turned? the right one made from the left one? own silhouette?)
+    os.environ.setdefault('ZAGLA_TURN_BOOTS', FILES[2]); os.environ.setdefault('ZAGLA_MIRROR_BOOTS', FILES[3]); os.environ.setdefault('ZAGLA_OWN_BACK_LEGS', FILES[4])                   # (the glossy back's boots point IN and are turned; the heels of the latest back are right as drawn)
     TMP = tempfile.mkdtemp(); SRC = os.path.join(TMP, 'front.png'); SRCB = os.path.join(TMP, 'back.png')
-    subprocess.run([sys.executable, os.path.join(HERE, 'register_zagla_back.py'), os.path.join(HERE, 'zagla_front_glossy.png'), os.path.join(HERE, 'zagla_back_glossy.png'), SRC, SRCB], check=True)
+    subprocess.run([sys.executable, os.path.join(HERE, 'register_zagla_back.py'), os.path.join(HERE, FILES[0]), os.path.join(HERE, FILES[1]), SRC, SRCB] + (['--identity'] if PAIR == '3' else []), check=True)
 import os
 EDITS = sys.argv[3] if len(sys.argv) > 3 else None
 NEWBACK = sys.argv[4] if len(sys.argv) > 4 else None
@@ -127,7 +129,8 @@ back = np.concatenate([back_rgb, mirror[..., 3:4]], axis=2).clip(0, 255).astype(
 OWN_LEGS = os.environ.get('ZAGLA_OWN_BACK_LEGS', '0') == '1'                  # 1: each leg's back face has the silhouette of the boots of the back picture (right for the clean flat pictures); 0 (the glossy pair): the front's, whose
                                                                             # outline is clean (the glossy back's glow and highlights make a ragged silhouette)
 legs_rows = np.arange(H)[:, None] >= 735
-if OWN_LEGS: back[..., 3] = np.where(legs_rows & (back_a > 0.02), (back_a > 0.5) * 255, back[..., 3]).astype(np.uint8)
+OWN_ALPHA = os.environ.get('ZAGLA_OWN_BACK_ALPHA', '0') == '1'               # 1: the silhouette of the boots of the back is the picture's own (right for the clean flat pictures); 0: the front's mirrored, then turned with the boots
+if OWN_ALPHA: back[..., 3] = np.where(legs_rows & (back_a > 0.02), (back_a > 0.5) * 255, back[..., 3]).astype(np.uint8)
 
 # ---- 3b. the user's edits of the two textures, taken from her painted-over sheet (the sheet this script makes: F at (10, 10), B at (W + 20, 10) on grey, JPEG 88, 2W + 30 x H + 20)
 def sheet_of(fr, bk):
@@ -223,7 +226,7 @@ if NEWBACK and os.path.exists(NEWBACK):
     back[..., 3] = np.where(legrows & ok, newa, back[..., 3]); applied_back = True
     print('her new back fitted: %d px used' % int(use.sum()))
 
-# ---- 3c. THE BOOTS OF THE BACK ARE TURNED THE OTHER WAY ROUND (her red strokes '\\' on the left boot and '/' on the right one, and 'the feet are turned the wrong way round'): in the front picture the toes of the boots
+# ---- 3c. THE BOOTS OF THE BACK ARE TURNED THE OTHER WAY ROUND (RULE, from her red strokes: on the FRONT the toes point down and OUT, on the BACK down and IN) (her red strokes '\\' on the left boot and '/' on the right one, and 'the feet are turned the wrong way round'): in the front picture the toes of the boots
 # point down and OUT; on the back they point down and IN. Each boot of the back texture (the user's own pixels, her lime-spotted boots) is turned about its leg: flipped left to right about the middle of the leg,
 # the picture and its silhouette together. The mesh of the back face of each leg is built from this silhouette (the front face keeps the front's).
 mb = back[..., 3] > 40; YS = int(H * 0.93); runs = []
@@ -258,6 +261,15 @@ elif len(runs) == 2:
 else:
     print('boots of the back: expected two legs at row', YS, 'found', runs)
 
+# ---- 3d. THE BOOTS OF THE BACK ARE THE SAME ON BOTH SIDES (her words, the first time: 'the position of the arms and boots must be like the left one'): in the latest back picture the left boot has its neon on the OUTER side and the right
+# one on the inner side, with stray pieces beside it. After 3c has turned each boot (so that on the back the toes point IN), the right boot is made from the left one, turned about the axis between her legs, from the ankles
+# down (ZAGLA_MIRROR_BOOTS=1), the picture and its silhouette together.
+if os.environ.get('ZAGLA_MIRROR_BOOTS', '0') == '1' and len(runs) == 2:
+    (a0, a1), (b0, b1) = runs; axis = (a0 + a1 + b0 + b1) / 4.0; ytop = int(H * 0.88)
+    xs = np.arange(max(0, b0 - 40), min(W, b1 + 41)); src = np.clip(np.round(2 * axis - xs).astype(int), 0, W - 1)
+    back[ytop:, xs, :] = back[ytop:, src, :]                                  # (the picture and its silhouette together)
+    print('the right boot of the back is the left one turned about x =', round(float(axis), 1))
+
 # ---- 4. the MESH: the silhouette inflated (round cross-section from the distance to the edge), in a grid of STEP px: the body and the two legs
 YCUT = int(H * 0.77)                                                        # just under the skirt: the legs start here (they overlap the skirt a little, hidden inside it)
 gx = np.arange(0, W, STEP); gy = np.arange(0, H, STEP)
@@ -270,9 +282,33 @@ def maxfilter(d, r):
         o3[k:] = np.maximum(o3[k:], out2[:-k]); o3[:-k] = np.maximum(o3[:-k], out2[k:])
     return o3
 Rloc = maxfilter(dist, 20)                                                  # (window 41 px; sampled every 2 px below for speed)
+# THE LEMON (her words: 'give it a lemon form', on the side view): the first volume was a pillow, the depth growing with the distance to the edge (a ridge down the middle, lumps where the shoulders meet the arms, a hard seam at the
+# rim). The body is now a smooth LEMON: at every row its cross-section is an ellipse whose half-width is the half-width of her body at that row (the egg of the hood, the torso and the skirt, without the thin arms and
+# hair: read on the silhouette opened by a 21 px square, then smoothed) and whose depth is proportional to it, so the hood closes to a point at the top; the PELVIS is inflated (her words, seen from the side: 'stretch it a little at the pelvis, or inflate it, like a
+# lemon on two feet'): from the torso down to the skirt the depth is raised by two fifths (the skirt is two thirds as wide as the torso, so it ends as deep as the torso) and the lemon stands full on its two legs (it first tapered to a quarter at the hem, which was too thin). The arms, the hair and the legs keep the old rounded inflation (they are thin). The depth is scaled to the old maximum, so her size is unchanged (ZAGLA_LEMON=0: the pillow).
+LEMON = os.environ.get('ZAGLA_LEMON', '1') == '1'
+if LEMON:
+    m_ = mask.astype(np.float64); er_ = _box(m_, 10) > 0.999; op_ = (_box(er_.astype(np.float64), 10) > 0.001) & mask
+    Lr = np.full(H, np.nan); Rr = np.full(H, np.nan)
+    for y_ in range(H):
+        xs_ = np.nonzero(op_[y_])[0]
+        if len(xs_) > 20:
+            parts_ = np.split(xs_, np.nonzero(np.diff(xs_) > 1)[0] + 1); p_ = max(parts_, key=len); Lr[y_], Rr[y_] = p_[0], p_[-1]
+    def sm_(v, med=41, w=31):
+        idx_ = np.nonzero(~np.isnan(v))[0]; v = np.interp(np.arange(len(v)), idx_, v[idx_]); pp = np.pad(v, med // 2, mode='edge'); v = np.array([np.median(pp[i:i + med]) for i in range(len(v))])
+        pp = np.pad(v, w // 2, mode='edge'); return np.convolve(pp, np.ones(w) / w, mode='valid')
+    rows_ = np.nonzero(~np.isnan(Lr))[0]; yA = int(rows_.min()); yB = YCUT + 10
+    Lc, Rc = sm_(Lr), sm_(Rr); cen_ = (Lc + Rc) / 2.0; hw_ = (Rc - Lc) / 2.0; hw_[:yA] = 0.0
+    tt_ = np.clip((np.arange(H) - yA) / float(max(yB - yA, 1)), 0, 1); q_ = np.clip((tt_ - 0.68) / 0.14, 0, 1); taper_ = 1 + 0.4 * q_ * q_ * (3 - 2 * q_)                    # (the pelvis, from the skirt's top down: x 1.4)
+    zl_ = hw_ * taper_; KL = 160.0 / max(float(zl_.max()), 1.0)
+    print('lemon: apex row', yA, 'widest half-width', round(float(hw_.max()), 1), 'scale', round(KL, 3))
 def zof(px, py, dm=None, Rm=None):
     dm = dist if dm is None else dm; Rm = Rloc if Rm is None else Rm
-    d = dm[py, px]; R = max(Rm[py, px], d, 1.0); return float(np.sqrt(max(0.0, d * (2 * R - d))))
+    d = dm[py, px]; R = max(Rm[py, px], d, 1.0); old = float(np.sqrt(max(0.0, d * (2 * R - d))))
+    if LEMON and dm is dist and py < YCUT + 10 and hw_[py] > 4.0:
+        u = (px - cen_[py]) / hw_[py]
+        if abs(u) < 1.0: return float(KL * zl_[py] * np.sqrt(1.0 - u * u) * min(1.0, (d / (0.12 * hw_[py])) ** 0.5))
+    return old
 pieces = []
 def comps(region):                                                          # connected components (4-neighbour) of a boolean image
     lab = np.zeros(region.shape, np.int32); n = 0
