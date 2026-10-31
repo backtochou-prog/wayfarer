@@ -400,8 +400,24 @@ FOOTROW = int(np.where(mask)[0].max())                                      # th
 def leg_side(py):                                                           # her leg row -> his half-depth and his middle offset: his leg and his SHOE (espadrille): the long sole, toe forward, heel back
     ys_ = 590.0 + (py - (YCUT + 10)) / float(max(FOOTROW - (YCUT + 10), 1)) * (792.0 - 590.0); ys_ = min(max(ys_, 590.0), 792.0)
     return float(np.interp(ys_, np.arange(SHh), shw1)), float(np.interp(ys_, np.arange(SHh), scn1)) - XREF
-def zoff(py, dm):                                                           # the shift of the middle of the row toward the back (z units: px)
-    if SIDE == 'image' and LEMON: return (img_at(py)[1] if dm is dist or py >= YCUT + 10 else 0.0)
+# HER ARMS AND HAIR SEEN FROM THE SIDE (her words: 'yes' to 'do you want me to give the arms and the hair of your side picture a volume so that they show from the side?'): they are flat blades in the front and back
+# pictures, so from the side they vanish. Her side picture draws each arm reaching FORWARD (the hand about 0.31 m in front of the shoulder, a little lower) and the hair strokes fanning front and back round the head (about
+# +-0.25 m). So, in z: each arm blade is carried forward along its length (0 at the shoulder row to ARM_FWD at the hand) and made thicker (x 1.8), and each hair stroke is carried forward or back in proportion to how far
+# it is from her axis (HAIR_K m of z per m of x). Seen from the front or the back nothing changes (it is only depth); ZAGLA_ARMS=flat keeps the flat blades.
+ARMS_3D = os.environ.get('ZAGLA_ARMS', 'volume') == 'volume'; ARM_R0 = 330; ARM_FWD = 0.31; HAIR_K = 0.64; MPPX_ = 1.2894 / float(_cols.max() - _cols.min() + 1) if SIDE == 'image' else 0.0
+if SIDE == 'image' and ARMS_3D:
+    _out = mask.copy(); _yy, _xx = np.indices(mask.shape); _egg = (hw_[:, None] > 4.0) & (np.abs(_xx - cen_[:, None]) < hw_[:, None] + 8.0); _out &= ~_egg; _out[:ARM_R0] = False; _out[YCUT + 10:] = False
+    _far = _out & (np.abs(_xx - cen_[:, None]) > hw_[:, None] + 20.0); _cnt = _far.sum(1); ARM_R1 = int(max(r for r in range(ARM_R0, YCUT) if _cnt[r] >= 6)); print('outside-egg pixels per 20 rows:', [int(_cnt[r:r + 20].sum()) for r in range(ARM_R0, 640, 20)])
+    print('arms: rows', ARM_R0, '-', ARM_R1, 'carried forward by', ARM_FWD, 'm; hair carried by', HAIR_K, 'm per m of x')
+def zoff(py, dm, px=None):                                                  # the shift of the middle of the row toward the back (z units: px)
+    if SIDE == 'image' and LEMON:
+        if py >= YCUT + 10 or dm is not dist: return (img_at(py)[1] if py >= YCUT + 10 else 0.0)
+        z0 = img_at(py)[1]
+        if ARMS_3D and px is not None and sidek(px, py, dm) == 0 and not (py > ARM_R1 + 6):
+            ramp = min(1.0, max(0.0, (abs(px - cen_[py]) - hw_[py] - 8.0) / 30.0)) if hw_[py] > 4.0 else 1.0               # (the shift grows over 30 px from the edge of the egg, so the grid has no stretched triangles there)
+            if py >= ARM_R0: return z0 - ramp * ARM_FWD / MPPY_ * min(1.0, (py - ARM_R0) / float(max(ARM_R1 - ARM_R0, 1)))   # an arm: forward along its length
+            return z0 + ramp * HAIR_K * (px - xc) * MPPX_ / MPPY_                                                           # a hair stroke: fanned front and back round the head
+        return z0
     if SIDE != 'strawberry' or not LEMON: return 0.0
     if py < YCUT + 10: return side_at(py)[1] if dm is dist else 0.0
     return leg_side(py)[1]
@@ -414,7 +430,7 @@ def leg_run(px, py, mk, sel):                                               # th
         if a_ <= px <= b_: return (a_ + b_) / 2.0, max((b_ - a_ + 1) / 2.0, 1.0)
     return None
 def sidek(px, py, dm):                                                      # 1 where her side picture is painted (the egg of her body, her legs), 0 on the thin arms and the hair strokes
-    if py < YCUT + 10 and dm is dist: return 255 if (LEMON and hw_[py] > 4.0 and abs(px - cen_[py]) < hw_[py] * 0.97) else 0
+    if py < YCUT + 10 and dm is dist: return 255 if (LEMON and hw_[py] > 4.0 and abs(px - cen_[py]) < hw_[py] + 8.0) else 0
     return 255
 def zof(px, py, dm=None, Rm=None, sel=None, mk=None):
     dm = dist if dm is None else dm; Rm = Rloc if Rm is None else Rm
@@ -425,6 +441,7 @@ def zof(px, py, dm=None, Rm=None, sel=None, mk=None):
             u = (px - rn[0]) / rn[1]
             if abs(u) < 1.0: return float((img_at(py)[0] if SIDE == 'image' else leg_side(py)[0]) * np.sqrt(1.0 - u * u) * min(1.0, (d / (0.25 * rn[1])) ** 0.5))
         return old
+    if SIDE == 'image' and ARMS_3D and LEMON and dm is dist and py < YCUT + 10 and py >= ARM_R0 and py <= ARM_R1 + 6 and sidek(px, py, dm) == 0: return old * 1.8                       # an arm: thicker
     if LEMON and dm is dist and py < YCUT + 10 and hw_[py] > 4.0:
         u = (px - cen_[py]) / hw_[py]
         if abs(u) < 1.0:
@@ -462,7 +479,7 @@ def surf(sel, mk, dm, Rm):                                                  # on
         for i in range(vin.shape[1]):
             if not vin[j, i]: continue
             nb = [vin[j - 1, i] if j else False, vin[j + 1, i] if j + 1 < vin.shape[0] else False, vin[j, i - 1] if i else False, vin[j, i + 1] if i + 1 < vin.shape[1] else False]
-            rim = not all(nb); idx[j, i] = len(ij); ij.append((i, j)); zz.append(0.0 if rim else zof(gx[i], gy[j], dm, Rm, sel, mk)); zo_.append(zoff(gy[j], dm)); sw_.append(sidek(gx[i], gy[j], dm))
+            rim = not all(nb); idx[j, i] = len(ij); ij.append((i, j)); zz.append(0.0 if rim else zof(gx[i], gy[j], dm, Rm, sel, mk)); zo_.append(zoff(gy[j], dm, gx[i])); sw_.append(sidek(gx[i], gy[j], dm))
     tris = []
     for j in range(vin.shape[0] - 1):
         for i in range(vin.shape[1] - 1):
