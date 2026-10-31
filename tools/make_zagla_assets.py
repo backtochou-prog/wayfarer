@@ -274,7 +274,7 @@ if os.environ.get('ZAGLA_MIRROR_BOOTS', '0') == '1' and len(runs) == 2:
 # Captain Strawberry's back view (AVATAR_ASSETS.back, in metres: his legs taper from the hem to the ankle, stand 0.29 m apart and end in big round shoes 0.2 m wide); her own pixels, the black leggings and her sneakers,
 # are squeezed or stretched to fill that outline (each row's run of her leg is mapped onto his run at the matching height), so the colours stay hers and the shape is his. Seen from the side they are already his
 # (section 4). ZAGLA_LEGS=own keeps her own legs.
-LEGS_AS = os.environ.get('ZAGLA_LEGS', 'strawberry')
+LEGS_AS = os.environ.get('ZAGLA_LEGS', 'own')                                  # (own: her own legs, since her words 'ignore the application of the strawberry's silhouette on Zagla'; strawberry: his legs)
 def _runs_of(row, gap=8, minw=4):
     xs4 = np.nonzero(row)[0]
     if not len(xs4): return []
@@ -355,7 +355,29 @@ if LEMON:
 # the strawberry's, the middle of the row is shifted like his (front is -z: the left of his picture), the cross-section across the body stays an ellipse (so her egg, her hood and her skirt keep their widths seen from the front);
 # her hood closes to a point at the top (the depth is capped by the width of her body there). Her legs keep the rounded inflation. ZAGLA_SIDE=lemon: the lemon of before (an ellipse, depth = width), ZAGLA_SIDE=pillow: the first volume.
 import re as _re
-SIDE = os.environ.get('ZAGLA_SIDE', 'strawberry')
+SIDE = os.environ.get('ZAGLA_SIDE', 'image')
+# THE SIDE IMAGE (her words, with the retouched side picture of herself: 'update side image, ignore the strawberry silhouette application on Zagla'): ZAGLA_SIDE=image (the default) takes the silhouette of Zagla seen from the
+# side from HER side picture (tools/zagla_side.png, a transparent 1200 x 1680 picture at 800 px per metre, her front to the left, her soles at row 1640, the middle of the picture at z = -0.02 m: the framing of
+# tools/zagla_png/render_side.js): at every height of her body the front-to-back extent and the position of the middle of the row are read from it (the thin arm and hair strokes are removed by an opening, 61 px for
+# the body, 25 px for the legs and the shoe), the cross-section across the body is an ellipse, and the picture itself is her SIDE TEXTURE (src3d/zagla3d.js projects it on the flanks). ZAGLA_SIDE=strawberry: his
+# side silhouette (and his shoe) instead; lemon, pillow: the earlier volumes.
+if SIDE == 'image':
+    SIDEPNG = Image.open(os.path.join(HERE, 'zagla_side.png')).convert('RGBA'); sida = np.asarray(SIDEPNG)[..., 3] > 128; SPPM, SZC, SFOOT = 800.0, -0.02, 1640.0
+    def _open(m, r): er = _box(m.astype(np.float64), r) > 0.999; return (_box(er.astype(np.float64), r) > 0.001) & m
+    mb_ = _open(sida, 30); ml_ = _open(sida, 12); SHH = sida.shape[0]; slo = np.full(SHH, np.nan); shi = np.full(SHH, np.nan)
+    for y_ in range(SHH):
+        m_ = (ml_ if y_ >= 1250 else mb_)[y_]; xs2 = np.nonzero(m_)[0]
+        if len(xs2) > 6:
+            parts2 = np.split(xs2, np.where(np.diff(xs2) > 1)[0] + 1); pr = max(parts2, key=len); slo[y_], shi[y_] = pr[0], pr[-1] + 1
+    def sm3(v, med=9, w=7):
+        idx_ = np.nonzero(~np.isnan(v))[0]; v = np.interp(np.arange(len(v)), idx_, v[idx_]); pp = np.pad(v, med // 2, mode='edge'); v = np.array([np.median(pp[i:i + med]) for i in range(len(v))])
+        pp = np.pad(v, w // 2, mode='edge'); return np.convolve(pp, np.ones(w) / w, mode='valid')
+    slo, shi = sm3(slo), sm3(shi); SHALF = (shi - slo) / 2.0 / SPPM; SMID = SZC + ((shi + slo) / 2.0 - 600.0) / SPPM                  # per row of her side picture, in metres: the half-depth and the middle (absolute z)
+    _cols = np.where(mask.any(0))[0]; _rows = np.where(mask.any(1))[0]; MPPY_ = 1.9 / (_rows.max() - _rows.min() + 1); FOOT_ = int(_rows.max()) + 1                    # (her metres per px vertically, the row of her soles)
+    def img_at(py):                                                         # her texture row -> (half-depth, middle) in z units (= her vertical px, MPPY_ metres each), from the picture
+        yi = SFOOT - (FOOT_ - py) * MPPY_ * SPPM; yi = min(max(yi, 0), SHH - 1)
+        return float(np.interp(yi, np.arange(SHH), SHALF)) / MPPY_, float(np.interp(yi, np.arange(SHH), SMID)) / MPPY_
+    print('side picture: widest half-depth', round(float(SHALF[200:1300].max()), 3), 'm; the middle of the row at the chest', round(float(img_at(300)[1] * MPPY_), 3), 'm')
 if SIDE == 'strawberry':
     _av = open('src3d/avatar_assets.js').read(); _m2 = _re.search(r"side: \{[^}]*?src: 'data:image/\w+;base64,([^']+)'", _av)
     sd = np.array(Image.open(io.BytesIO(base64.b64decode(_m2.group(1)))).convert('RGBA'))[..., 3] > 128; SHh = sd.shape[0]
@@ -379,6 +401,7 @@ def leg_side(py):                                                           # he
     ys_ = 590.0 + (py - (YCUT + 10)) / float(max(FOOTROW - (YCUT + 10), 1)) * (792.0 - 590.0); ys_ = min(max(ys_, 590.0), 792.0)
     return float(np.interp(ys_, np.arange(SHh), shw1)), float(np.interp(ys_, np.arange(SHh), scn1)) - XREF
 def zoff(py, dm):                                                           # the shift of the middle of the row toward the back (z units: px)
+    if SIDE == 'image' and LEMON: return (img_at(py)[1] if dm is dist or py >= YCUT + 10 else 0.0)
     if SIDE != 'strawberry' or not LEMON: return 0.0
     if py < YCUT + 10: return side_at(py)[1] if dm is dist else 0.0
     return leg_side(py)[1]
@@ -390,18 +413,23 @@ def leg_run(px, py, mk, sel):                                               # th
     for a_, b_ in _runs[key]:
         if a_ <= px <= b_: return (a_ + b_) / 2.0, max((b_ - a_ + 1) / 2.0, 1.0)
     return None
+def sidek(px, py, dm):                                                      # 1 where her side picture is painted (the egg of her body, her legs), 0 on the thin arms and the hair strokes
+    if py < YCUT + 10 and dm is dist: return 255 if (LEMON and hw_[py] > 4.0 and abs(px - cen_[py]) < hw_[py] * 0.97) else 0
+    return 255
 def zof(px, py, dm=None, Rm=None, sel=None, mk=None):
     dm = dist if dm is None else dm; Rm = Rloc if Rm is None else Rm
     d = dm[py, px]; R = max(Rm[py, px], d, 1.0); old = float(np.sqrt(max(0.0, d * (2 * R - d))))
-    if LEMON and SIDE == 'strawberry' and py >= YCUT + 10 and sel is not None:
+    if LEMON and SIDE in ('strawberry', 'image') and py >= YCUT + 10 and sel is not None:
         rn = leg_run(px, py, mk, sel)
         if rn is not None:
             u = (px - rn[0]) / rn[1]
-            if abs(u) < 1.0: return float(leg_side(py)[0] * np.sqrt(1.0 - u * u) * min(1.0, (d / (0.25 * rn[1])) ** 0.5))
+            if abs(u) < 1.0: return float((img_at(py)[0] if SIDE == 'image' else leg_side(py)[0]) * np.sqrt(1.0 - u * u) * min(1.0, (d / (0.25 * rn[1])) ** 0.5))
         return old
     if LEMON and dm is dist and py < YCUT + 10 and hw_[py] > 4.0:
         u = (px - cen_[py]) / hw_[py]
         if abs(u) < 1.0:
+            if SIDE == 'image':
+                return float(img_at(py)[0] * np.sqrt(1.0 - u * u) * min(1.0, (d / (0.12 * hw_[py])) ** 0.5))
             if SIDE == 'strawberry':
                 zh = side_at(py)[0]; zh = (zh ** -8 + (1.15 * hw_[py]) ** -8) ** -0.125                  # his half-depth, never more than (about) her half-width: the hood closes to a point
                 return float(zh * np.sqrt(1.0 - u * u) * min(1.0, (d / (0.12 * hw_[py])) ** 0.5))
@@ -429,12 +457,12 @@ def surf(sel, mk, dm, Rm):                                                  # on
     for j, y in enumerate(gy):
         for i, x in enumerate(gx): vin[j, i] = sel[y, x] and mk[y, x]
     # rim vertices (a neighbour outside): z = 0, so that the front and the back of the body meet along the silhouette
-    idx = -np.ones(vin.shape, np.int32); ij = []; zz = []; zo_ = []
+    idx = -np.ones(vin.shape, np.int32); ij = []; zz = []; zo_ = []; sw_ = []
     for j in range(vin.shape[0]):
         for i in range(vin.shape[1]):
             if not vin[j, i]: continue
             nb = [vin[j - 1, i] if j else False, vin[j + 1, i] if j + 1 < vin.shape[0] else False, vin[j, i - 1] if i else False, vin[j, i + 1] if i + 1 < vin.shape[1] else False]
-            rim = not all(nb); idx[j, i] = len(ij); ij.append((i, j)); zz.append(0.0 if rim else zof(gx[i], gy[j], dm, Rm, sel, mk)); zo_.append(zoff(gy[j], dm))
+            rim = not all(nb); idx[j, i] = len(ij); ij.append((i, j)); zz.append(0.0 if rim else zof(gx[i], gy[j], dm, Rm, sel, mk)); zo_.append(zoff(gy[j], dm)); sw_.append(sidek(gx[i], gy[j], dm))
     tris = []
     for j in range(vin.shape[0] - 1):
         for i in range(vin.shape[1] - 1):
@@ -443,7 +471,7 @@ def surf(sel, mk, dm, Rm):                                                  # on
             else:
                 ok = [v for v in q if v >= 0]
                 if len(ok) == 3: tris.append(tuple(ok))
-    return dict(n=len(ij), ij=np.array(ij, np.uint16), z=np.round(np.array(zz) * 8).astype(np.int16), zo=np.round(np.array(zo_) * 8).astype(np.int16), tri=np.array(tris, np.uint16), zmax=max(zz) if zz else 0,
+    return dict(n=len(ij), ij=np.array(ij, np.uint16), z=np.round(np.array(zz) * 8).astype(np.int16), zo=np.round(np.array(zo_) * 8).astype(np.int16), sw=np.array(sw_, np.uint8), tri=np.array(tris, np.uint16), zmax=max(zz) if zz else 0,
                 zlo=min((o - z for o, z in zip(zo_, zz)), default=0.0), zhi=max((o + z for o, z in zip(zo_, zz)), default=0.0))
 def piece(name, sel, pivot, back_face=None):                                 # back_face: (sel in back coordinates, mask, distance, local radius) when the back face has its own silhouette (the legs: the boots seen from behind)
     P = surf(sel, mask, dist, Rloc)
@@ -463,17 +491,23 @@ def b64(arr): return base64.b64encode(arr.tobytes()).decode()
 def webp(arr, q=95):
     buf = io.BytesIO(); Image.fromarray(arr, 'RGBA').save(buf, 'WEBP', quality=q, method=6); return buf.getvalue()
 fw, bw = webp(front), webp(back)
+if SIDE == 'image':                                                         # her side picture as the texture of the flanks: half size, opaque (the colours bled 8 px outward from the picture, so that no dark fringe is filtered in)
+    sr_ = np.asarray(SIDEPNG.resize((SIDEPNG.width // 2, SIDEPNG.height // 2), Image.LANCZOS)).astype(np.float32); sa_ = sr_[..., 3] / 255.0; spx = np.where(sa_[..., None] > 0.004, sr_[..., :3], 0.0); sk_ = sa_.copy()
+    for _ in range(8):
+        m_ = (sk_ >= 0.5).astype(np.float32); den = _box(m_, 1) * 9.0; num = _box(spx * m_[..., None], 1) * 9.0; fill = (m_ < 0.5) & (den > 0.5); spx = np.where(fill[..., None], num / np.maximum(den[..., None], 1e-6), spx); sk_ = np.where(fill, 0.95, sk_)
+    sbuf = io.BytesIO(); Image.fromarray(np.clip(spx, 0, 255).astype(np.uint8), 'RGB').save(sbuf, 'WEBP', quality=92, method=6); SIDE_JS = dict(src='data:image/webp;base64,' + base64.b64encode(sbuf.getvalue()).decode(), w=SIDEPNG.width // 2, h=SIDEPNG.height // 2, ppm=SPPM / 2, zc=SZC, foot=SFOOT / 2)
+else: SIDE_JS = None
 # ---- the SIZE of Captain Strawberry: the same height, width and depth as his artwork in the game (AVATAR_ASSETS: the back view 1.2894 x 1.9 m with the arms, the side view 0.8257 m deep), measured on her silhouette
 sx_, sy_ = np.where(mask)[1], np.where(mask)[0]; BW = sx_.max() - sx_.min() + 1; BH = sy_.max() - sy_.min() + 1; FOOT = int(sy_.max()) + 1
 av = open('src3d/avatar_assets.js').read(); import re as _re
 def _m(name, key): return float(_re.search(name + r": \{ w: \d+, h: \d+, mw: ([\d.]+), mh: ([\d.]+)", av).group(1 if key == 'mw' else 2))
 SW_, SH_, SD_ = _m('back', 'mw'), _m('back', 'mh'), _m('side', 'mw')
-MPPX, MPPY = SW_ / BW, SH_ / BH; ZEXT = pieces[0]['zhi'] - pieces[0]['zlo']; MPPZ = SD_ / ZEXT                  # the depth of the body, front to back, with the shift of its rows
+MPPX, MPPY = SW_ / BW, SH_ / BH; ZEXT = pieces[0]['zhi'] - pieces[0]['zlo']; MPPZ = (MPPY if SIDE == 'image' else SD_ / ZEXT)                  # the depth of the body, front to back, with the shift of its rows
 print('her size: %.3f x %.3f x %.3f m (width, height, depth) = Captain Strawberry\'s %.4f x %.4f x %.4f' % (BW * MPPX, BH * MPPY, ZEXT * MPPZ, SW_, SH_, SD_))
 js = "// ZAGLA, the second character, as a 3D body (made by tools/make_zagla_assets.py from the user's pictures of her, front and back, and her own edits of the textures): `front` = her front picture cut out and scaled\n"
 js += "// (its own colours), `back` = her back picture, the view from behind (the hood, the rest in the opposite position), `pieces` = her silhouette inflated into a volume (grid of `step` texture px: ij = grid column / row,\n"
 js += "// z = depth in 1/8 px, tri = triangles; the back of the body is the front mirrored in z), cut in the body and two legs that swing. Sizes: w x h texture px, `mppx` / `mppy` / `mppz` = metres per texture px (width, height, depth): her size is Captain Strawberry's (1.2894 x 1.9 m, 0.8257 m deep); `foot` = the row of her soles.\n"
-js += "const ZAGLA_ASSETS = " + json.dumps(dict(w=W, h=H, mpp=M_PER_PX, mppx=MPPX, mppy=MPPY, mppz=MPPZ, foot=FOOT, step=STEP, axis=float(xc), pieces=[dict(name=p['name'], pivot=p['pivot'], n=p['n'], ij=b64(p['ij']), z=b64(p['z']), **({'zo': b64(p['zo'])} if p['zo'].any() else {}), tri=b64(p['tri']), **({'b': dict(n=p['b']['n'], ij=b64(p['b']['ij']), z=b64(p['b']['z']), **({'zo': b64(p['b']['zo'])} if p['b']['zo'].any() else {}), tri=b64(p['b']['tri']))} if 'b' in p else {})) for p in pieces],
-      front='data:image/webp;base64,' + base64.b64encode(fw).decode(), back='data:image/webp;base64,' + base64.b64encode(bw).decode())) + ";\n"
+js += "const ZAGLA_ASSETS = " + json.dumps(dict(w=W, h=H, mpp=M_PER_PX, mppx=MPPX, mppy=MPPY, mppz=MPPZ, foot=FOOT, step=STEP, axis=float(xc), pieces=[dict(name=p['name'], pivot=p['pivot'], n=p['n'], ij=b64(p['ij']), z=b64(p['z']), **({'zo': b64(p['zo'])} if p['zo'].any() else {}), **({'sw': b64(p['sw'])} if SIDE == 'image' else {}), tri=b64(p['tri']), **({'b': dict(n=p['b']['n'], ij=b64(p['b']['ij']), z=b64(p['b']['z']), **({'zo': b64(p['b']['zo'])} if p['b']['zo'].any() else {}), **({'sw': b64(p['b']['sw'])} if SIDE == 'image' else {}), tri=b64(p['b']['tri']))} if 'b' in p else {})) for p in pieces],
+      **({'side': SIDE_JS} if SIDE_JS else {}), front='data:image/webp;base64,' + base64.b64encode(fw).decode(), back='data:image/webp;base64,' + base64.b64encode(bw).decode())) + ";\n"
 open('src3d/zagla_assets.js', 'w').write(js); print('zagla_assets.js', len(js) // 1024, 'KB (front', len(fw) // 1024, 'KB, back', len(bw) // 1024, 'KB)')
 sheet_of(front, back).save('docs/screenshots/zagla-textures.jpg', quality=88)
