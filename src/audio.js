@@ -2,8 +2,9 @@
 //  - MUSIC: the user's track (assets/music.mp3, played by an <audio> element, looped) plus a precomputed beat map (MUSIC_BEATS) that gives the animation a beat clock
 //    (`beat()`), read from the audio's currentTime; with no audio yet (browsers only allow sound after a first tap / key press) the same clock runs from the page time at the same
 //    tempo, so the menu already moves in time.
-//    A SECOND track (assets/music_coast.mp3, MUSIC_BEATS_COAST) belongs to the Sunset Coast: it crossfades with the main one as the runner comes up on the island and leaves it (the weight is the
-//    game's biome blend, /^coastTown/.test(g.bgTo) ? g.bgT : 0: the ISLAND of the coastal town, in every light; the coast road and the tunnel under the sea keep the main track), starts from its beginning on every entry, and the beat clock follows whichever track is louder.
+//    A SECOND track (assets/music_coast.mp3, MUSIC_BEATS_COAST: the whole of the user's redone 'afro Mediterraneo', 170 s) belongs to the island of the coastal town: it crossfades with the main one as the runner comes up on the
+//    island and leaves it (the weight follows the game's biome blend, /^coastTown/.test(g.bgTo) ? g.bgT : 0: the ISLAND of the coastal town, in every light; the coast road and the tunnel under the sea keep the main track), LONG
+//    and SOFT: it comes in over 3 s and goes out over 5 s (GameAudio.ISLAND_FADE, an S-curve, the two together always at the music volume), starts from its beginning on every entry, and the beat clock follows whichever track is louder.
 //  - EFFECTS: short sounds synthesised with the Web Audio API (no sound files): jump, land, slide, coin (the pitch climbs with a streak), crash, game-over, fork prompt / choice,
 //    start, pause / resume. Every voice is a pure function of (ctx, out, time, arg), so tests can render them offline.
 // Sound is allowed from the first user gesture; M toggles mute (remembered); the game pauses it with the tab. The Game just calls `g.sfx.play(name)` where things happen and
@@ -93,14 +94,15 @@ class GameAudio {
       if (s === 'scene' && this.musicVol < 0.004) this.musicVol = 0;
       // the coast crossfade: the weight follows the biome blend of the road ahead (g.bgTo / g.bgT) and is only heard while playing or paused on that road
       const want = /^coastTown/.test(g.bgTo) && s !== 'title' ? Math.max(0, Math.min(1, g.bgT)) : 0, c = this.musicCoast;
-      this.coastW += (want - this.coastW) * Math.min(1, dt * 6);
-      if (this.coastW < 0.004 && want === 0) this.coastW = 0;
+      const F = GameAudio.ISLAND_FADE, rate = s === 'title' ? 2 : 1 / (want > this.coastW ? F.in : F.out);                                  // (the menu cuts it in half a second; on the road it comes in over F.in s and goes out over F.out s)
+      this.coastW = want > this.coastW ? Math.min(want, this.coastW + dt * rate) : Math.max(want, this.coastW - dt * rate);
+      const cw = this.coastW * this.coastW * (3 - 2 * this.coastW);                                                                       // the S-curve of the volumes: soft at both ends, the two tracks always add up to the music volume
       if (c) {
         if (this.coastW > 0.01 && c.paused && this.unlocked && !document.hidden && !this.coastBlocked) { if (!this.coastOn) { try { c.currentTime = 0; } catch (e) {} } this.coastOn = true; try { const p = c.play(); if (p && p.then) p.then(() => { this.coastBlocked = false; }, e => { this.coastBlocked = true; setTimeout(() => { this.coastBlocked = false; }, 1500); }); } catch (e) {} }
         else if (this.coastW === 0 && !c.paused) { try { c.pause(); } catch (e) {} this.coastOn = false; }
-        try { c.volume = Math.max(0, Math.min(1, this.musicVol * this.coastW)); } catch (e) {}
+        try { c.volume = Math.max(0, Math.min(1, this.musicVol * cw)); } catch (e) {}
       }
-      try { a.volume = Math.max(0, Math.min(1, this.musicVol * (1 - this.coastW))); } catch (e) {}
+      try { a.volume = Math.max(0, Math.min(1, this.musicVol * (1 - cw))); } catch (e) {}
     }
     if (s !== this.lastState) {
       if (this.lastState === 'play' && s === 'pause') this.play('pause');
@@ -143,6 +145,7 @@ GameAudio.hiss = (ctx, out, t, o) => {
 };
 // a shared "hall" for the station: one convolver (1.7 s of decaying noise) per output node; `wet` is an input that feeds the output dry and the hall by `amt`
 GameAudio.spaces = new WeakMap();
+GameAudio.ISLAND_FADE = { in: 3, out: 5 };                      // seconds: the island music comes in over 3 s and goes out over 5 s
 GameAudio.space = (ctx, out) => {
   let r = GameAudio.spaces.get(out); if (r) return r;
   const n = Math.floor(ctx.sampleRate * 1.7), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0); let q = 987654321;
