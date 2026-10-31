@@ -243,10 +243,29 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const used = new Set(); for (let i = -3; i < 4000; i++) for (const q of ENV3D.neon.layout(i, rnd)) used.add(q.prop); out.unused = NAMES.filter(n => !used.has(n));
     out.doors = Object.assign({}, ENV3D.neon.doors); out.mats = out.mats.size; return out;
   });
-  T('the third set of materials (17 pictures in one alpha atlas, 1024 px wide) loads and is on 17 new neon props sharing one material; every one of them is placed by the street layout',
-    M3.loaded && M3.cells === 17 && M3.mats === 2 && Object.entries(M3.props).every(([n, c]) => c === (M3.doors[n] ? 2 : 1)) && M3.unused.length === 0, JSON.stringify(M3));
+  T('the third set of materials (17 pictures in one alpha atlas, 1024 px wide) loads and is on 17 new neon props sharing one material (the sphere board has its own: the completed sphere); every one of them is placed by the street layout',
+    M3.loaded && M3.cells === 17 && M3.mats === 3 && Object.entries(M3.props).every(([n, c]) => c === (M3.doors[n] ? 2 : 1)) && M3.unused.length === 0, JSON.stringify(M3));
 
   // ================================================================ 3b4. the beds of the trees: the user's disc made smaller and mixed with flowers from two photos
+  // ---- the sphere of the sphere board: the user's dotted sphere, COMPLETED into a whole sphere (src3d/sphere_assets.js, tools/make_sphere.py), replacing the glass sphere on a road
+  const SPH = await pg.evaluate(async () => {
+    const out = { cell3: !!NEON_ASSETS3.sphere }, img = new Image(); await new Promise(r => { img.onload = r; img.onerror = r; img.src = SPHERE_ASSETS.src; });
+    const W = img.naturalWidth, H = img.naturalHeight, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0); const d = cx.getImageData(0, 0, W, H).data;
+    out.size = [W, H, SPHERE_ASSETS.w, SPHERE_ASSETS.h];
+    const al = (x, y) => d[(y * W + x) * 4 + 3]; let minX = W, maxX = 0, minY = H, maxY = 0, dots = 0, body = 0, bodyN = 0, corner = 0;
+    for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) { const a = al(x, y); if (a > 8) { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); } const r = d[(y * W + x) * 4], g = d[(y * W + x) * 4 + 1], b = d[(y * W + x) * 4 + 2]; if (a > 200 && g > 200 && r < 190 && b < 120) dots++; if (a > 8 && a < 60 && Math.hypot(x - W / 2, y - H / 2) < W * 0.4) { body += a; bodyN++; } }
+    for (const [x, y] of [[4, 4], [W - 5, 4], [4, H - 5], [W - 5, H - 5]]) corner = Math.max(corner, al(x, y));
+    out.disc = { w: maxX - minX, h: maxY - minY, cx: (maxX + minX) / 2, cy: (maxY + minY) / 2 }; out.dots = dots; out.body = +(body / Math.max(bodyN, 1) / 255).toFixed(2); out.corner = corner;
+    // every quadrant has dots (a whole sphere, not a quarter)
+    out.quad = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([qx, qy]) => { let n = 0; for (let y = qy * H / 2; y < (qy + 1) * H / 2; y += 2) for (let x = qx * W / 2; x < (qx + 1) * W / 2; x += 2) { const a = al(x, y), r = d[(y * W + x) * 4], g = d[(y * W + x) * 4 + 1], b = d[(y * W + x) * 4 + 2]; if (a > 200 && g > 200 && r < 190 && b < 120) n++; } return n; });
+    const m = ENV3D.neon.props.neonBoardSphere(); out.mat = m.material() === NeonArt.sphereMaterial() && m.material() !== NeonArt.material3(); out.transparent = NeonArt.sphereMaterial().transparent; out.sprite = !!m.sprite && !!m.merged.lit;
+    const used = new Set(); for (let i = -3; i < 6000; i++) for (const q of ENV3D.neon.layout(i, rnd)) used.add(q.prop); out.placed = used.has('neonBoardSphere');
+    for (let k = 0; k < 40 && !NeonArt.sphereMaterial().visible; k++) await new Promise(r => setTimeout(r, 100)); out.loaded = NeonArt.sphereMaterial().visible;
+    return out;
+  });
+  T('the sphere board shows the user\'s dotted sphere, COMPLETED: a whole disc (' + SPH.disc.w + ' x ' + SPH.disc.h + ' px in a ' + SPH.size[0] + ' x ' + SPH.size[1] + ' picture, centred at ' + SPH.disc.cx + ', ' + SPH.disc.cy + ', nothing in the corners: ' + SPH.corner + '), lime dots in all four quarters (' + SPH.quad.join(' / ') + ' px), a nearly clear glass body (alpha ' + SPH.body + '), drawn blended on its own material (not the third atlas: its old glass sphere cell is ' + (SPH.cell3 ? 'still in the atlas, unused' : 'gone') + '), loaded (' + SPH.loaded + '), on the neon boards in the street layout (' + SPH.placed + ')',
+    SPH.size[0] === 1024 && SPH.size[1] === 1024 && SPH.size[0] === SPH.size[2] && Math.abs(SPH.disc.w - SPH.disc.h) <= 4 && SPH.disc.w > 900 && Math.abs(SPH.disc.cx - 512) < 4 && Math.abs(SPH.disc.cy - 512) < 4 && SPH.corner === 0 && SPH.quad.every(n => n > 1500) && SPH.body > 0.05 && SPH.body < 0.25 && SPH.mat && SPH.transparent && SPH.sprite && SPH.loaded && SPH.placed, JSON.stringify(SPH));
+
   const Fl = await pg.evaluate(async () => {
     const out = {}, m = FlowerArt.material(); for (let i = 0; i < 80 && !m.visible; i++) await new Promise(q => setTimeout(q, 100));
     out.loaded = m.visible && m.map.image.naturalWidth === FLOWER_ASSETS.w && m.map.image.naturalHeight === FLOWER_ASSETS.h; out.webp = FLOWER_ASSETS.src.startsWith('data:image/webp;base64,');

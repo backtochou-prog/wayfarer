@@ -37,6 +37,20 @@ const NeonArt = {
     }
     return this._mat3;
   },
+  // THE SPHERE (SPHERE_ASSETS, src3d/sphere_assets.js made by tools/make_sphere.py): the user's dotted glass sphere, completed into a whole sphere, one WebP with alpha. Its body is almost clear (alpha 0.08 to 0.3 at the
+  // rim) and its lime dots are opaque, so it is drawn blended (transparent, no depth write), not cut out. The picture on the sphere board of the Neon Quarter (neonBoardSphere); it replaced the glass sphere on a road.
+  _matSphere: null,
+  sphereMaterial() {
+    if (!this._matSphere) {
+      const img = new Image(), tex = new THREE.Texture(img);
+      tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; tex.generateMipmaps = true; tex.minFilter = THREE.LinearMipmapLinearFilter;
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.02, depthWrite: false, side: THREE.DoubleSide });
+      mat.visible = false; img.onload = () => { tex.needsUpdate = true; mat.visible = true; }; img.src = SPHERE_ASSETS.src;
+      this._matSphere = mat;
+    }
+    return this._matSphere;
+  },
+  panelSphere(x, z0, z1, y0, y1) { return this.panel('sphere', x, z0, z1, y0, y1, { sphere: { u0: 0, u1: 1, v0: 0, v1: 1, ar: 1 } }); },
   // the fourth atlas (NEON_ASSETS4): the filigree lamp, hanging glass drops, the chandelier, the hotel front, the teal tile rooms, the burlap vault ... (see tools/make_neon_assets4.py)
   _mat4: null,
   material4() {
