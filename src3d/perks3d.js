@@ -17,7 +17,7 @@ class Perk3D {
     this.col = COL;
     // the aura bubble: THE PROTECTIVE SPHERE, the user's dotted sphere (a whole sphere with lime dots, SphereArt) and two turning rings (additive), centred on the runner
     this.bubble = new THREE.Group(); this.bubble.visible = false;
-    this.shell = SphereArt.mesh(1.15, 0.6, 36);
+    this.shell = SphereArt.mesh(1.15, 0.5, 36); this.wrapT0 = -9; this.auPrev = 0;
     const rg = new THREE.TorusGeometry(1.2, 0.025, 5, 28), rm = new THREE.MeshBasicMaterial({ color: 0x8ffbe6, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending });
     this.bR1 = new THREE.Mesh(rg, rm); this.bR2 = new THREE.Mesh(rg, rm); this.bR2.rotation.x = Math.PI / 2; this.bubble.add(this.shell, this.bR1, this.bR2); scene.add(this.bubble);
     // the magnet's rings on the ground
@@ -72,9 +72,12 @@ class Perk3D {
     const au = live ? pk.t.aura : 0;
     if (au > 0) {
       const blink = au < 3 && Math.floor(t * 7) % 2 === 0;
-      this.bubble.visible = true; this.bubble.position.set(relX, ry + 0.95, 0); this.bubble.scale.setScalar(1 + Math.sin(t * 4) * 0.04);
-      this.shell.material.opacity = blink ? 0.12 : 0.6; this.shell.rotation.y = t * 0.5; this.bR1.rotation.z = t * 1.3; this.bR2.rotation.y = t * 1.7; this.bR1.visible = this.bR2.visible = !blink;
+      if (!(this.auPrev > 0) || au > this.auPrev + 0.5) this.wrapT0 = t;                                       // (just collected, or collected again: the sphere closes round the runner)
+      const w = Math.max(0, Math.min(1, (t - this.wrapT0) / 0.3)), grow = 0.5 + 0.5 * w * w * (3 - 2 * w);        // from half size to full over 0.3 s, centred on the runner: the runner is wrapped
+      this.bubble.visible = true; this.bubble.position.set(relX, ry + 0.95, 0); this.bubble.scale.setScalar(grow * (1 + Math.sin(t * 4) * 0.04));
+      this.shell.material.opacity = blink ? 0.12 : 0.5; this.shell.rotation.y = t * 0.5; this.bR1.rotation.z = t * 1.3; this.bR2.rotation.y = t * 1.7; this.bR1.visible = this.bR2.visible = !blink;
     } else this.bubble.visible = false;
+    this.auPrev = au;
     // the magnet: two rings that swell from the runner's feet outward and fade, a half-period apart
     const mg = live ? pk.t.magnet : 0;
     this.mag.forEach((m, k) => {

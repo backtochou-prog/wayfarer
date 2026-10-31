@@ -76,8 +76,10 @@ class Items3D {
     };
     // extra meshes of a pooled instance (rings, the bubble) and the per-frame motion of each kind
     const extras = {
-      aura: g => { const core = Kit.merge([Kit.ico(0.17, 0, 0, 0, '#5ff0d0', { glow: true, detail: 0 }), Kit.ico(0.09, 0, 0, 0, '#ffffff', { glow: true })]); g.add(new THREE.Mesh(core.glow, mats.glow)); g.add(SphereArt.mesh(0.46, 0.85, 24));      // (the pickup: the protective sphere in small, the user's dotted sphere)
-                   const r1 = new THREE.Mesh(G.ring, SH.auraRing), r2 = new THREE.Mesh(G.ring, SH.auraRing); r2.rotation.x = Math.PI / 2; g.add(r1, r2); g.userData.r1 = r1; g.userData.r2 = r2; },
+      aura: g => { const core = Kit.merge([Kit.ico(0.17, 0, 0, 0, '#5ff0d0', { glow: true, detail: 0 }), Kit.ico(0.09, 0, 0, 0, '#ffffff', { glow: true })]); g.add(new THREE.Mesh(core.glow, mats.glow));
+                   // the pickup IS the protective sphere, full size (the same 1.15 m as the bubble round the runner, the user's dotted sphere): the runner that collects it is INSIDE it, and the bubble that takes its place is the same sphere
+                   const sp = SphereArt.mesh(1.15, 0.5, 28); sp.position.y = 0.2; g.add(sp); g.userData.sphere = sp;
+                   const r1 = new THREE.Mesh(G.ring, SH.auraRing), r2 = new THREE.Mesh(G.ring, SH.auraRing); r1.scale.setScalar(2.74); r2.scale.setScalar(2.74); r1.position.y = r2.position.y = 0.2; r2.rotation.x = Math.PI / 2; g.add(r1, r2); g.userData.r1 = r1; g.userData.r2 = r2; },
       crate: g => VortexArt.attach(g), crateW: g => VortexArt.attach(g),
       dash: g => { const r = new THREE.Mesh(G.ringBig, SH.dashRing); r.position.z = -0.05; g.add(r); g.userData.r1 = r; },
       waymark: g => { const r1 = new THREE.Mesh(G.ringWay, SH.wayRing), r2 = new THREE.Mesh(G.ringWay, SH.wayRing); r2.rotation.x = Math.PI / 2; g.add(r1, r2); g.userData.r1 = r1; g.userData.r2 = r2; },
@@ -148,7 +150,7 @@ class Items3D {
         else if (k === 'shard') { c.rotation.y = time * 2.2 + ph; c.rotation.z = Math.sin(time * 1.7 + ph) * 0.18; const pulse = 1 + Math.sin(time * 5 + ph) * 0.06; c.scale.set(pulse, pulse, pulse); }
         else if (k === 'dash') { c.rotation.y = Math.sin(time * 1.8 + ph) * 0.55; const s = 1 + Math.sin(time * 6 + ph) * 0.08; c.scale.set(s, s, s); u.r1.rotation.z = time * 2; u.r1.scale.setScalar(1 + 0.12 * Math.sin(time * 5 + ph)); }
         else if (k === 'waymark') { c.rotation.y = time * 1.4 + ph; u.r1.rotation.y = time * 1.1; u.r2.rotation.z = time * 1.3; }
-        else if (k === 'aura') { c.rotation.y = time * 1.2 + ph; u.r1.rotation.z = time * 1.6; u.r2.rotation.y = time * 1.9; c.scale.setScalar(1 + Math.sin(time * 3 + ph) * 0.05); }
+        else if (k === 'aura') { c.rotation.y = time * 1.2 + ph; u.r1.rotation.z = time * 1.6; u.r2.rotation.y = time * 1.9; c.scale.setScalar(1 + Math.sin(time * 3 + ph) * 0.03); }
       }
     }
   }

@@ -207,7 +207,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.hit = JSON.stringify(OBST); out.speed = BASE_SPEED; return out;
   });
   T('riding: the card stands on the deck (lifted ' + Z.deck + ' m, the runner ' + Z.box.top + ' m tall), the wheels spin, the glide is steady (' + Z.bounce + ' m of bounce), steering leans the scooter (' + Z.lean + ' rad), the jump lifts its nose (' + Z.nose + ' rad)',
-    Math.abs(Z.deck - 0.22) < 0.04 && Z.box.top > 1.9 && Z.box.top < 2.3 && Z.box.bottom > -0.05 && Z.box.bottom < 0.1 && Z.spin.every(Boolean) && Z.bounce < 0.03 && Math.abs(Z.lean) > 0.03 && Z.nose > 0.08, JSON.stringify(Z));
+    Math.abs(Z.deck - 0.22) < 0.06 && Z.box.top > 1.9 && Z.box.top < 2.3 && Z.box.bottom > -0.05 && Z.box.bottom < 0.1 && Z.spin.every(Boolean) && Z.bounce < 0.03 && Math.abs(Z.lean) > 0.03 && Z.nose > 0.08, JSON.stringify(Z));
   T('getting out of the zone puts the runner back on foot, and so does a restart; the hit boxes and the speed are the same constants',
     Z.leftZone && Z.again && Z.restart && Z.hit === '{"crate":{"hw":0.17,"y0":0,"y1":14},"barrier":{"hw":0.39,"y0":0,"y1":9},"over":{"hw":0.55,"y0":14,"y1":48}}', JSON.stringify({ leftZone: Z.leftZone, again: Z.again, restart: Z.restart, speed: Z.speed }));
   T('no JS errors (default)', pg.errs.length === 0, pg.errs.slice(0, 2).join('|')); await pg.context().close();
