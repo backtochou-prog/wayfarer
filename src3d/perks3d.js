@@ -1,7 +1,7 @@
 // Perk3D: the 3D effects of the power-ups and rewards (rules: src/perks.js; the pickup models: Items3D). All of it is built once and pooled; nothing is allocated while the game runs, and every
 // animation reads the game clock (g.time), which stops with the game, so a pause freezes the lot.
 //  - pickup / break / near-miss / celebration BURSTS: a few tiny glowing cubes in the effect's colour and one expanding ring, in absolute track coordinates like Fx3D's sparks
-//  - AURA: a teal bubble round the runner with two turning rings; it blinks in its last 3 s and pops (a big ring and a fan of sparks) when it takes a hit
+//  - AURA: the protective sphere round the runner, the user's dotted sphere (SphereArt) with two turning rings; it blinks in its last 3 s and pops (a big ring and a fan of sparks) when it takes a hit
 //  - MAGNET: two soft rings that swell outward from the runner's feet, the same colours as the horseshoe, for as long as it works
 //  - DASH: two orange streaks behind the runner, a handful of speed lines along the sides, and the camera's field of view opened a few degrees
 // Light on purpose: at most ~90 small meshes, no screen-wide effects, no shaking.
@@ -15,9 +15,9 @@ class Perk3D {
     const ringGeo = new THREE.RingGeometry(0.4, 0.5, 28);
     for (let i = 0; i < this.RINGS; i++) { const m = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })); m.visible = false; scene.add(m); this.rings.push(m); }
     this.col = COL;
-    // the aura bubble: a faceted translucent shell and two rings (additive), centred on the runner
+    // the aura bubble: THE PROTECTIVE SPHERE, the user's dotted sphere (a whole sphere with lime dots, SphereArt) and two turning rings (additive), centred on the runner
     this.bubble = new THREE.Group(); this.bubble.visible = false;
-    this.shell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.15, 1), new THREE.MeshBasicMaterial({ color: 0x5ff0d0, transparent: true, opacity: 0.17, depthWrite: false, side: THREE.DoubleSide }));
+    this.shell = SphereArt.mesh(1.15, 0.6, 36);
     const rg = new THREE.TorusGeometry(1.2, 0.025, 5, 28), rm = new THREE.MeshBasicMaterial({ color: 0x8ffbe6, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending });
     this.bR1 = new THREE.Mesh(rg, rm); this.bR2 = new THREE.Mesh(rg, rm); this.bR2.rotation.x = Math.PI / 2; this.bubble.add(this.shell, this.bR1, this.bR2); scene.add(this.bubble);
     // the magnet's rings on the ground
@@ -73,7 +73,7 @@ class Perk3D {
     if (au > 0) {
       const blink = au < 3 && Math.floor(t * 7) % 2 === 0;
       this.bubble.visible = true; this.bubble.position.set(relX, ry + 0.95, 0); this.bubble.scale.setScalar(1 + Math.sin(t * 4) * 0.04);
-      this.shell.material.opacity = blink ? 0.05 : 0.17; this.bR1.rotation.z = t * 1.3; this.bR2.rotation.y = t * 1.7; this.bR1.visible = this.bR2.visible = !blink;
+      this.shell.material.opacity = blink ? 0.12 : 0.6; this.shell.rotation.y = t * 0.5; this.bR1.rotation.z = t * 1.3; this.bR2.rotation.y = t * 1.7; this.bR1.visible = this.bR2.visible = !blink;
     } else this.bubble.visible = false;
     // the magnet: two rings that swell from the runner's feet outward and fade, a half-period apart
     const mg = live ? pk.t.magnet : 0;

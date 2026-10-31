@@ -71,11 +71,6 @@ window.ENV3D = window.ENV3D || {};
     return art3([Kit.box(0.36, y0 + 0.2, 0.36, 0, 0, -hw + 0.1, N.post), Kit.box(0.36, y0 + 0.2, 0.36, 0, 0, hw - 0.1, N.post), Kit.box(0.28, h + 0.5, w + 0.5, -0.04, y0 - 0.1, 0, N.base),
       Kit.box(0.4, 0.2, w + 0.6, -0.08, y0 + h + 0.3, 0, col, { glow: true }), Kit.box(0.4, 0.2, w + 0.6, -0.08, y0 - 0.2, 0, col, { glow: true }), Kit.box(0.4, h + 0.7, 0.2, -0.08, y0 - 0.2, -w / 2 - 0.3, col, { glow: true }), Kit.box(0.4, h + 0.7, 0.2, -0.08, y0 - 0.2, w / 2 + 0.3, col, { glow: true })],
       NeonArt.panel3(cell, -0.22, -w / 2, w / 2, y0, y0 + h)); };
-  // the sphere board: the user's dotted sphere, whole (SPHERE_ASSETS), in a square frame on two posts, in front of a dark plaque so that its clear glass body reads
-  const boardSphere = (w, y0, col) => { const h = w, hw = w / 2 + 0.3;
-    const m = { merged: Kit.merge([Kit.box(0.36, y0 + 0.2, 0.36, 0, 0, -hw + 0.1, N.post), Kit.box(0.36, y0 + 0.2, 0.36, 0, 0, hw - 0.1, N.post), Kit.box(0.28, h + 0.5, w + 0.5, -0.04, y0 - 0.1, 0, N.base),
-      Kit.box(0.4, 0.2, w + 0.6, -0.08, y0 + h + 0.3, 0, col, { glow: true }), Kit.box(0.4, 0.2, w + 0.6, -0.08, y0 - 0.2, 0, col, { glow: true }), Kit.box(0.4, h + 0.7, 0.2, -0.08, y0 - 0.2, -w / 2 - 0.3, col, { glow: true }), Kit.box(0.4, h + 0.7, 0.2, -0.08, y0 - 0.2, w / 2 + 0.3, col, { glow: true })]),
-      sprite: NeonArt.panelSphere(-0.22, -w / 2, w / 2, y0, y0 + h), material: () => NeonArt.sphereMaterial() }; return m; };
   const lampOf = col => () => Kit.merge([
     Kit.box(0.3, 0.4, 0.3, 0, 0, 0, N.post), Kit.cyl(0.07, 0.1, 4.2, 0, 0, 0, N.post), Kit.box(1.1, 0.08, 0.08, -0.55, 4.1, 0, N.post),
     Kit.box(0.14, 0.14, 1.2, -1.1, 3.95, 0, col, { glow: true }), Kit.box(0.5, 0.05, 0.5, -1.1, 3.9, 0, col, { glow: true })]);
@@ -115,7 +110,7 @@ window.ENV3D = window.ENV3D || {};
       neonLinesBanner: () => board('lines', 4.4, 2.6, N.green),
       neonShopD: () => art3([Kit.box(6, 5.6, 9, 3, 0, 0, N.bodyB), Kit.box(0.16, 0.2, 9.2, -0.05, 5.6, 0, N.teal, { glow: true }), Kit.box(6.2, 0.3, 9.2, 3, 5.6, 0, N.base)], NeonArt.panel3('stripes2', -0.06, -4.3, 4.3, 0.4, 5.2)),
       neonCar: () => art3([], NeonArt.panel3('car', 0, -2.4, 2.4, 0.05, 0.05 + 4.8 / NEON_ASSETS3.car.ar)),                                                  // a parked neon car, seen from the side
-      neonBoardVortex: () => board('vortex', 9, 5.0, N.purple), neonBoardSphere: () => boardSphere(6.4, 5.0, N.teal), neonBoardRings: () => board('rings', 8.4, 5.0, N.mag), neonBoardSpiral: () => board('spiral', 6.2, 4.0, N.yellow),   // landmarks
+      neonBoardVortex: () => board('vortex', 9, 5.0, N.purple), neonBoardSphere: () => board('sphere', 8, 5.2, N.teal), neonBoardRings: () => board('rings', 8.4, 5.0, N.mag), neonBoardSpiral: () => board('spiral', 6.2, 4.0, N.yellow),   // landmarks
       neonBlockD: () => artBlock(9.6, 7, 12.5, 6, 'dots', N.teal), neonBlockE: () => artBlock(8.4, 6.5, 17, 7, 'lamps', N.yellow),
       neonShopC: () => art2([Kit.box(6, 5.6, 9, 3, 0, 0, N.bodyB), Kit.box(0.16, 0.2, 9.2, -0.05, 5.6, 0, N.yellow, { glow: true }), Kit.box(6.2, 0.3, 9.2, 3, 5.6, 0, N.base)], NeonArt.panel2('stripes', -0.06, -4.3, 4.3, 0.4, 5.2)),
       neonBlade: () => art2([Kit.box(0.5, 0.35, 0.5, 0, 0, 0, N.post)], NeonArt.cross('blade', 11, 0.3)),                                   // a tall glowing orange tube on a wall slice
