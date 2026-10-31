@@ -270,6 +270,54 @@ if os.environ.get('ZAGLA_MIRROR_BOOTS', '0') == '1' and len(runs) == 2:
     back[ytop:, xs, :] = back[ytop:, src, :]                                  # (the picture and its silhouette together)
     print('the right boot of the back is the left one turned about x =', round(float(axis), 1))
 
+# ---- 3e. HER LEGS ARE THE STRAWBERRY'S (her words: 'apply the strawberry's legs to Zagla too, just keep Zagla's colour'): the two legs and the two shoes of both textures are reshaped, row by row, to the outline of the legs of
+# Captain Strawberry's back view (AVATAR_ASSETS.back, in metres: his legs taper from the hem to the ankle, stand 0.29 m apart and end in big round shoes 0.2 m wide); her own pixels, the black leggings and her sneakers,
+# are squeezed or stretched to fill that outline (each row's run of her leg is mapped onto his run at the matching height), so the colours stay hers and the shape is his. Seen from the side they are already his
+# (section 4). ZAGLA_LEGS=own keeps her own legs.
+LEGS_AS = os.environ.get('ZAGLA_LEGS', 'strawberry')
+def _runs_of(row, gap=8, minw=4):
+    xs4 = np.nonzero(row)[0]
+    if not len(xs4): return []
+    rr = [[int(r[0]), int(r[-1])] for r in np.split(xs4, np.where(np.diff(xs4) > 1)[0] + 1)]; mg = [rr[0]]
+    for q in rr[1:]:
+        if q[0] - mg[-1][1] <= gap: mg[-1][1] = q[1]
+        else: mg.append(q)
+    return [q for q in mg if q[1] - q[0] + 1 >= minw]
+def legs_like_strawberry(img):
+    _av2 = open('src3d/avatar_assets.js').read(); _mb = _re_.search(r"back: \{[^}]*?mw: ([\d.]+)[^}]*?src: 'data:image/\w+;base64,([^']+)'", _av2)
+    sb = np.array(Image.open(io.BytesIO(base64.b64decode(_mb.group(2)))).convert('RGBA'))[..., 3] > 128; MS = float(_mb.group(1)) / sb.shape[1]          # his back view, and its metres per px
+    cols_ = np.where(mask.any(0))[0]; mpx = float(_mb.group(1)) / (cols_.max() - cols_.min() + 1)                                                          # her metres per px across (as in the size block below)
+    SL = np.full((sb.shape[0], 4), np.nan)                                                                                                                  # per row of his picture: left run, right run
+    for y4 in range(560, 796):
+        rr = _runs_of(sb[y4], 14, 20)
+        if len(rr) >= 2: SL[y4] = [rr[0][0], rr[0][1], rr[-1][0], rr[-1][1]]
+    idx4 = np.nonzero(~np.isnan(SL[:, 0]))[0]; ys4 = np.arange(sb.shape[0]); k5 = np.ones(7) / 7.0
+    SL = np.stack([np.convolve(np.pad(np.interp(ys4, idx4, SL[idx4, c]), 3, mode='edge'), k5, mode='valid') for c in range(4)], axis=1)
+    axisS = float(np.mean([(SL[y4, 0] + SL[y4, 1] + SL[y4, 2] + SL[y4, 3]) / 4.0 for y4 in range(580, 680)]))
+    al = img[..., 3] > 40; rows2 = [r for r in range(img.shape[0]) if len(_runs_of(al[r], 6, 6)) == 2]
+    # the legs start at the first row (below the skirt) from which there are two runs for good, and end at the soles
+    def _two(q): rq = _runs_of(al[q], 6, 6); return len(rq) == 2 and rq[1][0] - rq[0][1] > 24                                                       # two legs with a real gap between them (not the cusp of the skirt's hem)
+    R0 = next(r for r in range(600, img.shape[0]) if all(_two(q) for q in range(r, min(r + 20, img.shape[0]))))
+    RF = max(rows2); mid = [(q[0] + q[1]) / 2.0 for q in _runs_of(al[min(RF - 90, 700)], 6, 6)]; axisZ = float(np.mean(mid))
+    pm = img.astype(np.float32).copy(); pm[..., :3] *= pm[..., 3:4] / 255.0; out = pm.copy(); out[R0:RF + 3] = 0
+    for r in range(R0, RF + 1):
+        rr = _runs_of(al[r], 6, 6)
+        if len(rr) != 2: out[r] = pm[r]; continue                                                              # (rows with another count are kept as they are)
+        sy = 575.0 + (r - R0) / float(max(RF - R0, 1)) * (792.0 - 575.0)
+        tg = [np.interp(sy, ys4, SL[:, c]) for c in range(4)]
+        for (a0, b0), (ta, tb) in zip(rr, ((tg[0], tg[1]), (tg[2], tg[3]))):
+            ta = axisZ + (ta - axisS) * MS / mpx; tb = axisZ + (tb + 1 - axisS) * MS / mpx; xs5 = np.arange(int(np.ceil(ta)), int(np.floor(tb)) + 1)
+            if len(xs5) < 2: continue
+            sx = a0 + (xs5 + 0.5 - ta) / (tb - ta) * (b0 + 1 - a0) - 0.5; sx = np.clip(sx, 0, img.shape[1] - 1)
+            for c in range(4): out[r, xs5, c] = np.interp(sx, np.arange(img.shape[1]), pm[r, :, c])
+    al2 = out[..., 3:4]; rgb = np.where(al2 > 1, out[..., :3] / np.maximum(al2, 1) * 255.0, 0)
+    print('legs like the strawberry\'s: rows', R0, '-', RF, 'axis', round(axisZ, 1), '(his', round(axisS, 1), ')')
+    return np.concatenate([np.clip(rgb, 0, 255), np.clip(al2, 0, 255)], axis=2).astype(np.uint8)
+import re as _re_
+if LEGS_AS == 'strawberry':
+    front = legs_like_strawberry(front); back = legs_like_strawberry(back)
+    mask = front[..., 3] > 40; dist = edt(mask)                                                              # (the silhouette changed: her mask and its distance map are recomputed)
+
 # ---- 4. the MESH: the silhouette inflated (round cross-section from the distance to the edge), in a grid of STEP px: the body and the two legs
 YCUT = int(H * 0.77)                                                        # just under the skirt: the legs start here (they overlap the skirt a little, hidden inside it)
 gx = np.arange(0, W, STEP); gy = np.arange(0, H, STEP)
