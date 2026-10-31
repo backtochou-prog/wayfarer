@@ -362,7 +362,7 @@ SIDE = os.environ.get('ZAGLA_SIDE', 'image')
 # the body, 25 px for the legs and the shoe), the cross-section across the body is an ellipse, and the picture itself is her SIDE TEXTURE (src3d/zagla3d.js projects it on the flanks). ZAGLA_SIDE=strawberry: his
 # side silhouette (and his shoe) instead; lemon, pillow: the earlier volumes.
 if SIDE == 'image':
-    SIDEPNG = Image.open(os.path.join(HERE, 'zagla_side.png')).convert('RGBA'); sida = np.asarray(SIDEPNG)[..., 3] > 128; SPPM, SZC, SFOOT = 800.0, -0.02, 1640.0
+    SIDEPNG = Image.open(os.path.join(HERE, 'zagla_side.png')).convert('RGBA'); SIDEPNG_RGB = np.asarray(SIDEPNG); sida = SIDEPNG_RGB[..., 3] > 128; SPPM, SZC, SFOOT = 800.0, -0.02, 1640.0
     def _open(m, r): er = _box(m.astype(np.float64), r) > 0.999; return (_box(er.astype(np.float64), r) > 0.001) & m
     mb_ = _open(sida, 30); ml_ = _open(sida, 12); SHH = sida.shape[0]; slo = np.full(SHH, np.nan); shi = np.full(SHH, np.nan)
     for y_ in range(SHH):
@@ -409,6 +409,34 @@ if SIDE == 'image' and ARMS_3D:
     _out = mask.copy(); _yy, _xx = np.indices(mask.shape); _egg = (hw_[:, None] > 4.0) & (np.abs(_xx - cen_[:, None]) < hw_[:, None] + 8.0); _out &= ~_egg; _out[:ARM_R0] = False; _out[YCUT + 10:] = False
     _far = _out & (np.abs(_xx - cen_[:, None]) > hw_[:, None] + 20.0); _cnt = _far.sum(1); ARM_R1 = int(max(r for r in range(ARM_R0, YCUT) if _cnt[r] >= 6)); print('outside-egg pixels per 20 rows:', [int(_cnt[r:r + 20].sum()) for r in range(ARM_R0, 640, 20)])
     print('arms: rows', ARM_R0, '-', ARM_R1, 'carried forward by', ARM_FWD, 'm; hair carried by', HAIR_K, 'm per m of x')
+# THE ARM OF HER SIDE PICTURE, COPIED (her words: 'yes, try to copy it'): the arm she drew on the side picture (a thick black band reaching forward and down, from the shoulder to the fist) is the texture of the arm
+# blades seen from the side. It is measured on the picture (the dark pixels near the line from the shoulder at (495, 832) to the fist at (275, 1015); its axis, its length and its width along the axis), each arm vertex gets
+# (s, t) = (how far along the arm from the shoulder row to the hand row, where across the blade between its two edges at that row), and its side-picture coordinates are the point at s along the drawn arm, t across it.
+_ARMG = {}
+def arm_geom():
+    if _ARMG: return _ARMG
+    lum = SIDEPNG_RGB[..., :3].astype(np.float32).sum(2) / 3.0; yy3, xx3 = np.indices(lum.shape); P0 = np.array([495.0, 832.0]); P1 = np.array([275.0, 1015.0]); dv = (P1 - P0) / np.linalg.norm(P1 - P0)
+    rel = np.stack([xx3 - P0[0], yy3 - P0[1]], axis=-1); along = rel @ dv; perp = rel[..., 0] * (-dv[1]) + rel[..., 1] * dv[0]
+    sel_ = (lum < 45) & (sida) & (np.abs(perp) < 55) & (along > -45) & (along < np.linalg.norm(P1 - P0) + 45)
+    ys_, xs_ = np.nonzero(sel_); pts = np.stack([xs_, ys_], axis=1).astype(np.float64); mu = pts.mean(0); w_, v_ = np.linalg.eigh(np.cov((pts - mu).T)); ax = v_[:, np.argmax(w_)]
+    if ax @ (P1 - P0) < 0: ax = -ax
+    nm = np.array([-ax[1], ax[0]]); a1 = (pts - mu) @ ax; n1 = (pts - mu) @ nm; lo, hi = np.percentile(a1, 1), np.percentile(a1, 99); bins = np.linspace(lo, hi, 13); cen_s = []; half_s = []
+    for b0, b1 in zip(bins[:-1], bins[1:]):
+        m = (a1 >= b0) & (a1 < b1); cen_s.append((np.percentile(n1[m], 3) + np.percentile(n1[m], 97)) / 2.0); half_s.append((np.percentile(n1[m], 97) - np.percentile(n1[m], 3)) / 2.0)
+    _ARMG.update(mu=mu, ax=ax, nm=nm, lo=lo, hi=hi, mid=(bins[:-1] + bins[1:]) / 2.0, cen=np.array(cen_s), half=np.array(half_s)); print('her drawn arm: length', round(float(hi - lo)), 'px, half-width', [int(h) for h in half_s][::3], 'px, from', (mu + lo * ax).astype(int), 'to', (mu + hi * ax).astype(int)); return _ARMG
+def arm_uv(s_, t_):                                                         # (s, t) along / across the arm -> the coordinates of that point on her side picture (u, v in 0..1, v up)
+    g = arm_geom(); a = g['lo'] + float(np.clip(s_, 0, 1)) * (g['hi'] - g['lo']); c = float(np.interp(a, g['mid'], g['cen'])); h = float(np.interp(a, g['mid'], g['half']))
+    pt = g['mu'] + a * g['ax'] + (c + float(np.clip(t_, -1, 1)) * h) * g['nm']; return pt[0] / SIDEPNG.width, 1.0 - pt[1] / SIDEPNG.height
+_ARMRUN = {}
+def arm_st(px, py):                                                         # an arm vertex of the front texture -> (s, t)
+    if not _ARMRUN:
+        for y in range(ARM_R0, ARM_R1 + 8):
+            xs6 = np.nonzero(_out[y])[0]
+            for side_, sel6 in (('L', xs6[xs6 < xc]), ('R', xs6[xs6 >= xc])): _ARMRUN[(y, side_)] = (sel6.min(), sel6.max()) if len(sel6) else None
+    ru = _ARMRUN.get((min(max(py, ARM_R0), ARM_R1 + 7), 'L' if px < xc else 'R')); s_ = (py - ARM_R0) / float(max(ARM_R1 - ARM_R0, 1))
+    t_ = 0.0 if (ru is None or ru[1] - ru[0] < 3) else 2.0 * (px - ru[0]) / float(ru[1] - ru[0]) - 1.0
+    return s_, (t_ if px < xc else -t_)
+def isarm(px, py, dm): return bool(SIDE == 'image' and ARMS_3D and dm is dist and ARM_R0 <= py <= ARM_R1 + 6 and py < YCUT + 10 and sidek(px, py, dm) == 0)
 def zoff(py, dm, px=None):                                                  # the shift of the middle of the row toward the back (z units: px)
     if SIDE == 'image' and LEMON:
         if py >= YCUT + 10 or dm is not dist: return (img_at(py)[1] if py >= YCUT + 10 else 0.0)
@@ -479,7 +507,18 @@ def surf(sel, mk, dm, Rm):                                                  # on
         for i in range(vin.shape[1]):
             if not vin[j, i]: continue
             nb = [vin[j - 1, i] if j else False, vin[j + 1, i] if j + 1 < vin.shape[0] else False, vin[j, i - 1] if i else False, vin[j, i + 1] if i + 1 < vin.shape[1] else False]
-            rim = not all(nb); idx[j, i] = len(ij); ij.append((i, j)); zz.append(0.0 if rim else zof(gx[i], gy[j], dm, Rm, sel, mk)); zo_.append(zoff(gy[j], dm, gx[i])); sw_.append(sidek(gx[i], gy[j], dm))
+            rim = not all(nb); idx[j, i] = len(ij); ij.append((i, j)); zz.append(0.0 if rim else zof(gx[i], gy[j], dm, Rm, sel, mk)); zo_.append(zoff(gy[j], dm, gx[i])); ar_ = isarm(gx[i], gy[j], dm); sw_.append(170 if ar_ else sidek(gx[i], gy[j], dm))
+    # the arm of her side picture, copied: for each ARM vertex the coordinates of the front face (t = +depth / the arm's depth at that row: the front side of the drawn band) and of the back face (the other side) on her side
+    # picture, so that the half of the tube that faces the camera from the side wears the whole drawn arm, edge to edge
+    su_arr = np.full((len(ij), 4), 65535, np.uint16)
+    if SIDE == 'image' and ARMS_3D and dm is dist:
+        mz = {}
+        for k, (i, j) in enumerate(ij):
+            if isarm(gx[i], gy[j], dm): key = (gy[j], gx[i] < xc); mz[key] = max(mz.get(key, 0.0), zz[k])
+        for k, (i, j) in enumerate(ij):
+            if isarm(gx[i], gy[j], dm):
+                s_, _t = arm_st(gx[i], gy[j]); tt = zz[k] / max(mz[(gy[j], gx[i] < xc)], 1.0)
+                su_arr[k] = [int(round(c * 65534)) for c in (arm_uv(s_, tt) + arm_uv(s_, -tt))]
     tris = []
     for j in range(vin.shape[0] - 1):
         for i in range(vin.shape[1] - 1):
@@ -488,7 +527,7 @@ def surf(sel, mk, dm, Rm):                                                  # on
             else:
                 ok = [v for v in q if v >= 0]
                 if len(ok) == 3: tris.append(tuple(ok))
-    return dict(n=len(ij), ij=np.array(ij, np.uint16), z=np.round(np.array(zz) * 8).astype(np.int16), zo=np.round(np.array(zo_) * 8).astype(np.int16), sw=np.array(sw_, np.uint8), tri=np.array(tris, np.uint16), zmax=max(zz) if zz else 0,
+    return dict(n=len(ij), ij=np.array(ij, np.uint16), z=np.round(np.array(zz) * 8).astype(np.int16), zo=np.round(np.array(zo_) * 8).astype(np.int16), sw=np.array(sw_, np.uint8), su=su_arr, tri=np.array(tris, np.uint16), zmax=max(zz) if zz else 0,
                 zlo=min((o - z for o, z in zip(zo_, zz)), default=0.0), zhi=max((o + z for o, z in zip(zo_, zz)), default=0.0))
 def piece(name, sel, pivot, back_face=None):                                 # back_face: (sel in back coordinates, mask, distance, local radius) when the back face has its own silhouette (the legs: the boots seen from behind)
     P = surf(sel, mask, dist, Rloc)
@@ -524,7 +563,7 @@ print('her size: %.3f x %.3f x %.3f m (width, height, depth) = Captain Strawberr
 js = "// ZAGLA, the second character, as a 3D body (made by tools/make_zagla_assets.py from the user's pictures of her, front and back, and her own edits of the textures): `front` = her front picture cut out and scaled\n"
 js += "// (its own colours), `back` = her back picture, the view from behind (the hood, the rest in the opposite position), `pieces` = her silhouette inflated into a volume (grid of `step` texture px: ij = grid column / row,\n"
 js += "// z = depth in 1/8 px, tri = triangles; the back of the body is the front mirrored in z), cut in the body and two legs that swing. Sizes: w x h texture px, `mppx` / `mppy` / `mppz` = metres per texture px (width, height, depth): her size is Captain Strawberry's (1.2894 x 1.9 m, 0.8257 m deep); `foot` = the row of her soles.\n"
-js += "const ZAGLA_ASSETS = " + json.dumps(dict(w=W, h=H, mpp=M_PER_PX, mppx=MPPX, mppy=MPPY, mppz=MPPZ, foot=FOOT, step=STEP, axis=float(xc), pieces=[dict(name=p['name'], pivot=p['pivot'], n=p['n'], ij=b64(p['ij']), z=b64(p['z']), **({'zo': b64(p['zo'])} if p['zo'].any() else {}), **({'sw': b64(p['sw'])} if SIDE == 'image' else {}), tri=b64(p['tri']), **({'b': dict(n=p['b']['n'], ij=b64(p['b']['ij']), z=b64(p['b']['z']), **({'zo': b64(p['b']['zo'])} if p['b']['zo'].any() else {}), **({'sw': b64(p['b']['sw'])} if SIDE == 'image' else {}), tri=b64(p['b']['tri']))} if 'b' in p else {})) for p in pieces],
+js += "const ZAGLA_ASSETS = " + json.dumps(dict(w=W, h=H, mpp=M_PER_PX, mppx=MPPX, mppy=MPPY, mppz=MPPZ, foot=FOOT, step=STEP, axis=float(xc), pieces=[dict(name=p['name'], pivot=p['pivot'], n=p['n'], ij=b64(p['ij']), z=b64(p['z']), **({'zo': b64(p['zo'])} if p['zo'].any() else {}), **({'sw': b64(p['sw'])} if SIDE == 'image' else {}), **({'su': b64(p['su'])} if SIDE == 'image' and (p['su'] != 65535).any() else {}), tri=b64(p['tri']), **({'b': dict(n=p['b']['n'], ij=b64(p['b']['ij']), z=b64(p['b']['z']), **({'zo': b64(p['b']['zo'])} if p['b']['zo'].any() else {}), **({'sw': b64(p['b']['sw'])} if SIDE == 'image' else {}), tri=b64(p['b']['tri']))} if 'b' in p else {})) for p in pieces],
       **({'side': SIDE_JS} if SIDE_JS else {}), front='data:image/webp;base64,' + base64.b64encode(fw).decode(), back='data:image/webp;base64,' + base64.b64encode(bw).decode())) + ";\n"
 open('src3d/zagla_assets.js', 'w').write(js); print('zagla_assets.js', len(js) // 1024, 'KB (front', len(fw) // 1024, 'KB, back', len(bw) // 1024, 'KB)')
 sheet_of(front, back).save('docs/screenshots/zagla-textures.jpg', quality=88)
