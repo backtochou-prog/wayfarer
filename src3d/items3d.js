@@ -1,7 +1,7 @@
 // Items3D: pooled coins and hazards. Each kind's geometry is merged once and shared by every instance; instances are
 // Groups placed per frame (begin -> place* -> end), so nothing is allocated while the game runs.
 // Every hazard's size comes from the gameplay collision table (OBST x U3), so what you see is what you can hit:
-//   crate   1.2 m wide, 1.05 m tall           (jump over it)
+//   crate   THE VORTEX (VortexArt): a 2 m disc, the user's red glass ring with her spiral that turns and pulls, and a funnel of swirls 1.05 m tall: jump over it, or it absorbs you   (was a wooden crate)
 //   barrier 2.77 m wide, 0.68 m tall          (jump over it)
 //   over    gate posts 3.9 m apart, banner from 1.15 m to the top beam (slide under it; the gap is 1.05 m)
 //   coin    ringed disc of radius 0.32 m, spinning and bobbing
@@ -15,15 +15,7 @@ class Items3D {
     const cHW = OBST.crate.hw * X, cH = OBST.crate.y1 * Y, bHW = OBST.barrier.hw * X, bH = OBST.barrier.y1 * Y;
     const oHW = OBST.over.hw * X, gap = OBST.over.y0 * Y, oTop = OBST.over.y1 * Y;
     const kinds = {
-      crate: () => {
-        const w = 2 * cHW, p = [Kit.box(w, cH, 1.0, 0, 0, 0, P.wood), Kit.box(w + 0.04, 0.14, 1.04, 0, 0, 0, P.woodDark), Kit.box(w + 0.04, 0.14, 1.04, 0, cH - 0.14, 0, P.woodDark)];
-        for (const x of [-(cHW - 0.05), cHW - 0.05]) p.push(Kit.box(0.14, cH, 1.04, x, 0, 0, P.woodDark));
-        for (const z of [-1, 1]) {                                                    // diagonal braces on front and back
-          p.push(Kit.box(0.1, 1.15, 0.05, 0, 0.0, z * 0.51, P.woodDark, { rz: 0.74 }));
-          p.push(Kit.box(0.28, 0.2, 0.04, 0, 0.43, z * 0.53, P.coin, { glow: false }));   // amber plate
-        }
-        return Kit.merge(p);
-      },
+      crate: () => VortexArt.solid(),                                                  // the vortex: its solid parts here, the pictures and the funnel as extras (below)
       barrier: () => {                                                                // low striped road barrier on two feet
         const p = [Kit.box(0.2, 0.3, 0.26, -(bHW - 0.14), 0, 0, P.metal), Kit.box(0.2, 0.3, 0.26, bHW - 0.14, 0, 0, P.metal)];
         const n = 12, w = 2 * bHW / n;
@@ -86,6 +78,7 @@ class Items3D {
     const extras = {
       aura: g => { const core = Kit.merge([Kit.ico(0.17, 0, 0, 0, '#5ff0d0', { glow: true, detail: 0 }), Kit.ico(0.09, 0, 0, 0, '#ffffff', { glow: true })]); g.add(new THREE.Mesh(core.glow, mats.glow)); g.add(SphereArt.mesh(0.46, 0.85, 24));      // (the pickup: the protective sphere in small, the user's dotted sphere)
                    const r1 = new THREE.Mesh(G.ring, SH.auraRing), r2 = new THREE.Mesh(G.ring, SH.auraRing); r2.rotation.x = Math.PI / 2; g.add(r1, r2); g.userData.r1 = r1; g.userData.r2 = r2; },
+      crate: g => VortexArt.attach(g), crateW: g => VortexArt.attach(g),
       dash: g => { const r = new THREE.Mesh(G.ringBig, SH.dashRing); r.position.z = -0.05; g.add(r); g.userData.r1 = r; },
       waymark: g => { const r1 = new THREE.Mesh(G.ringWay, SH.wayRing), r2 = new THREE.Mesh(G.ringWay, SH.wayRing); r2.rotation.x = Math.PI / 2; g.add(r1, r2); g.userData.r1 = r1; g.userData.r2 = r2; },
     };
@@ -94,16 +87,11 @@ class Items3D {
     const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
     this.pool = {}; this.used = {}; this.merged = {}; this.dropped = 0;
     // ---- the hazards on the canals (Renderer3D picks `<kind>W` for an item on a water road): the same sizes and boxes as the crate, the low barrier and the gate, so what you see is what you can hit
-    //   crateW   floating barrels (two standing, one lying on top), 1.2 m wide, 1.05 m tall: jump over it
+    //   crateW   a whirlpool: the same vortex (it was floating barrels)
     //   barrierW a white rowing boat across the canal with a red lantern at each end, 2.77 m wide, 0.68 m tall: jump over it
     //   overW    a low brick footbridge on two piers, its underside 1.05 m above the water, nothing above 3.6 m (the camera passes over it): slide under it
     const kindsW = {
-      crateW: () => {
-        const p = [], RUST = '#b5452c', BLUE = '#2f5d8c', HOOP = '#2a2430';
-        for (const [sx, c] of [[-1, BLUE], [1, RUST]]) p.push(Kit.cyl(0.3, 0.3, 0.62, sx * 0.3, 0, 0, c, { seg: 10 }), Kit.cyl(0.31, 0.31, 0.05, sx * 0.3, 0.1, 0, HOOP, { seg: 10 }), Kit.cyl(0.31, 0.31, 0.05, sx * 0.3, 0.46, 0, HOOP, { seg: 10 }));
-        p.push(Kit.cyl(0.2, 0.2, 0.9, 0, 0.37, 0, '#d9a24a', { rz: Math.PI / 2, seg: 10 }), Kit.cyl(0.21, 0.21, 0.05, -0.25, 0.37, 0, HOOP, { rz: Math.PI / 2, seg: 10 }), Kit.cyl(0.21, 0.21, 0.05, 0.25, 0.37, 0, HOOP, { rz: Math.PI / 2, seg: 10 }));
-        return Kit.merge(p);
-      },
+      crateW: () => VortexArt.solid(),                                                 // on the canals the same vortex: a whirlpool
       barrierW: () => {
         const p = [], W = '#e8eae4', hw = bHW;
         p.push(Kit.box(2 * hw - 0.9, 0.36, 0.95, 0, 0, 0, W), Kit.box(0.6, 0.34, 0.7, -(hw - 0.55), 0, 0, W), Kit.box(0.6, 0.34, 0.7, hw - 0.55, 0, 0, W), Kit.box(0.34, 0.3, 0.45, -(hw - 0.2), 0.05, 0, W), Kit.box(0.34, 0.3, 0.45, hw - 0.2, 0.05, 0, W),
@@ -138,10 +126,17 @@ class Items3D {
     const g = this.pool[kind][this.used[kind]];
     if (!g) { this.dropped++; return; }                    // pool full (should never happen; counted so tests can see it)
     this.used[kind]++;
-    g.position.set(x, y, z); g.rotation.y = rotY || 0; g.visible = true; g.userData.y0 = y;
+    g.position.set(x, y, z); g.rotation.y = rotY || 0; g.visible = true; g.userData.y0 = y; return g;
   }
   end(time) {
     for (const k in this.pool) { const list = this.pool[k], n = this.used[k]; for (let i = n; i < list.length; i++) list[i].visible = false; }
+    for (const k of ['crate', 'crateW']) {                                                                                        // the vortex: the spiral turns (counter-clockwise: its lines flow IN) with a wobble, the funnel turns slowly the other way and breathes
+      const list = this.pool[k];
+      for (let i = 0; i < this.used[k]; i++) {
+        const c = list[i], u = c.userData, ph = u.phase, b = this.absorbing && this.absorbing.g === c ? this.absorbing.k : 0;
+        u.spin.rotation.y = time * 3.4 + 0.7 * Math.sin(time * 2.1 + ph) + b * b * 40; const br = 1 + 0.05 * Math.sin(time * 3.1 + ph) + 0.25 * b; u.fun.rotation.y = -time * 1.5 + ph; u.fun.scale.set(br, 1 + 0.12 * b, br);
+      }
+    }
     const coins = this.pool.coin;
     for (let i = 0; i < this.used.coin; i++) { const c = coins[i], ph = c.userData.phase; c.rotation.y = time * 4 + ph; c.position.y = c.userData.y0 + Math.sin(time * 3 + ph) * 0.05; }   // spin + bob, out of sync
     for (const k of this.extraKinds) {                                                                                            // the collectibles: each its own motion, all frozen with the game clock (pause)

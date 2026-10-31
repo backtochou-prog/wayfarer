@@ -48,7 +48,9 @@ class RunnerSprite {
     let spin = 0, view = 'back';
     const face = s.faceYaw || 0;                                // the renderer passes the direction of the camera, so the card squarely faces it (the menu camera orbits)
     t.y = 0; t.rx = 0; t.rz = 0; t.sx = 1; t.sy = 1;
-    if (s.state === 'over') {                                  // tripped: tips forward onto its face
+    if (s.state === 'over' && s.absorb) {                      // absorbed by a vortex: upright, turning faster and faster (the renderer pulls it to the disc and shrinks it)
+      t.sy = 1 + 0.1 * s.absorb; t.sx = 1 - 0.12 * s.absorb; spin = s.absorbSpin || 0;
+    } else if (s.state === 'over') {                           // tripped: tips forward onto its face
       t.rx = -1.35; t.rz = 0.1; t.sy = 0.95;
     } else if (s.state === 'title') {                          // showcase loop (10 s): idle, wave, spin, dance, run in place
       view = this.menuView; const u = T % 10;

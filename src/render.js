@@ -48,7 +48,7 @@ class Renderer {
     if (g.scene || g.fadeIn > 0) this.drawSceneOverlay(g);
     if (g.state === 'title') this.drawTitle(g);
     else if (g.state === 'pause') this.drawPause(g);
-    else if (g.state === 'over' && g.overT > 0.5) this.drawOver(g);
+    else if (g.state === 'over' && g.overT > g.overDelay) this.drawOver(g);
     if (g.sfx && g.state !== 'play' && g.state !== 'scene') this.drawSoundBtn(g);
   }
 

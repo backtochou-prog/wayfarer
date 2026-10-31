@@ -127,6 +127,7 @@ class Renderer3D {
     this.characters = {}; this.character = Renderer3D.savedCharacter(); this.runner = this.makeRunner(this.character);   // the playable characters: the strawberry (the user's retouched artwork by default; ?avatar=3d selects its 3D model) and Zagla (a 3D body)
     this.scene.add(this.runner.group); this.scene.add(this.runner.shadow);
 
+    this.supportsAbsorb = true;                                                     // Game shows a crate (the vortex) absorbing the runner instead of a crash only with a front end that sets this
     this.supportsScene = true;                                                      // Game plays the Gare du Midi cutscene only with a front end that sets this
     this.supportsPerks = true; this.supportsPortals = true; this.perk = new Perk3D(this.scene);                  // Game builds its power-ups, shards and missions (Perks) only with a front end that sets this; Perk3D draws their effects
     this.train = new Train3D(this.scene); this.crowd = new Crowd3D(this.scene); this.crowdT = 0; this.sceneK = 0; this.scCam = new THREE.Vector3(); this.scLook = new THREE.Vector3(); this.garePiece = null;
@@ -213,7 +214,11 @@ class Renderer3D {
 
   // game events (called by Game): a collected coin pops, a crash throws debris, a restart clears the effects
   onCoin(g, it) { const band = g.world.bandNear(it.z, it.x); this.fx.coinPop((it.x + band.off) * U3.X, it.h * U3.Y, it.z * U3.Z, g.time); }
-  onDie(g) { const p = g.p, pb = g.world.playerBand(p.z, p.x); this.fx.crash((p.x + pb.off) * U3.X, p.jy * U3.Y + 0.9, p.z * U3.Z + 0.4, g.time); }
+  onDie(g) {
+    const p = g.p, pb = g.world.playerBand(p.z, p.x), lat = (p.x + pb.off) * U3.X;
+    if (g.killer && g.killer.kind === 'crate') { this.perk.burst('magnet', lat, 0.3, p.z * U3.Z, g.time, 12); this.perk.ring('magnet', lat, 0.15, p.z * U3.Z, g.time, 2.4); return; }      // the vortex: red sparks and a ring, no debris (the runner is absorbed)
+    this.fx.crash(lat, p.jy * U3.Y + 0.9, p.z * U3.Z + 0.4, g.time);
+  }
   onPerk(g, ev) {                                                                   // an event of the perks layer (src/perks.js): the pickup / pop / near-miss / mission effects, placed in track coordinates
     const U = U3, p = g.p, pb = g.world.playerBand(p.z, p.x), lat = (p.x + pb.off) * U.X, y = p.jy * U.Y + 0.9, z = p.z * U.Z, t = g.time;
     if (ev.t === 'pickup') { const it = ev.it, band = g.world.bandNear(it.z, it.x); this.perk.pickup(ev.kind, (it.x + band.off) * U.X, it.h * U.Y, it.z * U.Z, t); }
@@ -372,7 +377,7 @@ class Renderer3D {
     if (this.saucers) this.saucers.update(this.padsNow, dt, g.time);
 
     // ---- items: coins and hazards on whichever road they belong to; signposts and the fork marker
-    this.items.begin();
+    this.items.begin(); const killer = g.state === 'over' && g.killer && g.killer.kind === 'crate' ? g.killer : null; this.kill = null;
     for (const it of w.items) {
       const dz = it.z - p.z;
       if (it.taken || dz < -150 || dz > 1500) continue;         // design units: 15 m behind .. 150 m ahead
@@ -381,7 +386,7 @@ class Renderer3D {
       const x = (it.x + it.off) * U.X - Lref, zr = -dz * U.Z;
       const iy = dy(it.z);                                     // on a descent the item sits on the sloping road
       if (it.kind === 'prop') { this.place(it.spr, x, WALK_Y + iy, zr, 0); continue; }
-      if (it.kind === 'coin' || this.items.extraSet[it.kind]) this.items.place(it.kind, x, it.h * U.Y + iy, zr); else this.items.place(it.wet && this.items.pool[it.kind + 'W'] ? it.kind + 'W' : it.kind, x, iy, zr);   // coins and the collectibles hang at their height
+      if (it.kind === 'coin' || this.items.extraSet[it.kind]) this.items.place(it.kind, x, it.h * U.Y + iy, zr); else { const pg = this.items.place(it.wet && this.items.pool[it.kind + 'W'] ? it.kind + 'W' : it.kind, x, iy, zr); if (killer && it === killer.it && pg) this.kill = { x, y: iy, z: zr, g: pg }; }   // coins and the collectibles hang at their height; the hazard that ended the run is remembered (the vortex that absorbs the runner)
     }
     for (const name in this.props) { const pool = this.props[name]; for (let n = this.propUsed[name]; n < pool.length; n++) pool[n].visible = false; }
     this.items.end(g.time);
@@ -402,8 +407,17 @@ class Renderer3D {
     const pb = w.playerBand(p.z, p.x), relX = (p.x + pb.off) * U.X - Lref;
     const lift = SC ? 0.85 * Math.max(0, Math.min(1, ((p.x + pb.off) * U.X - 6.6) / 0.8)) : 0;       // in the cutscene the runner steps up onto the platform (0.85 m)
     this.runner.group.position.set(relX, p.jy * U.Y + lift, 0); this.runner.group.visible = !(SC && SC.boarded);
+    // THE VORTEX ABSORBS THE RUNNER (a crate ended the run): for 0.8 s the runner is pulled to the middle of the disc, turning faster and faster, shrinking, sinking into the spiral (the disc is solid, so the part below its
+    // top is hidden: it goes down the hole); the disc spins up and its funnel swells. Absorbing means `absK` > 0; otherwise the runner is as ever.
+    let absK = 0, absSpin = 0, absAt = null; this.items.absorbing = null;
+    if (this.kill && g.state === 'over') {
+      const K = this.kill, k = Math.max(0, Math.min(1, g.overT / 0.8)), e = k * k * (3 - 2 * k), y0 = this.runner.group.position.y; absK = k; absSpin = k * k * 16;
+      absAt = { x: relX + (K.x - relX) * e, y: y0 + (K.y + VortexArt.H + 0.02 - y0) * e - 0.55 * Math.max(0, (k - 0.55) / 0.45) ** 2, z: K.z * e, s: Math.max(0.001, 1 - 0.97 * Math.pow(k, 1.5)), vis: k < 0.999 && !(SC && SC.boarded) };       // (applied below, after journey(), which resets the scale)
+      this.items.absorbing = { g: K.g, k };
+    }
     { const sh = this.runner.shadow, k = Math.max(0.25, 1 - p.jy * U.Y / 3.5); sh.position.set(relX, 0.04 + lift, 0); sh.scale.set(0.5 * k, 1, 0.42 * k); sh.material.opacity = 0.3 * k; sh.visible = this.runner.group.visible; }   // contact shadow, fading as the runner leaves the ground
     this.journey(g, relX, p.jy * U.Y + lift);
+    if (absAt) { const gp = this.runner.group, sh = this.runner.shadow; gp.position.set(absAt.x, absAt.y, absAt.z); gp.scale.setScalar(absAt.s); gp.visible = absAt.vis; sh.position.x = absAt.x; sh.position.z = absAt.z; sh.scale.multiplyScalar(absAt.s); sh.visible = absAt.vis; }      // the runner goes down the hole, its shadow with it
     this.perk.update(g, rz, Lref, relX, this.runner.group.position.y);
     if (Math.abs(this.camera.fov - this.perk.fov) > 0.02) { this.camera.fov = this.perk.fov; this.camera.updateProjectionMatrix(); }       // the dash opens the view a few degrees
     const ms = 1 - Math.exp(-3.5 * dt);
@@ -415,7 +429,8 @@ class Renderer3D {
     this.heading += (-Math.atan(slope) - this.heading) * (1 - Math.exp(-10 * dt));
     this.runner.group.rotation.y = Math.PI * mm + this.heading * (1 - mm);
     this.runner.update(dt, { beat: pulse, faceYaw: Math.atan2(this.cam.x - relX, this.cam.z), time: g.time, runRate: 2.3 + p.speed / 340 * 1.1, airborne: p.jy > 0, vy: p.vy, sliding: p.slide > 0,
-                             lean: Math.max(-1, Math.min(1, p.vx / STEER)), state: g.state, scooter: this.riding(g) || !!g.surf, vehicle: g.surf ? 'surf' : g.vehicle || 'scooter' });
+                             absorb: absK, absorbSpin: absSpin, lean: Math.max(-1, Math.min(1, p.vx / STEER)), state: g.state, scooter: this.riding(g) || !!g.surf, vehicle: g.surf ? 'surf' : g.vehicle || 'scooter' });
+    if (absK && !(this.runner instanceof RunnerSprite)) this.runner.group.rotation.y += absSpin;      // (the 3D-model avatar has no card to turn: its group turns)
 
     // ---- camera: chase (behind and above, centred on the 2D camera) blended with the menu showcase orbit; looks down the active route
     const orbit = Math.sin(g.time * 0.35) * 0.5;                  // menu camera drifts around the character

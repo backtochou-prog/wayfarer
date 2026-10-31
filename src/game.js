@@ -107,9 +107,9 @@ class Game {
     this.world.seed = Game.runSeed();
     this.world.reset();
     this.p = { x: 0, z: 0, vx: 0, jy: 0, vy: 0, slide: 0, speed: BASE_SPEED };
-    this.coins = 0; if (this.pk) this.pk.reset(); if (this.portal) this.portal.reset(); this.camX = 0; this.camOff = 0; this.camRel = 0; this.camErr = 0; this.prevTgt = 0;
+    this.coins = 0; if (this.pk) this.pk.reset(); if (this.portal) this.portal.reset(); this.camX = 0; this.camOff = 0; this.camRel = 0; this.camErr = 0; this.prevTgt = 0; this.killer = null;
     const ahead0 = this.world.playerBand(300, 0);                                    // the atmosphere starts as the road ahead looks (the run opens in the neon quarter), not eased in from the base look
-    this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0;
+    this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0; this.overDelay = 0.5;
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
     this.scene = null; this.fadeIn = 0;                                                 // no cutscene running, no fade
     this.riding = false; this.vehicle = 'scooter'; this.scooterHint = null; this.surf = false;                // on foot, no indicator, not on the water
@@ -122,7 +122,7 @@ class Game {
   activeButton() {
     if (this.state === 'title') return BTN.title;
     if (this.state === 'pause') return BTN.pause;
-    if (this.state === 'over' && this.overT > 0.5) return BTN.over;
+    if (this.state === 'over' && this.overT > this.overDelay) return BTN.over;
     return null;
   }
   overButton(b) { const m = this.mouse; return m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h; }
@@ -174,7 +174,7 @@ class Game {
     if (c === 'KeyC' && this.state === 'title' && this.r.nextCharacter) { this.nextCharacter(); return; }   // C (menu): the other character
     const s = this.state;
     if (s === 'title' && (c === 'Enter' || c === 'Space')) this.start();
-    else if (s === 'over' && this.overT > 0.5 && (c === 'Enter' || c === 'Space' || c === 'KeyR')) this.start();
+    else if (s === 'over' && this.overT > this.overDelay && (c === 'Enter' || c === 'Space' || c === 'KeyR')) this.start();
     else if (s === 'play') {
       if (c === 'Space' || U) this.jump();
       else if (D) this.slideKey();
@@ -314,7 +314,7 @@ class Game {
         if (dx < 0.2 && it.z > prevZ - 9 && it.z < p.z + 9 && p.jy < it.h + 6 && p.jy + top > it.h - 6) { it.taken = true; pk.pickup(it); }
       } else if (it.kind !== 'prop') {
         const o = OBST[it.kind];
-        if (dx < o.hw + P_HW && it.z > prevZ - 8 && it.z < p.z + 8 && p.jy < o.y1 && p.jy + top > o.y0) { if (pk && pk.absorb(it)) continue; this.die(); return; }   // the aura takes one hit and destroys that hazard
+        if (dx < o.hw + P_HW && it.z > prevZ - 8 && it.z < p.z + 8 && p.jy < o.y1 && p.jy + top > o.y0) { if (pk && pk.absorb(it)) continue; this.die(it); return; }   // the aura takes one hit and destroys that hazard
         if (pk && it.z <= p.z) pk.passed(it, o, dx, top);                           // past the runner without a hit: near miss, sequence bonus, dash count (once per hazard)
       }
     }
@@ -373,12 +373,14 @@ class Game {
   }
   onDie() { if (this.r.onDie) this.r.onDie(this); this.burst(160 + (this.p.x - this.camX) * LPX * S20, 140, [C.earth, C.earthD, C.amberL, C.burgL, C.bone], 12, 90, 0.6); }
 
-  die() {
+  // die(hit): `hit` = the hazard that ended the run (kept in `killer`; the 3D build shows a crate (the VORTEX) absorbing the runner instead of a crash: Renderer3D.supportsAbsorb)
+  die(hit) {
+    this.killer = hit ? { kind: hit.kind, x: hit.x, z: hit.z, it: hit } : null; const absorb = !!(this.killer && this.killer.kind === 'crate' && this.r.supportsAbsorb);
     this.releaseTouch();
     if (this.touch && navigator.vibrate) navigator.vibrate(60);
     if (this.pk) this.pk.onDie();
-    this.state = 'over'; this.flash = 0.25; this.shake = 0.35; this.overT = 0; this.jumpBuf = 0;
-    this.emit('crash'); this.onDie();
+    this.state = 'over'; this.flash = 0.25; this.shake = absorb ? 0.12 : 0.35; this.overT = 0; this.overDelay = absorb ? 0.85 : 0.5; this.jumpBuf = 0;      // (the panel and the restart wait for the vortex to finish absorbing the runner)
+    this.emit('crash', absorb ? 'vortex' : undefined); this.onDie();
     const s = this.score();
     if (s > this.best) { this.best = s; try { localStorage.setItem('wayfarer.best', s); } catch (e) {} }
   }
