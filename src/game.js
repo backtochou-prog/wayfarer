@@ -69,7 +69,7 @@ class Game {
         else { if (this.state === 'title' && this.touch) this.goFullscreen(); this.start(); }
       }
     });
-    addEventListener('resize', () => this.fit());
+    addEventListener('resize', () => this.fit()); addEventListener('orientationchange', () => setTimeout(() => this.fit(), 200));
     this.fit();
     let last = performance.now();
     const loop = now => {
@@ -92,6 +92,13 @@ class Game {
     // whole-number scaling keeps pixels even; on screens too small for 2x (phones in portrait) use the exact fit instead
     const f = Math.min(innerWidth / VW, innerHeight / VH), s = f >= 2 ? Math.floor(f) : f;
     this.cv.style.width = VW * s + 'px'; this.cv.style.height = VH * s + 'px';
+    this.fitTouch();
+  }
+  // the smooth touch layer (canvas #touch, see Renderer.touchLayer): the same place and size on the page as the screen canvas, one canvas pixel per device pixel (pointer events go through it to the screen canvas)
+  fitTouch() {
+    const t = typeof document !== 'undefined' && document.getElementById('touch'); if (!t) return;
+    const r = this.cv.getBoundingClientRect(), dpr = Math.max(1, window.devicePixelRatio || 1), w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    t.style.left = r.left + 'px'; t.style.top = r.top + 'px'; t.style.width = r.width + 'px'; t.style.height = r.height + 'px'; if (t.width !== w) t.width = w; if (t.height !== h) t.height = h;
   }
 
   // The route order of a run: seed 0 is the canonical order (the first lap goes forest / market, then seeded laps), what automated browsers (navigator.webdriver) and ?seed=0 get so tests

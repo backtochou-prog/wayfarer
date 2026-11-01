@@ -13,11 +13,14 @@
   /* the 3D view fills the window; the pixel-art HUD/menu canvas (320x180, whole-number scale) sits centred on top of it */
   #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
   #screen { position: relative; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; background: transparent; }
+  /* the touch buttons are drawn smooth, on their own canvas at the device's resolution, over the pixel overlay (clicks pass through it) */
+  #touch { position: fixed; left: 0; top: 0; pointer-events: none; image-rendering: auto; background: transparent; touch-action: none; }
 </style>
 </head>
 <body>
 <canvas id="gl"></canvas>
 <canvas id="screen" width="320" height="180"></canvas>
+<canvas id="touch" width="640" height="360"></canvas>
 <script src="vendor/three.min.js"></script>
 <script src="src/biomes.js"></script>
 <script src="src/track.js"></script>

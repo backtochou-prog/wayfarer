@@ -257,8 +257,43 @@ class Renderer {
 
   // on-screen controls (touch devices only): each button wears the user's neon ring (TOUCH_ART) with its symbol drawn over it in pixels, light with a dark edge so it reads on the
   // artwork; a held button grows a little and lights up. Without the image (not loaded yet) the old plates are drawn.
+  // THE SMOOTH LAYER (the user's words: "render the new control buttons and smooth them"): the buttons are drawn on their own canvas (#touch, over the 320 x 180 pixel overlay, aligned with it, at the device's
+  // resolution, not pixelated) with the 256 px version of the ring picture (TOUCH_ART.hi), the arrows and the pause bars as anti-aliased vector shapes with a soft shadow, and a held button that eases up (it grows
+  // to 1.1 and glows lilac, smoothly in about 0.15 s) instead of jumping. The 'hop off' plate of the scooter stays in the pixel overlay (it is pixel text). Without the canvas or the picture the pixel buttons below are drawn.
+  touchLayer() {
+    if (this._tl === undefined) {
+      const cv = typeof document !== 'undefined' ? document.getElementById('touch') : null;
+      this._tl = cv && typeof TOUCH_ART !== 'undefined' && TOUCH_ART.hi ? { cv, ctx: cv.getContext('2d'), img: new Image(), press: {}, t: null, dirty: false, syncT: -1e9 } : null;
+      if (this._tl) this._tl.img.src = TOUCH_ART.hi.src;
+    }
+    return this._tl;
+  }
+  smoothButton(L, g, t, p, fade) {
+    const c = L.ctx, k = L.cv.width / VW, cx = t.x + (t.w >> 1), cy = t.y + (t.h >> 1), f = t.id === 'pause' ? 22 : 42, s = f * (1 + 0.1 * p);
+    c.setTransform(k, 0, 0, k, 0, 0); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+    c.globalAlpha = (0.8 + 0.2 * p) * fade;
+    if (p > 0.02) { c.shadowColor = 'rgba(214,120,255,0.95)'; c.shadowBlur = 12 * k * p; }
+    c.drawImage(L.img, cx - s / 2, cy - s / 2, s, s); c.shadowBlur = 0; c.shadowColor = 'rgba(0,0,0,0)';
+    // the symbol: a soft dark shadow, then the light shape, both with rounded corners (a stroke of the same colour round the polygon)
+    const poly = pts => { c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); };
+    const bars = () => { for (const x of [-4.4, 1.4]) { c.beginPath(); if (c.roundRect) c.roundRect(x, -4.6, 3, 9.2, 1.1); else c.rect(x, -4.6, 3, 9.2); c.fill(); c.stroke(); } };
+    const shape = { left: [[-6.5, 0], [3, -9], [3, 9]], right: [[6.5, 0], [-3, -9], [-3, 9]], jump: [[0, -6.5], [-9, 3], [9, 3]], slide: [[0, 6.5], [-9, -3], [9, -3]] }[t.id];
+    c.save(); c.translate(cx, cy); c.scale(f / 42 * (1 + 0.1 * p), f / 42 * (1 + 0.1 * p)); c.lineJoin = 'round'; c.lineWidth = 1.6; c.globalAlpha = fade;
+    for (const [dx, dy, fill] of [[0.9, 0.9, 'rgba(24,12,36,0.75)'], [0, 0, p > 0.5 ? '#ffffff' : '#f2ead6']]) {
+      c.save(); c.translate(dx, dy); c.fillStyle = fill; c.strokeStyle = fill; if (shape) { poly(shape); c.fill(); c.stroke(); } else bars(); c.restore();
+    }
+    c.restore(); c.globalAlpha = 1;
+  }
   drawTouch(g) {
-    if (!g.touch || g.state !== 'play') return;
+    const L = this.touchLayer();
+    if (L && L.dirty) { L.ctx.setTransform(1, 0, 0, 1, 0, 0); L.ctx.clearRect(0, 0, L.cv.width, L.cv.height); L.dirty = false; }
+    if (!g.touch || g.state !== 'play') { if (L) L.t = null; return; }
+    const sm = L && L.img.complete && L.img.naturalWidth ? L : null;
+    if (sm) {
+      const now = performance.now(); if (now - sm.syncT > 500 && g.fitTouch) { g.fitTouch(); sm.syncT = now; }                // (keeps the layer on the screen canvas, whatever the layout does)
+      const dt = sm.t === null ? 1 : Math.max(0, Math.min(0.1, g.time - sm.t)); sm.t = g.time; sm.dirty = true; this._fade = 1 - (g.fadeIn > 0 ? Math.min(1, g.fadeIn * g.fadeIn) : 0);
+      for (const id of ['left', 'right', 'slide', 'jump', 'pause']) { const target = Object.values(g.held).includes(id) ? 1 : 0, p = sm.press[id] || 0; sm.press[id] = p + (target - p) * (1 - Math.exp(-18 * dt)); }
+    }
     const c = this.ctx, on = new Set(Object.values(g.held));
     if (!this.touchImg && typeof TOUCH_ART !== 'undefined') { this.touchImg = new Image(); this.touchImg.src = TOUCH_ART.src; }
     const art = this.touchImg && this.touchImg.complete && this.touchImg.naturalWidth ? this.touchImg : null;
@@ -269,6 +304,7 @@ class Renderer {
         c.fillStyle = C.amberD; c.fillRect(t.x, t.y, t.w, 1); c.fillRect(t.x, t.y + t.h - 1, t.w, 1); c.globalAlpha = 1;
         this.scooterGlyph(t.x + 4, t.y + 5, C.bone); this.txt('HOP OFF', t.x + 20, t.y + 8, C.bone, 1); continue;
       }
+      if (sm) { this.smoothButton(sm, g, t, sm.press[t.id] || 0, this._fade); continue; }
       const hot = on.has(t.id), cx = t.x + (t.w >> 1), cy = t.y + (t.h >> 1);
       if (art) {
         const f = t.id === 'pause' ? TOUCH_ART.small : TOUCH_ART.big, k = hot ? 1.1 : 1, w = Math.round(f.w * k), h = Math.round(f.h * k);

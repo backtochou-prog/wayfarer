@@ -1,5 +1,5 @@
 // WAYFARER regression test: the controls. Keyboard: arrows and the WASD cluster still work, and Q Z D S work by letter on any layout (AZERTY: the same keys by position and by letter);
-// the on-screen touch buttons wear the user's neon ring picture (TOUCH_ART, a little bigger than before: 42 and 22 px) with a symbol over it, a held button grows, the hit boxes match the bigger buttons, and without the image the old plates are drawn.
+// the on-screen touch buttons wear the user's neon ring picture (TOUCH_ART, 42 and 22 px) with a symbol over it, drawn SMOOTH on their own canvas at the device's resolution (256 px picture, vector symbols, a held button eases up and glows), the hit boxes match the bigger buttons, taps pass through, and without the smooth canvas the pixel buttons are drawn.
 //
 // Run:  node tests/qa3d_controls.js     (needs playwright-core and a Chromium: CHROMIUM=/path/to/chrome, NODE_PATH or PW_CORE as for the other tests)
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -36,28 +36,49 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('keyboard: arrows, A / D / W / S (by position, i.e. ZQSD on an AZERTY keyboard) and Q / Z / D / S by letter on any layout all steer, jump and slide; the key labelled A on AZERTY does nothing',
     Object.values(K.left).every(Boolean) && Object.values(K.right).every(Boolean) && Object.values(K.jump).every(Boolean) && Object.values(K.slide).every(Boolean) && K.unmapped, JSON.stringify(K));
 
-  // ---------------------------------------------------------------- 2. touch buttons wear the neon ring
+  // ---------------------------------------------------------------- 2. touch buttons wear the neon ring, SMOOTH (their own canvas at the device's resolution)
   const U = await pg.evaluate(async () => {
-    const g = __wf, ui = g.r.ui, out = {}; g.start(); g.world.items = []; g.touch = true; g.held = {}; g.syncTouch();
-    ui.drawTouch(g); for (let i = 0; i < 60 && !(ui.touchImg && ui.touchImg.complete && ui.touchImg.naturalWidth); i++) await new Promise(r => setTimeout(r, 50));
-    out.img = [ui.touchImg.naturalWidth, ui.touchImg.naturalHeight, TOUCH_ART.src.startsWith('data:image/png;base64,')];
-    const calls = []; const real = ui.ctx.drawImage.bind(ui.ctx); ui.ctx.drawImage = (...a) => { calls.push(a); return real(...a); };
-    ui.drawTouch(g); out.idle = calls.filter(a => a[0] === ui.touchImg).map(a => [a[7], a[8]]);
-    calls.length = 0; g.held = { 1: 'left' }; g.syncTouch(); ui.drawTouch(g); out.held = calls.filter(a => a[0] === ui.touchImg).map(a => a[7]).sort((x, y) => y - x);
-    // not in play: nothing; not touch: nothing
-    calls.length = 0; g.touch = false; ui.drawTouch(g); out.noTouch = calls.length; g.touch = true; g.state = 'over'; ui.drawTouch(g); out.notPlay = calls.length; g.state = 'play';
-    // without the picture the old plates are drawn (no drawImage of the sheet)
-    const keep = ui.touchImg; ui.touchImg = new Image(); calls.length = 0; ui.drawTouch(g); out.fallback = calls.filter(a => a[0] === keep).length; ui.touchImg = keep;
-    ui.ctx.drawImage = real; out.boxes = TOUCH.map(t => [t.id, t.x, t.y, t.w, t.h].join(':')).join(' ');
+    const g = __wf, ui = g.r.ui, out = {}; g.start(); g.world.items = []; g.touch = true; g.held = {}; g.syncTouch(); g.state = 'play'; g.fadeIn = 0;
+    ui.drawTouch(g); const L = ui.touchLayer(); for (let i = 0; i < 80 && !(L && L.img.complete && L.img.naturalWidth); i++) await new Promise(r => setTimeout(r, 50));
+    ui.drawTouch(g); const cv = document.getElementById('touch'), sc = document.getElementById('screen'), r1 = cv.getBoundingClientRect(), r2 = sc.getBoundingClientRect(), cs = getComputedStyle(cv);
+    out.layer = { has: !!L, hi: [L.img.naturalWidth, L.img.naturalHeight, /^data:image\/webp/.test(TOUCH_ART.hi.src)], sheet: ui.touchImg ? [ui.touchImg.naturalWidth, ui.touchImg.naturalHeight] : null };
+    out.align = { dx: +(r1.left - r2.left).toFixed(1), dy: +(r1.top - r2.top).toFixed(1), dw: +(r1.width - r2.width).toFixed(1), dh: +(r1.height - r2.height).toFixed(1), px: [cv.width, cv.height], css: [+r1.width.toFixed(1), +r1.height.toFixed(1)], dpr: devicePixelRatio, pe: cs.pointerEvents, ir: cs.imageRendering, pos: cs.position };
+    out.pass = document.elementFromPoint(r2.left + r2.width * (294 / 320), r2.top + r2.height * (158 / 180)) === sc && document.elementFromPoint(r2.left + r2.width * (25 / 320), r2.top + r2.height * (158 / 180)) === sc;
+    const k = cv.width / 320, c = L.ctx, calls = [], fills = [], real = c.drawImage.bind(c), rf = c.fillRect.bind(c), rfill = c.fill.bind(c); out.k = k;
+    c.drawImage = (...a) => { calls.push({ img: a[0] === L.img, w: +(a[3]).toFixed(2), x: a[1], y: a[2], sm: c.imageSmoothingEnabled, q: c.imageSmoothingQuality, m: c.getTransform().a, alpha: c.globalAlpha, sb: c.shadowBlur }); return real(...a); }; c.fillRect = (...a) => { fills.push('rect'); return rf(...a); }; c.fill = (...a) => { fills.push('fill'); return rfill(...a); };
+    const pxCalls = []; const rp = ui.ctx.drawImage.bind(ui.ctx); ui.ctx.drawImage = (...a) => { pxCalls.push(a[0] === ui.touchImg); return rp(...a); };
+    g.time += 1; ui.drawTouch(g); out.idle = calls.map(a => a.w); out.drawn = calls.every(a => a.img && a.sm && a.q === 'high' && Math.abs(a.m - k) < 1e-6); out.alpha = calls.map(a => +a.alpha.toFixed(2)); out.shapes = fills.filter(f => f === 'fill').length; out.rects = fills.filter(f => f === 'rect').length; out.pixelDraws = pxCalls.filter(Boolean).length;
+    // a pressed button eases up: a frame after the press it has begun to grow, half a second later it is 1.1 x and lit
+    calls.length = 0; g.held = { 1: 'left' }; g.syncTouch(); g.time += 1 / 60; ui.drawTouch(g); out.ease1 = calls.map(a => a.w); for (let i = 0; i < 30; i++) { calls.length = 0; g.time += 1 / 60; ui.drawTouch(g); } out.ease2 = calls.map(a => a.w); out.glow = calls[0].sb;
+    calls.length = 0; g.held = {}; g.syncTouch(); g.time += 1 / 60; ui.drawTouch(g); out.back1 = calls.map(a => a.w); for (let i = 0; i < 40; i++) { calls.length = 0; g.time += 1 / 60; ui.drawTouch(g); } out.back2 = calls.map(a => a.w);
+    // after a long pause between frames the ease is capped (no jump at the first frame back)
+    c.drawImage = real; c.fillRect = rf; c.fill = rfill;
+    // not touch: nothing; not in play: nothing, and the layer is empty (cleared)
+    const alphaSum = () => { const d = c.getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 3; i < d.length; i += 4 * 7) n += d[i]; return n; };
+    g.time += 1; ui.drawTouch(g); out.inkOn = alphaSum() > 1000; g.touch = false; ui.drawTouch(g); out.inkNoTouch = alphaSum(); g.touch = true; ui.drawTouch(g); g.state = 'over'; ui.drawTouch(g); out.inkNotPlay = alphaSum(); g.state = 'play';
+    // a fade-in (after a cutscene) covers the buttons too
+    g.time += 1; g.fadeIn = 1; ui.drawTouch(g); const calls2 = []; g.fadeIn = 0.5; const rd = c.drawImage.bind(c); c.drawImage = (...a) => { calls2.push(c.globalAlpha); return rd(...a); }; ui.drawTouch(g); c.drawImage = rd; g.fadeIn = 0; out.fade = +calls2[0].toFixed(2);
+    ui.ctx.drawImage = rp; out.boxes = TOUCH.map(t => [t.id, t.x, t.y, t.w, t.h].join(':')).join(' ');
     out.inside = TOUCH.every(t => t.x >= 0 && t.y >= 0 && t.x + t.w <= 320 && t.y + t.h <= 180); const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; out.apart = TOUCH.every((a, i) => TOUCH.every((b, j) => i === j || !hit(a, b)));
-    // the picture of each big button is centred on its box
-    out.centred = TOUCH.filter(t => t.id !== 'scooter').every(t => { const f = t.id === 'pause' ? TOUCH_ART.small : TOUCH_ART.big; return Math.abs((t.x + t.w / 2) - (t.x + (t.w >> 1))) <= 1 && f.w <= t.w + 0 && f.h <= t.h + 1; });
+    // without the canvas the pixel buttons are drawn as before (the 64 x 42 sheet, 42 / 22 px, 46 held)
+    g.time += 1; ui._tl = null; ui.drawTouch(g); for (let i = 0; i < 40 && !(ui.touchImg && ui.touchImg.complete && ui.touchImg.naturalWidth); i++) await new Promise(q => setTimeout(q, 50));
+    const fb = []; const rp2 = ui.ctx.drawImage.bind(ui.ctx); ui.ctx.drawImage = (...a) => { if (a[0] === ui.touchImg) fb.push(a[7]); return rp2(...a); }; ui.drawTouch(g); g.held = { 1: 'left' }; g.syncTouch(); const fb2 = []; ui.ctx.drawImage = (...a) => { if (a[0] === ui.touchImg) fb2.push(a[7]); return rp2(...a); }; ui.drawTouch(g); ui.ctx.drawImage = rp2; g.held = {}; g.syncTouch();
+    out.fallback = { sheet: ui.touchImg ? [ui.touchImg.naturalWidth, ui.touchImg.naturalHeight] : null, sizes: fb, held: fb2.sort((x, y) => y - x)[0] };
     return out;
   });
-  T('touch buttons: the neon ring picture (a 64 x 42 PNG sheet, data URI) loads; four big buttons are drawn 42 x 42 (they were 34) and the pause button 22 x 22 (it was 18), a held button grows to 46, nothing is drawn off touch devices or outside play',
-    U.img[0] === 64 && U.img[1] === 42 && U.img[2] && U.idle.length === 5 && U.idle.filter(s => s[0] === 42).length === 4 && U.idle.filter(s => s[0] === 22).length === 1 && U.held[0] === 46 && U.noTouch === 0 && U.notPlay === 0, JSON.stringify({ img: U.img, idle: U.idle, held: U.held, noTouch: U.noTouch, notPlay: U.notPlay }));
-  T('touch buttons: the hit boxes grew with the buttons (46 x 42 instead of 38 x 32 for left, right, slide and jump, 30 x 18 for pause), each centred on its picture, inside the 320 x 180 screen and clear of each other and of the HOP OFF button of the scooter (inert on foot) and, without the picture, the old plates are drawn instead',
-    U.boxes === 'left:3:137:46:42 right:52:137:46:42 slide:222:137:46:42 jump:271:137:46:42 pause:145:2:30:18 scooter:132:154:56:20' && U.inside && U.apart && U.fallback === 0, U.boxes + ' | fallback sheet draws ' + U.fallback);
+  T('touch buttons are SMOOTH: they have their own canvas (#touch, ' + U.align.px.join(' x ') + ' px for ' + U.align.css.join(' x ') + ' CSS px at ' + U.align.dpr + 'x: one canvas pixel per device pixel), exactly over the screen canvas (offsets ' + [U.align.dx, U.align.dy, U.align.dw, U.align.dh].join(', ') + '), clicks pass through (pointer-events ' + U.align.pe + ', ' + U.pass + '), not pixelated (image-rendering ' + U.align.ir + '); the ring picture is the 256 px WebP (' + U.layer.hi.join(' x ') + '), drawn with smoothing on (high quality) at the canvas scale (' + U.k + '), at ' + U.idle.join(' / ') + ' logical px wide (four big 42, pause 22), with vector symbols (' + U.shapes + ' filled shapes, ' + U.rects + ' pixel rects), and nothing of them in the pixel overlay (' + U.pixelDraws + ')',
+    U.layer.has && U.layer.hi[0] === 256 && U.layer.hi[1] === 256 && U.layer.hi[2] && Math.abs(U.align.dx) <= 1 && Math.abs(U.align.dy) <= 1 && Math.abs(U.align.dw) <= 1 && Math.abs(U.align.dh) <= 1 && Math.abs(U.align.px[0] - U.align.css[0] * U.align.dpr) <= 1 && U.align.pe === 'none' && U.pass && U.align.ir !== 'pixelated' && U.align.ir !== 'crisp-edges' && U.drawn && U.idle.length === 5 && U.idle.filter(w => Math.abs(w - 42) < 0.01).length === 4 && U.idle.filter(w => Math.abs(w - 22) < 0.01).length === 1 && U.shapes >= 5 && U.rects === 0 && U.pixelDraws === 0, JSON.stringify(U.align) + JSON.stringify({ idle: U.idle, shapes: U.shapes, rects: U.rects, px: U.pixelDraws }));
+  T('a pressed button EASES: a frame after the press the left button is ' + U.ease1[0] + ' wide (not yet 46.2), half a second (30 frames) later ' + U.ease2[0] + ' (1.1 x 42 = 46.2) and lit (shadow glow ' + U.glow.toFixed(1) + ' px), and eased back down when released (' + U.back1[0] + ' then ' + U.back2[0] + '); the others stay 42 (' + U.ease2.slice(1).join(', ') + '); nothing is drawn off touch devices (' + U.inkNoTouch + ') or outside play (' + U.inkNotPlay + '), and a fade-in covers them (alpha ' + U.fade + ')',
+    U.ease1[0] > 42 && U.ease1[0] < 45.5 && Math.abs(U.ease2[0] - 46.2) < 0.2 && U.glow > 1 && U.back1[0] > 42.2 && U.back1[0] < 46.1 && Math.abs(U.back2[0] - 42) < 0.4 && U.ease2.slice(1).filter(w => Math.abs(w - 42) < 0.01 || Math.abs(w - 22) < 0.01).length === 4 && U.inkOn && U.inkNoTouch === 0 && U.inkNotPlay === 0 && U.fade < 0.9, JSON.stringify({ ease1: U.ease1, ease2: U.ease2, back1: U.back1, back2: U.back2, glow: U.glow, fade: U.fade }));
+  T('touch buttons: the hit boxes grew with the buttons (46 x 42 instead of 38 x 32 for left, right, slide and jump, 30 x 18 for pause), each centred on its picture, inside the 320 x 180 screen and clear of each other and of the HOP OFF button of the scooter (inert on foot); without the smooth canvas the pixel buttons are drawn as before (' + (U.fallback.sheet || []).join(' x ') + ' sheet, ' + U.fallback.sizes.join(' / ') + ' px, a held one ' + U.fallback.held + ')',
+    U.boxes === 'left:3:137:46:42 right:52:137:46:42 slide:222:137:46:42 jump:271:137:46:42 pause:145:2:30:18 scooter:132:154:56:20' && U.inside && U.apart && U.fallback.sheet && U.fallback.sheet[0] === 64 && U.fallback.sheet[1] === 42 && U.fallback.sizes.filter(w => w === 42).length === 4 && U.fallback.sizes.filter(w => w === 22).length === 1 && U.fallback.held === 46, U.boxes);
+  // a real touch on the smooth button goes through to the game: on a phone-like page (touch, 2x), a tap on the jump button jumps and a press on the left button steers
+  { const ctx = await b.newContext({ viewport: { width: 640, height: 360 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true }), pt = await ctx.newPage(); const e2 = []; pt.on('pageerror', e => e2.push(e.message));
+    await pt.goto(process.env.TEST_URL || 'http://localhost:' + PORT + '/', { timeout: 90000 }); await pt.waitForFunction(() => window.__wf, null, { timeout: 90000 }); await pt.waitForTimeout(800);
+    const geo = await pt.evaluate(() => { const g = __wf; g.touch = true; g.start(); g.world.items = []; g.state = 'play'; g.p.jy = 0; g.p.speed = 0; const sc = document.getElementById('screen').getBoundingClientRect(), tc = document.getElementById('touch'); return { x: sc.left + sc.width * (294 / 320), y: sc.top + sc.height * (158 / 180), lx: sc.left + sc.width * (26 / 320), dpr: devicePixelRatio, tw: tc.width, sw: sc.width }; });
+    await pt.touchscreen.tap(geo.x, geo.y); await pt.waitForTimeout(150); const J = await pt.evaluate(() => { const g = __wf; return { jumped: g.p.jy > 0 || g.p.vy > 0 || g.jumpBuf > 0 }; });
+    await pt.evaluate(() => { const g = __wf; g.p.jy = 0; g.p.vy = 0; g.jumpBuf = 0; });
+    T('a real tap on the smooth jump button goes through to the game (jumped: ' + J.jumped + '), on a ' + geo.dpr + 'x touch page where the smooth canvas is ' + geo.tw + ' px for ' + Math.round(geo.sw) + ' CSS px wide', J.jumped && geo.tw === Math.round(geo.sw * geo.dpr) && !e2.length, JSON.stringify({ J, geo, e2 })); await ctx.close(); }
 
   // ---------------------------------------------------------------- 3. menu text names the new keys
   const M = await pg.evaluate(() => {
