@@ -228,6 +228,8 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 
 **A beach on the coast road.** The sea used to start right behind the fence. The coast road now has a **beach** on its sea side (`coastBeach` in `src3d/env_coast.js`): 10 m of sand from the road to the shore, with the fence standing on it, ripples, a darker wet band at the water, a few shells and stones; the shore, the buoys, the boats, the pier and the lighthouse moved 5 m out to make room.
 
+**The bike lane at the junction of the tunnel.** The red bike lane that runs along the land side of the coast road (`coastBike`) is now also drawn at the island junction, on the strip of land between the coast road and the road to the tunnel (it is allowed on the inner side of a junction: `innerOk`); its pool is larger.
+
 ## Layout
 
 ```

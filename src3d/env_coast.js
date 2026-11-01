@@ -151,7 +151,7 @@ window.ENV3D = window.ENV3D || {};
     groundFar: '#cfb27c',
 
     road: { asphalt: ['#8d8078', '#857870'], mark: '#fff1d0', edge: '#e9b86a', curb: ['#efe0b8', '#e5d3a4'], curbFace: '#cdb98a', walk: ['#e3cc98', '#dac18a'], court: '#d3b884', verge: ['#e6cf9c', '#dfc58f'] },
-    innerOk: new Set(['tuft', 'tuftBig', 'seaFence', 'lampSea']),
+    innerOk: new Set(['tuft', 'tuftBig', 'seaFence', 'lampSea', 'coastBike']),
 
     props: {
       seaStrip: seaStrip, coastBeach: beach, coastClub: club, coastDelphi: delphi, coastParasol: parasol, coastBike: bike, coastPark: park, coastCourt: court, coastPlay: play, tree: ENV3D.city.props.tree,
