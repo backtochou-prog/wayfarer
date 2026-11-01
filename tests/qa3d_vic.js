@@ -50,6 +50,18 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('a low hazard (terrace, barrels, armchairs, pots) is jumped from its own half (' + lowK.map(k => R[k].sameJump).join(', ') + '), the tall one (patio heater, planter, chairs) cannot be (' + R.vicHigh.sameJump + ', nor slid under ' + R.vicHigh.sameSlide + '), the parasol is slid under (' + R.vicHang.sameSlide + ') and not jumped (' + R.vicHang.sameJump + ')',
     lowK.every(k => R[k].sameJump) && !R.vicHigh.sameJump && !R.vicHigh.sameSlide && R.vicHang.sameSlide && !R.vicHang.sameJump, '');
 
+  // only TWO places: the left half and the right half of the street, a key sends the runner to its half and it stays there
+  const L2 = await pg.evaluate(() => {
+    const g = __wf, out = { xs: [] }; g.r.renderer.render = () => {}; g.start(); g.world.extend(90000); const V = g.world.pieces.find(p => p.id === 'vicB'); g.world.items = g.world.items.filter(i => i.kind === 'prop'); g.state = 'play'; g.scene = null; g.fadeIn = 0; g.p.z = V.z0 + 100; g.p.x = 0.05; g.p.speed = 340; g.world.extend(g.p.z);
+    const step = n => { for (let i = 0; i < n; i++) g.advance(1 / 60); }, press = (k, on) => { g.keys[k] = on; };
+    step(30); out.xs.push(+g.p.x.toFixed(3)); press('left', true); step(4); press('left', false); step(40); out.xs.push(+g.p.x.toFixed(3)); step(60); out.xs.push(+g.p.x.toFixed(3));
+    press('right', true); step(40); press('right', false); step(40); out.xs.push(+g.p.x.toFixed(3)); step(60); out.xs.push(+g.p.x.toFixed(3));
+    g.p.z = g.world.pieces.find(p => p.id === 'neonRun').z0 + 300; g.world.extend(g.p.z); step(5); press('left', true); step(40); press('left', false); step(30); out.free = +g.p.x.toFixed(2);       // after the street the steering is free again
+    return out;
+  });
+  T('in Vic the runner has only two places, the left half and the right half of the street (x ' + L2.xs.join(', ') + '): a key sends it to its half, it stays there when the key is released; outside the street the steering is free again (x ' + L2.free + ')',
+    L2.xs[0] === 0.28 && L2.xs[1] === -0.28 && L2.xs[2] === -0.28 && L2.xs[3] === 0.28 && L2.xs[4] === 0.28 && L2.free < -0.4, JSON.stringify(L2));
+
   // the models
   const M = await pg.evaluate(() => {
     const out = {}, g = __wf, r = g.r; for (const k of ['vicLow', 'vicBarrel', 'vicChairs', 'vicPot', 'vicHigh', 'vicHang']) { const m = r.items.pool[k] && r.items.pool[k][0]; if (!m) { out[k] = null; continue; } m.visible = true; m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(m); out[k] = { w: +(bb.max.x - bb.min.x).toFixed(2), h: +bb.max.y.toFixed(2), y0: +bb.min.y.toFixed(2), x0: +bb.min.x.toFixed(2), x1: +bb.max.x.toFixed(2) }; m.visible = false; }
@@ -75,7 +87,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const g = __wf; g.r.renderer.render = () => {}; g.start(); g.world.extend(90000); const V = g.world.pieces.find(p => p.id === 'vicA'), L = g.world.pieces.find(p => p.id === 'vicF'); g.state = 'play'; g.scene = null; g.fadeIn = 0; g.die = Game.prototype.die; g.p.z = V.z0 - 300; g.p.x = 0; g.p.speed = 340; g.world.extend(g.p.z);
     const key = c => g.onKey({ code: c, key: c, repeat: false, preventDefault() {} }, true), out = { off: 0, coins: 0, minX: 9, maxX: -9 }; let f = 0; const c0 = g.coins;
     while (g.state === 'play' && g.p.z < L.z1 + 200 && f < 60 * 60) { const p = g.p, w = g.world; g.keys.left = g.keys.right = false; let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
-      if (tg && /^vic/.test(tg.kind)) { g.keys.left = tg.x > 0; g.keys.right = tg.x < 0; tg = null; } if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || tg.kind !== 'over')) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
+      { const vt = g.world.items.filter(i => /^vic/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { g.keys.left = vt.x > 0; g.keys.right = vt.x < 0; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic/.test(tg.kind)) tg = null; } if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || tg.kind !== 'over')) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
       g.advance(1 / 60); f++; const bs = w.bandsAt(g.p.z), ch = bs.find(q => q.chosen) || bs[0]; if (g.p.x < ch.lo - 0.02 || g.p.x > ch.hi + 0.02) out.off++; if (g.p.z > V.z0 && g.p.z < L.z1) { out.minX = Math.min(out.minX, g.p.x); out.maxX = Math.max(out.maxX, g.p.x); } }
     out.state = g.state; out.reached = g.p.z >= L.z1 + 200 - 1; out.coins = g.coins - c0; out.frames = f; return out;
   });

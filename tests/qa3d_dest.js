@@ -161,7 +161,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const bot = (want) => {
       const p = g.p, w = g.world, F = w.openFork(); g.keys.left = g.keys.right = false; if (F && p.z > F.z0 - 500 && p.z < F.z0 - 400) g.keys[want] = true;
       let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
-      if (tg && /^vic/.test(tg.kind)) { g.keys.left = tg.x > 0; g.keys.right = tg.x < 0; tg = null; }
+      { const vt = g.world.items.filter(i => /^vic/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { g.keys.left = vt.x > 0; g.keys.right = vt.x < 0; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic/.test(tg.kind)) tg = null; }
       if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && p.slide <= 0) g.onKey({ code: tg.kind === 'over' ? 'ArrowDown' : 'Space', key: ' ', repeat: false, preventDefault() {} }, true);
     };
     for (const id of Object.keys(TRACK.forks)) for (const want of ['left', 'right']) {
@@ -200,7 +200,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = F.fork.tube ? (nIsle++ === 0 ? 'right' : 'left') : F.fork.rise ? 'left' : wants[nFork++]; }      // the island junction of the beach: the first time the run takes the tunnel under the sea to the island, then the coast
       g.keys.left = g.keys.right = false; if (F && want && p.z > F.z0 - 500 && p.z < F.z0 - 400) g.keys[want] = true;
       let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic/.test(it.kind) ? 1.8 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
-      (out.dbg = out.dbg || []).push([+p.x.toFixed(2), tg ? tg.kind + tg.x.toFixed(2) + "@" + Math.round(tg.z - p.z) : "-", +p.vx.toFixed(2)]); if (out.dbg.length > 14) out.dbg.shift(); if (tg && /^vic/.test(tg.kind)) { g.keys.left = tg.x > 0; g.keys.right = tg.x < 0; tg = null; }
+      (out.dbg = out.dbg || []).push([+p.x.toFixed(2), tg ? tg.kind + tg.x.toFixed(2) + "@" + Math.round(tg.z - p.z) : "-", +p.vx.toFixed(2)]); if (out.dbg.length > 14) out.dbg.shift(); { const vt = g.world.items.filter(i => /^vic/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { g.keys.left = vt.x > 0; g.keys.right = vt.x < 0; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic/.test(tg.kind)) tg = null; }
       if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || tg.kind !== 'over')) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
       g.advance(1 / 60); f++;
       if (w.seaDepth(g.p.z) > 100) out.tunnel++;      // (deep under the sea: the tunnel to the island, 10 m or more down)

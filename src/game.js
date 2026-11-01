@@ -122,7 +122,7 @@ class Game {
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
     this.scene = null; this.fadeIn = 0;                                                 // no cutscene running, no fade
     this.riding = false; this.vehicle = 'scooter'; this.scooterHint = null; this.surf = false;                // on foot, no indicator, not on the water
-    this.carryC = 0; this.lean = 0; this.kick = null; this.sway = 0; this.prompt = null; this.banner = null;
+    this.carryC = 0; this.lane2 = 0; this.lean = 0; this.kick = null; this.sway = 0; this.prompt = null; this.banner = null;
     if (this.r.onReset) this.r.onReset(this);
   }
 
@@ -333,8 +333,14 @@ class Game {
   steer(dt) {
     const w = this.world, p = this.p;
     const dir = (this.keys.right || this.tright ? 1 : 0) - (this.keys.left || this.tleft ? 1 : 0);
-    p.vx += (dir * STEER - p.vx) * Math.min(1, dt * 14);
-    p.x += p.vx * dt;
+    const vp = w.pieceAt(p.z);
+    if (vp && vp.type === 'seg' && vp.seg.lanes === 2) {                                   // VIC, the narrow streets: only TWO places, the left half and the right half of the street (lane +-0.28): a key sends the runner to that half, it stays there until the other key
+      if (dir) this.lane2 = dir; else if (!this.lane2) this.lane2 = p.x < 0 ? -1 : 1;
+      const tx = this.lane2 * 0.28, nx = p.x + (tx - p.x) * Math.min(1, dt * 15); p.vx = dt > 0 ? (nx - p.x) / dt : 0; p.x = nx;
+    } else {
+      this.lane2 = 0; p.vx += (dir * STEER - p.vx) * Math.min(1, dt * 14);
+      p.x += p.vx * dt;
+    }
     // junction: the choice is only read inside the prompt window, and locks when the junction line is crossed
     const F = w.openFork();
     this.prompt = null;
