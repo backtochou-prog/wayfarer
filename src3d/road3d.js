@@ -43,6 +43,14 @@ class Road3D {
       const mesh = new THREE.Mesh(g, mat); mesh.frustumCulled = false; mesh.visible = false; mesh.renderOrder = 1; scene.add(mesh);
       this.wat = { geo: g, pos, col, uv, mesh, src: wm, any: false };
     }
+    // THE SEA OVER THE TUNNEL: seen from the coast road, the road to the tunnel under the sea sinks INTO THE WATER, not into the ground: a plain translucent sea (the coast's blue) is laid over the land beside it, from the middle of the
+    // junction out to 80 m, with its alpha following the depth of the road (World.seaK), so the road goes under it little by little and is gone in the middle of the tunnel.
+    { const g = new THREE.BufferGeometry(), pos = new Float32Array(N * 6), col = new Float32Array(N * 8), wi = new Uint16Array((N - 1) * 6);
+      for (let i = 0; i < N - 1; i++) { const a = i * 2; wi.set([a, a + 1, a + 2, a + 1, a + 3, a + 2], i * 6); }
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage)); g.setAttribute('color', new THREE.BufferAttribute(col, 4).setUsage(THREE.DynamicDrawUsage)); g.setIndex(new THREE.BufferAttribute(wi, 1));
+      const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+      const mesh = new THREE.Mesh(g, mat); mesh.frustumCulled = false; mesh.visible = false; mesh.renderOrder = 1; scene.add(mesh);
+      this.sea = { geo: g, pos, col, mesh, any: false }; }
     // road edges of the latest frame (scene metres, per section), kept so tests/tools can check the runner stays on the road
     this.edge = { n0: 0, z: new Float32Array(N), loA: new Float32Array(N), hiA: new Float32Array(N), loB: new Float32Array(N), hiB: new Float32Array(N), two: new Uint8Array(N) };
   }
@@ -68,7 +76,7 @@ class Road3D {
 
   update(w, rzm, Lref) {
     const N = this.N, DS = TRACK3D.SECTION, n0 = Math.floor((rzm - TRACK3D.BEHIND) / DS), E = this.edge, OUT = this.OUT, P = this.P, X = U3.X;
-    E.n0 = n0; const d0 = w.dropAt(rzm / U3.Z); if (this.wat) this.wat.any = false;                  // descent: each section sits lower by the fall between the runner and it (0 on flat road)
+    E.n0 = n0; const d0 = w.dropAt(rzm / U3.Z); if (this.wat) this.wat.any = false; this.sea.any = false;                  // descent: each section sits lower by the fall between the runner and it (0 on flat road)
     for (let i = 0; i < N; i++) {
       const n = n0 + i, zm = n * DS, sz = rzm - zm, par = n & 1, dash = !par;
       const slot = this.bc[((n % N) + N) % N];
@@ -104,9 +112,17 @@ class Road3D {
         const yB = base + w.lift(zu, bB.side) * U3.Z; P[5] = yB; P[3] = P[4] = 0; P[7] = 1; P[6] = bB.rise > 0.01 && bB.rise < bB.riseH - 0.01 ? Math.max(0, yB - yA) : 0;
       }
       this.band(1, i, palB, par, dash);
+      if (bB.to === 'coastAqua') { const dep = -w.lift(zu, bB.side), k = World.seaK(dep > 0 ? dep : 0); this.seaSection(i, sz, mid, hiB + 80, k * 0.85, base); }
     }
     for (const r of this.rib) { r.geo.attributes.position.needsUpdate = true; r.geo.attributes.color.needsUpdate = true; }
+    { const S = this.sea; S.mesh.visible = S.any; S.geo.attributes.position.needsUpdate = true; S.geo.attributes.color.needsUpdate = true; }
     const W = this.wat; if (W) { W.mesh.visible = W.any && W.src.visible; W.geo.attributes.position.needsUpdate = true; W.geo.attributes.color.needsUpdate = true; W.geo.attributes.uv.needsUpdate = true; }
+  }
+  // one cross-section of the sea over the tunnel: lateral lo to hi, alpha a, at the level of the ground (base) a hair above it
+  seaSection(i, sz, lo, hi, a, base) {
+    const S = this.sea, p = S.pos, c = S.col, o = i * 6, k = i * 8, y = base + 0.2;
+    p[o] = lo; p[o + 1] = y; p[o + 2] = sz; p[o + 3] = hi; p[o + 4] = y; p[o + 5] = sz;
+    c[k] = c[k + 4] = 0.17; c[k + 1] = c[k + 5] = 0.49; c[k + 2] = c[k + 6] = 0.65; c[k + 3] = c[k + 7] = a; if (a > 0.01) S.any = true;
   }
   // one cross-section of the water strip: from lateral lo to hi (scene metres) at scene depth sz (absolute distance zm), alpha a (0 = nothing), road drop dy
   waterSection(i, zm, sz, lo, hi, a, dy, Lref) {
