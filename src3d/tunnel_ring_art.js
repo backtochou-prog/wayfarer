@@ -1,7 +1,7 @@
-// TunnelRingArt: the mouth of the tunnel under the sea, the user's red glass ring (TUNNEL_RING, tools/make_tunnel_ring_assets.py): a plane across the road at each mouth, its hole as wide as the tunnel's ribs (7.5 m), the ring covering
+// TunnelRingArt: the mouth of the tunnel under the sea, the user's red glass ring (TUNNEL_RING, tools/make_tunnel_ring_assets.py): a plane across the road at each mouth, its hole as wide as the tunnel's ribs (8.3 m), the ring covering
 // the ends of the ribs and of the dark lines of the vault that would otherwise stick out of the mouth. Unlit, only fogged.
 const TunnelRingArt = {
-  R: 7.5, _mat: null, _geo: null,
+  R: 8.3, _mat: null, _geo: null,
   material() {
     if (!this._mat) {
       const img = new Image(), tex = new THREE.Texture(img); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;

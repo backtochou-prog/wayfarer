@@ -320,10 +320,10 @@ class Renderer3D {
     if (typeof TunnelRingArt !== 'undefined') {
       if (!this.mouths) { this.mouths = [0, 1, 2, 3].map(() => { const m = TunnelRingArt.mesh(); this.scene.add(m); return m; }); }
       let k = 0;
-      for (const P of w.pieces) if (P.type === 'fork' && P.fork.tube) for (const zf of [Math.ceil(P.fe * U.Z / SL) * SL / U.Z, Math.floor((P.fe + P.fork.tube.len) * U.Z / SL) * SL / U.Z]) {      // (the first and the last whole slot of the tunnel)
+      for (const P of w.pieces) if (P.type === 'fork' && P.fork.tube) for (const [zf, out] of [[Math.ceil(P.fe * U.Z / SL) * SL / U.Z, 1], [Math.floor((P.fe + P.fork.tube.len) * U.Z / SL) * SL / U.Z, -1]]) {      // (the first and the last whole slot of the tunnel)
         const ahead = zf - p.z; if (ahead < -300 || ahead > 2500 || k >= this.mouths.length) continue;
         const bs = w.bandsAt(zf), rb = bs.find(q => q.side > 0) || bs[0], m = this.mouths[k++];
-        m.position.set(((rb.lo + rb.hi) / 2 + rb.off) * U.X - Lref, dy(zf) - m.userData.cy, -ahead * U.Z); m.visible = true;
+        m.position.set(((rb.lo + rb.hi) / 2 + rb.off) * U.X - Lref, dy(zf) - m.userData.cy, -ahead * U.Z + out * 2.5); m.visible = true;       // (2.5 m outside the first and the last rib: the ring frames them, it does not cut them)
       }
     }
 

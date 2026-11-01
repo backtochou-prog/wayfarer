@@ -219,7 +219,7 @@ class World {
   // how high a road at z sits over the level the world is drawn at (dropAt: the runner's own road), in units of run, for the road on side `sg` (-1 / 1) of such a junction: its own height minus the height of the road the runner took
   // (the whole world went up or down with the runner, by dropAt); 0 everywhere else. So passing beside the tunnel under the sea, its road sinks little by little out of sight, and the coast stays level
   lift(z, sg) {
-    const P = this.riseFork(z); if (!P) return 0;
+    const P = this.riseFork(z); if (!P || (P.fork.tube && P.choice === 'right')) return 0;       // (a runner in the tunnel keeps the old look: the whole world dives with it)
     return this.roadH(P, z, sg < 0 ? 'left' : 'right') - (P.choice ? this.roadH(P, z, P.choice) : 0);
   }
 

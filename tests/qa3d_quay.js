@@ -132,8 +132,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     w.commit(F, 'left'); out.coast = [w.lift(mid, -1), w.lift(mid, 1) * U3.Z, w.lift(q, 1) * U3.Z, w.lift(F.fe + tb.len + 100, 1)]; out.depth = tb.depth * U3.Z;
     w.commit(F, 'right'); out.under = [w.lift(mid, 1), w.lift(mid, -1) * U3.Z]; return out;
   });
-  T('passing beside the tunnel under the sea (on the coast road) its road sinks little by little, ' + TU.coast[2].toFixed(1) + ' m down half way down the ramp and the full ' + TU.depth + ' m in the middle (' + TU.coast[1].toFixed(1) + '), level again after it (' + TU.coast[3] + '); the coast stays level (' + TU.coast[0] + '); in the tunnel the coast road is up by that depth (' + TU.under[1].toFixed(1) + ')',
-    TU.coast[0] === 0 && Math.abs(TU.coast[1] + TU.depth) < 1e-6 && TU.coast[2] < -0.5 && TU.coast[2] > -TU.depth + 0.5 && TU.coast[3] === 0 && TU.under[0] === 0 && Math.abs(TU.under[1] - TU.depth) < 1e-6, JSON.stringify(TU));
+  T('passing beside the tunnel under the sea (on the coast road) its road sinks little by little, ' + TU.coast[2].toFixed(1) + ' m down half way down the ramp and the full ' + TU.depth + ' m in the middle (' + TU.coast[1].toFixed(1) + '), level again after it (' + TU.coast[3] + '); the coast stays level (' + TU.coast[0] + '); in the tunnel the whole world dives with the runner (the coast road is not lifted: ' + TU.under[1].toFixed(1) + ')',
+    TU.coast[0] === 0 && Math.abs(TU.coast[1] + TU.depth) < 1e-6 && TU.coast[2] < -0.5 && TU.coast[2] > -TU.depth + 0.5 && TU.coast[3] === 0 && TU.under[0] === 0 && TU.under[1] === 0, JSON.stringify(TU));
 
   // ================================================================ 4. the surfboard is for the water only
   const S = await pg.evaluate(() => {
