@@ -78,7 +78,7 @@ class Road3D {
       const loA = (bA.lo + bA.off) * X - Lref, hiA = (bA.hi + bA.off) * X - Lref;
       let palA = this.palBand(w, bA, zm);
       E.z[i] = sz; E.two[i] = bB ? 1 : 0;
-      const base = -(w.dropAt(zm / U3.Z) - d0) * U3.Z, qk = bA.quay || (bB && bB.quay), zu = zm / U3.Z;          // (a junction with a raised road, the upper circuit: each road sits at its own height over the level the runner's road gives, World.lift)
+      const base = -(w.dropAt(zm / U3.Z) - d0) * U3.Z, qk = bA.lifted, zu = zm / U3.Z;          // (a junction with a raised road, the upper circuit: each road sits at its own height over the level the runner's road gives, World.lift)
       const yA = qk ? base + w.lift(zu, bA.side) * U3.Z : base;
       P[5] = yA; P[6] = 0; P[7] = 0;
       if (this.wat) this.waterSection(i, zm, sz, loA, hiA, bB && !bB.quay ? 0 : this.envs[bA.to].road.water ? bA.t : 0, P[5], Lref);

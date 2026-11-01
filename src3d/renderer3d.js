@@ -305,7 +305,7 @@ class Renderer3D {
     // descent: how far below the runner's level a point z (design units) lies (0 on flat road); the slope of the far ground follows the steepest slope seen from here to 150 m ahead
     const d0 = w.dropAt(p.z), dy = z => -(w.dropAt(z) - d0) * U.Z;
     this.groundPivot.rotation.x = -Math.atan(Math.max(w.gradeAt(p.z), w.gradeAt(p.z + 1500)));
-    { const rf = w.riseFork(p.z); this.groundPivot.position.y = -0.03 - (rf && rf.choice === rf.fork.rise.side ? w.riseAt(rf, p.z) * U.Z : 0); }       // (on the raised road, the upper circuit of Utrecht, the ground is the level of the water: 3.45 m under the runner)
+    { const rf = w.riseFork(p.z); this.groundPivot.position.y = -0.03 - (rf && rf.fork.rise && rf.choice === rf.fork.rise.side ? w.riseAt(rf, p.z) * U.Z : 0); }       // (on the raised road, the upper circuit of Utrecht, the ground is the level of the water: 3.45 m under the runner)
     // under the sea: the coast road beside the tunnel is not seen once the runner is deep (hide = the side of the junction not drawn); the surface of the sea is a plane at the sea's own height over the tunnel, from mouth
     // to mouth, but only visible where the road under it is deep (its alpha follows the depth: the entrance and its surroundings stay dry), seen from above on the way down and up and from below in the deep
     const depthM = w.seaDepth(p.z) * U.Z, hide = depthM >= 3.5 ? -1 : 0; this.road.hide = hide; this.hide = hide;
@@ -324,7 +324,7 @@ class Renderer3D {
     for (let i = i0; i <= i1; i++) {
       const zs = i * SL, sc = this.slotCache[((i % 20) + 20) % 20];
       if (sc.i !== i || sc.ver !== w.ver) { sc.i = i; sc.ver = w.ver; sc.mid = w.bandsAt((zs + SL / 2) / U.Z); sc.a = w.bandsAt(zs / U.Z); sc.b = w.bandsAt((zs + SL) / U.Z); }
-      const bands = sc.mid, two = bands.length > 1 && !hide, qk = two && (bands[0].quay || bands[1].quay);          // qk: a junction with a raised road (the upper circuit of Utrecht)
+      const bands = sc.mid, two = bands.length > 1 && !hide, qk = two && bands[0].lifted;          // qk: a junction with a raised road (the upper circuit of Utrecht)
       for (let bi = 0; bi < bands.length; bi++) {
         if (hide && bands[bi].side === hide) continue;
         const b = bands[bi], hwM = (b.hi - b.lo) / 2 * U.X, dyb = qk ? (zu => dy(zu) + w.lift(zu, b.side) * U.Z) : dy;           // (dyb: each road of that junction at its own height)

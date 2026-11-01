@@ -127,6 +127,14 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('the street\'s other hazards: café terraces (tables and chairs, ' + O.dims.barrierS.w + ' x ' + O.dims.barrierS.h + ' m) and rows of parked bicycles (' + O.dims.barrierB.w + ' x ' + O.dims.barrierB.h + ' m) as the low barrier (box ' + O.coll.b[0].toFixed(2) + ' x ' + O.coll.b[1].toFixed(2) + ', both looks on the road: ' + O.both + '), a bar\'s awning as the gate (' + O.dims.overS.w + ' m wide, from ' + O.coll.o[1].toFixed(2) + ' to ' + O.dims.overS.h + ' m); drawn on the street only (' + JSON.stringify(O.used) + ')',
     Math.abs(O.dims.barrierS.w - O.coll.b[0]) < 0.3 && O.dims.barrierS.h <= O.coll.b[1] + 0.05 && O.dims.barrierS.h >= O.coll.b[1] - 0.1 && Math.abs(O.dims.barrierB.w - O.coll.b[0]) < 0.4 && O.dims.barrierB.h <= O.coll.b[1] + 0.05 && O.dims.barrierB.h >= O.coll.b[1] - 0.1 && O.dims.overS.w >= O.coll.o[0] && O.dims.overS.w < O.coll.o[0] + 0.8 && O.dims.overS.h <= O.coll.o[2] + 0.05 && O.dims.overS.h >= O.coll.o[2] - 0.2 && O.both && O.used.barrierS + O.used.barrierB >= 1 && O.used.overS >= 1 && O.used.barrier === 0 && O.used.over === 0, JSON.stringify(O.dims));
 
+  const TU = await pg.evaluate(() => {
+    const w = new World(TRACK); w.extend(120000); const F = w.pieces.find(p => p.type === 'fork' && p.fork.tube), tb = F.fork.tube, mid = F.fe + tb.len / 2, q = F.fe + tb.ramp / 2, out = {};
+    w.commit(F, 'left'); out.coast = [w.lift(mid, -1), w.lift(mid, 1) * U3.Z, w.lift(q, 1) * U3.Z, w.lift(F.fe + tb.len + 100, 1)]; out.depth = tb.depth * U3.Z;
+    w.commit(F, 'right'); out.under = [w.lift(mid, 1), w.lift(mid, -1) * U3.Z]; return out;
+  });
+  T('passing beside the tunnel under the sea (on the coast road) its road sinks little by little, ' + TU.coast[2].toFixed(1) + ' m down half way down the ramp and the full ' + TU.depth + ' m in the middle (' + TU.coast[1].toFixed(1) + '), level again after it (' + TU.coast[3] + '); the coast stays level (' + TU.coast[0] + '); in the tunnel the coast road is up by that depth (' + TU.under[1].toFixed(1) + ')',
+    TU.coast[0] === 0 && Math.abs(TU.coast[1] + TU.depth) < 1e-6 && TU.coast[2] < -0.5 && TU.coast[2] > -TU.depth + 0.5 && TU.coast[3] === 0 && TU.under[0] === 0 && Math.abs(TU.under[1] - TU.depth) < 1e-6, JSON.stringify(TU));
+
   // ================================================================ 4. the surfboard is for the water only
   const S = await pg.evaluate(() => {
     const out = {}; const probe = (side, dz) => { const { g } = H.at(side, dz); for (let i = 0; i < 30; i++) g.advance(1 / 60); H.draw(90); const R = g.r.runner; return { surf: g.surf, sf: R.surfB.visible, sc: R.scooter.visible, bd: R.board.visible, y: +R.group.position.y.toFixed(3) }; };

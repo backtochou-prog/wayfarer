@@ -212,15 +212,17 @@ class World {
   riseGeom(P) { return P.rg || (P.rg = { a0: Math.ceil(P.fe / P.fork.rise.grid) * P.fork.rise.grid, a1: Math.floor(P.be / P.fork.rise.grid) * P.fork.rise.grid }); }
   riseAt(P, z) { const r = P.fork.rise, G = this.riseGeom(P); return r.h * Math.min(clamp((z - G.a0) / r.up, 0, 1), clamp((G.a1 - z) / r.down, 0, 1)); }
   stairsAt(P, z) { const r = P.fork.rise, G = this.riseGeom(P), a = (z - G.a0) / r.up, d = (G.a1 - z) / r.down; return a > 0 && d > 0 && (a < 1 || d < 1) ? (a < d ? 1 : -1) : 0; }
-  // the raised-road fork piece whose range holds z (null elsewhere)
-  riseFork(z) { for (const P of this.pieces) if (P.type === 'fork' && P.fork.rise && z > P.z0 && z < P.be) return P; return null; }
-  // how high a road at z sits over the level the world is drawn at (dropAt: the runner's own road), in units of run, for the road on side `sg` (-1 / 1) of a junction: the raised road is up by its rise when the runner did not take it,
-  // the other one is down by that rise when the runner did (the whole world was raised with the runner by dropAt); 0 everywhere else
+  // the fork piece with a road of its own height (a raised road, or the tunnel under the sea) whose range holds z (null elsewhere)
+  riseFork(z) { for (const P of this.pieces) if (P.type === 'fork' && (P.fork.rise || P.fork.tube) && z > P.z0 && z < P.be) return P; return null; }
+  // the height (units of run) of the road on `side` of a lifted junction at z: the raised road is up by its rise, the road to the tunnel is down by its dive; the other one is level
+  roadH(P, z, side) { return P.fork.rise ? (side === P.fork.rise.side ? this.riseAt(P, z) : 0) : (side === 'right' ? -this.tubeDip(P, z) : 0); }
+  // how high a road at z sits over the level the world is drawn at (dropAt: the runner's own road), in units of run, for the road on side `sg` (-1 / 1) of such a junction: its own height minus the height of the road the runner took
+  // (the whole world went up or down with the runner, by dropAt); 0 everywhere else. So passing beside the tunnel under the sea, its road sinks little by little out of sight, and the coast stays level
   lift(z, sg) {
     const P = this.riseFork(z); if (!P) return 0;
-    const side = sg < 0 ? 'left' : 'right', r = this.riseAt(P, z), up = P.fork.rise.side;
-    return side === up ? (P.choice === up ? 0 : r) : (P.choice === up ? -r : 0);
+    return this.roadH(P, z, sg < 0 ? 'left' : 'right') - (P.choice ? this.roadH(P, z, P.choice) : 0);
   }
+
   static dipAt(tb, u) {                                        // the profile of the dive at `u` units into the tunnel
     if (u <= 0 || u >= tb.len) return 0;
     const s = v => { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); };
@@ -269,6 +271,7 @@ class World {
       if (tb && side === 'right') { const d = z - P.fe; to = d < 0 ? tb.pre : d < tb.len ? tb.biome : to; }   // `tube`: the right road keeps the look of the piece before while the roads part, runs through the tunnel (its own look, BIOMES[biome].swap) and then comes up on the island
       const bd = { lo: Math.min(a, b2), hi: Math.max(a, b2), side: sg, route: F[side].route, off, to, t, chosen: P.choice === side };
       if (tb && side === 'right') bd.pre = tb.pre;                                                // (the look the tunnel blends in from: the coast of this fork's light)
+      if (F.rise || F.tube) bd.lifted = true;
       if (F.rise && side === F.rise.side) { bd.quay = true; bd.rise = this.riseAt(P, z); bd.riseH = F.rise.h; bd.stairs = this.stairsAt(P, z); }   // the raised road (the upper circuit): its height over the other road, in units of run
       bd.eL = bd.eR = { to, t };
       out.push(bd);
