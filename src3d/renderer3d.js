@@ -389,7 +389,7 @@ class Renderer3D {
       const x = (it.x + it.off) * U.X - Lref, zr = -dz * U.Z;
       const iy = dy(it.z) + (it.sd && w.riseFork(it.z) ? w.lift(it.z, it.sd) * U.Z : 0);                                     // on a descent the item sits on the sloping road (and on the raised road of the upper circuit, on its stairs and its street)
       if (it.kind === 'prop') { this.place(it.spr, x, WALK_Y + iy, zr, 0); continue; }
-      if (it.kind === 'coin' || this.items.extraSet[it.kind]) this.items.place(it.kind, x, it.h * U.Y + iy, zr); else { const pg = this.items.place(it.street && this.items.pool[it.kind + 'S'] ? it.kind + 'S' : it.wet && this.items.pool[it.kind + 'W'] ? it.kind + 'W' : it.kind, x, iy, zr); if (killer && it === killer.it && pg) this.kill = { x, y: iy, z: zr, g: pg }; }   // coins and the collectibles hang at their height; the hazard that ended the run is remembered (the vortex that absorbs the runner)
+      if (it.kind === 'coin' || this.items.extraSet[it.kind]) this.items.place(it.kind, x, it.h * U.Y + iy, zr); else { const pg = this.items.place(it.street && this.items.pool[it.kind + 'S'] ? it.kind === 'barrier' && Math.floor(it.z / 100) % 2 ? 'barrierB' : it.kind + 'S' : it.wet && this.items.pool[it.kind + 'W'] ? it.kind + 'W' : it.kind, x, iy, zr); if (killer && it === killer.it && pg) this.kill = { x, y: iy, z: zr, g: pg }; }   // coins and the collectibles hang at their height; the hazard that ended the run is remembered (the vortex that absorbs the runner)
     }
     for (const name in this.props) { const pool = this.props[name]; for (let n = this.propUsed[name]; n < pool.length; n++) pool[n].visible = false; }
     this.items.end(g.time);

@@ -257,10 +257,10 @@ class World {
     const F = P.fork, out = [], FC = F.c || FORK_C;
     for (const sg of [-1, 1]) {
       const side = sg < 0 ? 'left' : 'right', seg = T.segments[F[side].route];
-      let c, hw = 0.9, off = 0;
-      if (z < P.fe) { const e = ease((z - P.z0) / F.zone); c = 0.45 + (FC - 0.45) * e; hw = 0.45 + 0.45 * e; }
-      else if (z < P.be) { c = FC; off = seg.curve * bump((z - P.fe) / F.branchLen); }
-      else c = FC * (1 - ease((z - P.be) / F.merge));
+      let c, hw = 0.9, off = 0; const kh = F.rise && side === F.rise.side && F.rise.hw ? F.rise.hw : 0.9;      // (the raised road may be narrower: the street of the old town is not as wide as the canal)
+      if (z < P.fe) { const e = ease((z - P.z0) / F.zone); c = 0.45 + (FC - 0.45) * e; hw = 0.45 + (kh - 0.45) * e; }
+      else if (z < P.be) { c = FC; hw = kh; off = seg.curve * bump((z - P.fe) / F.branchLen); }
+      else { const e = ease((z - P.be) / F.merge); c = FC * (1 - e); hw = kh + (0.9 - kh) * e; }
       const a = sg * (c - hw), b2 = sg * (c + hw);
       const up = F.hold ? 1 : clamp((z - P.z0) / (F.zone + F.blend), 0, 1);               // `hold`: the look of the piece before goes through the junction (no fade in from the base look)
       const down = z > P.be ? clamp(1 - (z - P.be) / (F.merge + 250), 0, 1) : 1;

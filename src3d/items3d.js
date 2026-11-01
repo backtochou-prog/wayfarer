@@ -12,7 +12,7 @@
 class Items3D {
   constructor(scene) {
     const P = PAL3, mats = Kit.materials(), X = U3.X, Y = U3.Y;
-    const cHW = OBST.crate.hw * X, cH = OBST.crate.y1 * Y, bHW = OBST.barrier.hw * X, bH = OBST.barrier.y1 * Y;
+    const hwB = OBST.barrier.hw * X, cHW = OBST.crate.hw * X, cH = OBST.crate.y1 * Y, bHW = OBST.barrier.hw * X, bH = OBST.barrier.y1 * Y;
     const oHW = OBST.over.hw * X, gap = OBST.over.y0 * Y, oTop = OBST.over.y1 * Y;
     // the cheese cart's chalkboard (shared by every cart): the board of the photo, white chalk on black in a wooden frame
     const chalk = (() => {
@@ -96,7 +96,7 @@ class Items3D {
     };
     this.extraKinds = ['magnet', 'shard', 'dash', 'waymark', 'aura']; this.extraSet = { magnet: 1, shard: 1, dash: 1, waymark: 1, aura: 1 };
     // pool sizes cover everything inside the 150 m draw range, including both roads of a fork
-    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, crateS: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
+    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, crateS: 24, barrierS: 24, barrierB: 24, overS: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
     this.pool = {}; this.used = {}; this.merged = {}; this.dropped = 0;
     // ---- the hazards on the canals (Renderer3D picks `<kind>W` for an item on a water road): the same sizes and boxes as the crate, the low barrier and the gate, so what you see is what you can hit
     //   crateW   a whirlpool: the same vortex (it was floating barrels)
@@ -124,6 +124,28 @@ class Items3D {
     // ---- the hazards of the upper circuit of Utrecht (Renderer3D picks `<kind>S` for an item on the raised road, the quay): the cheese cart, from the user's photo. crateS: a wooden counter 1.2 m wide and 1.0 m high (the crate's box:
     // jump over it), two grey wheels, two handles, yellow and black cheeses with a cut wedge on top, two posts and a red and white gingham awning (above the box, 1.6 m and more), the chalkboard on its front (an extra mesh)
     const kindsS = {
+      // the café terrace and the parked bicycles (low barriers, 2.77 m across, 0.68 m high: jump over them) and the bar's awning (a gate to slide under) of the street
+      barrierS: () => {
+        const p = [], G = '#1f5a3a', hw = bHW;
+        for (const tx of [-0.65, 0.65]) { p.push(Kit.cyl(0.42, 0.42, 0.04, tx, bH - 0.04, 0, '#7a5a3a', { seg: 10 }), Kit.cyl(0.04, 0.06, bH - 0.06, tx, 0, 0, G, { seg: 6 }), Kit.cyl(0.2, 0.2, 0.03, tx, 0, 0, G, { seg: 8 }), Kit.cyl(0.12, 0.12, 0.02, tx, bH, 0, '#e8dcc0', { seg: 6 }));
+          for (const [dx, dz, a] of [[-0.58, 0, 0], [0.58, 0, 0], [0, -0.56, 1], [0, 0.56, 1]]) p.push(Kit.box(0.36, 0.05, 0.36, tx + dx, 0.34, dz, G), Kit.box(a ? 0.36 : 0.05, 0.3, a ? 0.05 : 0.36, tx + dx + (a ? 0 : dx < 0 ? -0.18 : 0.18), 0.34, dz + (a ? (dz < 0 ? -0.18 : 0.18) : 0), G), Kit.box(0.04, 0.34, 0.04, tx + dx - 0.14, 0, dz - 0.14, G), Kit.box(0.04, 0.34, 0.04, tx + dx + 0.14, 0, dz + 0.14, G)); }
+        return Kit.merge(p);
+      },
+      barrierB: () => {
+        const p = [], cols = ['#26262c', '#b83a3a', '#2f4a6a', '#3a3a42', '#26262c'];
+        for (let k = 0; k < 5; k++) { const x = -hwB + 0.3 + k * ((2 * hwB - 0.6) / 4), c = cols[k];
+          for (const z of [-0.5, 0.5]) p.push(Kit.cyl(0.25, 0.25, 0.05, x, 0.23, z, '#1a1a1e', { rz: Math.PI / 2, seg: 10 }), Kit.cyl(0.04, 0.04, 0.07, x, 0.215, z, '#9a9ea6', { rz: Math.PI / 2, seg: 4 }));
+          p.push(Kit.box(0.05, 0.05, 1.0, x, 0.42, 0, c), Kit.box(0.05, 0.3, 0.05, x, 0.25, 0.1, c), Kit.box(0.14, 0.05, 0.26, x, 0.56, -0.25, '#26262c'), Kit.box(0.5, 0.05, 0.05, x, 0.64, 0.45, '#26262c'), Kit.box(0.28, 0.16, 0.3, x, 0.3, 0.55, '#6a5a40')); }
+        return Kit.merge(p);
+      },
+      overS: () => {
+        const p = [], px = oHW - 0.25, n = 12, w = (2 * oHW + 0.2) / n;
+        for (const sx of [-1, 1]) p.push(Kit.box(0.2, oTop, 0.22, sx * px, 0, 0, '#202228'), Kit.box(0.3, 0.2, 0.32, sx * px, 0, 0, '#6c655d'), Kit.box(0.34, 0.3, 0.34, sx * px, oTop - 0.9, 0.0, '#ffbd70', { glow: true }));
+        p.push(Kit.box(2 * oHW + 0.4, 0.14, 0.3, 0, oTop - 0.14, 0, '#202228'));
+        for (let k = 0; k < n; k++) { const x = -oHW - 0.1 + (k + 0.5) * w, c = k % 2 ? '#f2e6e2' : '#6a1f2c'; p.push(Kit.box(w + 0.004, oTop - gap - 0.55, 0.1, x, gap + 0.3, 0.12, c), Kit.box(w + 0.004, 0.3, 0.08, x, gap, 0.12, c, { rx: 0 }), Kit.box(w + 0.004, 0.05, 0.9, x, oTop - 0.3, -0.25, c, { rx: -0.3 })); }
+        p.push(Kit.box(1.2, 0.34, 0.06, 0, (gap + oTop) / 2, 0.19, '#26262c'), Kit.box(0.9, 0.18, 0.05, 0, (gap + oTop) / 2 + 0.08, 0.23, '#ffbd70', { glow: true }));       // BAR, a lit sign on the cloth
+        return Kit.merge(p);
+      },
       crateS: () => {
         const p = [], W = '#b2814f', WD = '#8a5e36', WL = '#d3a76c', hw = cHW;
         p.push(Kit.box(2 * hw, cH - 0.3, 0.92, 0, 0.3, 0, W), Kit.box(2 * hw + 0.06, 0.07, 1.0, 0, cH - 0.07, 0, WL), Kit.box(2 * hw + 0.04, 0.07, 0.96, 0, 0.3, 0, WD));                             // the counter: planks, the rim and the foot rail

@@ -116,7 +116,7 @@ const TRACK = {
     // THE UPPER CIRCUIT of the Oudegracht: the street of the right bank, 3.5 m over the water (the road's `rise`, see `gateUtrecht`), run on foot (no surfboard), past the houses and the shops, with the plane trees and the lawn
     // of the quay; its hazards are the cheese carts (the crate: a wooden cart, a gingham awning, yellow wheels of cheese). `first`: nothing before the top of the stairs (World.genFork also keeps the hazards off both flights).
     utrechtQuay: { name: 'STADSKADE',      biome: 'utrechtQuay', length: 4000, curve: 0, first: 1100, spacing: 210, district: 700, opening: true,
-                 patterns: ['line', 'crateJump', 'crateJump', 'dodgeL', 'dodgeR', 'hurdle', 'risky', 'zig', 'twin', 'trailL', 'trailR', 'rowL', 'slideGate'], extra: ['crateBarrier', 'stagger', 'hopWeave'], waymark: 'jump' },
+                 patterns: ['line', 'crateJump', 'hurdle', 'slideGate', 'dodgeL', 'crateJump', 'hurdle', 'dodgeR', 'risky', 'slideGate', 'zig', 'twin', 'trailL', 'hurdle', 'trailR', 'rowL'], extra: ['crateBarrier', 'gateTrail', 'stagger', 'slideJump', 'hopWeave'], waymark: 'jump' },
     // THE COASTAL ZONE, on the main circuit (after the first plaza of every lap), one of four pieces by turns (`pickSegs.C`): the same safe sprint of coin waves, dunes and a few barriers, on a 420 m
     // coast road, under four lights: the sunset (the look of the coast branches of the junctions), the morning haze, the midday sun and the blue hour. A district fading in and out over 90 m.
     coastMorning:  { name: 'MORNING COAST',   biome: 'coastMorning', length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
@@ -192,8 +192,8 @@ const TRACK = {
     gateIslandMorning: { zone: 480, branchLen: 15000, merge: 380, blend: 40, hold: true, tube: { pre: 'coastMorning', biome: 'coastAqua', len: 9000, depth: 130, ramp: 3000 }, left: { route: 'coastWalkMorning', sign: 'signCoast' }, right: { route: 'islandMorning', sign: 'signIsland' } },
     // THE UPPER CIRCUIT OF UTRECHT: after the first bridges of the Oudegracht, LEFT the canal goes on, RIGHT a flight of stairs (a bridge's) climbs to the street of the right bank: `rise` lifts the right road by
     // `h` units (34.5 = 3.45 m, 5 cm under the street of the quay props) over `up` units once the roads have parted (the stairs), keeps it there and brings it down over `down` units before the roads merge (all on the grid of 120 units = one 12 m slot). `c`: the lateral centre of each road once
-    // open (1.3 lanes: the street runs beside the canal, 9 m from its axis, as the real quay does; FORK_C otherwise).
-    gateUtrecht: { zone: 480, branchLen: 4000, merge: 360, blend: 40, hold: true, c: 1.3, rise: { side: 'right', h: 34.5, up: 960, down: 840, grid: 120 }, left: { route: 'utrechtD', sign: 'signCanal' }, right: { route: 'utrechtQuay', sign: 'signQuay' } },
+    // open (1.225 lanes: the street, 0.75 lane of half-width, narrower than the canal, runs beside it, 8.7 m from its axis, as the real quay does; FORK_C otherwise).
+    gateUtrecht: { zone: 480, branchLen: 4000, merge: 360, blend: 40, hold: true, c: 1.225, rise: { side: 'right', hw: 0.75, h: 34.5, up: 960, down: 840, grid: 120 }, left: { route: 'utrechtD', sign: 'signCanal' }, right: { route: 'utrechtQuay', sign: 'signQuay' } },
     // THE JUNCTIONS OF THE CIRCUIT. The coast and the neon quarter are zones of their own now (Neon > Beach > Saint-Gilles > Utrecht), so the pairs the junction of Saint-Gilles takes (picks.A) offer only the
     // detours that stay in its neighbourhood: forest, market, ruins. The pairs above that lead to the coast or the neon quarter (gate3, gate4, gate2, gate3B, gate4B) are no longer on the circuit.
     gate5: { zone: 440, branchLen: 1300, merge: 360, blend: 40, left: { route: 'ruinsRun', sign: 'signRuins' }, right: { route: 'detourB', sign: 'signMarket' } },
