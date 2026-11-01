@@ -230,6 +230,8 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 
 **The bike lane at the junction of the tunnel.** The red bike lane that runs along the land side of the coast road (`coastBike`) is now also drawn at the island junction, on the strip of land between the coast road and the road to the tunnel (it is allowed on the inner side of a junction: `innerOk`); its pool is larger.
 
+**The afro Mediterraneo on the whole coast, and the coast dances to it.** The afro-Mediterranean track (`assets/music_coast.mp3`) used to be for the island only; it now plays on **the whole coastal zone** (the road, the tunnel under the sea and the island, in all four lights: `GameAudio` weight `/^coast/.test(g.bgTo)`), crossfading in over 3 s and out over 5 s as before, and its beat map drives the scenery (`Renderer3D.coastDance`, only while that track leads the beat clock): the giant parasols bounce on the kick and sway, the buoys and boats bob with the bass, the grass leans with the beat, each on its own phase. The beach is the colour of the land on the other side of the road in every light (`coastBeach`, `coastBeachMorning`, `coastBeachNoon`, `coastBeachBlue`: the verge colour of each light).
+
 ## Layout
 
 ```

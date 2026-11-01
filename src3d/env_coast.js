@@ -23,12 +23,12 @@ window.ENV3D = window.ENV3D || {};
   }
   // a stretch of sea (the left side): a flat strip from the shore out to 110 m, below the road, foam lines and glints; local x grows away from the road
   // THE BEACH of the coast road: sand from the road's side to the shore (10 m wide, the fence stands on it), a darker wet band at the water, shells and a few stones, ripples in the dry sand. Local x grows toward the sea.
-  function beach() {
+  const beach = (sand = C.sand, wet = C.sandD) => () => {
     const p = [];
-    p.push(Kit.box(10.2, 0.05, SLOT + 0.8, -5.1, 0, 0, C.sand), Kit.box(1.1, 0.045, SLOT + 0.8, -0.55, 0.003, 0, C.sandD));
-    for (let k = 0; k < 7; k++) p.push(Kit.box(1.2 + rnd(k, 11) * 2.4, 0.012, 0.1, -(2 + rnd(k, 12) * 6.5), 0.052, -5.4 + rnd(k, 13) * 10.8, C.sandD), Kit.ico(0.09 + rnd(k, 14) * 0.08, -(1 + rnd(k, 15) * 8), 0.05, -5 + rnd(k, 16) * 10, k % 3 ? C.white : C.terra, { detail: 0 }));
+    p.push(Kit.box(10.2, 0.05, SLOT + 0.8, -5.1, 0, 0, sand), Kit.box(1.1, 0.045, SLOT + 0.8, -0.55, 0.003, 0, wet));
+    for (let k = 0; k < 7; k++) p.push(Kit.box(1.2 + rnd(k, 11) * 2.4, 0.012, 0.1, -(2 + rnd(k, 12) * 6.5), 0.052, -5.4 + rnd(k, 13) * 10.8, wet), Kit.ico(0.09 + rnd(k, 14) * 0.08, -(1 + rnd(k, 15) * 8), 0.05, -5 + rnd(k, 16) * 10, k % 3 ? C.white : C.terra, { detail: 0 }));
     return Kit.merge(p);
-  }
+  };
   function seaStrip() {
     const p = [Kit.box(110, 0.3, SLOT + 0.8, 55, -0.24, 0, C.sea), Kit.box(110, 0.02, SLOT + 0.8, 55, 0.05, 0, C.seaL), Kit.box(1.6, 0.05, SLOT + 0.8, 0.8, 0.05, 0, C.foam), Kit.box(0.35, 0.05, SLOT + 0.8, 2.6, 0.05, 0, C.foam)];
     // (the road ribbon's verge runs out to 120 m at the pavement's level, so the sea has to lie a few cm above it: the shore is a foam line, not a step)
@@ -154,7 +154,7 @@ window.ENV3D = window.ENV3D || {};
     innerOk: new Set(['tuft', 'tuftBig', 'seaFence', 'lampSea', 'coastBike']),
 
     props: {
-      seaStrip: seaStrip, coastBeach: beach, coastClub: club, coastDelphi: delphi, coastParasol: parasol, coastBike: bike, coastPark: park, coastCourt: court, coastPlay: play, tree: ENV3D.city.props.tree,
+      seaStrip: seaStrip, coastBeach: beach(), coastBeachMorning: beach('#ecdcb4', '#d8c8a0'), coastBeachNoon: beach('#efdfb0', '#d8c8a0'), coastBeachBlue: beach('#7a7890', '#6a6880'), coastClub: club, coastDelphi: delphi, coastParasol: parasol, coastBike: bike, coastPark: park, coastCourt: court, coastPlay: play, tree: ENV3D.city.props.tree,
       cottageA: () => cottage(7.4, 6, 3.6, C.white, C.roof, 1), cottageB: () => cottage(6.4, 5.5, 3.4, '#a9d0e0', C.roofB, 2), cottageC: () => cottage(8.0, 6, 3.8, '#f2d9a8', C.roof, 3), cottageD: () => cottage(6.8, 5.5, 3.2, C.white, C.roofB, 4),
       seaFence: fenceRun(SLOT - 0.4), tuft: tuft(6, 0.9), tuftBig: tuft(11, 1.3),
       driftwood: () => Kit.merge([Kit.cyl(0.16, 0.2, 2.8, 0, 0.2, 0, '#c8b898', { rz: Math.PI / 2, ry: 0.5, seg: 5 }), Kit.cyl(0.08, 0.1, 1.2, 0.5, 0.35, 0.4, '#b8a888', { rz: 1.2, seg: 5 })]),
@@ -225,5 +225,7 @@ window.ENV3D = window.ENV3D || {};
       hemi: { sky: '#8a98d0', ground: '#4a4258', intensity: 1.25 }, sun: { color: '#ff9a70', intensity: 1.4, position: [-7, 3, -8] }, groundFar: '#3a3a50',
       road: { asphalt: ['#5a5a6c', '#545466'], mark: '#c8c8e8', edge: '#8a88b0', curb: ['#8a88a0', '#807e98'], curbFace: '#6a6880', walk: ['#7e7c94', '#76748c'], court: '#6a6880', verge: ['#7a7890', '#727088'] } },
   };
-  for (const id in LIGHT) ENV3D[id] = Object.assign({}, ENV3D.coast, LIGHT[id]);
+  // (the beach wears the colour of the verge of each light, so it is the same sand as the land on the other side of the road)
+  const BEACH = { coastMorning: 'coastBeachMorning', coastNoon: 'coastBeachNoon', coastBlue: 'coastBeachBlue' };
+  for (const id in LIGHT) { ENV3D[id] = Object.assign({}, ENV3D.coast, LIGHT[id]); const bl = ENV3D.coast.layout; ENV3D[id].layout = (i, r) => bl(i, r).map(q => q.prop === 'coastBeach' ? Object.assign({}, q, { prop: BEACH[id] }) : q); }
 })();

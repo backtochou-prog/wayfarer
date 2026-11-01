@@ -79,7 +79,7 @@ class Renderer3D {
                   polyclinique: 6, tramStop: 6, cornerCafe: 6, gateTram: 8, school: 6, glassTower: 6,
                   rowI: 26, rowJ: 26, rowK: 26, rowL: 26, lantern: 40, posts: 40, streetSign: 24, hedge: 30, tent: 24, scooter: 40, steps: 24, zebra: 8, scooterDock: 10, board: 40, boardDock: 12, neonHover: 40, neonHoverDock: 14, neonShopF: 24, neonShopG: 24, neonShopH: 24, neonShopI: 24,
                   neonWire: 40, neonPole: 24, neonPuddle: 30,                                                   // the neon district's cables, poles and wet road
-                  seaStrip: 36, coastBeach: 36, coastBike: 44, cottageA: 24, cottageB: 24, cottageC: 24, cottageD: 24, seaFence: 70, tuft: 80, tuftBig: 50, driftwood: 30, dune: 30, cliff: 24, boat: 24, buoy: 40, crates: 30, lampSea: 40, lighthouse: 6, pier: 6, gateCoast: 8,   // the sunset coast
+                  seaStrip: 36, coastBeach: 36, coastBeachMorning: 36, coastBeachNoon: 36, coastBeachBlue: 36, coastBike: 44, cottageA: 24, cottageB: 24, cottageC: 24, cottageD: 24, seaFence: 70, tuft: 80, tuftBig: 50, driftwood: 30, dune: 30, cliff: 24, boat: 24, buoy: 40, crates: 30, lampSea: 40, lighthouse: 6, pier: 6, gateCoast: 8,   // the sunset coast
                   wallLow: 40, wallHigh: 40, wallLowB: 40, column: 60, columnLow: 60, columnTall: 20, archHalf: 24, lantern: 50, blocks: 40, ivy: 50, patchA: 40, patchB: 40, ruinTemple: 6, obelisk: 6, gateRuins: 8,   // the mossy ruins
                   garePlat: 20, stationFlankA: 12, stationFlankB: 12, platLamp: 20, gareHall: 3, tourMidi: 3,                  // the Gare du Midi
                   coastClub: 6, coastDelphi: 6, portalGate: 14, coastCanal: 18, aquaRib: 18, aquaJelly: 18, aquaTurtle: 14, aquaWhale: 4, aquaShoal0: 28, aquaShoal1: 28, aquaShoal2: 28, aquaRay: 6, aquaKelp: 28, aquaCoral: 22, aquaBubbles: 22, coastTower0: 16, coastTower1: 16, coastTower2: 16, coastTower3: 16, coastRound: 6, coastFruit: 6, coastCafe: 6, coastPool: 6, coastCove: 6, coastParasolI0: 4, coastParasolI1: 4, coastParasolI2: 4, coastParasolI3: 4, coastParasolI4: 4, coastParasolI5: 4, coastParasolI6: 4, coastParasolI7: 4, coastParasolI8: 4, coastPad: 4, coastParasol: 6, coastBike: 44, coastPark: 6, coastCourt: 4, coastPlay: 4,
@@ -300,6 +300,9 @@ class Renderer3D {
     this.hemi.intensity = this.hemiBase * (1 + (0.05 + 0.1 * nw) * pulse);
     Kit.materials().glow.color.setScalar(1 - (0.1 + 0.12 * nw) * (1 - pulse));
     this.ui.beatPulse = pulse;
+    // THE COAST DANCES TO ITS TRACK (the afro-Mediterranean music now plays on the whole coast): while it leads the beat clock the parasols bounce and sway on the kick, the buoys and the boats bob with the bass, the grass leans
+    // with the beat (each prop on its own phase). Everywhere else these props stand still.
+    this.coastDance = !!(bt && bt.track === 'coast' && /^coast/.test(g.bgTo));
 
     // ---- road ribbons (two roads at a fork)
     // descent: how far below the runner's level a point z (design units) lies (0 on flat road); the slope of the far ground follows the steepest slope seen from here to 150 m ahead
@@ -404,6 +407,12 @@ class Renderer3D {
       if (it.kind === 'prop') { this.place(it.spr, x, WALK_Y + iy, zr, 0); continue; }
       if (it.kind === 'coin' || this.items.extraSet[it.kind]) this.items.place(it.kind, x, it.h * U.Y + iy, zr); else { const pg = this.items.place(it.street && this.items.pool[it.kind + 'S'] ? it.kind === 'barrier' && Math.floor(it.z / 100) % 2 ? 'barrierB' : it.kind + 'S' : it.wet && this.items.pool[it.kind + 'W'] ? it.kind + 'W' : it.kind, x, iy, zr); if (killer && it === killer.it && pg) this.kill = { x, y: iy, z: zr, g: pg }; }   // coins and the collectibles hang at their height; the hazard that ended the run is remembered (the vortex that absorbs the runner)
     }
+    { const bt2 = g.sfx ? g.sfx.beat() : null, on = this.coastDance && bt2, pu = on ? bt2.pulse * (0.45 + 0.55 * bt2.energy) : 0, bb = on ? bt2.beat : 0;
+      for (const name of ['coastParasol', 'buoy', 'boat', 'tuft', 'tuftBig']) { const pool = this.props[name]; if (!pool) continue;
+        for (let n = 0; n < this.propUsed[name]; n++) { const o = pool[n], ph = n * 1.9;
+          if (name === 'coastParasol') { o.scale.y = 1 + 0.07 * pu; o.rotation.z = on ? 0.05 * Math.sin(bb * Math.PI + ph) : 0; }
+          else if (name === 'buoy' || name === 'boat') { o.position.y += on ? 0.18 * Math.sin(bb * Math.PI * 0.5 + ph) + 0.12 * pu : 0; o.rotation.z = on ? 0.08 * Math.sin(bb * Math.PI * 0.5 + ph) : 0; }
+          else { o.rotation.z = on ? 0.12 * Math.sin(bb * Math.PI + ph) * (0.5 + pu) : 0; o.scale.y = 1 + 0.12 * pu; } } } }
     for (const name in this.props) { const pool = this.props[name]; for (let n = this.propUsed[name]; n < pool.length; n++) pool[n].visible = false; }
     this.items.end(g.time);
     this.fx.update(g.time, rz, Lref);
