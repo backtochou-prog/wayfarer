@@ -22,6 +22,13 @@ window.ENV3D = window.ENV3D || {};
     return Kit.merge(p);
   }
   // a stretch of sea (the left side): a flat strip from the shore out to 110 m, below the road, foam lines and glints; local x grows away from the road
+  // THE BEACH of the coast road: sand from the road's side to the shore (10 m wide, the fence stands on it), a darker wet band at the water, shells and a few stones, ripples in the dry sand. Local x grows toward the sea.
+  function beach() {
+    const p = [];
+    p.push(Kit.box(10.2, 0.05, SLOT + 0.8, -5.1, 0, 0, C.sand), Kit.box(1.1, 0.045, SLOT + 0.8, -0.55, 0.003, 0, C.sandD));
+    for (let k = 0; k < 7; k++) p.push(Kit.box(1.2 + rnd(k, 11) * 2.4, 0.012, 0.1, -(2 + rnd(k, 12) * 6.5), 0.052, -5.4 + rnd(k, 13) * 10.8, C.sandD), Kit.ico(0.09 + rnd(k, 14) * 0.08, -(1 + rnd(k, 15) * 8), 0.05, -5 + rnd(k, 16) * 10, k % 3 ? C.white : C.terra, { detail: 0 }));
+    return Kit.merge(p);
+  }
   function seaStrip() {
     const p = [Kit.box(110, 0.3, SLOT + 0.8, 55, -0.24, 0, C.sea), Kit.box(110, 0.02, SLOT + 0.8, 55, 0.05, 0, C.seaL), Kit.box(1.6, 0.05, SLOT + 0.8, 0.8, 0.05, 0, C.foam), Kit.box(0.35, 0.05, SLOT + 0.8, 2.6, 0.05, 0, C.foam)];
     // (the road ribbon's verge runs out to 120 m at the pavement's level, so the sea has to lie a few cm above it: the shore is a foam line, not a step)
@@ -147,7 +154,7 @@ window.ENV3D = window.ENV3D || {};
     innerOk: new Set(['tuft', 'tuftBig', 'seaFence', 'lampSea']),
 
     props: {
-      seaStrip: seaStrip, coastClub: club, coastDelphi: delphi, coastParasol: parasol, coastBike: bike, coastPark: park, coastCourt: court, coastPlay: play, tree: ENV3D.city.props.tree,
+      seaStrip: seaStrip, coastBeach: beach, coastClub: club, coastDelphi: delphi, coastParasol: parasol, coastBike: bike, coastPark: park, coastCourt: court, coastPlay: play, tree: ENV3D.city.props.tree,
       cottageA: () => cottage(7.4, 6, 3.6, C.white, C.roof, 1), cottageB: () => cottage(6.4, 5.5, 3.4, '#a9d0e0', C.roofB, 2), cottageC: () => cottage(8.0, 6, 3.8, '#f2d9a8', C.roof, 3), cottageD: () => cottage(6.8, 5.5, 3.2, C.white, C.roofB, 4),
       seaFence: fenceRun(SLOT - 0.4), tuft: tuft(6, 0.9), tuftBig: tuft(11, 1.3),
       driftwood: () => Kit.merge([Kit.cyl(0.16, 0.2, 2.8, 0, 0.2, 0, '#c8b898', { rz: Math.PI / 2, ry: 0.5, seg: 5 }), Kit.cyl(0.08, 0.1, 1.2, 0.5, 0.35, 0.4, '#b8a888', { rz: 1.2, seg: 5 })]),
@@ -177,13 +184,13 @@ window.ENV3D = window.ENV3D || {};
     // A landmark (lighthouse / pier) takes the sea side of one slot per stretch.
     layout(i, rnd) {
       const out = [], S = Stretch.of(i, 150, 4, ['lighthouse', 'pier']), COT = ['cottageA', 'cottageB', 'cottageC', 'cottageD'], lmHere = S.lm && S.lm.slot === i ? S.lm.kind : null;
-      out.push({ prop: 'seaStrip', x: -8.4, dist: 6 });
+      out.push({ prop: 'seaStrip', x: -13.4, dist: 6 }, { prop: 'coastBeach', x: -13.4, dist: 6 });          // (the shore is 5 m further out than it was: a beach of sand lies between the fence and the water)
       for (const side of [-1, 1]) {
         const k = i * 2 + (side > 0 ? 1 : 0), r = n => rnd(k, n), sea = side < 0;
         if (sea) {
-          if (lmHere) { out.push({ prop: lmHere, x: -(lmHere === 'pier' ? 7.4 : 17), dist: 6 }); }
-          else if (S.variant === 3) { out.push({ prop: r(1) < 0.5 ? 'boat' : 'buoy', x: -(11 + r(2) * 14), dist: 3 + r(3) * 6 }, { prop: 'buoy', x: -(8 + r(4) * 4), dist: 9 }); }
-          else if (r(1) < 0.3) out.push({ prop: 'boat', x: -(22 + r(2) * 40), dist: 2 + r(3) * 8 }); else if (r(1) < 0.55) out.push({ prop: 'buoy', x: -(10 + r(2) * 10), dist: 2 + r(3) * 8 });
+          if (lmHere) { out.push({ prop: lmHere, x: -(lmHere === 'pier' ? 12.4 : 22), dist: 6 }); }
+          else if (S.variant === 3) { out.push({ prop: r(1) < 0.5 ? 'boat' : 'buoy', x: -(16 + r(2) * 14), dist: 3 + r(3) * 6 }, { prop: 'buoy', x: -(13 + r(4) * 4), dist: 9 }); }
+          else if (r(1) < 0.3) out.push({ prop: 'boat', x: -(22 + r(2) * 40), dist: 2 + r(3) * 8 }); else if (r(1) < 0.55) out.push({ prop: 'buoy', x: -(15 + r(2) * 10), dist: 2 + r(3) * 8 });
           if (S.variant !== 1 || mod(i, 2) === 0) out.push({ prop: 'seaFence', x: -4.9, dist: 6 });
           if (mod(i, 3) === 0) out.push({ prop: 'tuft', x: -(5.6 + r(5) * 1.2), dist: 2 + r(6) * 8 });
           if (S.variant === 2 || S.variant === 3) if (mod(i, 2) === 0) out.push({ prop: 'lampSea', x: -4.3, dist: 9 });

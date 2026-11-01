@@ -226,6 +226,8 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 
 **The tunnel under the sea: its mouth is your red ring, and its road sinks beside the coast.** Your red glass ring (`tools/tunnel_ring.png`, cut round by `tools/make_tunnel_ring_assets.py` into `src3d/tunnel_ring_assets.js`) now stands across the road at both mouths of the aquarium tunnel (`TunnelRingArt`, drawn by `Renderer3D`), its hole as wide as the ribs; the ribs and the dark lines of the vault no longer stick out of a mouth (only whole slots of the tunnel are dressed). Seen from the coast road (a runner in the tunnel keeps the old look: the whole world dives with it), the road to the tunnel now **sinks little by little** (`World.lift` works for the tunnel junction too: the road is down by the dive, the coast stays level) until it is under the sea in the middle, and comes up again at the other mouth.
 
+**A beach on the coast road.** The sea used to start right behind the fence. The coast road now has a **beach** on its sea side (`coastBeach` in `src3d/env_coast.js`): 10 m of sand from the road to the shore, with the fence standing on it, ripples, a darker wet band at the water, a few shells and stones; the shore, the buoys, the boats, the pier and the lighthouse moved 5 m out to make room.
+
 ## Layout
 
 ```
