@@ -315,12 +315,24 @@ class Renderer3D {
       st.material.opacity = (this.camera.position.y > st.position.y ? 0.4 : 0.7); this.seaTex.offset.set(g.time * 0.012, g.time * 0.007);
     }
     this.road.update(w, rz, Lref);
+    // the two mouths of the tunnel under the sea: the user's ring across the road, hiding the ends of the ribs and of the dark lines of the vault
+    if (this.mouths) for (const m of this.mouths) m.visible = false;
+    if (typeof TunnelRingArt !== 'undefined') {
+      if (!this.mouths) { this.mouths = [0, 1, 2, 3].map(() => { const m = TunnelRingArt.mesh(); this.scene.add(m); return m; }); }
+      let k = 0;
+      for (const P of w.pieces) if (P.type === 'fork' && P.fork.tube) for (const zf of [Math.ceil(P.fe * U.Z / SL) * SL / U.Z, Math.floor((P.fe + P.fork.tube.len) * U.Z / SL) * SL / U.Z]) {      // (the first and the last whole slot of the tunnel)
+        const ahead = zf - p.z; if (ahead < -300 || ahead > 2500 || k >= this.mouths.length) continue;
+        const bs = w.bandsAt(zf), rb = bs.find(q => q.side > 0) || bs[0], m = this.mouths[k++];
+        m.position.set(((rb.lo + rb.hi) / 2 + rb.off) * U.X - Lref, dy(zf) - m.userData.cy, -ahead * U.Z); m.visible = true;
+      }
+    }
 
     // ---- scenery: slots of SEG_LEN, per road and side; the biome of each side is chosen by the blend at that spot
     for (const k in this.propUsed) this.propUsed[k] = 0;
     this.spots.length = 0;
     const i0 = Math.floor(rz / SL) - 2, i1 = i0 + TRACK3D.SLOTS - 1;
     this.doorsNow = []; this.padsNow = [];                    // the doors placed this frame (for the runner's journey) and the landing pads (for the saucers)
+    { const tp = w.pieces.find(q => q.type === 'fork' && q.fork.tube && rz < (q.fe + q.fork.tube.len) * U.Z + 600 && rz > q.z0 * U.Z - 3000); this.tubeCut = tp ? [Math.ceil(tp.fe * U.Z / SL) * SL, Math.floor((tp.fe + tp.fork.tube.len) * U.Z / SL) * SL] : null; }
     for (let i = i0; i <= i1; i++) {
       const zs = i * SL, sc = this.slotCache[((i % 20) + 20) % 20];
       if (sc.i !== i || sc.ver !== w.ver) { sc.i = i; sc.ver = w.ver; sc.mid = w.bandsAt((zs + SL / 2) / U.Z); sc.a = w.bandsAt(zs / U.Z); sc.b = w.bandsAt((zs + SL) / U.Z); }
@@ -349,6 +361,7 @@ class Renderer3D {
           for (const pl of lay) {
             if ((pl.x < 0 ? -1 : 1) !== sg) continue;
             if (inner && (!env.innerOk.has(pl.prop) || Math.abs(pl.x) - hwM > avail - 0.8)) continue;
+            if (this.tubeCut && /^aqua/.test(pl.prop) && (zs < this.tubeCut[0] || zs + SL > this.tubeCut[1])) continue;        // (the ribs and their dark lines of a slot that sticks out of a mouth are not drawn: the ring is the mouth)
             if (pl.under !== undefined && w.seaDepth((zs + pl.dist) / U.Z) * U.Z < pl.under) continue;                    // sea life only where the sea is deep enough over the road (never in the air)
             const t = pl.dist / SL, cx = c0 + (c1 - c0) * t;
             if (/^(scooter|board|neonHover)/.test(pl.prop)) {                    // a parked scooter or a scooter station: offered to the player (an indicator above it), unless it was already taken
