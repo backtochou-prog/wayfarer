@@ -17,7 +17,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const K = await pg.evaluate(() => {
     const out = {}, w = new World(TRACK); w.extras = true; w.extend(160000); const ids = w.pieces.map(p => p.id || 'fork'), i = ids.indexOf('vicA'), V = w.pieces.slice(i, i + 6);
     out.seq = ids.slice(i - 1, i + 7).join('>'); out.curves = V.map(P => P.seg.curve); out.hw = V.map(P => P.seg.hw); out.len = V.map(P => P.z1 - P.z0); out.biome = [...new Set(V.map(P => P.seg.biome))].join();
-    out.alt = V.every((P, k) => !k || Math.sign(P.seg.curve) !== Math.sign(V[k - 1].seg.curve));
+    const bends = V.filter(P => P.seg.curve); out.alt = bends.length === 3 && bends.every((P, k) => !k || Math.sign(P.seg.curve) !== Math.sign(bends[k - 1].seg.curve)) && V.filter(P => !P.seg.curve).length === 3;
     const wid = z => { const b = w.bandsAt(z)[0]; return +((b.hi - b.lo) * U3.X).toFixed(2); };
     out.width = [wid(V[0].z0 - 5), wid(V[0].z0 + 200), wid(V[0].z0 + 500), wid(V[3].z0 + 300), wid(V[5].z1 + 5), wid(V[5].z1 + 500)];
     let jump = 0, prev = null; for (let z = V[0].z0 - 100; z < V[5].z1 + 600; z += 5) { const b = w.bandsAt(z)[0]; if (prev) jump = Math.max(jump, Math.abs(b.hi - prev.hi), Math.abs(b.lo - prev.lo)); prev = b; } out.jump = +jump.toFixed(3);
@@ -26,7 +26,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.zones = [Portal.fam(TRACK.segments.vicA.biome), BIOMES.vic && BIOMES.vic.atmo, !!ENV3D.vic, typeof VIC_ASSETS]; out.noTree = !ENV3D.vic.props.vicTree && !Array.from({ length: 80 }, (_, k) => ENV3D.vic.layout(k, rnd)).flat().some(q => /Tree/.test(q.prop));
     return out;
   });
-  T('after the junction of Utrecht come six short pieces of Vic (' + K.seq + '), 70 m each, with bends that swing left and right (' + K.curves.join(' / ') + ': alternating ' + K.alt + '), all biome ' + K.biome + ', one atmosphere for the 2D game too (' + K.zones[1] + ')',
+  T('after the junction of Utrecht come six short pieces of Vic (' + K.seq + '), 70 m each, half of them straight, three with a bend, left then right then left (' + K.curves.join(' / ') + ': ' + K.alt + '), all biome ' + K.biome + ', one atmosphere for the 2D game too (' + K.zones[1] + ')',
     K.seq === 'utrechtC>fork>vicA>vicB>vicC>vicD>vicE>vicF>neonRun'.split('>').slice(1).join('>') || /^fork>vicA>vicB>vicC>vicD>vicE>vicF>neonRun$/.test(K.seq) && K.alt && K.len.every(l => l === 700) && K.biome === 'vic' && K.zones[0] === 'vic' && K.zones[1] === 'vic' && K.zones[2], JSON.stringify(K.seq));
   T('the street is narrow, 4.4 m wide (' + K.width.join(' / ') + ' m at the entrance, in the street, in a bend, at the end, after the street, further on: it narrows over 40 m and widens again, no jump of its edge: ' + K.jump + ' lane per 0.5 m)',
     K.width[0] > 6 && Math.abs(K.width[2] - 4.4) < 0.05 && Math.abs(K.width[3] - 4.4) < 0.05 && K.width[1] < K.width[0] && K.width[5] > 6 && K.jump < 0.05, JSON.stringify(K.width));
