@@ -114,6 +114,8 @@ class Game {
     this.world.seed = Game.runSeed();
     this.world.reset();
     this.p = { x: 0, z: 0, vx: 0, jy: 0, vy: 0, slide: 0, speed: BASE_SPEED };
+    const zm = typeof location !== 'undefined' && location.search.match(/[?&]zone=(\w+)/);                       // ?zone=vic starts the run just before that piece of the track (a segment id, or vic / utrecht / coast / neon / city as shortcuts): to test a zone without running to it
+    if (zm) { const id = { vic: 'vicA', utrecht: 'utrechtA', coast: 'coastSunset', neon: 'neonRun', city: 'cityRun', tram: 'tramRun', gare: 'gareMidi' }[zm[1]] || zm[1]; this.world.extend(120000); const Z = this.world.pieces.find(q => q.id === id); if (Z) { this.p.z = Math.max(0, Z.z0 - 250); this.world.extend(this.p.z + 3000); } }
     this.coins = 0; if (this.pk) this.pk.reset(); if (this.portal) this.portal.reset(); this.camX = 0; this.camOff = 0; this.camRel = 0; this.camErr = 0; this.prevTgt = 0; this.killer = null;
     const ahead0 = this.world.playerBand(300, 0);                                    // the atmosphere starts as the road ahead looks (the run opens in the neon quarter), not eased in from the base look
     this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0; this.overDelay = 0.5;
