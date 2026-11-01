@@ -216,7 +216,7 @@ Power-ups are at least 240 m apart on a road, never in the first 70 m and never 
 | P or Esc | pause / resume |
 | Enter, Space or R | start / restart (the on-screen buttons work too) |
 
-**Touch buttons** (phones): each one wears your neon ring picture (`src/touch_assets.js`, scaled to the overlay's pixel grid, with its arrow or pause symbol drawn over it; a held button grows and lights up). The hit boxes did not change.
+![the touch buttons wearing the new ring picture, in the 3D game and in the classic 2D one](docs/screenshots/touch-buttons.jpg) **Touch buttons** (phones, in the 3D game and in the classic 2D one): each one wears your neon ring picture, **the new one with the lilac cog, a little bigger than before** (`tools/make_touch_assets.py` builds `src/touch_assets.js` from `tools/touch_ring.png`: cropped to the cog and scaled to the overlay's pixel grid, **42 px for the four big buttons instead of 34, 22 px for the pause button instead of 18**), with its arrow (a little bigger too: 9 rows instead of 7) or pause symbol drawn over it; a held button grows (46 px) and lights up. The hit boxes grew with the buttons: 46 x 42 instead of 38 x 32 for left, right, slide and jump (left at x 3 and 52, slide at x 222 and jump at x 271, y 137 to 179 of the 320 x 180 screen), 30 x 18 for pause, each centred on its picture and clear of the others and of the HOP OFF button.
 
 ![touch buttons](docs/screenshots/touch-buttons.jpg)
 

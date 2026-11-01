@@ -11,11 +11,11 @@ const BTN = {
 };
 // touch controls (canvas pixels): hold left/right to steer, tap jump/slide/pause; each finger is tracked separately
 const TOUCH = [
-  { id: 'left',  x: 4,   y: 142, w: 38, h: 32 },
-  { id: 'right', x: 46,  y: 142, w: 38, h: 32 },
-  { id: 'slide', x: 234, y: 142, w: 38, h: 32 },
-  { id: 'jump',  x: 278, y: 142, w: 38, h: 32 },
-  { id: 'pause', x: 148, y: 3,   w: 24, h: 14 },
+  { id: 'left',  x: 3,   y: 137, w: 46, h: 42 },        // (a little bigger than before, to match the 42 px ring picture they wear: 46 x 42 instead of 38 x 32)
+  { id: 'right', x: 52,  y: 137, w: 46, h: 42 },
+  { id: 'slide', x: 222, y: 137, w: 46, h: 42 },
+  { id: 'jump',  x: 271, y: 137, w: 46, h: 42 },
+  { id: 'pause', x: 145, y: 2,   w: 30, h: 18 },
   { id: 'scooter', x: 132, y: 154, w: 56, h: 20 },       // 'hop off' (only while riding the scooter); getting on is a tap on the indicator over a parked scooter
 ];
 const GRAV = 900, JUMP_V = 268, SLIDE_T = 0.55, P_HW = 0.12;   // P_HW: runner half-width (0.43 m in the 3D build)

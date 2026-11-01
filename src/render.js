@@ -283,11 +283,11 @@ class Renderer {
       for (const [dx, dy, col] of art ? [[1, 1, C.ink], [0, 0, hot ? '#ffffff' : C.bone]] : [[0, 0, hot ? C.amberL : C.bone]]) {   // the symbol: a dark shadow, then the light one
         c.fillStyle = col; const x = cx + dx, y = cy + dy;
         if (t.id === 'pause') { c.fillRect(x - 3, y - 3, 2, 6); c.fillRect(x + 1, y - 3, 2, 6); continue; }
-        for (let i = 0; i < 7; i++) {
-          if (t.id === 'left') c.fillRect(x - 5 + i, y - i, 1, 2 * i + 1);
-          else if (t.id === 'right') c.fillRect(x + 5 - i, y - i, 1, 2 * i + 1);
-          else if (t.id === 'jump') c.fillRect(x - i, y - 5 + i, 2 * i + 1, 1);
-          else c.fillRect(x - i, y + 5 - i, 2 * i + 1, 1);
+        for (let i = 0; i < 9; i++) {                                              // (a little bigger than before, like the buttons: 9 rows instead of 7)
+          if (t.id === 'left') c.fillRect(x - 6 + i, y - i, 1, 2 * i + 1);
+          else if (t.id === 'right') c.fillRect(x + 6 - i, y - i, 1, 2 * i + 1);
+          else if (t.id === 'jump') c.fillRect(x - i, y - 6 + i, 2 * i + 1, 1);
+          else c.fillRect(x - i, y + 6 - i, 2 * i + 1, 1);
         }
       }
     }

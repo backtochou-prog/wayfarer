@@ -1,5 +1,5 @@
 // WAYFARER regression test: the controls. Keyboard: arrows and the WASD cluster still work, and Q Z D S work by letter on any layout (AZERTY: the same keys by position and by letter);
-// the on-screen touch buttons wear the user's neon ring picture (TOUCH_ART) with a symbol over it, a held button grows, the hit boxes are unchanged, and without the image the old plates are drawn.
+// the on-screen touch buttons wear the user's neon ring picture (TOUCH_ART, a little bigger than before: 42 and 22 px) with a symbol over it, a held button grows, the hit boxes match the bigger buttons, and without the image the old plates are drawn.
 //
 // Run:  node tests/qa3d_controls.js     (needs playwright-core and a Chromium: CHROMIUM=/path/to/chrome, NODE_PATH or PW_CORE as for the other tests)
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -49,12 +49,15 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     // without the picture the old plates are drawn (no drawImage of the sheet)
     const keep = ui.touchImg; ui.touchImg = new Image(); calls.length = 0; ui.drawTouch(g); out.fallback = calls.filter(a => a[0] === keep).length; ui.touchImg = keep;
     ui.ctx.drawImage = real; out.boxes = TOUCH.map(t => [t.id, t.x, t.y, t.w, t.h].join(':')).join(' ');
+    out.inside = TOUCH.every(t => t.x >= 0 && t.y >= 0 && t.x + t.w <= 320 && t.y + t.h <= 180); const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; out.apart = TOUCH.every((a, i) => TOUCH.every((b, j) => i === j || !hit(a, b)));
+    // the picture of each big button is centred on its box
+    out.centred = TOUCH.filter(t => t.id !== 'scooter').every(t => { const f = t.id === 'pause' ? TOUCH_ART.small : TOUCH_ART.big; return Math.abs((t.x + t.w / 2) - (t.x + (t.w >> 1))) <= 1 && f.w <= t.w + 0 && f.h <= t.h + 1; });
     return out;
   });
-  T('touch buttons: the neon ring picture (a 52 x 34 PNG sheet, data URI) loads; four big buttons are drawn 34 x 34 and the pause button 18 x 18, a held button grows to 37, nothing is drawn off touch devices or outside play',
-    U.img[0] === 52 && U.img[1] === 34 && U.img[2] && U.idle.length === 5 && U.idle.filter(s => s[0] === 34).length === 4 && U.idle.filter(s => s[0] === 18).length === 1 && U.held[0] === 37 && U.noTouch === 0 && U.notPlay === 0, JSON.stringify({ img: U.img, idle: U.idle, held: U.held, noTouch: U.noTouch, notPlay: U.notPlay }));
-  T('touch buttons: the hit boxes are unchanged (left, right, slide, jump, pause) plus the HOP OFF button of the scooter (inert on foot) and, without the picture, the old plates are drawn instead',
-    U.boxes === 'left:4:142:38:32 right:46:142:38:32 slide:234:142:38:32 jump:278:142:38:32 pause:148:3:24:14 scooter:132:154:56:20' && U.fallback === 0, U.boxes + ' | fallback sheet draws ' + U.fallback);
+  T('touch buttons: the neon ring picture (a 64 x 42 PNG sheet, data URI) loads; four big buttons are drawn 42 x 42 (they were 34) and the pause button 22 x 22 (it was 18), a held button grows to 46, nothing is drawn off touch devices or outside play',
+    U.img[0] === 64 && U.img[1] === 42 && U.img[2] && U.idle.length === 5 && U.idle.filter(s => s[0] === 42).length === 4 && U.idle.filter(s => s[0] === 22).length === 1 && U.held[0] === 46 && U.noTouch === 0 && U.notPlay === 0, JSON.stringify({ img: U.img, idle: U.idle, held: U.held, noTouch: U.noTouch, notPlay: U.notPlay }));
+  T('touch buttons: the hit boxes grew with the buttons (46 x 42 instead of 38 x 32 for left, right, slide and jump, 30 x 18 for pause), each centred on its picture, inside the 320 x 180 screen and clear of each other and of the HOP OFF button of the scooter (inert on foot) and, without the picture, the old plates are drawn instead',
+    U.boxes === 'left:3:137:46:42 right:52:137:46:42 slide:222:137:46:42 jump:271:137:46:42 pause:145:2:30:18 scooter:132:154:56:20' && U.inside && U.apart && U.fallback === 0, U.boxes + ' | fallback sheet draws ' + U.fallback);
 
   // ---------------------------------------------------------------- 3. menu text names the new keys
   const M = await pg.evaluate(() => {
