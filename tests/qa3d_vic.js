@@ -15,23 +15,23 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const open = async url => { const pg = await (await b.newContext({ viewport: { width: 480, height: 270 } })).newPage(); pg.errs = []; pg.on('pageerror', e => pg.errs.push(e.message)); pg.on('console', m => m.type() === 'error' && !/404/.test(m.text()) && pg.errs.push(m.text())); await pg.goto(url, { timeout: 90000 }); await pg.waitForFunction(() => window.__wf, null, { timeout: 60000 }); await pg.waitForTimeout(500); return pg; };
   const pg = await open(base);
   const K = await pg.evaluate(() => {
-    const out = {}, w = new World(TRACK); w.extras = true; w.extend(160000); const ids = w.pieces.map(p => p.id || 'fork'), i = ids.indexOf('vicA'), V = w.pieces.slice(i, i + 6);
-    out.seq = ids.slice(i - 1, i + 7).join('>'); out.curves = V.map(P => P.seg.curve); out.hw = V.map(P => P.seg.hw); out.len = V.map(P => P.z1 - P.z0); out.biome = [...new Set(V.map(P => P.seg.biome))].join();
-    const bends = V.filter(P => P.seg.curve); out.alt = bends.length === 3 && bends.every((P, k) => !k || Math.sign(P.seg.curve) !== Math.sign(bends[k - 1].seg.curve)) && V.filter(P => !P.seg.curve).length === 3;
+    const out = {}, w = new World(TRACK); w.extras = true; w.extend(160000); const ids = w.pieces.map(p => p.id || 'fork'), i = ids.indexOf('vicA'), V = w.pieces.slice(i, i + 11);
+    out.seq = ids.slice(i - 1, i + 12).join('>'); out.curves = V.map(P => P.seg.curve); out.hw = V.map(P => P.seg.hw); out.len = V.map(P => P.z1 - P.z0); out.biome = [...new Set(V.map(P => P.seg.biome))].join();
+    const bends = V.filter(P => P.seg.curve); out.alt = bends.length === 6 && bends.every((P, k) => !k || Math.sign(P.seg.curve) !== Math.sign(bends[k - 1].seg.curve)) && V.filter(P => !P.seg.curve).length === 5 && V.every((P, k) => !!P.seg.curve === (k % 2 === 0));
     const wid = z => { const b = w.bandsAt(z)[0]; return +((b.hi - b.lo) * U3.X).toFixed(2); };
-    out.width = [wid(V[0].z0 - 5), wid(V[0].z0 + 200), wid(V[0].z0 + 500), wid(V[3].z0 + 300), wid(V[5].z1 + 5), wid(V[5].z1 + 500)];
-    let jump = 0, prev = null; for (let z = V[0].z0 - 100; z < V[5].z1 + 600; z += 5) { const b = w.bandsAt(z)[0]; if (prev) jump = Math.max(jump, Math.abs(b.hi - prev.hi), Math.abs(b.lo - prev.lo)); prev = b; } out.jump = +jump.toFixed(3);
-    const hz = w.items.filter(it => OBST[it.kind] && it.z >= V[0].z0 && it.z < V[5].z1); out.kinds = [...new Set(hz.map(it => it.kind))].sort(); out.n = hz.length; out.xs = [...new Set(hz.filter(it => /^vic/.test(it.kind)).map(it => +it.x.toFixed(2)))].sort();
+    out.width = [wid(V[0].z0 - 5), wid(V[0].z0 + 200), wid(V[0].z0 + 500), wid(V[3].z0 + 300), wid(V[10].z1 + 5), wid(V[10].z1 + 500)];
+    let jump = 0, prev = null; for (let z = V[0].z0 - 100; z < V[10].z1 + 600; z += 5) { const b = w.bandsAt(z)[0]; if (prev) jump = Math.max(jump, Math.abs(b.hi - prev.hi), Math.abs(b.lo - prev.lo)); prev = b; } out.jump = +jump.toFixed(3);
+    const hz = w.items.filter(it => OBST[it.kind] && it.z >= V[0].z0 && it.z < V[10].z1); out.kinds = [...new Set(hz.map(it => it.kind))].sort(); out.n = hz.length; out.xs = [...new Set(hz.filter(it => /^vic/.test(it.kind)).map(it => +it.x.toFixed(2)))].sort();
     out.both = hz.some(it => it.x < 0) && hz.some(it => it.x > 0); out.box = { low: OBST.vicLow, high: OBST.vicHigh, hang: OBST.vicHang, bar: OBST.vicBarrel, ch: OBST.vicChairs, pot: OBST.vicPot };
     out.zones = [Portal.fam(TRACK.segments.vicA.biome), BIOMES.vic && BIOMES.vic.atmo, !!ENV3D.vic, typeof VIC_ASSETS]; out.noTree = !ENV3D.vic.props.vicTree && !Array.from({ length: 80 }, (_, k) => ENV3D.vic.layout(k, rnd)).flat().some(q => /Tree/.test(q.prop));
     return out;
   });
-  T('after the junction of Utrecht come six short pieces of Vic (' + K.seq + '), 70 m each, half of them straight, three with a bend, left then right then left (' + K.curves.join(' / ') + ': ' + K.alt + '), all biome ' + K.biome + ', one atmosphere for the 2D game too (' + K.zones[1] + ')',
-    K.seq === 'utrechtC>fork>vicA>vicB>vicC>vicD>vicE>vicF>neonRun'.split('>').slice(1).join('>') || /^fork>vicA>vicB>vicC>vicD>vicE>vicF>neonRun$/.test(K.seq) && K.alt && K.len.every(l => l === 700) && K.biome === 'vic' && K.zones[0] === 'vic' && K.zones[1] === 'vic' && K.zones[2], JSON.stringify(K.seq));
+  T('after the junction of Utrecht come eleven pieces of Vic (' + K.seq + '), 90 m each, eleven in all: the six original bends, left then right and so on, with a straight stretch between two of them (' + K.curves.join(' / ') + ': ' + K.alt + '), all biome ' + K.biome + ', one atmosphere for the 2D game too (' + K.zones[1] + ')',
+     /^fork>vicA>vicS1>vicB>vicS2>vicC>vicS3>vicD>vicS4>vicE>vicS5>vicF>neonRun$/.test(K.seq) && K.alt && K.len.every(l => l === 900) && K.biome === 'vic' && K.zones[0] === 'vic' && K.zones[1] === 'vic' && K.zones[2], JSON.stringify(K.seq));
   T('the street is narrow, 4.4 m wide (' + K.width.join(' / ') + ' m at the entrance, in the street, in a bend, at the end, after the street, further on: it narrows over 40 m and widens again, no jump of its edge: ' + K.jump + ' lane per 0.5 m)',
     K.width[0] > 6 && Math.abs(K.width[2] - 4.4) < 0.05 && Math.abs(K.width[3] - 4.4) < 0.05 && K.width[1] < K.width[0] && K.width[5] > 6 && K.jump < 0.05, JSON.stringify(K.width));
   T('the hazards of the street stand against the walls, half a street wide (lane +-0.28, half-width 0.3: ' + K.xs.join(', ') + '), on both sides (' + K.both + '), six kinds (' + K.kinds.join(', ') + ', ' + K.n + ' of them); no tree, no photograph on the street (' + K.zones[3] + ')',
-    K.xs.length === 2 && K.xs[0] === -0.28 && K.xs[1] === 0.28 && K.both && ['vicBarrel', 'vicChairs', 'vicHang', 'vicHigh', 'vicLow', 'vicPot'].every(k => K.kinds.includes(k)) && K.n >= 12 && K.noTree && K.zones[3] === 'undefined', JSON.stringify(K.box));
+    K.xs.length === 2 && K.xs[0] === -0.28 && K.xs[1] === 0.28 && K.both && ['vicBarrel', 'vicChairs', 'vicHang', 'vicHigh', 'vicLow', 'vicPot'].every(k => K.kinds.includes(k)) && K.n >= 10 && K.noTree && K.zones[3] === 'undefined', JSON.stringify(K.box));
 
   // the rule of the street: the free half is the way round, a low hazard is jumped, the tall one cannot be, the parasol is slid under
   const R = await pg.evaluate(() => {

@@ -141,7 +141,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     let zP = 0, cP = 0, sP = 0, scP = 0, camP = null, nFork = 0, nIsle = 0, want = null, lastUid = -1, f = 0;
     const vis = o => { for (let n = o; n; n = n.parent) if (!n.visible) return false; return true; };
     out.scenes = 0; let wasScene = false;
-    while (out.picks.length < 6 && f < 60 * 60 * 10 && (g.state === 'play' || g.state === 'scene')) {
+    while (out.picks.length < 8 && f < 60 * 60 * 10 && (g.state === 'play' || g.state === 'scene')) {
       if (g.state === 'scene') { if (!wasScene) out.scenes++; wasScene = true; g.advance(1 / 60); f++; zP = g.p.z; cP = g.coins; sP = 0; scP = g.score(); camP = null; if (f % 3 === 0) r.draw(g); continue; } wasScene = false;      /* the Gare du Midi cutscene: the bot lets it play (qa3d_gare checks it) */
       const p = g.p, w = g.world, F = w.openFork();
       if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = F.fork.tube ? (nIsle++ % 2 === 0 ? 'right' : 'left') : (nFork++ % 2 === 0 ? 'left' : 'right'); out.wants.push(want); }      // (the island junction of the beach alternates tunnel / coast road; the Saint-Gilles junctions alternate forest / market)
@@ -190,7 +190,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
 
   // ================================================================ 3b. the neon quarter: a district that fades in and out, and its scenery
   const Nq = await pg.evaluate(() => {
-    const w = new World(TRACK); w.extend(100000); const out = { segs: 0, bad: [], maxStep: 0, mid: 0, ends: 0, ids: [] };
+    const w = new World(TRACK); w.extend(160000); const out = { segs: 0, bad: [], maxStep: 0, mid: 0, ends: 0, ids: [] };
     for (const P of w.pieces.filter(p => p.type === 'seg' && p.id === 'neonRun')) {
       out.segs++; out.len = P.z1 - P.z0; let prev = null;
       for (let z = P.z0 + 0.5; z < P.z1 - 0.5; z += 5) {

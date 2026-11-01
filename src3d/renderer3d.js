@@ -397,7 +397,7 @@ class Renderer3D {
         if (g.portal) for (const gt of g.portal.gatesIn(zs / U.Z, (zs + SL) / U.Z)) {
           if (c0 === null) { c0 = this.centreOf(sc.a, b.side) - Lref; c1 = this.centreOf(sc.b, b.side) - Lref; }
           const dist = gt.z * U.Z - zs, ahead = gt.z * U.Z - rz, far = gt.kind === 'out' ? Math.max(0, Math.min(1, (70 - ahead) / 20)) : Math.max(0, Math.min(1, (120 - ahead) / 30)), near = Math.max(0, Math.min(1, (ahead + 7) / 11));
-          this.place('portalGate', c0 + (c1 - c0) * (dist / SL), dy(gt.z), rz - zs - dist, -Math.atan2(c1 - c0, SL), two ? 0.68 : 1);
+          this.place('portalGate', c0 + (c1 - c0) * (dist / SL), dy(gt.z) - (PortalArt.centre()[1] * (two ? 0.68 : 1) - 1.6), rz - zs - dist, -Math.atan2(c1 - c0, SL), two ? 0.68 : 1);
           const o = this.props.portalGate[this.propUsed.portalGate - 1];
           if (o) {
             o.children[0].material.opacity = o.children[1].material.opacity = far * far * (3 - 2 * far) * near;

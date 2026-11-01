@@ -199,8 +199,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       const p = g.p, w = g.world, F = w.openFork();
       if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = F.fork.tube ? (nIsle++ === 0 ? 'right' : 'left') : F.fork.rise ? 'left' : wants[nFork++]; }      // the island junction of the beach: the first time the run takes the tunnel under the sea to the island, then the coast
       g.keys.left = g.keys.right = false; if (F && want && p.z > F.z0 - 500 && p.z < F.z0 - 400) g.keys[want] = true;
-      let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
-      if (tg && /^vic/.test(tg.kind)) { g.keys.left = tg.x > 0; g.keys.right = tg.x < 0; tg = null; }
+      let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic/.test(it.kind) ? 1.8 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
+      (out.dbg = out.dbg || []).push([+p.x.toFixed(2), tg ? tg.kind + tg.x.toFixed(2) + "@" + Math.round(tg.z - p.z) : "-", +p.vx.toFixed(2)]); if (out.dbg.length > 14) out.dbg.shift(); if (tg && /^vic/.test(tg.kind)) { g.keys.left = tg.x > 0; g.keys.right = tg.x < 0; tg = null; }
       if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || tg.kind !== 'over')) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
       g.advance(1 / 60); f++;
       if (w.seaDepth(g.p.z) > 100) out.tunnel++;      // (deep under the sea: the tunnel to the island, 10 m or more down)
@@ -214,10 +214,10 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
         const cp = { x: r.look.x, y: r.camera.position.y }; if (g.fadeIn > 0.5) camP = null; /* (the cut at the end of the station scene is behind the black fade-in) */ if (camP) { out.maxCamDx = Math.max(out.maxCamDx, Math.abs(cp.x - camP.x)); out.maxCamDy = Math.max(out.maxCamDy, Math.abs(cp.y - camP.y)); } camP = cp;
       }
     }
-    Game.runSeed = orig; out.state = g.state; out.dist = Math.round(g.p.z / 10); out.coins = g.coins; out.dropped = r.dropped + r.items.dropped; return out;
+    Game.runSeed = orig; out.state = g.state; out.killer = g.killer && [+g.p.x.toFixed(2), +g.p.speed.toFixed(0), g.p.jy, g.killer.kind, Math.round(g.killer.x * 100) / 100, g.world.playerBand(g.killer.z, 0).route]; out.dist = Math.round(g.p.z / 10); out.coins = g.coins; out.dropped = r.dropped + r.items.dropped; return out;
   });
   T('a whole run through the junction detours (seed ' + Run.seed + ': ' + Run.biomes.join(' > ') + '): three junctions (three laps), at each one a destination not taken yet, every choice reaches the intended road, still running at ' + Run.dist + ' m (' + Run.scenes + ' station cutscene passed, and ' + Run.tunnel + ' frames in the aquarium tunnel of the beach\'s island junction); the runner never leaves its road nor enters the other one; distance, score and coins never go back',
-    Run.seed > 0 && Run.state === 'play' && Run.scenes >= 1 && Run.tunnel > 100 && Run.picks.length === 3 && Run.biomes.join() === Run.want6.join() && ['forest', 'market', 'ruins'].every(b => Run.biomes.includes(b)) && Run.offRoad === 0 && Run.otherRoad === 0 && Run.backwards === 0 && Run.coins > 30, JSON.stringify({ seed: Run.seed, biomes: Run.biomes, want: Run.want6, state: Run.state, dist: Run.dist, off: Run.offRoad, other: Run.otherRoad, back: Run.backwards, coins: Run.coins }));
+    Run.seed > 0 && Run.state === 'play' && Run.scenes >= 1 && Run.tunnel > 100 && Run.picks.length === 3 && Run.biomes.join() === Run.want6.join() && ['forest', 'market', 'ruins'].every(b => Run.biomes.includes(b)) && Run.offRoad === 0 && Run.otherRoad === 0 && Run.backwards === 0 && Run.coins > 30, JSON.stringify({ dbg: Run.dbg, killer: Run.killer, seed: Run.seed, biomes: Run.biomes, want: Run.want6, state: Run.state, dist: Run.dist, off: Run.offRoad, other: Run.otherRoad, back: Run.backwards, coins: Run.coins }));
   T('and its road and camera are continuous at every junction and merge (max edge step ' + Run.maxEdge.toFixed(2) + ' m between sections, look-at step ' + Run.maxCamDx.toFixed(2) + ' m, camera height step ' + Run.maxCamDy.toFixed(2) + ' m per 3 frames), nothing dropped from a pool',
     Run.maxEdge < 1.6 && Run.maxCamDx < 1.0 && Run.maxCamDy < 0.3 && Run.dropped === 0, JSON.stringify({ edge: +Run.maxEdge.toFixed(2), dx: +Run.maxCamDx.toFixed(2), dy: +Run.maxCamDy.toFixed(2), dropped: Run.dropped }));
 
