@@ -22,6 +22,19 @@ const PortalArt = {
     const m = new THREE.MeshBasicMaterial({ map: this.texture(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false, opacity: 0 });
     m.visible = this._ready; this._mats.push(m); return m;
   },
+  // THE CANAL between the two doors: a tube (R 5.5 m) of pink light, drawn inside out: dark violet walls with spiral bands of neon pink and white, the same pink as the rings of the picture. One texture for every
+  // segment (a segment is 5 m long: the diagonal bands go once round and once along it, so they run on from one segment to the next); the renderer turns it (offset) with the time, so the spiral flows.
+  tubeMaterial() {
+    if (!this._tube) {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x = cv.getContext('2d'); x.fillStyle = '#12041c'; x.fillRect(0, 0, 256, 256);
+      const band = (w, col, a) => { x.strokeStyle = col; x.globalAlpha = a; x.lineWidth = w; for (const k of [-1, 0, 1]) for (const o of [0, 64, 128, 192]) { x.beginPath(); x.moveTo(o + k * 256 - 40, 296); x.lineTo(o + k * 256 + 296, -40); x.stroke(); } x.globalAlpha = 1; };
+      band(26, '#ff1a8c', 0.55); band(10, '#ff6ad0', 0.9); band(3, '#ffffff', 0.95);
+      x.fillStyle = '#ff2fa8'; x.globalAlpha = 0.5; x.fillRect(0, 0, 256, 7); x.fillRect(0, 249, 256, 7); x.globalAlpha = 1;                    // a ring of light at each joint
+      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.anisotropy = 4;
+      this._tube = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, fog: false, toneMapped: false });
+    }
+    return this._tube;
+  },
   // the BLACK that fills that hole (the picture itself is transparent where it is black, so the middle is a black disc over it): opaque, not fogged, its opacity set with the door's
   holeMaterial() {
     const m = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false, opacity: 0 });

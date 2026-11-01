@@ -89,6 +89,10 @@ class Road3D {
       const base = -(w.dropAt(zm / U3.Z) - d0) * U3.Z, qk = bA.lifted, zu = zm / U3.Z;          // (a junction with a raised road, the upper circuit: each road sits at its own height over the level the runner's road gives, World.lift)
       const yA = qk ? base + w.lift(zu, bA.side) * U3.Z : base;
       P[5] = yA; P[6] = 0; P[7] = 0;
+      if (this.cut && zm >= this.cut[0] && zm <= this.cut[1]) {                          // between the two doors of a passage the road is not drawn (the canal of light takes its place)
+        E.loA[i] = loA; E.hiA[i] = E.loB[i] = E.hiB[i] = hiA; P[0] = sz; P[1] = loA; this.collapse(0, i, palA); this.collapse(1, i, palA);
+        if (this.wat) this.waterSection(i, zm, sz, loA, hiA, 0, P[5], Lref); this.seaSection(i, sz, loA, hiA, 0, base); continue;
+      }
       if (this.wat) this.waterSection(i, zm, sz, loA, hiA, bB && !bB.quay ? 0 : this.envs[bA.to].road.water ? bA.t : 0, P[5], Lref);
       P[0] = sz;                                               // doubles travel through P, not through call arguments (avoids boxing)
       if (!bB) {

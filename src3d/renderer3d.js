@@ -48,7 +48,7 @@ class Renderer3D {
     // two halves of the far ground: behind the runner it stays flat; ahead it hangs from a pivot at the runner and tips down with the street's slope (see World.dropAt), so a descent never buries the road
     ground.geometry = new THREE.PlaneGeometry(900, 450); ground.rotation.x = -Math.PI / 2; ground.position.set(0, 0, -225);
     this.groundPivot = new THREE.Group(); this.groundPivot.position.y = -0.03; this.groundPivot.add(ground); this.scene.add(this.groundPivot);
-    const groundBack = new THREE.Mesh(new THREE.PlaneGeometry(900, 450), this.groundMat); groundBack.rotation.x = -Math.PI / 2; groundBack.position.set(0, -0.03, 225); this.scene.add(groundBack);
+    const groundBack = this.groundBack = new THREE.Mesh(new THREE.PlaneGeometry(900, 450), this.groundMat); groundBack.rotation.x = -Math.PI / 2; groundBack.position.set(0, -0.03, 225); this.scene.add(groundBack);
     // the sea seen from under it (the aquarium tunnel dives below the level of the sea): its surface, a bright translucent ceiling that stays at the sea's own height while the road goes down (see draw)
     { const cv = document.createElement('canvas'); cv.width = cv.height = 256; const c = cv.getContext('2d'); c.fillStyle = '#2fb0d2'; c.fillRect(0, 0, 256, 256); c.lineCap = 'round';        // the light of the surface: wavy bright lines in two directions (whole periods: the picture tiles)
       for (let pass = 0; pass < 2; pass++) for (let k = 0; k < 7; k++) { c.strokeStyle = 'rgba(214,255,255,' + (0.35 + 0.1 * (k % 3)) + ')'; c.lineWidth = 2 + (k % 3); c.beginPath(); const base = 18 + k * 36, A = 7 + (k % 4) * 3, ph = k * 1.9 + pass, f = 1 + (k % 3);
@@ -317,6 +317,20 @@ class Renderer3D {
       const lenM = tf.fork.tube.len * U.Z, st = this.seaTop; st.position.set(0, depthM + 0.04, rz - (tf.fe + tf.fork.tube.len / 2) * U.Z); this.seaTex.repeat.set(24, 24 * lenM / 700);
       st.material.opacity = (this.camera.position.y > st.position.y ? 0.4 : 0.7); this.seaTex.offset.set(g.time * 0.012, g.time * 0.007);
     }
+    // THE CANAL BETWEEN THE TWO DOORS of a passage (Portal): from the entry door to the exit door the houses, the road and the ground are not drawn: a tube of pink light joins the two spirals
+    let cut = null; if (g.portal && typeof PortalArt !== 'undefined') for (const q of g.portal.list) if (p.z > q.zIn - 1200 && p.z < q.zOut + 100) { cut = [q.zIn * U.Z, q.zOut * U.Z]; break; }
+    this.road.cut = cut; this.cut = cut;
+    this.groundPivot.visible = this.groundBack.visible = !(cut && rz - 7.5 > cut[0] && rz - 7.5 < cut[1]);
+    if (!this.tubeSegs && typeof PortalArt !== 'undefined') { this.tubeSegs = []; for (let k = 0; k < 16; k++) { const geo = new THREE.CylinderGeometry(5.5, 5.5, 5.2, 28, 1, true); geo.rotateX(Math.PI / 2); const m = new THREE.Mesh(geo, PortalArt.tubeMaterial()); m.visible = false; m.frustumCulled = false; this.scene.add(m); this.tubeSegs.push(m); } }
+    if (this.tubeSegs) {
+      const T = this.tubeSegs, mat = PortalArt.tubeMaterial(); for (const m of T) m.visible = false;
+      if (cut && mat.map) {
+        mat.map.offset.x = (g.time * 0.35) % 1; mat.map.repeat.set(1, 1);
+        const len = (cut[1] - cut[0]) / T.length;
+        for (let k = 0; k < T.length; k++) { const z0 = cut[0] + k * len, z1 = z0 + len, zc = (z0 + z1) / 2, x0 = this.axisLat(w, z0 / U.Z, Lref), x1 = this.axisLat(w, z1 / U.Z, Lref), m = T[k], hz = Math.max(len, 0.1);
+          m.scale.set(1, 1, hz / 5.2); m.position.set((x0 + x1) / 2, 1.6 + dy(zc / U.Z), rz - zc); m.rotation.y = Math.atan2(x1 - x0, -len) + Math.PI; m.visible = true; }
+      }
+    }
     this.road.update(w, rz, Lref);
     // the two mouths of the tunnel under the sea: the user's ring across the road, hiding the ends of the ribs and of the dark lines of the vault
     if (this.mouths) for (const m of this.mouths) m.visible = false;
@@ -361,6 +375,7 @@ class Renderer3D {
             this.place(env.entrance, c0 + (c1 - c0) * (1.5 / SL) + sg * 5.2, WALK_Y + dy((zs + 1.5) / U.Z), rz - zs - 1.5, (sg < 0 ? Math.PI : 0) - Math.atan2(c1 - c0, SL));
           let lay = b.quay && env.quay ? env.quay(b, i, U.X) : this.layoutFor(envId, i);                // the raised road dresses itself (the stairs, the street, the houses: ENV3D.utrechtQuay.quay)
           if (qk && !b.quay && lay[0] && lay[0].prop === 'utBridge') lay = this.layoutFor(envId, i + 3);   // (no bridge across the junction: the canal keeps its quays there)
+          if (cut && zs + SL / 2 > cut[0] && zs + SL / 2 < cut[1]) lay = [];       // (no scenery between the two doors of a passage)
           for (const pl of lay) {
             if ((pl.x < 0 ? -1 : 1) !== sg) continue;
             if (inner && (!env.innerOk.has(pl.prop) || Math.abs(pl.x) - hwM > avail - 0.8)) continue;

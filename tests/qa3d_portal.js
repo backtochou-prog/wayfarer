@@ -141,6 +141,13 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   });
   T('the overlay: nothing away from a passage; between the doors pink at the corners (alpha ' + OV.mid.corner[3] + ' / ' + OV.mid.corner2[3] + ') and clear in the middle (alpha ' + OV.mid.centre[3] + '); a white-pink flash over everything at a door (alpha ' + OV.door.centre[3] + '); nothing after',
     OV.away.every(p => p[3] === 0) && OV.mid.corner[3] > 30 && OV.mid.corner2[3] > 30 && OV.mid.corner[0] > 200 && OV.mid.corner[1] < 120 && OV.mid.centre[3] < 12 && OV.door.centre[3] > 90 && OV.door.centre[0] > 230 && OV.after.every(p => p[3] === 0), JSON.stringify(OV));
+  const TB = await pg.evaluate(() => {
+    const g = __wf, r = g.r, out = {}; r.renderer.render = () => {}; g.start(); g.world.extend(90000); const V = g.world.pieces.find(p => p.id === 'vicA'); g.state = 'play'; g.scene = null; g.fadeIn = 0; g.die = () => {}; g.p.speed = 340; g.p.x = 0; g.p.z = V.z0 - 520; g.world.extend(g.p.z + 3000); g.portal.scan(g.world);
+    const q = g.portal.list.find(x => x.to === 'vic'), at = dz => { while (g.p.z < V.z0 + dz) g.advance(1 / 60); g.time += 1 / 30; r.draw(g); return { tube: r.tubeSegs.filter(m => m.visible).length, ground: r.groundPivot.visible, props: Object.keys(r.props).reduce((s, k) => s + r.props[k].filter(m => m.visible && !/^portalGate$/.test(k) && g.p.z * U3.Z - m.position.z > q.zIn * U3.Z + 6 && g.p.z * U3.Z - m.position.z < q.zOut * U3.Z - 6).length, 0), all: Object.keys(r.props).reduce((s, k) => s + r.props[k].filter(m => m.visible).length, 0), road: r.road.rib[0].pos[(30 * r.road.VPS + 10) * 3 + 1] }; };
+    out.before = at(-300); out.inside = at(300); out.after = at(900); out.len = q ? (q.zOut - q.zIn) / 10 : 0; return out;
+  });
+  T('between the two doors of a passage there is only a tube of pink light, a canal joining the two spirals (' + TB.len + ' m: ' + TB.inside.tube + ' tube segments, no house or prop between the doors: ' + TB.inside.props + ', no ground: ' + !TB.inside.ground + '), and the tube is seen ahead of the entry door but gone after the exit (' + TB.before.tube + ' / ' + TB.after.tube + ' segments, scenery back: ' + TB.before.all + ' / ' + TB.after.all + ')',
+    TB.len === 70 && TB.inside.tube === 16 && TB.inside.props === 0 && !TB.inside.ground && TB.before.all > 10 && TB.before.ground && TB.after.all > 10 && TB.after.ground && TB.after.tube === 0, JSON.stringify(TB));
   T('no JS errors (3D)', pg.errs.length === 0, pg.errs.slice(0, 2).join('|')); await pg.context().close();
 
   // ================================================================ 7. reduced motion: a third of the flash and still streaks
