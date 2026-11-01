@@ -250,6 +250,74 @@ window.ENV3D = window.ENV3D || {};
   };
 
 
+  // ------------------------------------------------------------------ THE UPPER CIRCUIT (the right road of `gateUtrecht`, src/track.js): the street of the right bank, run on foot 3.45 m over the water. It is a road of its own (World.bandsAt: `quay`,
+  // raised by `rise`): the renderer places its props at the road's own height (`dy` of a prop takes them back down to the water), so everything here is drawn the way the Oudegracht is built (origin: the road's axis, x to the right,
+  // the water 3.45 m under it): the wharf and the quay wall with its lit arches 6 m to the left (the canal runs there, a lane of the other road), the street (herringbone paving) from -3.3 to 3.7, railing and black lanterns along its left edge,
+  // the houses and shops of the Oudegracht on its right (`row*`, the canal's own), plane trees at the foot of the facades, and now and then a little park.
+  const SQ = -6.04;                                                  // the water's edge of the canal beside the street, from the street's axis (the roads are 2.84 m apart)
+  const street = (variant, park) => () => {
+    const p = [], L = SLOT + 0.2;
+    p.push(Kit.box(2.74, WH, L, SQ + 1.37, 0, 0, U.stoneD), Kit.box(2.74, 0.05, L, SQ + 1.37, WH, 0, U.slab), Kit.box(0.14, 0.12, L, SQ + 0.05, WH, 0, U.stone));                                    // the wharf and its edge stone
+    p.push(Kit.box(7.0, ST, L, 0.2, 0, 0, U.stoneD), Kit.box(0.2, ST - WH, L, -3.2, WH, 0, U.brickD), Kit.box(0.5, 0.07, L, -3.0, ST, 0, U.stone));                                                 // the street's body, the quay wall (the cellars' wall), the coping
+    for (const z of [-3.4, 3.4]) {                                                                                                                                                              // two wharf cellars in the wall: arch, dark frame, lit door, mullions
+      p.push(Kit.box(0.14, 1.65, 2.0, -3.38, WH, z, U.stone), Kit.cyl(1.0, 1.0, 0.14, -3.38, WH + 1.65, z, U.stone, { rz: Math.PI / 2, seg: 10 }));
+      p.push(Kit.box(0.16, 1.5, 1.7, -3.45, WH, z, U.iron), Kit.cyl(0.85, 0.85, 0.16, -3.45, WH + 1.5, z, U.iron, { rz: Math.PI / 2, seg: 10 }));
+      p.push(Kit.box(0.18, 1.4, 1.5, -3.5, WH, z, U.warm, { glow: true }), Kit.cyl(0.75, 0.75, 0.18, -3.5, WH + 1.4, z, U.warm, { rz: Math.PI / 2, seg: 10, glow: true }));
+      p.push(Kit.box(0.22, 2.1, 0.07, -3.55, WH, z, U.iron), Kit.box(0.22, 0.07, 1.5, -3.55, WH + 0.8, z, U.iron));
+    }
+    for (const z of [-5.4, -0.6, 4.4]) pile(p, SQ - 0.12, z);
+    rail(p, -3.2, L); lamp(p, -3.3, mod(variant, 2) ? -4.5 : 4.5);
+    if (variant === 0) for (const [z, um] of [[-1.0, U.blueUm], [1.9, U.greyUm]]) { bistro(p, SQ + 1.6, WH, z, U.wicker); parasol(p, SQ + 1.6, WH, z, 1.3, um); }                                       // a café terrace on the wharf
+    else if (variant === 1) { for (const z of [-5.6, -1.4, 1.6, 5.6]) p.push(Kit.box(0.4, 0.4, 0.8, SQ + 2.3, WH, z, '#5a3a2a'), Kit.ico(0.34, SQ + 2.3, WH + 0.62, z, U.leaf), Kit.ico(0.25, SQ + 2.3, WH + 0.6, z + 0.3, '#d9667c')); crates(p, SQ + 1.5, -2.6, WH); }   // planters and fruit crates on the wharf
+    else { [-4.4, -3.6, 0.8, 1.6, 2.4].forEach((z, k) => bike(p, SQ + 1.4, z, BIKES[k], WH, 0)); closedUm(p, SQ + 2.0, WH, -1.4, U.redUm); }                                                      // bicycles against the wall
+    if (park) {                                                                                                                                                                                 // a little park instead of the houses: a lawn, a kerb, a bench, flower beds, a low hedge
+      p.push(Kit.box(8.6, ST, L, 8.0, 0, 0, '#4f7048'), Kit.box(0.3, 0.16, L, 3.8, ST, 0, U.stone), Kit.box(0.5, 0.1, 1.6, 4.6, ST + 0.45, -2.2, '#7a5230'), Kit.box(0.08, 0.5, 1.6, 4.85, ST + 0.45, -2.2, '#7a5230'), Kit.box(0.08, 0.45, 0.08, 4.45, ST, -2.9, U.iron), Kit.box(0.08, 0.45, 0.08, 4.45, ST, -1.5, U.iron));
+      for (const [z, c] of [[2.2, '#d9667c'], [3.4, '#e8b84a'], [4.6, '#b07ad9']]) p.push(Kit.ico(0.42, 5.4, ST + 0.3, z, c, { detail: 1 }), Kit.ico(0.34, 6.2, ST + 0.28, z + 0.3, U.leaf, { detail: 1 }));
+      for (let z = -5.2; z <= 5.2; z += 1.3) p.push(Kit.ico(0.62, 11.6, ST + 0.45, z, rnd(z * 3 + 5, 77) < 0.5 ? U.leafD : U.leaf, { detail: 1 }));
+    }
+    return { merged: Kit.merge(p), sprite: UtrechtArt.floor(-3.3, 3.7, -L / 2, L / 2, ST + 0.056), material: () => UtrechtArt.paveMaterial() };
+  };
+  // the face of the quay wall seen from the stairs and from the wharf-level road (where the street is higher than the road): brick with two lit cellar doors (the houses' ground block stands behind it). Origin: its foot at the water, +X away from the road
+  const wallFace = () => {
+    const p = [], L = SLOT + 0.2;
+    p.push(Kit.box(0.12, ST, L, 0.06, 0, 0, U.brickD), Kit.box(0.2, 0.1, L, 0.1, ST - 0.1, 0, U.stone), Kit.box(0.16, 0.14, L, 0.08, 0, 0, U.stoneD));
+    for (const z of [-3.4, 3.4]) {
+      p.push(Kit.box(0.14, 1.65, 2.0, -0.02, WH, z, U.stone), Kit.cyl(1.0, 1.0, 0.14, -0.02, WH + 1.65, z, U.stone, { rz: Math.PI / 2, seg: 10 }));
+      p.push(Kit.box(0.16, 1.5, 1.7, -0.09, WH, z, U.iron), Kit.cyl(0.85, 0.85, 0.16, -0.09, WH + 1.5, z, U.iron, { rz: Math.PI / 2, seg: 10 }));
+      p.push(Kit.box(0.18, 1.4, 1.5, -0.14, WH, z, U.warm, { glow: true }), Kit.cyl(0.75, 0.75, 0.18, -0.14, WH + 1.4, z, U.warm, { rz: Math.PI / 2, seg: 10, glow: true }), Kit.box(0.22, 2.1, 0.07, -0.19, WH, z, U.iron), Kit.box(0.22, 0.07, 1.5, -0.19, WH + 0.8, z, U.iron));
+    }
+    return Kit.merge(p);
+  };
+  // the stairs of the bridge, one slot (12 m) of the flight: flat treads 3 m deep stepping up (or down) 0.108 m each, 6.4 m wide over the road, brick parapets with stone copings and black lanterns on both sides, down to the water.
+  // Origin: the road at the middle of the slot; the slope is the road's own (World.riseAt: h / up), so the treads sit exactly on it. The up flight climbs toward -Z (the way the runner goes), the down flight falls.
+  const SLP = 34.5 / 960;                                            // the slope of the flights: units of rise per unit of run (src/track.js gateUtrecht.rise)
+  const stairs = up => () => {
+    const p = [], sg = up ? 1 : -1, L = SLOT + 0.06, th = Math.atan(SLP);
+    for (let k = 0; k < 4; k++) {
+      const zf = -6 + 3 * k, top = up ? SLP * -zf : SLP * (zf + 3), zc = zf + 1.5;                                       // an up tread's top is at its far (higher) edge, a down tread's at its near one
+      p.push(Kit.box(6.4, 0.5, 2.98, 0, top - 0.5, zc, '#8f857a'), Kit.box(6.4, 0.04, 0.16, 0, top, up ? zf + 0.08 : zf + 2.92, '#c9c0b0'));
+    }
+    for (const s of [-1, 1]) {
+      p.push(Kit.box(0.5, 5.0, L, s * 3.45, -4.0, 0, U.brick, { rx: sg * th }), Kit.box(0.74, 0.12, L, s * 3.45, 0.94, 0, U.stone, { rx: sg * th }), Kit.box(0.06, 0.06, L, s * 3.2, 1.3, 0, U.iron, { rx: sg * th }));
+      lamp(p, s * 3.45, 0, 1.0);
+    }
+    return Kit.merge(p);
+  };
+  // the layout of the raised road (Renderer3D asks `env.quay(band, slot, metres per lane)` instead of `layout`): `dy` brings a prop that stands on the ground (water level) down from the road to it
+  const QROWS = ['rowA', 'rowB', 'rowC', 'rowD', 'rowE', 'rowF', 'rowG', 'rowH'], QPHOTO = ['rowP1905', 'rowP1912', 'rowPChoor', 'rowPWhite', 'rowPShut'];
+  const quayLayout = (b, i, X) => {
+    const out = [], k = i * 2 + 1, cq = ((b.lo + b.hi) / 2 + b.off) * X, xr = FRONT - 2 * cq, dy = -b.rise * U3.Z, full = b.rise >= b.riseH - 0.01;       // xr: the house fronts, on the canal's right bank
+    const row = () => rnd(k, 7) < 0.42 ? QPHOTO[Math.floor(rnd(k, 8) * QPHOTO.length)] : QROWS[Math.floor(rnd(k, 4) * QROWS.length)];
+    const park = full && !b.stairs && mod(i, 7) === 3;
+    if (b.stairs) out.push({ prop: b.stairs > 0 ? 'qStairsUp' : 'qStairsDown', x: 0, dist: 6 });                                                                             // a flight of the stairs
+    else if (full) out.push({ prop: park ? 'qPark' : ['qStreetA', 'qStreetB', 'qStreetC'][Math.floor(rnd(k, 3) * 3)], x: 0, dist: 6, dy });                                          // the street
+    if (!park) out.push({ prop: row(), x: xr, dist: 6, dy });
+    if (!full) out.push({ prop: 'qWall', x: xr - 0.1, dist: 6, dy });                                                                                                                         // the quay wall seen from the stairs
+    if (!b.stairs && (mod(i, 3) === 0 || park)) out.push({ prop: rnd(k, 6) < 0.5 ? 'platane' : 'plataneB', x: park ? 5.4 : xr - 0.3, dist: 3 + rnd(k, 5) * 2, dy });                 // a plane tree at the foot of the facades
+    if (park) out.push({ prop: 'plataneB', x: 8.6, dist: 9, dy });
+    return out.map(q => Object.assign(q, { prop: ut(q.prop) }));
+  };
+
   const UT = {
     name: 'UTRECHT',
     sky: { top: '#27324f', mid: '#7b6f93', horizon: '#f0b484' },                                  // blue hour: deep blue overhead, lilac, a last peach band at the horizon
@@ -264,7 +332,8 @@ window.ENV3D = window.ENV3D || {};
              rowP1905: row(21, { cell: 'h1905', F: 5.4, side: true, wall: '#d8c8a0', shopCol: '#26262c', eave: 0.7 }), rowP1912: row(22, { cell: 'h1912', F: 5.4, side: false, wall: '#d8c8a0', shopCol: '#6a1f2c', display: 'shoes', eave: 0.72 }), rowPChoor: row(23, { cell: 'hChoor', F: 5.3, side: true, wall: '#8a4a38', ground: false }),
              rowPWhite: row(24, { cell: 'wArch', F: 5.0, side: false, wall: '#e0dcd2', shopCol: '#26262c', eave: 0.93 }), rowPShut: row(25, { cell: 'shut', F: 5.4, side: true, wall: '#9a5a44', shopCol: '#2f4a3c', eave: 0.95 }),
              wetA: row(31, null, true), wetB: row(32, null, true), wetC: row(33, null, true), wetD: row(34, null, true),
-             platane: platane(false), plataneB: platane(true), bridge, dom, stationHall, park, plane, footBridge, tunnel },
+             platane: platane(false), plataneB: platane(true), bridge, dom, stationHall, park, plane, footBridge, tunnel,
+             qStreetA: street(0), qStreetB: street(1), qStreetC: street(2), qPark: street(1, true), qStairsUp: stairs(true), qStairsDown: stairs(false), qWall: wallFace },
     stretches: {                                                                                   // the other two stretches of the zone (the Oudegracht is `layout` above)
       basin(i, rnd) { const out = [{ prop: 'stationHall', x: -EDGE, dist: 6 }, { prop: 'park', x: EDGE, dist: 6 }]; if (mod(i, 8) === 2) out.push({ prop: 'footBridge', x: 0, dist: 6 }); else if (mod(i, 2) === 0) out.push({ prop: 'plane', x: 5.6 + rnd(i, 3) * 3, dist: 3 + rnd(i, 4) * 4 }); if (mod(i, 2) === 1) out.push({ prop: 'plane', x: 8.5 + rnd(i, 5) * 3, dist: 8 }); return out; },
       tunnel(i) { return [{ prop: 'tunnel', x: 0, dist: 6 }]; },
@@ -292,4 +361,7 @@ window.ENV3D = window.ENV3D || {};
   ENV3D.utrecht = Object.assign({}, base, { layout: pre(UT.layout), stretches: { basin: pre(UT.stretches.basin), tunnel: pre(UT.stretches.tunnel) } });
   ENV3D.utrechtA = Object.assign({}, base, { name: 'UTRECHT CENTRAAL', layout: ENV3D.utrecht.stretches.basin });
   ENV3D.utrechtB = Object.assign({}, base, { name: 'HOOG CATHARIJNE', layout: ENV3D.utrecht.stretches.tunnel });
+  // the upper circuit: the same atmosphere and props, a road of stone instead of water (no surfboard: Game.surf), no props from `layout` (the road dresses itself: `quay`)
+  ENV3D.utrechtQuay = Object.assign({}, base, { name: 'STADSKADE', layout: () => [], quay: quayLayout, innerOk: new Set(),
+    road: { asphalt: ['#6b5c54', '#675850'], mark: '#6b5c54', edge: '#6b5c54', curb: ['#8f857a', '#8a8076'], curbFace: '#6c655d', walk: ['#8f857a', '#8a8076'], court: '#6c655d', verge: ['#6c655d', '#686059'] } });
 })();

@@ -155,13 +155,20 @@ class World {
       { kind: 'prop', spr: f.left.sign, z: s - 140, x: -1.35, tag: 'prop' },
       { kind: 'prop', spr: f.right.sign, z: s - 140, x: 1.35, tag: 'prop' },
       { kind: 'prop', spr: 'gore', z: s + 70, x: 0, tag: 'prop' });
+    const FC = f.c || FORK_C;
     for (const side of ['left', 'right']) {
       const sg = side === 'left' ? -1 : 1, tag = P.uid + side;
       for (let k = 0; k < 6; k++) {
         const z = s + f.zone * (0.4 + 0.1 * k), e = ease((z - s) / f.zone);
-        this.items.push({ kind: 'coin', z, x: sg * (0.45 + (FORK_C - 0.45) * e), h: 12, tag });
+        this.items.push({ kind: 'coin', z, x: sg * (0.45 + (FC - 0.45) * e), h: 12, tag });
       }
-      this.genSegment(f[side].route, P.fe, f.branchLen, tag, sg * FORK_C);
+      this.genSegment(f[side].route, P.fe, f.branchLen, tag, sg * FC);
+    }
+    if (f.rise) {                                                                  // the raised road (the upper circuit): no hazard on its flights of stairs (nor in the 6 m round them)
+      const G = this.riseGeom(P), tg = P.uid + f.rise.side, up = G.a0 + f.rise.up, dn = G.a1 - f.rise.down;
+      this.items = this.items.filter(it => !(it.tag === tg && OBST[it.kind] && ((it.z > G.a0 - 60 && it.z < up + 60) || (it.z > dn - 60 && it.z < G.a1 + 60))));
+      const cx = (f.rise.side === 'left' ? -1 : 1) * FC;                           // a trail of coins up the stairs and down them
+      for (const [z0, z1] of [[G.a0, up], [dn, G.a1]]) for (let z = z0 + 30; z < z1 - 10; z += 40) this.items.push({ kind: 'coin', z, x: cx, h: 12, tag: tg });
     }
     if (this.extras) { const lt = P.uid + 'left', rt = P.uid + 'right'; this.lastPU.main = Math.max(this.lastPU[lt] === undefined ? -1e9 : this.lastPU[lt], this.lastPU[rt] === undefined ? -1e9 : this.lastPU[rt], this.lastPU.main === undefined ? -1e9 : this.lastPU.main); this.lastShard.main = Math.max(this.lastShard[lt] === undefined ? -1e9 : this.lastShard[lt], this.lastShard[rt] === undefined ? -1e9 : this.lastShard[rt], this.lastShard.main === undefined ? -1e9 : this.lastShard.main); }
   }
@@ -183,7 +190,7 @@ class World {
   dropAt(z) {
     let d = 0;
     for (const P of this.pieces) {
-      if (P.type === 'fork') { if (P.fork.tube && P.choice === 'right') d += this.tubeDip(P, z); continue; }                  // the way to the island: a runner who took it dives below the sea (and comes back up)
+      if (P.type === 'fork') { if (P.fork.tube && P.choice === 'right') d += this.tubeDip(P, z); else if (P.fork.rise && P.choice === P.fork.rise.side) d -= this.riseAt(P, z); continue; }   // the way to the island: a runner who took it dives below the sea (and comes back up); the stairs to the quay: a runner who took them climbs (the whole world sinks)
       if (P.type !== 'seg' || !P.seg.grade || z <= P.z0) continue;
       const tab = P.dropTab || (P.dropTab = this.dropTable(P)), k = (Math.min(z, P.z1) - P.z0) / 20, i = Math.min(tab.length - 2, Math.floor(k));
       d += P.seg.grade * (tab[i] + (tab[i + 1] - tab[i]) * (k - i));
@@ -199,6 +206,21 @@ class World {
   seaDepth(z) { let d = 0; for (const P of this.pieces) if (P.type === 'fork' && P.fork.tube && P.choice === 'right') d += this.tubeDip(P, z); return d; }
   // the fall (units of run) of the aquarium tunnel's road at z: 0 at its two mouths, `depth` on the sea bed between, smooth ramps of `ramp` units (a fork piece with `tube`, see src/track.js)
   tubeDip(P, z) { return World.dipAt(P.fork.tube, z - P.fe); }
+  // THE UPPER CIRCUIT (a fork piece with `rise`, see src/track.js `gateUtrecht`): how high the raised road is over the other one at z, in units of run: 0 until the first flight of stairs, a steady slope up over `up` units, `h` on the
+  // quay, a steady slope down over the last `down` units. The flights start and end on the grid of the scenery slots (`grid` units, one slot: 12 m) after the roads have fully parted and before they merge, so the stairs
+  // (drawn per slot) fit the slope exactly. `stairsAt`: +1 on the way up, -1 on the way down, 0 elsewhere.
+  riseGeom(P) { return P.rg || (P.rg = { a0: Math.ceil(P.fe / P.fork.rise.grid) * P.fork.rise.grid, a1: Math.floor(P.be / P.fork.rise.grid) * P.fork.rise.grid }); }
+  riseAt(P, z) { const r = P.fork.rise, G = this.riseGeom(P); return r.h * Math.min(clamp((z - G.a0) / r.up, 0, 1), clamp((G.a1 - z) / r.down, 0, 1)); }
+  stairsAt(P, z) { const r = P.fork.rise, G = this.riseGeom(P), a = (z - G.a0) / r.up, d = (G.a1 - z) / r.down; return a > 0 && d > 0 && (a < 1 || d < 1) ? (a < d ? 1 : -1) : 0; }
+  // the raised-road fork piece whose range holds z (null elsewhere)
+  riseFork(z) { for (const P of this.pieces) if (P.type === 'fork' && P.fork.rise && z > P.z0 && z < P.be) return P; return null; }
+  // how high a road at z sits over the level the world is drawn at (dropAt: the runner's own road), in units of run, for the road on side `sg` (-1 / 1) of a junction: the raised road is up by its rise when the runner did not take it,
+  // the other one is down by that rise when the runner did (the whole world was raised with the runner by dropAt); 0 everywhere else
+  lift(z, sg) {
+    const P = this.riseFork(z); if (!P) return 0;
+    const side = sg < 0 ? 'left' : 'right', r = this.riseAt(P, z), up = P.fork.rise.side;
+    return side === up ? (P.choice === up ? 0 : r) : (P.choice === up ? -r : 0);
+  }
   static dipAt(tb, u) {                                        // the profile of the dive at `u` units into the tunnel
     if (u <= 0 || u >= tb.len) return 0;
     const s = v => { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); };
@@ -232,13 +254,13 @@ class World {
       }
       return [b];
     }
-    const F = P.fork, out = [];
+    const F = P.fork, out = [], FC = F.c || FORK_C;
     for (const sg of [-1, 1]) {
       const side = sg < 0 ? 'left' : 'right', seg = T.segments[F[side].route];
       let c, hw = 0.9, off = 0;
-      if (z < P.fe) { const e = ease((z - P.z0) / F.zone); c = 0.45 + (FORK_C - 0.45) * e; hw = 0.45 + 0.45 * e; }
-      else if (z < P.be) { c = FORK_C; off = seg.curve * bump((z - P.fe) / F.branchLen); }
-      else c = FORK_C * (1 - ease((z - P.be) / F.merge));
+      if (z < P.fe) { const e = ease((z - P.z0) / F.zone); c = 0.45 + (FC - 0.45) * e; hw = 0.45 + 0.45 * e; }
+      else if (z < P.be) { c = FC; off = seg.curve * bump((z - P.fe) / F.branchLen); }
+      else c = FC * (1 - ease((z - P.be) / F.merge));
       const a = sg * (c - hw), b2 = sg * (c + hw);
       const up = F.hold ? 1 : clamp((z - P.z0) / (F.zone + F.blend), 0, 1);               // `hold`: the look of the piece before goes through the junction (no fade in from the base look)
       const down = z > P.be ? clamp(1 - (z - P.be) / (F.merge + 250), 0, 1) : 1;
@@ -247,6 +269,7 @@ class World {
       if (tb && side === 'right') { const d = z - P.fe; to = d < 0 ? tb.pre : d < tb.len ? tb.biome : to; }   // `tube`: the right road keeps the look of the piece before while the roads part, runs through the tunnel (its own look, BIOMES[biome].swap) and then comes up on the island
       const bd = { lo: Math.min(a, b2), hi: Math.max(a, b2), side: sg, route: F[side].route, off, to, t, chosen: P.choice === side };
       if (tb && side === 'right') bd.pre = tb.pre;                                                // (the look the tunnel blends in from: the coast of this fork's light)
+      if (F.rise && side === F.rise.side) { bd.quay = true; bd.rise = this.riseAt(P, z); bd.riseH = F.rise.h; bd.stairs = this.stairsAt(P, z); }   // the raised road (the upper circuit): its height over the other road, in units of run
       bd.eL = bd.eR = { to, t };
       out.push(bd);
     }

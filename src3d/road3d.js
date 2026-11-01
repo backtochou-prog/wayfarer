@@ -14,7 +14,7 @@ class Road3D {
   constructor(scene, envs, baseId) {
     const D = TRACK3D, N = this.N = D.SECTIONS, SC = this.SC = 15, VPS = this.VPS = SC * 2;
     this.baseId = baseId; this.envs = envs; this.pals = {};
-    this.P = new Float64Array(6); this.X = new Float64Array(12); this.Y = new Float64Array(12); this.C = new Array(11).fill(null);   // scratch for band()
+    this.P = new Float64Array(8); this.X = new Float64Array(12); this.Y = new Float64Array(12); this.C = new Array(11).fill(null);   // scratch for band()
     this.bc = []; for (let i = 0; i < N; i++) this.bc.push({ n: -1e9, ver: -1, bands: null });   // bands per section, reused until the track changes
     this.mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide });
     this.OUT = D.CURB_W + D.WALK_W + D.COURT_W + D.FAR;              // "unlimited" room beside an outer edge
@@ -78,8 +78,10 @@ class Road3D {
       const loA = (bA.lo + bA.off) * X - Lref, hiA = (bA.hi + bA.off) * X - Lref;
       let palA = this.palBand(w, bA, zm);
       E.z[i] = sz; E.two[i] = bB ? 1 : 0;
-      P[5] = -(w.dropAt(zm / U3.Z) - d0) * U3.Z;
-      if (this.wat) this.waterSection(i, zm, sz, loA, hiA, bB ? 0 : this.envs[bA.to].road.water ? bA.t : 0, P[5], Lref);
+      const base = -(w.dropAt(zm / U3.Z) - d0) * U3.Z, qk = bA.quay || (bB && bB.quay), zu = zm / U3.Z;          // (a junction with a raised road, the upper circuit: each road sits at its own height over the level the runner's road gives, World.lift)
+      const yA = qk ? base + w.lift(zu, bA.side) * U3.Z : base;
+      P[5] = yA; P[6] = 0; P[7] = 0;
+      if (this.wat) this.waterSection(i, zm, sz, loA, hiA, bB && !bB.quay ? 0 : this.envs[bA.to].road.water ? bA.t : 0, P[5], Lref);
       P[0] = sz;                                               // doubles travel through P, not through call arguments (avoids boxing)
       if (!bB) {
         E.loA[i] = loA; E.hiA[i] = hiA; E.loB[i] = E.hiB[i] = hiA;
@@ -97,7 +99,11 @@ class Road3D {
       const hiA2 = Math.min(hiA, mid), loB2 = Math.max(loB, mid);
       E.loA[i] = loA; E.hiA[i] = hiA2; E.loB[i] = loB2; E.hiB[i] = hiB;
       P[1] = loA; P[2] = hiA2; P[3] = OUT; P[4] = Math.max(0, mid - hiA2); this.band(0, i, palA, par, dash);
-      P[1] = loB2; P[2] = hiB; P[3] = Math.max(0, loB2 - mid); P[4] = OUT; this.band(1, i, palB, par, dash);
+      P[1] = loB2; P[2] = hiB; P[3] = Math.max(0, loB2 - mid); P[4] = OUT;
+      if (bB.quay) {                                                      // the raised road (the street of the quay): its own height, no verge or pavement strips (the quay props are its sides), and on the flights of stairs a wall down to the level of the canal on both sides
+        const yB = base + w.lift(zu, bB.side) * U3.Z; P[5] = yB; P[3] = P[4] = 0; P[7] = 1; P[6] = bB.rise > 0.01 && bB.rise < bB.riseH - 0.01 ? Math.max(0, yB - yA) : 0;
+      }
+      this.band(1, i, palB, par, dash);
     }
     for (const r of this.rib) { r.geo.attributes.position.needsUpdate = true; r.geo.attributes.color.needsUpdate = true; }
     const W = this.wat; if (W) { W.mesh.visible = W.any && W.src.visible; W.geo.attributes.position.needsUpdate = true; W.geo.attributes.color.needsUpdate = true; W.geo.attributes.uv.needsUpdate = true; }
@@ -127,6 +133,7 @@ class Road3D {
     const X = this.X, Y = this.Y, C = this.C, dy = P[5], L1 = lo - cwL, L2 = L1 - wwL, L3 = L2 - ctL, R1 = hi + cwR, R2 = R1 + wwR, R3 = R2 + ctR;
     X[0] = L3 - vgL; X[1] = L3; X[2] = L2; X[3] = L1; X[4] = lo; X[5] = lo; X[6] = hi; X[7] = hi; X[8] = R1; X[9] = R2; X[10] = R3; X[11] = R3 + vgR;
     Y[0] = Y[1] = Y[2] = Y[3] = CH; Y[4] = cwL > 0.02 ? CH : 0; Y[5] = 0; Y[6] = 0; Y[7] = cwR > 0.02 ? CH : 0; Y[8] = Y[9] = Y[10] = Y[11] = CH; for (let s = 0; s < 12; s++) Y[s] += dy;
+    const sk = P[6]; if (P[7]) { Y[1] = Y[2] = Y[3] = Y[4] = Y[7] = Y[8] = Y[9] = Y[10] = dy; Y[0] = Y[11] = dy - sk; }                // (a wall at each edge of the raised road, down to the level of the canal)
     C[0] = pal.verge[par]; C[1] = pal.court; C[2] = pal.walk[par]; C[3] = pal.curb[par]; C[4] = pal.curbFace; C[5] = pal.asphalt[par];
     C[6] = pal.curbFace; C[7] = pal.curb[par]; C[8] = pal.walk[par]; C[9] = pal.court; C[10] = pal.verge[par];
     const R = this.rib[r], pos = R.pos, col = R.col, base = i * this.VPS * 3;

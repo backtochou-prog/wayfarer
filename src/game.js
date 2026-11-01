@@ -236,7 +236,7 @@ class Game {
     if (this.bgT <= 0.02 && to !== this.bgTo) this.bgTo = to;
     const here = w.playerBand(p.z + 60, p.x);
     this.canopy += ((here.to === 'forest' ? here.t : 0) - this.canopy) * Math.min(1, dt * 2);
-    this.surf = /^utrecht/.test(here.to) && here.t > 0.5;                           // on the canals of Utrecht the runner is on a surfboard (drawing only, the rules are the same); no scooter there
+    this.surf = /^utrecht/.test(here.to) && here.to !== 'utrechtQuay' && here.t > 0.5;                           // on the canals of Utrecht the runner is on a surfboard (drawing only, the rules are the same); no scooter there
     if (this.surf) { this.riding = false; this.scooterHint = null; }
   }
 
@@ -382,7 +382,8 @@ class Game {
 
   // die(hit): `hit` = the hazard that ended the run (kept in `killer`; the 3D build shows a crate (the VORTEX) absorbing the runner instead of a crash: Renderer3D.supportsAbsorb)
   die(hit) {
-    this.killer = hit ? { kind: hit.kind, x: hit.x, z: hit.z, it: hit } : null; const absorb = !!(this.killer && this.killer.kind === 'crate' && this.r.supportsAbsorb);
+    const bn = hit ? this.world.bandNear(hit.z, hit.x) : null;                       // (a cheese cart on the upper circuit of Utrecht is a plain crash: the vortex only takes you on the ground and on the water)
+    this.killer = hit ? { kind: hit.kind, x: hit.x, z: hit.z, it: hit, street: !!(bn && bn.quay) } : null; const absorb = !!(this.killer && this.killer.kind === 'crate' && !this.killer.street && this.r.supportsAbsorb);
     this.releaseTouch();
     if (this.touch && navigator.vibrate) navigator.vibrate(60);
     if (this.pk) this.pk.onDie();

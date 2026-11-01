@@ -84,7 +84,7 @@ class Renderer3D {
                   garePlat: 20, stationFlankA: 12, stationFlankB: 12, platLamp: 20, gareHall: 3, tourMidi: 3,                  // the Gare du Midi
                   coastClub: 6, coastDelphi: 6, portalGate: 14, coastCanal: 18, aquaRib: 18, aquaJelly: 18, aquaTurtle: 14, aquaWhale: 4, aquaShoal0: 28, aquaShoal1: 28, aquaShoal2: 28, aquaRay: 6, aquaKelp: 28, aquaCoral: 22, aquaBubbles: 22, coastTower0: 16, coastTower1: 16, coastTower2: 16, coastTower3: 16, coastRound: 6, coastFruit: 6, coastCafe: 6, coastPool: 6, coastCove: 6, coastParasolI0: 4, coastParasolI1: 4, coastParasolI2: 4, coastParasolI3: 4, coastParasolI4: 4, coastParasolI5: 4, coastParasolI6: 4, coastParasolI7: 4, coastParasolI8: 4, coastPad: 4, coastParasol: 6, coastBike: 18, coastPark: 6, coastCourt: 4, coastPlay: 4,
                   utQuayA: 30, utQuayB: 30, utQuayC: 30, utRowA: 16, utRowB: 16, utRowC: 16, utRowD: 16, utRowE: 16, utRowF: 16, utRowG: 16, utRowH: 16, utRowP1905: 10, utRowP1912: 10, utRowPChoor: 10, utRowPWhite: 10, utRowPShut: 10,   // Utrecht
-                  utWetA: 14, utWetB: 14, utWetC: 14, utWetD: 14, utPlatane: 24, utPlataneB: 24, utBridge: 3, utDom: 3, utStationHall: 24, utPark: 24, utPlane: 30, utFootBridge: 4, utTunnel: 24,
+                  utWetA: 14, utWetB: 14, utWetC: 14, utWetD: 14, utPlatane: 24, utPlataneB: 24, utQStreetA: 16, utQStreetB: 16, utQStreetC: 16, utQPark: 6, utQStairsUp: 12, utQStairsDown: 12, utQWall: 16, utBridge: 3, utDom: 3, utStationHall: 24, utPark: 24, utPlane: 30, utFootBridge: 4, utTunnel: 24,
                   neonHotel: 6, neonMoroccanLamp: 80, neonPendantLamp: 50, neonLanternPierced: 50, neonPillarLamp: 50, neonLightbox: 30 };                                                              // entrance markers where the biome changes
     this.props = {}; this.propUsed = {};
     for (const id of Object.keys(envs)) {
@@ -305,6 +305,7 @@ class Renderer3D {
     // descent: how far below the runner's level a point z (design units) lies (0 on flat road); the slope of the far ground follows the steepest slope seen from here to 150 m ahead
     const d0 = w.dropAt(p.z), dy = z => -(w.dropAt(z) - d0) * U.Z;
     this.groundPivot.rotation.x = -Math.atan(Math.max(w.gradeAt(p.z), w.gradeAt(p.z + 1500)));
+    { const rf = w.riseFork(p.z); this.groundPivot.position.y = -0.03 - (rf && rf.choice === rf.fork.rise.side ? w.riseAt(rf, p.z) * U.Z : 0); }       // (on the raised road, the upper circuit of Utrecht, the ground is the level of the water: 3.45 m under the runner)
     // under the sea: the coast road beside the tunnel is not seen once the runner is deep (hide = the side of the junction not drawn); the surface of the sea is a plane at the sea's own height over the tunnel, from mouth
     // to mouth, but only visible where the road under it is deep (its alpha follows the depth: the entrance and its surroundings stay dry), seen from above on the way down and up and from below in the deep
     const depthM = w.seaDepth(p.z) * U.Z, hide = depthM >= 3.5 ? -1 : 0; this.road.hide = hide; this.hide = hide;
@@ -323,10 +324,10 @@ class Renderer3D {
     for (let i = i0; i <= i1; i++) {
       const zs = i * SL, sc = this.slotCache[((i % 20) + 20) % 20];
       if (sc.i !== i || sc.ver !== w.ver) { sc.i = i; sc.ver = w.ver; sc.mid = w.bandsAt((zs + SL / 2) / U.Z); sc.a = w.bandsAt(zs / U.Z); sc.b = w.bandsAt((zs + SL) / U.Z); }
-      const bands = sc.mid, two = bands.length > 1 && !hide;
+      const bands = sc.mid, two = bands.length > 1 && !hide, qk = two && (bands[0].quay || bands[1].quay);          // qk: a junction with a raised road (the upper circuit of Utrecht)
       for (let bi = 0; bi < bands.length; bi++) {
         if (hide && bands[bi].side === hide) continue;
-        const b = bands[bi], hwM = (b.hi - b.lo) / 2 * U.X;
+        const b = bands[bi], hwM = (b.hi - b.lo) / 2 * U.X, dyb = qk ? (zu => dy(zu) + w.lift(zu, b.side) * U.Z) : dy;           // (dyb: each road of that junction at its own height)
         let c0 = null, c1 = null;
         for (let sg = -1; sg <= 1; sg += 2) {
           const inner = two && sg !== b.side;
@@ -343,7 +344,9 @@ class Renderer3D {
           // an entrance marker at the first slot of a new biome (only when the change is clean: the two slots before differ, the next one agrees)
           if (env.entrance && !inner && pick(i - 1) !== envId && pick(i - 2) !== envId && pick(i + 1) === envId)
             this.place(env.entrance, c0 + (c1 - c0) * (1.5 / SL) + sg * 5.2, WALK_Y + dy((zs + 1.5) / U.Z), rz - zs - 1.5, (sg < 0 ? Math.PI : 0) - Math.atan2(c1 - c0, SL));
-          for (const pl of this.layoutFor(envId, i)) {
+          let lay = b.quay && env.quay ? env.quay(b, i, U.X) : this.layoutFor(envId, i);                // the raised road dresses itself (the stairs, the street, the houses: ENV3D.utrechtQuay.quay)
+          if (qk && !b.quay && lay[0] && lay[0].prop === 'utBridge') lay = this.layoutFor(envId, i + 3);   // (no bridge across the junction: the canal keeps its quays there)
+          for (const pl of lay) {
             if ((pl.x < 0 ? -1 : 1) !== sg) continue;
             if (inner && (!env.innerOk.has(pl.prop) || Math.abs(pl.x) - hwM > avail - 0.8)) continue;
             if (pl.under !== undefined && w.seaDepth((zs + pl.dist) / U.Z) * U.Z < pl.under) continue;                    // sea life only where the sea is deep enough over the road (never in the air)
@@ -351,12 +354,12 @@ class Renderer3D {
             if (/^(scooter|board|neonHover)/.test(pl.prop)) {                    // a parked scooter or a scooter station: offered to the player (an indicator above it), unless it was already taken
               const key = i + ':' + pl.prop + ':' + pl.x.toFixed(2);
               if (this.usedSpots.has(key)) continue;
-              this.spots.push({ key, dock: /Dock$/.test(pl.prop), kind: /^(board|neonHover)/.test(pl.prop) ? 'board' : 'scooter', x: cx + pl.x, y: WALK_Y + dy((zs + pl.dist) / U.Z), z: rz - zs - pl.dist, ahead: zs + pl.dist - rz });
+              this.spots.push({ key, dock: /Dock$/.test(pl.prop), kind: /^(board|neonHover)/.test(pl.prop) ? 'board' : 'scooter', x: cx + pl.x, y: WALK_Y + dyb((zs + pl.dist) / U.Z), z: rz - zs - pl.dist, ahead: zs + pl.dist - rz });
             }
-            let py = WALK_Y + dy((zs + pl.dist) / U.Z), pz = rz - zs - pl.dist;
+            let py = WALK_Y + dyb((zs + pl.dist) / U.Z) + (pl.dy || 0), pz = rz - zs - pl.dist;
             if (pl.live) { py += Math.sin(g.time * 0.8 + i * 1.7 + pl.x) * 0.45; pz += Math.sin(g.time * 0.35 + i) * 2.2; }                    // a creature of the aquarium drifts a little (up and down, along the road)
             this.place(pl.prop, cx + pl.x, py, pz, (pl.x < 0 ? Math.PI : 0) + (pl.rotY || 0) - Math.atan2(c1 - c0, SL));
-            if (pl.prop === 'coastPad') this.padsNow.push({ id: i, x: cx + pl.x, y: WALK_Y + dy((zs + pl.dist) / U.Z), z: rz - zs - pl.dist });
+            if (pl.prop === 'coastPad') this.padsNow.push({ id: i, x: cx + pl.x, y: WALK_Y + dyb((zs + pl.dist) / U.Z), z: rz - zs - pl.dist });
           }
         }
         // the doors of a passage between two zones (Portal) that stand across this road in this slot: the user's picture on a plane, additive, faded in with the distance and out as the runner goes through
@@ -377,16 +380,16 @@ class Renderer3D {
     if (this.saucers) this.saucers.update(this.padsNow, dt, g.time);
 
     // ---- items: coins and hazards on whichever road they belong to; signposts and the fork marker
-    this.items.begin(); const killer = g.state === 'over' && g.killer && g.killer.kind === 'crate' ? g.killer : null; this.kill = null;
+    this.items.begin(); const killer = g.state === 'over' && g.killer && g.killer.kind === 'crate' && !g.killer.street ? g.killer : null; this.kill = null;
     for (const it of w.items) {
       const dz = it.z - p.z;
       if (it.taken || dz < -150 || dz > 1500) continue;         // design units: 15 m behind .. 150 m ahead
-      if (it.offV !== w.ver) { const bn = w.bandNear(it.z, it.x); it.off = bn.off; it.sd = bn.side; it.wet = bn.t > 0.5 && !!(this.envs[bn.to] && this.envs[bn.to].road.water); it.offV = w.ver; }   // road curve offset and water (a canal: hazards get their water look) at the item, cached until the track changes
+      if (it.offV !== w.ver) { const bn = w.bandNear(it.z, it.x); it.off = bn.off; it.sd = bn.side; it.wet = bn.t > 0.5 && !!(this.envs[bn.to] && this.envs[bn.to].road.water); it.street = !!bn.quay; it.offV = w.ver; }   // road curve offset and water (a canal: hazards get their water look) at the item, cached until the track changes
       if (hide && it.sd === hide) continue;                      // (the other road of the junction is not seen from under the sea)
       const x = (it.x + it.off) * U.X - Lref, zr = -dz * U.Z;
-      const iy = dy(it.z);                                     // on a descent the item sits on the sloping road
+      const iy = dy(it.z) + (it.sd && w.riseFork(it.z) ? w.lift(it.z, it.sd) * U.Z : 0);                                     // on a descent the item sits on the sloping road (and on the raised road of the upper circuit, on its stairs and its street)
       if (it.kind === 'prop') { this.place(it.spr, x, WALK_Y + iy, zr, 0); continue; }
-      if (it.kind === 'coin' || this.items.extraSet[it.kind]) this.items.place(it.kind, x, it.h * U.Y + iy, zr); else { const pg = this.items.place(it.wet && this.items.pool[it.kind + 'W'] ? it.kind + 'W' : it.kind, x, iy, zr); if (killer && it === killer.it && pg) this.kill = { x, y: iy, z: zr, g: pg }; }   // coins and the collectibles hang at their height; the hazard that ended the run is remembered (the vortex that absorbs the runner)
+      if (it.kind === 'coin' || this.items.extraSet[it.kind]) this.items.place(it.kind, x, it.h * U.Y + iy, zr); else { const pg = this.items.place(it.street && this.items.pool[it.kind + 'S'] ? it.kind + 'S' : it.wet && this.items.pool[it.kind + 'W'] ? it.kind + 'W' : it.kind, x, iy, zr); if (killer && it === killer.it && pg) this.kill = { x, y: iy, z: zr, g: pg }; }   // coins and the collectibles hang at their height; the hazard that ended the run is remembered (the vortex that absorbs the runner)
     }
     for (const name in this.props) { const pool = this.props[name]; for (let n = this.propUsed[name]; n < pool.length; n++) pool[n].visible = false; }
     this.items.end(g.time);

@@ -99,7 +99,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('deterministic: two fresh worlds are item-for-item identical (items, pieces), scenery layouts reproducible', D.sameItems && D.sameLayouts, JSON.stringify({ items: D.sameItems, layouts: D.sameLayouts }));
   const I = D.integrity; const TRACK_ROUTES = Object.fromEntries(D.routes.map(r => [r, 1]));
   T('track integrity: pieces touch, 1 road on segments / 2 on junctions, road bands change smoothly (no jumps) along all ' + I.pieces + ' pieces incl. the junction pairs of the circuit and every segment variant',
-    I.badSeam === 0 && I.badCount === 0 && I.maxJump < 0.03 && I.forkIds.includes('gate') && I.forkIds.every(f => ['gate', 'gate5', 'gate6', 'gateIslandSunset', 'gateIslandMidday', 'gateIslandBlue', 'gateIslandMorning'].includes(f)) && I.forkIds.some(f => /^gateIsland/.test(f)) && I.segs.includes('cityRunB') && I.segs.includes('neonRun') && ['forest', 'detour', 'forestB', 'detourB'].every(r => !!TRACK_ROUTES[r]), JSON.stringify(I));
+    I.badSeam === 0 && I.badCount === 0 && I.maxJump < 0.03 && I.forkIds.includes('gate') && I.forkIds.every(f => ['gate', 'gate5', 'gate6', 'gateIslandSunset', 'gateIslandMidday', 'gateIslandBlue', 'gateIslandMorning', 'gateUtrecht'].includes(f)) && I.forkIds.some(f => /^gateIsland/.test(f)) && I.segs.includes('cityRunB') && I.segs.includes('neonRun') && ['forest', 'detour', 'forestB', 'detourB'].every(r => !!TRACK_ROUTES[r]), JSON.stringify(I));
   T('both roads of every junction cover the single road at the fork tip and the merge (no gap)', D.forkCover === true, String(D.forkCover));
   const Pt = D.patterns;
   T('obstacle patterns: never the same pattern twice running, several orderings, spacing varies, hazards >= 19 m apart on a road, nothing in the run-up to a junction, first hazard >= 60 m in', Pt.repeats === 0 && Pt.orderings >= 2 && Pt.minGap >= 190 && Pt.guide >= 390 && Pt.firstHazard >= 600 && D.gapKinds >= 8 && Object.values(Pt.distinct).every(n => n >= 2), JSON.stringify({ ...Pt, gapKinds: D.gapKinds }));
@@ -200,7 +200,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
         if ((u < 0.01 || u > 0.99) && b.t > 0.05) out.bad.push(['end', Math.round(z), b.t]); if (u < 0.01 || u > 0.99) out.ends++;
       }
       const before = w.pieces[w.pieces.indexOf(P) - 1], after = w.pieces[w.pieces.indexOf(P) + 1];      // the neighbours are plain city, so the quarter is entered and left from the base palette
-      if (before && after) out.ids.push(before.id + '>' + P.id + '>' + after.id);      // (the last one may sit at the edge of the generated track)
+      if (before && after) out.ids.push((before.id || 'fork') + '>' + P.id + '>' + after.id);      // (the last one may sit at the edge of the generated track)
     }
     const lay = []; for (let i = -3; i < 600; i++) lay.push(ENV3D.neon.layout(i, rnd).length); out.layout = { min: Math.min(...lay), max: Math.max(...lay) };
     const kinds = new Set(); for (let i = -3; i < 1500; i++) for (const q of ENV3D.neon.layout(i, rnd)) kinds.add(q.prop); out.kinds = [...kinds].sort();
@@ -208,7 +208,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   T('the neon quarter is a district: biome neon through the whole segment, atmosphere fades in over the first 120 m and out over the last 120 m (no jumps), full strength for the ~250 m between, the segment sits after the last stretch of Utrecht and before the coastal zone: the neon quarter comes round again (' + Nq.ids[0] + ')',
-    Nq.segs >= 2 && Nq.len >= 5000 && Nq.bad.length === 0 && Nq.maxStep < 0.1 && Nq.mid > 5 && Nq.ends > 0 && Nq.ids.every(x => /^utrechtC>neonRun>coast(Sunset|Midday|BlueHour|Morning)$/.test(x)), JSON.stringify({ segs: Nq.segs, len: Nq.len, bad: Nq.bad.slice(0, 3), maxStep: +Nq.maxStep.toFixed(3), ids: Nq.ids.slice(0, 2) }));
+    Nq.segs >= 2 && Nq.len >= 5000 && Nq.bad.length === 0 && Nq.maxStep < 0.1 && Nq.mid > 5 && Nq.ends > 0 && Nq.ids.every(x => /^fork>neonRun>coast(Sunset|Midday|BlueHour|Morning)$/.test(x)), JSON.stringify({ segs: Nq.segs, len: Nq.len, bad: Nq.bad.slice(0, 3), maxStep: +Nq.maxStep.toFixed(3), ids: Nq.ids.slice(0, 2) }));
   T('the neon quarter\'s layout only uses props it defines, dresses every slot (2..18 props) and uses >= 30 kinds incl. the eight landmarks; the 2D game has a palette for it',
     Nq.missing.length === 0 && Nq.layout.min >= 2 && Nq.layout.max <= 18 && Nq.kinds.length >= 30 && ['neonRing', 'neonSpire', 'neonBillboard', 'neonHalo', 'neonBoardVortex', 'neonBoardSphere', 'neonBoardRings', 'neonBoardSpiral'].every(k => Nq.kinds.includes(k)) && Nq.has2D, JSON.stringify({ missing: Nq.missing, layout: Nq.layout, kinds: Nq.kinds.length }));
 

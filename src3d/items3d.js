@@ -14,6 +14,15 @@ class Items3D {
     const P = PAL3, mats = Kit.materials(), X = U3.X, Y = U3.Y;
     const cHW = OBST.crate.hw * X, cH = OBST.crate.y1 * Y, bHW = OBST.barrier.hw * X, bH = OBST.barrier.y1 * Y;
     const oHW = OBST.over.hw * X, gap = OBST.over.y0 * Y, oTop = OBST.over.y1 * Y;
+    // the cheese cart's chalkboard (shared by every cart): the board of the photo, white chalk on black in a wooden frame
+    const chalk = (() => {
+      const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128; const c = cv.getContext('2d');
+      c.fillStyle = '#6a4a30'; c.fillRect(0, 0, 256, 128); c.fillStyle = '#1d1f1e'; c.fillRect(8, 8, 240, 112);
+      c.fillStyle = '#f2f0e8'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = 'bold 25px "Arial Narrow", Arial, sans-serif';
+      c.fillText('NOORD HOLLANDS', 128, 28); c.fillText('OUD SNIJDBAAR', 128, 60); c.font = 'bold 34px Arial, sans-serif'; c.fillStyle = '#f5d768'; c.fillText('500', 128, 96);
+      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+      return { geo: new THREE.PlaneGeometry(0.98, 0.49), mat: new THREE.MeshBasicMaterial({ map: tex }) };
+    })();
     const kinds = {
       crate: () => VortexArt.solid(),                                                  // the vortex: its solid parts here, the pictures and the funnel as extras (below)
       barrier: () => {                                                                // low striped road barrier on two feet
@@ -81,12 +90,13 @@ class Items3D {
                    const sp = SphereArt.mesh(1.15, 0.5, 28); sp.position.y = 0.2; g.add(sp); g.userData.sphere = sp;
                    const r1 = new THREE.Mesh(G.ring, SH.auraRing), r2 = new THREE.Mesh(G.ring, SH.auraRing); r1.scale.setScalar(2.74); r2.scale.setScalar(2.74); r1.position.y = r2.position.y = 0.2; r2.rotation.x = Math.PI / 2; g.add(r1, r2); g.userData.r1 = r1; g.userData.r2 = r2; },
       crate: g => VortexArt.attach(g), crateW: g => VortexArt.attach(g),
+      crateS: g => { const m = new THREE.Mesh(chalk.geo, chalk.mat); m.position.set(0, 0.64, 0.472); g.add(m); },                // the chalkboard on the counter's front
       dash: g => { const r = new THREE.Mesh(G.ringBig, SH.dashRing); r.position.z = -0.05; g.add(r); g.userData.r1 = r; },
       waymark: g => { const r1 = new THREE.Mesh(G.ringWay, SH.wayRing), r2 = new THREE.Mesh(G.ringWay, SH.wayRing); r2.rotation.x = Math.PI / 2; g.add(r1, r2); g.userData.r1 = r1; g.userData.r2 = r2; },
     };
     this.extraKinds = ['magnet', 'shard', 'dash', 'waymark', 'aura']; this.extraSet = { magnet: 1, shard: 1, dash: 1, waymark: 1, aura: 1 };
     // pool sizes cover everything inside the 150 m draw range, including both roads of a fork
-    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
+    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, crateS: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
     this.pool = {}; this.used = {}; this.merged = {}; this.dropped = 0;
     // ---- the hazards on the canals (Renderer3D picks `<kind>W` for an item on a water road): the same sizes and boxes as the crate, the low barrier and the gate, so what you see is what you can hit
     //   crateW   a whirlpool: the same vortex (it was floating barrels)
@@ -111,7 +121,25 @@ class Items3D {
         return Kit.merge(p);
       },
     };
-    Object.assign(kinds, kinds2, kindsW); kinds.aura = () => ({});                                                    // (aura: no merged geometry, only its extra meshes)
+    // ---- the hazards of the upper circuit of Utrecht (Renderer3D picks `<kind>S` for an item on the raised road, the quay): the cheese cart, from the user's photo. crateS: a wooden counter 1.2 m wide and 1.0 m high (the crate's box:
+    // jump over it), two grey wheels, two handles, yellow and black cheeses with a cut wedge on top, two posts and a red and white gingham awning (above the box, 1.6 m and more), the chalkboard on its front (an extra mesh)
+    const kindsS = {
+      crateS: () => {
+        const p = [], W = '#b2814f', WD = '#8a5e36', WL = '#d3a76c', hw = cHW;
+        p.push(Kit.box(2 * hw, cH - 0.3, 0.92, 0, 0.3, 0, W), Kit.box(2 * hw + 0.06, 0.07, 1.0, 0, cH - 0.07, 0, WL), Kit.box(2 * hw + 0.04, 0.07, 0.96, 0, 0.3, 0, WD));                             // the counter: planks, the rim and the foot rail
+        for (const y of [0.52, 0.72]) p.push(Kit.box(2 * hw + 0.02, 0.025, 0.94, 0, y, 0, WD));                                                                                             // plank lines
+        for (const sx of [-1, 1]) p.push(Kit.cyl(0.3, 0.3, 0.1, sx * (hw + 0.04), 0.25, 0.12, '#5a5e66', { rz: Math.PI / 2, seg: 10 }), Kit.cyl(0.1, 0.1, 0.13, sx * (hw + 0.04), 0.235, 0.12, '#9a9ea6', { rz: Math.PI / 2, seg: 6 }),
+          Kit.box(0.07, 0.07, 0.8, sx * (hw - 0.2), 0.5, -0.8, WD, { rx: -0.16 }), Kit.box(0.07, 0.07, 0.08, sx * (hw - 0.2), 0.3, -0.45, WD));                                                      // the wheels with their hubs, the two handles
+        p.push(Kit.cyl(0.25, 0.25, 0.15, -0.34, cH, 0.0, '#e8b830', { seg: 10 }), Kit.cyl(0.25, 0.25, 0.15, -0.34, cH + 0.15, 0.0, '#f0c848', { seg: 10 }), Kit.cyl(0.23, 0.23, 0.12, -0.34, cH + 0.3, 0.0, '#e8c870', { seg: 10 }),          // yellow wheels of cheese
+               Kit.cyl(0.23, 0.23, 0.15, 0.3, cH, -0.05, '#2a2a30', { seg: 10 }), Kit.cyl(0.23, 0.23, 0.15, 0.3, cH + 0.15, -0.05, '#35353c', { seg: 10 }),                                                              // black cheeses
+               Kit.roof(0.34, 0.2, 0.4, 0.12, cH, 0.3, '#f2c640', { ry: 0.6 }), Kit.cyl(0.14, 0.14, 0.1, -0.05, cH, 0.32, '#d9a838', { seg: 8 }));                                                               // a cut wedge and a small round cheese
+        for (const sx of [-1, 1]) p.push(Kit.box(0.07, 1.05, 0.07, sx * (hw - 0.03), cH, -0.4, WD));                                                                                                       // the two posts at the back
+        const n = 8, w = (2 * hw + 0.2) / n, ay = 1.86;
+        for (let k = 0; k < n; k++) { const x = -hw - 0.1 + (k + 0.5) * w, col = k % 2 ? '#f2e6e2' : '#c8483c'; p.push(Kit.box(w + 0.004, 0.035, 1.08, x, ay, 0.06, col, { rx: 0.4 }), Kit.box(w + 0.004, 0.14, 0.03, x, 1.43, 0.52, col)); }   // the gingham awning, sloping down to the front, with its valance
+        return Kit.merge(p);
+      },
+    };
+    Object.assign(kinds, kinds2, kindsW, kindsS); kinds.aura = () => ({});                                                    // (aura: no merged geometry, only its extra meshes)
     for (const k of Object.keys(kinds)) {
       const m = this.merged[k] = kinds[k](); this.pool[k] = []; this.used[k] = 0;
       for (let i = 0; i < POOL[k]; i++) {

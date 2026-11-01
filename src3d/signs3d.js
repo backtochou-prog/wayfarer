@@ -33,6 +33,18 @@ window.ENV3D = window.ENV3D || {};
                Kit.box(1.9, 0.16, 0.1, 0, 2.24, 0.14, '#9fe0e8'), Kit.box(1.4, 0.14, 0.1, 0.1, 2.46, 0.14, '#e6fbff'));
         return Kit.merge(p);
       },
+      signCanal: () => {                                                  // a white rowing boat on two waves, on a deep teal board
+        const p = board('#e8a33d', '#1f4a5a');
+        p.push(Kit.box(1.2, 0.3, 0.1, 0, 2.5, 0.12, '#e8eae4'), Kit.box(0.7, 0.28, 0.1, 0, 2.8, 0.12, '#e8eae4'), Kit.box(1.3, 0.05, 0.1, 0, 2.45, 0.13, '#9b9c94'), Kit.box(0.08, 0.3, 0.1, 0.45, 2.8, 0.13, '#ff3a2a', { glow: true }),
+               Kit.box(2.0, 0.14, 0.1, 0, 2.2, 0.14, '#9fe0e8'), Kit.box(1.5, 0.14, 0.1, 0.1, 2.0, 0.14, '#e6fbff'), Kit.box(1.8, 0.14, 0.1, -0.1, 1.82, 0.14, '#9fe0e8'));
+        return Kit.merge(p);
+      },
+      signQuay: () => {                                                   // a red and white gingham awning over wheels of cheese, on a burgundy board
+        const p = board('#e8a33d', '#5c1f2c');
+        for (let k = 0; k < 8; k++) p.push(Kit.box(0.27, 0.1, 0.14, -0.95 + k * 0.27, 3.05 - k * 0.0, 0.14, k % 2 ? '#f2e6e2' : '#c8483c', { rx: -0.4 }));
+        p.push(Kit.box(2.0, 0.08, 0.1, 0, 2.28, 0.14, '#7a5230'), Kit.cyl(0.34, 0.34, 0.16, -0.45, 2.36, 0.15, '#e8b830', { seg: 8 }), Kit.cyl(0.3, 0.3, 0.16, 0.5, 2.36, 0.15, '#d9a838', { seg: 8 }), Kit.cyl(0.3, 0.3, 0.12, -0.45, 2.52, 0.15, '#e8c870', { seg: 8 }));
+        return Kit.merge(p);
+      },
       signRuins: () => {                                                  // a stone arch with a glowing green keystone on a dark green board
         const p = board('#9aa690', '#16301f');
         p.push(Kit.box(0.34, 1.3, 0.12, -0.6, 1.75, 0.12, '#a8b09c'), Kit.box(0.34, 1.3, 0.12, 0.6, 1.75, 0.12, '#a8b09c'), Kit.box(1.5, 0.3, 0.12, 0, 3.05, 0.12, '#a8b09c'), Kit.box(0.5, 0.2, 0.12, 0, 2.82, 0.12, '#a8b09c'),
