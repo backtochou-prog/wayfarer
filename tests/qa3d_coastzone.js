@@ -26,6 +26,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       bot() {
         const g = __wf, p = g.p, hz = g.world.items.filter(it => OBST[it.kind] && !it.taken && it.z > p.z - 12 && it.z < p.z + 300); g.keys.left = g.keys.right = false;
         let tg = null; for (const it of hz) { const o = OBST[it.kind]; if (Math.abs(it.x - p.x) > o.hw + P_HW + 0.08 || it.z <= p.z - 2) continue; if (!tg || it.z < tg.z) tg = it; }
+        if (tg && /^vic/.test(tg.kind)) { g.keys.left = tg.x > 0; g.keys.right = tg.x < 0; tg = null; }
         if (tg) { const d = tg.z - p.z, v = p.speed * (g.pk ? g.pk.speedMul : 1), key = c => g.onKey({ code: c, key: c, repeat: false, preventDefault() {} }, true); if (tg.kind === 'over') { if (d < v * 0.2 + 10 && p.jy === 0 && p.slide <= 0) key('ArrowDown'); } else if (d < v * 0.26 + 8 && p.jy === 0 && !hz.some(it => it.kind === 'over' && it.z > p.z - 10 && it.z < p.z + 12)) key('Space'); }
       },
     };

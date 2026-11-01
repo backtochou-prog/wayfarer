@@ -12,7 +12,7 @@
 class Items3D {
   constructor(scene) {
     const P = PAL3, mats = Kit.materials(), X = U3.X, Y = U3.Y;
-    const hwB = OBST.barrier.hw * X, cHW = OBST.crate.hw * X, cH = OBST.crate.y1 * Y, bHW = OBST.barrier.hw * X, bH = OBST.barrier.y1 * Y;
+    const vHW = OBST.vicLow.hw * X, hwB = OBST.barrier.hw * X, cHW = OBST.crate.hw * X, cH = OBST.crate.y1 * Y, bHW = OBST.barrier.hw * X, bH = OBST.barrier.y1 * Y;
     const oHW = OBST.over.hw * X, gap = OBST.over.y0 * Y, oTop = OBST.over.y1 * Y;
     // the cheese cart's chalkboard (shared by every cart): the board of the photo, white chalk on black in a wooden frame
     const chalk = (() => {
@@ -96,7 +96,7 @@ class Items3D {
     };
     this.extraKinds = ['magnet', 'shard', 'dash', 'waymark', 'aura']; this.extraSet = { magnet: 1, shard: 1, dash: 1, waymark: 1, aura: 1 };
     // pool sizes cover everything inside the 150 m draw range, including both roads of a fork
-    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, crateS: 24, barrierS: 24, barrierB: 24, overS: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
+    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, crateS: 24, vicLow: 24, vicBarrel: 24, vicPot: 24, vicChairs: 24, vicHigh: 24, vicHang: 24, barrierS: 24, barrierB: 24, overS: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
     this.pool = {}; this.used = {}; this.merged = {}; this.dropped = 0;
     // ---- the hazards on the canals (Renderer3D picks `<kind>W` for an item on a water road): the same sizes and boxes as the crate, the low barrier and the gate, so what you see is what you can hit
     //   crateW   a whirlpool: the same vortex (it was floating barrels)
@@ -124,6 +124,48 @@ class Items3D {
     // ---- the hazards of the upper circuit of Utrecht (Renderer3D picks `<kind>S` for an item on the raised road, the quay): the cheese cart, from the user's photo. crateS: a wooden counter 1.2 m wide and 1.0 m high (the crate's box:
     // jump over it), two grey wheels, two handles, yellow and black cheeses with a cut wedge on top, two posts and a red and white gingham awning (above the box, 1.6 m and more), the chalkboard on its front (an extra mesh)
     const kindsS = {
+      // VIC: the café terrace of the user's photo as three hazards, each half a street wide (the box: OBST.vicLow / vicHigh / vicHang, hw 0.3 lane = 2.1 m), standing against one wall. Local x = 0 is the middle of the half.
+      vicLow: () => {                                                                                       // two small tables, folding chairs with orange seats, a shrub at the end: 0.68 m high, jump over it
+        const p = [], hw = vHW, G = '#2a2a2e', OR = '#d9772e';
+        for (const tx of [-0.5, 0.5]) { p.push(Kit.cyl(0.4, 0.4, 0.04, tx, bH - 0.04, 0, '#3a3a40', { seg: 8 }), Kit.cyl(0.04, 0.05, bH - 0.05, tx, 0, 0, G, { seg: 6 }), Kit.cyl(0.2, 0.2, 0.03, tx, 0, 0, G, { seg: 8 }));
+          for (const [dx, dz] of [[-0.55, 0.1], [0.55, -0.1], [0.05, 0.55]]) p.push(Kit.box(0.36, 0.04, 0.36, tx + dx, 0.34, dz, OR), Kit.box(0.34, 0.3, 0.04, tx + dx, 0.36, dz + (dz > 0.3 ? 0.18 : 0.0) - (dz > 0.3 ? 0 : 0.18), G), Kit.box(0.04, 0.34, 0.04, tx + dx - 0.14, 0, dz - 0.14, G), Kit.box(0.04, 0.34, 0.04, tx + dx + 0.14, 0, dz + 0.14, G)); }
+        p.push(Kit.ico(0.42, hw - 0.5, 0.42, 0.0, '#3f7a3f', { detail: 1, sy: 0.9 }), Kit.cyl(0.3, 0.25, 0.28, hw - 0.5, 0, 0.0, '#6a4a3a', { seg: 6 }));
+        return Kit.merge(p);
+      },
+      vicBarrel: () => {                                                                                    // two oak barrels with grey iron hoops, a zinc bucket with a plant on one (the user's photo)
+        const p = [], W = '#c9ae88', WD = '#b09a76', H = '#6a6a6e'; 
+        for (const [bx, s] of [[-0.5, 1], [0.55, 0.9]]) { const h = 0.95 * s, r = 0.4 * s;
+          p.push(Kit.cyl(r * 0.88, r, h * 0.5, bx, 0, 0, W, { seg: 12 }), Kit.cyl(r, r * 0.88, h * 0.5, bx, h * 0.5, 0, W, { seg: 12 }), Kit.cyl(r * 0.9, r * 0.9, 0.03, bx, h, 0, WD, { seg: 12 }));
+          for (const y of [0.08, 0.3, 0.62, 0.86]) p.push(Kit.cyl(r * (0.93 + 0.07 * Math.sin((y / 0.95) * Math.PI)) + 0.012, r * (0.93 + 0.07 * Math.sin((y / 0.95) * Math.PI)) + 0.012, 0.07, bx, y * s, 0, H, { seg: 12 })); }
+        p.push(Kit.cyl(0.2, 0.15, 0.28, -0.5, 0.95, 0, '#c8ccd0', { seg: 10 }), Kit.ico(0.24, -0.5, 1.35, 0, '#4d7a45', { detail: 1 }), Kit.ico(0.14, -0.4, 1.45, 0.08, '#d9667c', { detail: 0 }));
+        return Kit.merge(p);
+      },
+      vicChairs: () => {                                                                                    // two armchairs, grey frames with brown wooden slats, one facing the other (the user's photo)
+        const p = [], F = '#5a5850', Wd = '#7a3a2a';
+        for (const [cx, ry] of [[-0.55, Math.PI / 2], [0.55, -Math.PI / 2]]) { const o = { ry };
+          p.push(Kit.box(0.5, 0.05, 0.5, cx, 0.42, 0, Wd, o), Kit.box(0.5, 0.2, 0.04, cx + (ry > 0 ? -0.23 : 0.23), 0.55, 0, Wd, { ry }), Kit.box(0.5, 0.16, 0.04, cx + (ry > 0 ? -0.23 : 0.23), 0.78, 0, Wd, { ry }));
+          for (const dz of [-0.26, 0.26]) p.push(Kit.box(0.54, 0.06, 0.05, cx, 0.62, dz, F), Kit.box(0.05, 0.62, 0.05, cx + 0.22, 0, dz, F), Kit.box(0.05, 0.84, 0.05, cx - 0.22, 0, dz, F)); }
+        return Kit.merge(p);
+      },
+      vicPot: () => {                                                                                       // two big terracotta pots with round shrubs (the planters of the street): 1.05 m, jump over
+        const p = [];
+        for (const [bx, s2, c] of [[-0.5, 1, '#3f7a3f'], [0.55, 0.9, '#355d3a']]) p.push(Kit.cyl(0.42 * s2, 0.3 * s2, 0.75 * s2, bx, 0, 0, '#b0603f', { seg: 10 }), Kit.cyl(0.46 * s2, 0.46 * s2, 0.08, bx, 0.72 * s2, 0, '#9a4e32', { seg: 10 }), Kit.ico(0.62 * s2, bx, 1.2 * s2, 0, c, { detail: 1 }), Kit.ico(0.4 * s2, bx + 0.25, 1.55 * s2 - 0.1, 0.1, '#4d7a45', { detail: 1 }), Kit.ico(0.1, bx - 0.2, 1.6 * s2 - 0.1, 0.25, '#d9667c', { detail: 0 }));
+        return Kit.merge(p);
+      },
+      vicHigh: () => {                                                                                      // a patio heater (a black column with a glass lamp), a big planter, folding chairs stacked against the wall: too tall to jump
+        const p = [], hw = vHW, G = '#2a2a2e';
+        p.push(Kit.cyl(0.3, 0.34, 0.2, -0.45, 0, 0, G, { seg: 8 }), Kit.cyl(0.16, 0.16, 1.9, -0.45, 0.2, 0, G, { seg: 8 }), Kit.cyl(0.26, 0.2, 0.7, -0.45, 2.1, 0, '#d8e8f0', { seg: 8 }), Kit.cone(0.4, 0.25, -0.45, 2.8, 0, G, { seg: 8 }), Kit.box(0.3, 0.2, 0.3, -0.45, 2.3, 0, '#ffb060', { glow: true }));
+        p.push(Kit.cyl(0.55, 0.45, 0.7, 0.35, 0, 0, '#6a4a3a', { seg: 8 }), Kit.ico(0.7, 0.35, 1.2, 0, '#3f7a3f', { detail: 1 }), Kit.ico(0.5, 0.55, 1.7, 0.1, '#355d3a', { detail: 1 }));
+        for (let k = 0; k < 5; k++) p.push(Kit.box(0.4, 0.05, 0.4, hw - 0.4, 0.4 + k * 0.38, 0.1, '#d9772e'), Kit.box(0.4, 0.4, 0.04, hw - 0.4, 0.45 + k * 0.38, -0.1, G), Kit.box(0.04, 0.4 + k * 0.38, 0.04, hw - 0.58, 0, 0.28, G), Kit.box(0.04, 0.4 + k * 0.38, 0.04, hw - 0.22, 0, -0.08, G));
+        return Kit.merge(p);
+      },
+      vicHang: () => {                                                                                      // a big beige parasol on a pole against the wall, its arm carrying the canopy over the street half: the canopy is over your head (from 1.15 m up), slide under it
+        const p = [], hw = vHW, b = '#e6dcc0', b2 = '#cfc4a4', px = hw - 0.1;
+        p.push(Kit.cyl(0.05, 0.06, 2.7, px, 0, 0, '#3a3a40', { seg: 6 }), Kit.cyl(0.3, 0.3, 0.06, px, 0, 0, '#3a3a40', { seg: 8 }), Kit.box(px + 0.1, 0.05, 0.05, px / 2, 2.55, 0, '#3a3a40'));
+        for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; p.push(Kit.box(0.5, 0.04, 1.0, Math.cos(a) * 0.5, 2.3, Math.sin(a) * 0.5, k % 2 ? b : b2, { ry: -a })); }
+        p.push(Kit.cone(1.05, 0.6, 0, 1.9, 0, b, { seg: 8 }));
+        return Kit.merge(p);
+      },
       // the café terrace and the parked bicycles (low barriers, 2.77 m across, 0.68 m high: jump over them) and the bar's awning (a gate to slide under) of the street
       barrierS: () => {
         const p = [], G = '#1f5a3a', hw = bHW;

@@ -31,6 +31,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       bot() {                                                                                    // jumps or slides at the hazards in its own lane, timed to its real speed
         const g = __wf, p = g.p, mul = g.pk ? g.pk.speedMul : 1, hz = g.world.items.filter(it => OBST[it.kind] && !it.taken && it.z > p.z - 12 && it.z < p.z + 300); g.keys.left = g.keys.right = false;
         let tg = null; for (const it of hz) { const o = OBST[it.kind]; if (Math.abs(it.x - p.x) > o.hw + P_HW + 0.08 || it.z <= p.z - 2) continue; if (!tg || it.z < tg.z) tg = it; }
+        if (tg && /^vic/.test(tg.kind)) { g.keys.left = tg.x > 0; g.keys.right = tg.x < 0; tg = null; }
         if (tg) { const d = tg.z - p.z, v = p.speed * mul, key = c => g.onKey({ code: c, key: c, repeat: false, preventDefault() {} }, true); if (tg.kind === 'over') { if (d < v * 0.2 + 10 && p.jy === 0 && p.slide <= 0) key('ArrowDown'); } else if (d < v * 0.26 + 8 && p.jy === 0 && !hz.some(it => it.kind === 'over' && it.z > p.z - 10 && it.z < p.z + 12)) key('Space'); }
       },
     };
@@ -61,7 +62,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   T('the junction is the end of the Oudegracht (' + K.seq + '): LEFT the canal on (' + K.routes[0] + ', ' + K.names[0] + ', biome ' + K.biomes[0] + '), RIGHT the upper circuit (' + K.routes[1] + ', ' + K.names[1] + ', biome ' + K.biomes[1] + '), with the signs ' + K.signs.join(' / ') + ' in both builds; one road before it',
-    K.seq === 'utrechtC>fork>neonRun' && K.isGate && K.routes.join() === 'utrechtD,utrechtQuay' && K.biomes.join() === 'utrecht,utrechtQuay' && K.names.join() === 'OUDEGRACHT,STADSKADE' && K.signs.join() === 'signCanal,signQuay' && K.signKit && K.pieceBefore && K.atmo === 'utrecht' && K.env, JSON.stringify(K));
+    K.seq === 'utrechtC>fork>vicA' && K.isGate && K.routes.join() === 'utrechtD,utrechtQuay' && K.biomes.join() === 'utrecht,utrechtQuay' && K.names.join() === 'OUDEGRACHT,STADSKADE' && K.signs.join() === 'signCanal,signQuay' && K.signKit && K.pieceBefore && K.atmo === 'utrecht' && K.env, JSON.stringify(K));
   T('the two roads run beside each other the way the canal and its street do: centres ' + K.centre.join(' / ') + ' lanes (1.225 each side), 1.8 lanes wide for the canal and 1.5 for the narrower street, ' + K.gap + ' m apart (the wharf and the quay wall between), the right one is the raised road (' + K.flags.join(', ') + ')',
     Math.abs(K.centre[0] + 1.225) < 0.01 && Math.abs(K.centre[1] - 1.225) < 0.01 && Math.abs(K.width[0] - 1.8) < 0.01 && Math.abs(K.width[1] - 1.5) < 0.01 && Math.abs(K.gap - 2.84) < 0.05 && K.flags[0] === false && K.flags[1] === true && K.flags[2] === 34.5 && K.flags[3] === 'utrechtQuay' && K.flags[4] === 'utrecht', JSON.stringify(K.centre));
   T('the road rises ' + K.h.toFixed(2) + ' m: a steady slope (' + K.slope.toFixed(4) + ') up the stairs, level on the street, a steady slope down; the flights start and end on the grid of the scenery slots (' + K.grid.join(', ') + '), after the roads have parted and before they merge; stairs +1 up / -1 down / 0 (' + K.stairs.join(', ') + ')',

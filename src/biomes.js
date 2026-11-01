@@ -119,3 +119,6 @@ for (const id of ['coastMorning', 'coastNoon', 'coastBlue']) BIOMES[id] = Object
 for (const [id, base] of [['coastTown', 'coast'], ['coastTownNoon', 'coastNoon'], ['coastTownBlue', 'coastBlue'], ['coastTownMorning', 'coastMorning']]) BIOMES[id] = Object.assign({}, BIOMES[base], { atmo: base });          // the coastal town: the coast's palettes and the coast's atmosphere (the game switches to it at once: no dip, and no break in the coast music, between the coast and the town)
 // the aquarium tunnel to the island (3D: ENV3D.coastAqua; the 2D game wears the blue-hour coast palette): `keep` = the game keeps the atmosphere it had (the 3D renderer blends the look under the sea in by depth, never a cut), `label` = the name the HUD shows inside it
 BIOMES.coastAqua = Object.assign({}, BIOMES.coastBlue, { keep: true, label: 'AQUARIUM TUNNEL' });
+
+// VIC (the narrow streets of the old town): the 3D build has its own look (ENV3D.vic); the 2D game gets the tram street's palette in warm light
+BIOMES.vic = Object.assign({}, BIOMES.tram, { name: 'VIC', atmo: 'vic', density: 0.2 });

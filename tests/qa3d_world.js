@@ -147,7 +147,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = F.fork.tube ? (nIsle++ % 2 === 0 ? 'right' : 'left') : (nFork++ % 2 === 0 ? 'left' : 'right'); out.wants.push(want); }      // (the island junction of the beach alternates tunnel / coast road; the Saint-Gilles junctions alternate forest / market)
       g.keys.left = g.keys.right = false;
       if (F && want && p.z > F.z0 - 500 && p.z < F.z0 - 400) g.keys[want] = true;
-      let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * 0.5) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
+      let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
+      if (tg && /^vic/.test(tg.kind)) { g.keys.left = tg.x > 0; g.keys.right = tg.x < 0; tg = null; }
       if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || tg.kind !== 'over')) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
       g.advance(1 / 60); f++;
       for (const P of w.pieces) if (P.type === 'fork' && P.choice && !out.forkRoutes.has(P.uid)) { out.forkRoutes.add(P.uid); out.picks.push(P.choice); }
@@ -208,7 +209,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   T('the neon quarter is a district: biome neon through the whole segment, atmosphere fades in over the first 120 m and out over the last 120 m (no jumps), full strength for the ~250 m between, the segment sits after the last stretch of Utrecht and before the coastal zone: the neon quarter comes round again (' + Nq.ids[0] + ')',
-    Nq.segs >= 2 && Nq.len >= 5000 && Nq.bad.length === 0 && Nq.maxStep < 0.1 && Nq.mid > 5 && Nq.ends > 0 && Nq.ids.every(x => /^fork>neonRun>coast(Sunset|Midday|BlueHour|Morning)$/.test(x)), JSON.stringify({ segs: Nq.segs, len: Nq.len, bad: Nq.bad.slice(0, 3), maxStep: +Nq.maxStep.toFixed(3), ids: Nq.ids.slice(0, 2) }));
+    Nq.segs >= 2 && Nq.len >= 5000 && Nq.bad.length === 0 && Nq.maxStep < 0.1 && Nq.mid > 5 && Nq.ends > 0 && Nq.ids.every(x => /^vicF>neonRun>coast(Sunset|Midday|BlueHour|Morning)$/.test(x)), JSON.stringify({ segs: Nq.segs, len: Nq.len, bad: Nq.bad.slice(0, 3), maxStep: +Nq.maxStep.toFixed(3), ids: Nq.ids.slice(0, 2) }));
   T('the neon quarter\'s layout only uses props it defines, dresses every slot (2..18 props) and uses >= 30 kinds incl. the eight landmarks; the 2D game has a palette for it',
     Nq.missing.length === 0 && Nq.layout.min >= 2 && Nq.layout.max <= 18 && Nq.kinds.length >= 30 && ['neonRing', 'neonSpire', 'neonBillboard', 'neonHalo', 'neonBoardVortex', 'neonBoardSphere', 'neonBoardRings', 'neonBoardSpiral'].every(k => Nq.kinds.includes(k)) && Nq.has2D, JSON.stringify({ missing: Nq.missing, layout: Nq.layout, kinds: Nq.kinds.length }));
 

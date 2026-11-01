@@ -171,7 +171,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     let f = 0; while (f < 60 * 120 && g.state === 'play' && g.p.z < C2.z1 + 3600) {
       if (g.p.z > C2.z1 - 600) g.die = () => {};                                                                                 // (after the island the bot only has to run on: the fade-out is what is measured)
       const p = g.p; g.keys.left = g.keys.right = false; if (p.z > C2.z0 - 500 && p.z < C2.z0 - 400) g.keys.right = true;                   // (the way to the island: the tunnel under the sea)
-      let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * 0.5) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
+      let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
+      if (tg && /^vic/.test(tg.kind)) { g.keys.left = tg.x > 0; g.keys.right = tg.x < 0; tg = null; }
       if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || tg.kind !== 'over')) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
       g.p.speed = 340; g.advance(1 / 60); f++; if (f % 30 === 0) { await new Promise(r => setTimeout(r, 30)); out.log.push({ at: Math.round((g.p.z - C.z0) / 10), z: Math.round(g.p.z - C2.fe), isle: Math.round(g.p.z - (C2.fe + C2.fork.tube.len)), to: g.bgTo, w: a.coastW, main: a.music.volume, coast: a.musicCoast.volume, paused: a.musicCoast.paused, track: a.beat().track }); }
     }

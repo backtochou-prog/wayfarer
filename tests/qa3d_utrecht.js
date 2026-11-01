@@ -29,6 +29,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       bot() {                                                                                    // jumps or slides at the hazards in its own lane, timed to its real speed
         const g = __wf, p = g.p, mul = g.pk ? g.pk.speedMul : 1, hz = g.world.items.filter(it => OBST[it.kind] && !it.taken && it.z > p.z - 12 && it.z < p.z + 300); g.keys.left = g.keys.right = false;
         let tg = null; for (const it of hz) { const o = OBST[it.kind]; if (Math.abs(it.x - p.x) > o.hw + P_HW + 0.08 || it.z <= p.z - 2) continue; if (!tg || it.z < tg.z) tg = it; }
+        if (tg && /^vic/.test(tg.kind)) { g.keys.left = tg.x > 0; g.keys.right = tg.x < 0; tg = null; }
         if (tg) { const d = tg.z - p.z, v = p.speed * mul, key = c => g.onKey({ code: c, key: c, repeat: false, preventDefault() {} }, true); if (tg.kind === 'over') { if (d < v * 0.2 + 10 && p.jy === 0 && p.slide <= 0) key('ArrowDown'); } else if (d < v * 0.26 + 8 && p.jy === 0 && !hz.some(it => it.kind === 'over' && it.z > p.z - 10 && it.z < p.z + 12)) key('Space'); }
       },
     };
@@ -42,7 +43,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.door = G.z0 + G.seg.scene.at + G.seg.scene.run; out.toEnd = G.z1 - out.door;                       // the station ends 400 units after the door
     const t = z => w.bandsAt(z)[0]; out.t = [G.z1 - 2, A.z0 + 2, A.z1 - 2, B.z0 + 2, B.z1 - 2, C.z0 + 2, C.z1 - 2, Fk.be - 2, Fk.z1 - 2].map(z => [t(z).to, +t(z).t.toFixed(2)]);       // (the junction: its left road is the canal, the right one the upper circuit)
     let maxStep = 0, prev = null; for (let z = A.z0 + 1; z < Fk.z1 - 1; z += 5) { const v = t(z).t; if (prev !== null) maxStep = Math.max(maxStep, Math.abs(v - prev)); prev = v; } out.maxStep = +maxStep.toFixed(3);
-    out.nextIsNeon = F.id === 'neonRun' && Fk.type === 'fork' && Fk.fork === TRACK.forks.gateUtrecht; out.atmo = ['utrecht', 'utrechtA', 'utrechtB'].map(k => BIOMES[k] && BIOMES[k].atmo);
+    out.nextIsNeon = F.id === 'vicA' && Fk.type === 'fork' && Fk.fork === TRACK.forks.gateUtrecht; out.atmo = ['utrecht', 'utrechtA', 'utrechtB'].map(k => BIOMES[k] && BIOMES[k].atmo);
     // the zone's hazards and pickups are all inside the three pieces
     const inZ = w.items.filter(it => it.kind !== 'prop' && it.z >= A.z0 && it.z < Fk.z1); out.hz = inZ.filter(it => OBST[it.kind]).length; out.kinds = [...new Set(inZ.map(it => it.kind))].sort();
     out.dom = w.items.filter(it => it.kind === 'prop' && it.spr === 'utDom').length;
@@ -51,7 +52,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   T('the track: ' + K.seq + '; the station is ' + K.len[0] + ' units (the door ' + K.toEnd + ' units before its end), then Utrecht in three pieces (' + K.len.slice(1).join(' + ') + ' units: ' + K.names.join(', ') + '), the junction of the Oudegracht (the canal on, or the upper circuit) and then the neon quarter; one atmosphere for all three (' + K.atmo.join(', ') + '), fully in from the first unit to the end of the junction\'s roads and fading out only over the merge after it (largest step ' + K.maxStep + ')',
-    K.seq === 'tramRun>gareMidi>utrechtA>utrechtB>utrechtC>fork>neonRun' && K.len[0] === 1300 && K.toEnd === 400 && K.biome.join() === 'utrechtA,utrechtB,utrecht' && K.names.join() === 'UTRECHT CENTRAAL,HOOG CATHARIJNE,OUDEGRACHT' && K.atmo.every(a => a === 'utrecht') && K.t.slice(0, 8).every(x => x[1] === 1) && K.t[8][1] > 0.2 && K.t[8][1] < 0.8 && K.maxStep < 0.02 && K.nextIsNeon && K.envs.every(Boolean), JSON.stringify({ t: K.t, len: K.len }));
+    K.seq === 'tramRun>gareMidi>utrechtA>utrechtB>utrechtC>fork>vicA' && K.len[0] === 1300 && K.toEnd === 400 && K.biome.join() === 'utrechtA,utrechtB,utrecht' && K.names.join() === 'UTRECHT CENTRAAL,HOOG CATHARIJNE,OUDEGRACHT' && K.atmo.every(a => a === 'utrecht') && K.t.slice(0, 8).every(x => x[1] === 1) && K.t[8][1] > 0.2 && K.t[8][1] < 0.8 && K.maxStep < 0.02 && K.nextIsNeon && K.envs.every(Boolean), JSON.stringify({ t: K.t, len: K.len }));
   T('the zone has coins, hazards (' + K.hz + ' of them), shards and power-ups, the skill patterns (' + K.extraNames.join(', ') + ') and the Dom tower as a fixed prop (' + K.dom + ')', ['coin', 'crate', 'barrier', 'over', 'shard'].every(k => K.kinds.includes(k)) && K.hz >= 15 && K.extraNames.length >= 3 && K.dom >= 1, JSON.stringify(K.kinds));
 
   // ================================================================ 2. the cutscene hands over to Utrecht: its sky and light are in at once (no dip back to the old look), the surfboard comes with the water
