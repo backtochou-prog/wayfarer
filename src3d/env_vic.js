@@ -38,7 +38,7 @@ window.ENV3D = window.ENV3D || {};
   }
   // a row of two houses filling a slot (12 m). `kind` makes the first one a modelled version of one of the user's photographed houses (never the photo itself): the yellow house with its iron balconies and garage doors, the
   // pink house with the big stone arch, the orange house with its shopfront (the colours, the balconies, the doors and the stone frames of the photos, built from boxes)
-  const KIND = { yellow: { wall: '#e0a83c', floors: 3, F: 5.6 }, arch: { wall: '#e8a890', floors: 3, F: 6.2 }, orange: { wall: '#d98a50', floors: 4, F: 5.4 } };
+  const KIND = { yellow: { wall: '#e0a83c', floors: 3, F: 5.6 }, arch: { wall: '#e8a890', floors: 3, F: 6.2 }, orange: { wall: '#d4143a', floors: 4, F: 5.4 } };
   const row = (seed, kind) => () => {
     const p = [], K = kind && KIND[kind], F1 = K ? K.F : 5.4 + rnd(seed, 1) * 1.0, F2 = SLOT - F1;
     house(p, { F: F1, floors: K ? K.floors : 3 + Math.floor(rnd(seed, 2) * 2), wall: K ? K.wall : WALL[Math.floor(rnd(seed, 3) * WALL.length)], zc: -SLOT / 2 + F1 / 2, seed: seed * 3 + 1, kind });
