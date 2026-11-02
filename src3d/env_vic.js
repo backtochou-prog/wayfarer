@@ -84,7 +84,7 @@ window.ENV3D = window.ENV3D || {};
     p.push(Kit.box(0.3, 1.0, 3.2, -0.2, 2.9, -SLOT / 2 + 3.0, '#c8302a', { glow: true }));
     house(p, { F: 6.0, floors: 3, wall: '#c4724a', zc: SLOT / 2 - 3.0, seed: 44 });
     return { merged: Kit.merge(p), sprite: quad(-0.37, 2.95, 3.85, -SLOT / 2 + 1.5, -SLOT / 2 + 4.5), material: () => signMat('TABACS', '#7a1a10', '#ffe6b0', '#ff8a30') }; };
-  const brick = () => { const p = []; house(p, { F: 6.0, floors: 4, wall: '#9a4a3a', plinth: '#2a2420', zc: -SLOT / 2 + 3.0, seed: 45 }); house(p, { F: 6.0, floors: 3, wall: '#c9b48a', zc: SLOT / 2 - 3.0, seed: 46 }); return Kit.merge(p); };
+  const brick = () => { const p = []; house(p, { F: 6.0, floors: 4, wall: '#d4143a', plinth: '#2a2420', zc: -SLOT / 2 + 3.0, seed: 45 }); house(p, { F: 6.0, floors: 3, wall: '#c9b48a', zc: SLOT / 2 - 3.0, seed: 46 }); return Kit.merge(p); };
   const zebra = () => { const p = []; for (let k = 0; k < 8; k++) p.push(Kit.box(5.4, 0.03, 0.42, 0, 0.04, -3.2 + k * 0.92, '#d8d4cc')); return Kit.merge(p); };
   const bollard = () => { const p = []; for (const z of [-1.3, 1.3]) p.push(Kit.box(0.8, 0.8, 0.8, 0, 0, z, '#a89c88'), Kit.box(0.34, 0.34, 0.06, -0.42, 0.28, z, '#2a2a2a')); return Kit.merge(p); };
   const treePot = () => Kit.merge([Kit.cyl(0.8, 0.6, 0.8, 0, 0, 0, '#2c2e34', { seg: 8 }), Kit.cyl(0.07, 0.1, 3.2, 0, 0.7, 0, '#6a5640', { seg: 5 }), Kit.ico(1.2, 0, 4.0, 0, V.leaf, { detail: 1 }), Kit.ico(0.9, 0.6, 3.5, 0.4, V.leafD, { detail: 1 }), Kit.ico(0.9, -0.5, 3.4, -0.3, V.leaf, { detail: 1 }), Kit.ico(0.6, 0, 1.2, 0, V.leafD, { detail: 1 })]);
