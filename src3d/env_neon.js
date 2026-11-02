@@ -37,7 +37,13 @@ window.ENV3D = window.ENV3D || {};
     }
     return UtrechtArt.join(list);
   };
-  const artTower = (F, D, H, seed, cell) => ({ merged: tower(F, D, H, seed), sprite: mosaic(NEON_ASSETS, cell, -0.2, F * 0.86, H * 0.9, 1.3), material: () => NeonArt.material() });
+  // Only the PHOTOGRAPHS (the hanging lamps, the lit window, the two tower pictures) are cut into panes, as a grid of windows; the graphic pictures (swirls, dots, rays) stay one panel with their own proportions.
+  const PHOTO = new Set(['lamps', 'street', 'towA', 'towB']);
+  const picture = (fn, set, cell, x, pw0, hAvail, y0) => {
+    if (PHOTO.has(cell)) return mosaic(set, cell, x, pw0, hAvail, y0);
+    const ar = set[cell].ar || pw0 / hAvail, pw = Math.min(pw0, hAvail * ar), ph = pw / ar; return fn.call(NeonArt, cell, x, -pw / 2, pw / 2, y0, y0 + ph);
+  };
+  const artTower = (F, D, H, seed, cell) => ({ merged: tower(F, D, H, seed), sprite: picture(NeonArt.panel, NEON_ASSETS, cell, -0.2, F * 0.86, H * 0.9, 1.3), material: () => NeonArt.material() });
   // a block with a grid of lit windows (warm, blue, cyan, some dark) and a neon rim
   function block(F, D, H, seed, rim) {
     const p = [Kit.box(D, H, F, D / 2, 0, 0, seed % 2 ? N.bodyC : N.body), Kit.box(D + 0.1, 0.5, F + 0.1, D / 2, 0, 0, N.base)];
@@ -73,11 +79,11 @@ window.ENV3D = window.ENV3D || {};
   // props made of the user's materials (NeonArt, second atlas). A block / shop with a picture panel on its facade; free-standing cut-outs; posts with a banner or a glowing tube.
   const art2 = (merged, sprite) => ({ merged: Kit.merge(merged), sprite, material: () => NeonArt.material2() });
   const artBlock = (F, D, H, seed, cell, rim) => art2([Kit.box(D, H, F, D / 2, 0, 0, N.body), Kit.box(D + 0.1, 0.5, F + 0.1, D / 2, 0, 0, N.base), Kit.box(0.2, 0.18, F, -0.02, H - 0.1, 0, rim, { glow: true }), Kit.box(0.2, 0.18, F, -0.02, 0.9, 0, rim, { glow: true }), Kit.box(D * 0.8, 0.4, F * 0.9, D / 2, H, 0, N.base)],
-    mosaic(NEON_ASSETS2, cell, -0.06, F * 0.92, H - 1.5, 1.1));       // (the picture keeps its own proportions: as wide as the facade allows, as tall as its shape makes it)
+    picture(NeonArt.panel2, NEON_ASSETS2, cell, -0.06, F * 0.92, H - 1.5, 1.1));       // (the picture keeps its own proportions: as wide as the facade allows, as tall as its shape makes it)
   // props of the third set (NEON_ASSETS3: 17 more pictures). `art3` = merged parts + one textured panel of the third atlas.
   const art3 = (merged, sprite) => ({ merged: Kit.merge(merged), sprite, material: () => NeonArt.material3() });
   const facadeBlock = (cell, F, D, H, rim) => art3([Kit.box(D, H, F, D / 2, 0, 0, N.body), Kit.box(D + 0.1, 0.5, F + 0.1, D / 2, 0, 0, N.base), Kit.box(0.2, 0.18, F, -0.02, H - 0.1, 0, rim, { glow: true }), Kit.box(0.2, 0.18, F, -0.02, 0.9, 0, rim, { glow: true }), Kit.box(D * 0.8, 0.4, F * 0.9, D / 2, H, 0, N.base)],
-    mosaic(NEON_ASSETS3, cell, -0.06, F * 0.92, H - 1.5, 1.1));
+    picture(NeonArt.panel3, NEON_ASSETS3, cell, -0.06, F * 0.92, H - 1.5, 1.1));
   // a free-standing picture on two posts (a billboard / sign): `w` m wide, the height follows the picture's aspect, its frame glows
   const board = (cell, w, y0, col) => { const h = w / NEON_ASSETS3[cell].ar, hw = w / 2 + 0.3;
     return art3([Kit.box(0.36, y0 + 0.2, 0.36, 0, 0, -hw + 0.1, N.post), Kit.box(0.36, y0 + 0.2, 0.36, 0, 0, hw - 0.1, N.post), Kit.box(0.28, h + 0.5, w + 0.5, -0.04, y0 - 0.1, 0, N.base),
