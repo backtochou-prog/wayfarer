@@ -241,6 +241,8 @@ At a fork, lean to the road you want (or tap ← / →) before crossing the junc
 
 **The pink alley, the end of Vic (one place).** From your photo of a rose alley: after the street and its junction, Vic goes on in **four pieces with one place only** (`vicR1`..`vicR4`, biome `vicMedina`, HUD *RUELLE*, `lanes: 1`, 2.3 m wide, a slight bend left then right): rose and terracotta walls with a darker foot, **carved wooden awnings** over the windows (a board sloping out with a toothed edge and round holes), arched doors, a lantern. The street narrows to the alley over 40 m and widens again at the neon quarter. Hazards, jump or slide only: **`vicMJump`**, three big **blue tapered planters** with shrubs wall to wall (jump) and **`vicMSlide`**, a **carved wooden awning** across the alley with its toothed edge hanging to 1.2 m (slide under); coins and power-ups on the one line. Models of your photo (the wooden awnings, the blue planter); send more pictures to replace them. `tests/qa3d_vic.js` checks it (19 checks).
 
+**The terrace tower of the neon quarter (from your photo of a tower lit in violet and pink).** A new landmark of the neon quarter (`neonTerrace` in `src3d/env_neon.js`, drawn along the road like the spire and the rings): eleven dark floors, each with a deep terrace slab whose edge glows violet or magenta, shifted from floor to floor so the tower leans and steps, a beaded line of pink lights along the corner of each terrace, warm lit windows, a pink mast on top. It is **modelled from boxes, not the photograph** (and only the building of your picture was used, not the people). `tests/qa3d_world.js` checks that the prop exists and appears in the quarter.
+
 ## Layout
 
 ```
