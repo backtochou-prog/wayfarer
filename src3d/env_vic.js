@@ -11,7 +11,7 @@ window.ENV3D = window.ENV3D || {};
   const lantern = (p, x, y, z) => p.push(Kit.box(0.7, 0.05, 0.05, x - 0.35, y, z, V.iron), Kit.box(0.28, 0.4, 0.28, x - 0.7, y - 0.3, z, V.warm, { glow: true }), Kit.cone(0.26, 0.2, x - 0.7, y + 0.1, z, V.iron, { seg: 4, ry: Math.PI / 4 }));
   // a house: body, plinth, eave and roof, windows with stone frames and shutters, iron balconies, a door or an arch, a lantern
   function house(p, o) {
-    const { F, floors, wall, zc, seed, plinth, awn } = o, kind = /^orange[RW]$/.test(o.kind) ? 'orange' : o.kind, GF = 3.4, FL = 3.0, H = GF + floors * FL, r = n => rnd(seed, n);
+    const { F, floors, wall, zc, seed, plinth, awn } = o, kind = /^orange[RW]$/.test(o.kind) ? 'orange' : o.kind === 'archR' ? 'arch' : o.kind, GF = 3.4, FL = 3.0, H = GF + floors * FL, r = n => rnd(seed, n);
     p.push(Kit.box(7, H, F, 3.5, 0, zc, wall), Kit.box(7.1, plinth ? 1.6 : 0.7, F + 0.05, 3.55, 0, zc, plinth || V.stone), Kit.box(0.9, 0.22, F + 0.3, -0.35, H - 0.1, zc, V.roofD), Kit.roof(7.2, 1.7, F + 0.3, 3.3, H + 0.1, zc, V.roof));
     for (let f = 0; f < floors; f++) {
       const y = GF + f * FL + 0.3, nW = F > 5.5 ? 2 : 1, balc = kind ? true : r(10 + f) < 0.55;
@@ -38,11 +38,11 @@ window.ENV3D = window.ENV3D || {};
   }
   // a row of two houses filling a slot (12 m). `kind` makes the first one a modelled version of one of the user's photographed houses (never the photo itself): the yellow house with its iron balconies and garage doors, the
   // pink house with the big stone arch, the orange house with its shopfront (the colours, the balconies, the doors and the stone frames of the photos, built from boxes)
-  const KIND = { yellow: { wall: '#e0a83c', floors: 3, F: 5.6 }, arch: { wall: '#e8a890', floors: 3, F: 6.2 }, orange: { wall: '#d98a50', floors: 4, F: 5.4 }, orangeR: { wall: '#d4143a', floors: 4, F: 5.4 }, orangeW: { wall: '#8c1230', floors: 4, F: 5.4 } };
+  const KIND = { yellow: { wall: '#e0a83c', floors: 3, F: 5.6 }, arch: { wall: '#e8a890', floors: 3, F: 6.2 }, archR: { wall: '#d4143a', floors: 3, F: 6.2 }, orange: { wall: '#d98a50', floors: 4, F: 5.4 }, orangeR: { wall: '#d4143a', floors: 4, F: 5.4 }, orangeW: { wall: '#8c1230', floors: 4, F: 5.4 } };
   const row = (seed, kind) => () => {
     const p = [], K = kind && KIND[kind], F1 = K ? K.F : 5.4 + rnd(seed, 1) * 1.0, F2 = SLOT - F1;
     house(p, { F: F1, floors: K ? K.floors : 3 + Math.floor(rnd(seed, 2) * 2), wall: K ? K.wall : WALL[Math.floor(rnd(seed, 3) * WALL.length)], zc: -SLOT / 2 + F1 / 2, seed: seed * 3 + 1, kind });
-    house(p, { F: F2, floors: 3 + Math.floor(rnd(seed, 4) * 2), wall: WALL[Math.floor(rnd(seed, 5) * WALL.length)], zc: SLOT / 2 - F2 / 2, seed: seed * 3 + 2 });
+    house(p, { F: F2, floors: 3 + Math.floor(rnd(seed, 4) * 2), wall: kind === 'archR' ? K.wall : WALL[Math.floor(rnd(seed, 5) * WALL.length)], zc: SLOT / 2 - F2 / 2, seed: seed * 3 + 2 });
     return Kit.merge(p);
   };
   // THE PINK ALLEY (the user's photo of a medina alley): rose and terracotta walls with a darker foot, carved wooden awnings over the windows, blue planters, a lantern; one place wide
@@ -109,23 +109,23 @@ window.ENV3D = window.ENV3D || {};
       if (HX > 4 && mod(i, 5) === 2) out.push({ prop: 'vicFlags', x: 0, dist: 6 });
       return out;
     };
-  // 28 in 100 of the orange houses are red: 20 lipstick red and 8 a different red, wine (the user's pick): the layouts swap them by a fixed formula; the two on the left of the alley at 4960 m (the wall the user traced on a screenshot) are always red
-  const redden = L => (i, r) => L(i, r).map(q => { if (q.prop !== 'vicOrange') return q; const u = r(i * 7 + (q.x > 0 ? 1 : 0), 9); return u < 0.2 || (q.x < 0 && (i === 414 || i === 415)) ? Object.assign({}, q, { prop: 'vicOrangeR' }) : u < 0.28 ? Object.assign({}, q, { prop: 'vicOrangeW' }) : q; });
+  // 28 in 100 of the orange houses are red: 20 lipstick red and 8 a different red, wine (the user's pick): the layouts swap them by a fixed formula; and the big wall that faces the runner at the start of the single-place alley (the arch house on its left, slot 412, 4940 m: the wall the user circled) is always lipstick red
+  const redden = (L, arch) => (i, r) => L(i, r).map(q => { if (/^vic(Arch|Yellow|Orange[RW]?|[A-F])$/.test(q.prop) && arch && Math.sign(q.x) === arch && i === 412)  /* the block between the two roads is drawn by both layouts: both put the same red house there */ return Object.assign({}, q, { prop: 'vicArchR' }); if (q.prop !== 'vicOrange') return q; const u = r(i * 7 + (q.x > 0 ? 1 : 0), 9); return u < 0.2 ? Object.assign({}, q, { prop: 'vicOrangeR' }) : u < 0.28 ? Object.assign({}, q, { prop: 'vicOrangeW' }) : q; });
   const UT = {
     name: 'VIC',
     sky: { top: '#5a86c8', mid: '#a8c0e0', horizon: '#f2b08a' }, sunDisc: { color: '#ffe8c0', size: 8 }, sunPos: [-26, 10], sunGlow: 0.6, fog: { color: '#d8b8a0', near: 36, far: 170 },
     hemi: { sky: '#cfd8f0', ground: '#6a5a50', intensity: 1.6 }, sun: { color: '#ffc890', intensity: 2.0, position: [-8, 5, -9] }, groundFar: '#5a4a40',
     road: { asphalt: ['#4c4e5c', '#484a58'], mark: '#4c4e5c', edge: '#5a5c6c', curb: ['#9a8e7a', '#948874'], curbFace: '#7a6e5c', walk: ['#a89c88', '#a29682'], court: '#8a7e6c', verge: ['#7e725f', '#786c5a'] },
     innerOk: new Set(), entrance: null,
-    props: { vicA: row(1), vicB: row(2), vicC: row(3), vicD: row(4), vicE: row(5), vicF: row(6), vicYellow: row(7, 'yellow'), vicArch: row(8, 'arch'), vicOrange: row(9, 'orange'), vicOrangeR: row(9, 'orangeR'), vicOrangeW: row(9, 'orangeW'), vicCobble: cobble, vicM1: rowM(11), vicM2: rowM(12), vicM3: rowM(13), vicM4: rowM(14), vicFlags: flags, vicPlanter: planter, vicBench: bench, vicCinema: cinema, vicTabacs: tabacs, vicBrick: brick, vicZebra: zebra, vicBollard: bollard, vicTreePot: treePot },
+    props: { vicA: row(1), vicB: row(2), vicC: row(3), vicD: row(4), vicE: row(5), vicF: row(6), vicYellow: row(7, 'yellow'), vicArch: row(8, 'arch'), vicOrange: row(9, 'orange'), vicArchR: row(8, 'archR'), vicOrangeR: row(9, 'orangeR'), vicOrangeW: row(9, 'orangeW'), vicCobble: cobble, vicM1: rowM(11), vicM2: rowM(12), vicM3: rowM(13), vicM4: rowM(14), vicFlags: flags, vicPlanter: planter, vicBench: bench, vicCinema: cinema, vicTabacs: tabacs, vicBrick: brick, vicZebra: zebra, vicBollard: bollard, vicTreePot: treePot },
     layout: null,
   };
   const down = g => g && g.translate(0, -WALK_Y, 0);
   const PR = {}; for (const k of Object.keys(UT.props)) { const f = UT.props[k]; PR[k] = () => { const m = f(); if (m.merged || m.sprite) { if (m.merged) { down(m.merged.lit); down(m.merged.glow); } down(m.sprite); } else { down(m.lit); down(m.glow); } return m; }; }
-  const HOUSES = new Set(['vicA', 'vicB', 'vicC', 'vicD', 'vicE', 'vicF', 'vicYellow', 'vicArch', 'vicOrange', 'vicOrangeR', 'vicOrangeW', 'vicPlanter', 'vicBench', 'vicCinema', 'vicTabacs', 'vicBrick', 'vicTreePot', 'vicBollard']);        // (on the inner side of the junction of the street and the alley: the houses between them)
-  ENV3D.vic = Object.assign({}, UT, { props: PR, layout: redden(makeLayout(4.5)), innerOk: HOUSES, innerAfterOpen: true });
+  const HOUSES = new Set(['vicA', 'vicB', 'vicC', 'vicD', 'vicE', 'vicF', 'vicYellow', 'vicArch', 'vicArchR', 'vicOrange', 'vicOrangeR', 'vicOrangeW', 'vicPlanter', 'vicBench', 'vicCinema', 'vicTabacs', 'vicBrick', 'vicTreePot', 'vicBollard']);        // (on the inner side of the junction of the street and the alley: the houses between them)
+  ENV3D.vic = Object.assign({}, UT, { props: PR, layout: redden(makeLayout(4.5), 1), innerOk: HOUSES, innerAfterOpen: true });
   ENV3D.vicMedina = Object.assign({}, UT, { props: PR, layout: layoutM, name: 'RUELLE', innerOk: new Set(), sky: { top: '#7aa0d8', mid: '#e8c0b0', horizon: '#ffd8b8' }, fog: { color: '#e8b8a0', near: 30, far: 150 }, groundFar: '#8a5a48',
     road: { asphalt: ['#6a5a58', '#665654'], mark: '#6a5a58', edge: '#7a6a66', curb: ['#b0806a', '#a87862'], curbFace: '#8a6050', walk: ['#b8866e', '#b28068'], court: '#9a6a58', verge: ['#8a5a48', '#845444'] } });
   ENV3D.vicSquare = Object.assign({}, UT, { props: PR, layout: redden(makeSquare(4.5)), innerOk: HOUSES, innerAfterOpen: true });
-  ENV3D.vicAlley = Object.assign({}, UT, { props: PR, layout: redden(makeLayout(2.9)), innerOk: HOUSES, innerAfterOpen: true, name: 'RUELLE' });
+  ENV3D.vicAlley = Object.assign({}, UT, { props: PR, layout: redden(makeLayout(2.9), -1), innerOk: HOUSES, innerAfterOpen: true, name: 'RUELLE' });
 })();
