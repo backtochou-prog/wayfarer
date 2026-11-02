@@ -25,7 +25,19 @@ window.ENV3D = window.ENV3D || {};
     return Kit.merge(p);
   }
   // a tower whose facade carries a panel of the user's picture (in front of the glowing strips, between the lit corners)
-  const artTower = (F, D, H, seed, cell) => ({ merged: tower(F, D, H, seed), sprite: NeonArt.panel(cell, -0.2, -F * 0.43, F * 0.43, 1.3, 1.3 + H * 0.9), material: () => NeonArt.material() });
+  // THE MOSAIC: a facade picture is no longer one big panel but a grid of small panes the size of the buildings' windows (1.25 x 1.7 m, 0.4 m of wall between them), each showing its own piece of the picture,
+  // so the picture reads as lit windows. The picture keeps its proportions (as wide as the facade allows, as tall as its shape makes it).
+  const mosaic = (set, cell, x, pw0, hAvail, y0) => {
+    const c = set[cell], ar = c.ar || pw0 / hAvail, pw = Math.min(pw0, hAvail * ar), ph = pw / ar, TW = 1.25, TH = 1.7, G = 0.4;
+    const nc = Math.max(1, Math.round((pw + G) / (TW + G))), nr = Math.max(1, Math.round((ph + G) / (TH + G))), tw = (pw - (nc - 1) * G) / nc, th = (ph - (nr - 1) * G) / nr, list = [];
+    for (let r = 0; r < nr; r++) for (let k = 0; k < nc; k++) {
+      const za = -pw / 2 + k * (tw + G), zb = za + tw, ya = y0 + r * (th + G), yb = ya + th, a0 = (za + pw / 2) / pw, a1 = (zb + pw / 2) / pw, b0 = (ya - y0) / ph, b1 = (yb - y0) / ph;
+      const U = a => c.u0 + (c.u1 - c.u0) * a, V = b => c.v0 + (c.v1 - c.v0) * b, g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute([x, ya, za, x, ya, zb, x, yb, zb, x, yb, za], 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute([U(a0), V(b0), U(a1), V(b0), U(a1), V(b1), U(a0), V(b1)], 2)); g.setIndex([0, 1, 2, 0, 2, 3]); list.push(g);
+    }
+    return UtrechtArt.join(list);
+  };
+  const artTower = (F, D, H, seed, cell) => ({ merged: tower(F, D, H, seed), sprite: mosaic(NEON_ASSETS, cell, -0.2, F * 0.86, H * 0.9, 1.3), material: () => NeonArt.material() });
   // a block with a grid of lit windows (warm, blue, cyan, some dark) and a neon rim
   function block(F, D, H, seed, rim) {
     const p = [Kit.box(D, H, F, D / 2, 0, 0, seed % 2 ? N.bodyC : N.body), Kit.box(D + 0.1, 0.5, F + 0.1, D / 2, 0, 0, N.base)];
@@ -61,11 +73,11 @@ window.ENV3D = window.ENV3D || {};
   // props made of the user's materials (NeonArt, second atlas). A block / shop with a picture panel on its facade; free-standing cut-outs; posts with a banner or a glowing tube.
   const art2 = (merged, sprite) => ({ merged: Kit.merge(merged), sprite, material: () => NeonArt.material2() });
   const artBlock = (F, D, H, seed, cell, rim) => art2([Kit.box(D, H, F, D / 2, 0, 0, N.body), Kit.box(D + 0.1, 0.5, F + 0.1, D / 2, 0, 0, N.base), Kit.box(0.2, 0.18, F, -0.02, H - 0.1, 0, rim, { glow: true }), Kit.box(0.2, 0.18, F, -0.02, 0.9, 0, rim, { glow: true }), Kit.box(D * 0.8, 0.4, F * 0.9, D / 2, H, 0, N.base)],
-    (() => { const ar = NEON_ASSETS2[cell].ar, avail = H - 1.5, pw = Math.min(F * 0.92, avail * ar), ph = pw / ar; return NeonArt.panel2(cell, -0.06, -pw / 2, pw / 2, 1.1, 1.1 + ph); })());       // (the picture keeps its own proportions: as wide as the facade allows, as tall as its shape makes it)
+    mosaic(NEON_ASSETS2, cell, -0.06, F * 0.92, H - 1.5, 1.1));       // (the picture keeps its own proportions: as wide as the facade allows, as tall as its shape makes it)
   // props of the third set (NEON_ASSETS3: 17 more pictures). `art3` = merged parts + one textured panel of the third atlas.
   const art3 = (merged, sprite) => ({ merged: Kit.merge(merged), sprite, material: () => NeonArt.material3() });
   const facadeBlock = (cell, F, D, H, rim) => art3([Kit.box(D, H, F, D / 2, 0, 0, N.body), Kit.box(D + 0.1, 0.5, F + 0.1, D / 2, 0, 0, N.base), Kit.box(0.2, 0.18, F, -0.02, H - 0.1, 0, rim, { glow: true }), Kit.box(0.2, 0.18, F, -0.02, 0.9, 0, rim, { glow: true }), Kit.box(D * 0.8, 0.4, F * 0.9, D / 2, H, 0, N.base)],
-    (() => { const ar = NEON_ASSETS3[cell].ar, avail = H - 1.5, pw = Math.min(F * 0.92, avail * ar), ph = pw / ar; return NeonArt.panel3(cell, -0.06, -pw / 2, pw / 2, 1.1, 1.1 + ph); })());
+    mosaic(NEON_ASSETS3, cell, -0.06, F * 0.92, H - 1.5, 1.1));
   // a free-standing picture on two posts (a billboard / sign): `w` m wide, the height follows the picture's aspect, its frame glows
   const board = (cell, w, y0, col) => { const h = w / NEON_ASSETS3[cell].ar, hw = w / 2 + 0.3;
     return art3([Kit.box(0.36, y0 + 0.2, 0.36, 0, 0, -hw + 0.1, N.post), Kit.box(0.36, y0 + 0.2, 0.36, 0, 0, hw - 0.1, N.post), Kit.box(0.28, h + 0.5, w + 0.5, -0.04, y0 - 0.1, 0, N.base),
@@ -234,8 +246,8 @@ window.ENV3D = window.ENV3D || {};
       [NeonArt.panel4(cell, -0.22, -w / 2, w / 2, y0, y0 + h)]); };
   // the lamps: a post with the picture lit like a lantern (two crossed planes so it reads from the chase camera and from the side) and a glowing cap
   const postLamp = (cell, h, y0, col, arm) => () => art4([Kit.box(0.3, 0.4, 0.3, 0, 0, 0, N.post), Kit.cyl(0.07, 0.1, y0 + 0.1, 0, 0, 0, N.post), Kit.box(0.5, 0.12, 0.5, 0, y0 + h, 0, col, { glow: true })].concat(arm ? [Kit.box(arm, 0.08, 0.08, -arm / 2, y0 + h + 0.1, 0, N.post)] : []), [NeonArt.crossSet(NEON_ASSETS4, cell, h, y0)]);
-  // ... and the doors: one of the four door pictures on the facade of a building or a shop (a flat panel 2.8 m tall, in front of the wall), added as an extra textured panel of the prop
-  const DOORS = ['tiles', 'tiles2', 'panelBlue', 'tilewall'], doorSprite = (cell, z) => { const h = 2.8, w = h * A4(cell).ar; return NeonArt.panel4(cell, -0.34, z - w / 2, z + w / 2, 0.15, 0.15 + h); };
+  // ... and the doors: one of the four door pictures on the facade of a building or a shop (a flat panel 2.2 m tall, in front of the wall), added as an extra textured panel of the prop
+  const DOORS = ['tiles', 'tiles2', 'panelBlue', 'tilewall'], doorSprite = (cell, z) => { const h = 2.2, w = h * A4(cell).ar; return NeonArt.panel4(cell, -0.34, z - w / 2, z + w / 2, 0.15, 0.15 + h); };
   const DOORED = { neonTowerA: 0, neonTowerB: 1, neonBlockA: 2, neonBlockB: 3, neonBlockC: 0, neonBlockD: 1, neonBlockE: 2, neonShopA: 3, neonShopB: 0, neonShopC: 1, neonShopD: 2, neonShopF: 3, neonShopG: 0, neonShopH: 1, neonShopI: 2,
                    neonSwirlR: 3, neonSwirlP: 0, neonSwirlG: 1, neonSwirlT: 2, neonStreetBlock: 3, neonDotsBlock: 0, neonRaysTower: 1 };
   const SHOPZ = { neonShopA: 3.3, neonShopB: 3.55, neonShopF: 3.85, neonShopG: 3.15, neonShopH: 3.65, neonShopI: 3.45 };           // the shops have their door at the end of the front; the others at -2.3
@@ -254,7 +266,7 @@ window.ENV3D = window.ENV3D || {};
       Kit.box(BD + 0.1, 0.12, 0.42, -BD / 2, BY + 1.48, BZ - vw / 2 - 0.1, PLASTER_D), Kit.box(BD + 0.1, 0.12, 0.42, -BD / 2, BY + 1.48, BZ + vw / 2 + 0.1, PLASTER_D), Kit.box(0.42, 0.12, vw + 0.6, -BD + 0.15, BY + 1.48, BZ, PLASTER_D),   // the coping
       Kit.box(0.3, 3.5, 0.3, -BD + 0.4, 0, BZ - vw / 2 + 0.4, PLASTER_D), Kit.box(0.3, 3.5, 0.3, -BD + 0.4, 0, BZ + vw / 2 - 0.4, PLASTER_D)];                              // two pillars under it
     const m = tower(F, D, H, 3, bal);
-    const door = NeonArt.panel4('panelBlue', -0.36, -1.7, 0.1, 0.15, 3.4), vault = NeonArt.panel4('vault', -BD - 0.03, BZ - vw / 2, BZ + vw / 2, BY + 0.28, BY + 0.28 + vh), sign = NeonArt.panel4('hotel', -0.4, -sw / 2, sw / 2, BY + 0.28 + vh + 0.6, BY + 0.28 + vh + 0.6 + sh);
+    const door = NeonArt.panel4('panelBlue', -0.36, -1.4, 0.1, 0.15, 2.8), vault = NeonArt.panel4('vault', -BD - 0.03, BZ - vw / 2, BZ + vw / 2, BY + 0.28, BY + 0.28 + vh), sign = NeonArt.panel4('hotel', -0.4, -sw / 2, sw / 2, BY + 0.28 + vh + 0.6, BY + 0.28 + vh + 0.6 + sh);
     return { merged: m, sprite: TramArt.join([door, vault, sign]), material: mat4 };
   };
   const LAMPS = ['neonMoroccanLamp', 'neonPendantLamp', 'neonLanternPierced', 'neonPillarLamp', 'neonLightbox'];            // (the chandelier lamp was removed at the user's request)
