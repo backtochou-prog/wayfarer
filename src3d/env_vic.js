@@ -77,6 +77,6 @@ window.ENV3D = window.ENV3D || {};
   const down = g => g && g.translate(0, -WALK_Y, 0);
   const PR = {}; for (const k of Object.keys(UT.props)) { const f = UT.props[k]; PR[k] = () => { const m = f(); if (m.merged || m.sprite) { if (m.merged) { down(m.merged.lit); down(m.merged.glow); } down(m.sprite); } else { down(m.lit); down(m.glow); } return m; }; }
   const HOUSES = new Set(['vicA', 'vicB', 'vicC', 'vicD', 'vicE', 'vicF', 'vicYellow', 'vicArch', 'vicOrange', 'vicPlanter', 'vicBench']);        // (on the inner side of the junction of the street and the alley: the houses between them)
-  ENV3D.vic = Object.assign({}, UT, { props: PR, layout: makeLayout(4.5), innerOk: HOUSES });
-  ENV3D.vicAlley = Object.assign({}, UT, { props: PR, layout: makeLayout(2.9), innerOk: HOUSES, name: 'RUELLE' });
+  ENV3D.vic = Object.assign({}, UT, { props: PR, layout: makeLayout(4.5), innerOk: HOUSES, innerAfterOpen: true });
+  ENV3D.vicAlley = Object.assign({}, UT, { props: PR, layout: makeLayout(2.9), innerOk: HOUSES, innerAfterOpen: true, name: 'RUELLE' });
 })();

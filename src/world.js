@@ -275,7 +275,7 @@ class World {
       if (tb && side === 'right') bd.pre = tb.pre;                                                // (the look the tunnel blends in from: the coast of this fork's light)
       if (F.rise || F.tube) bd.lifted = true;
       if (F.rise && side === F.rise.side) { bd.quay = true; bd.rise = this.riseAt(P, z); bd.riseH = F.rise.h; bd.stairs = this.stairsAt(P, z); }   // the raised road (the upper circuit): its height over the other road, in units of run
-      bd.eL = bd.eR = { to, t };
+      bd.eL = bd.eR = { to, t }; bd.open = z >= P.fe && z <= P.be;       // (open: the two roads are fully apart)
       out.push(bd);
     }
     return out;

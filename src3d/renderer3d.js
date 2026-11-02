@@ -378,6 +378,7 @@ class Renderer3D {
           if (cut && zs + SL / 2 > cut[0] && zs + SL / 2 < cut[1]) lay = [];       // (no scenery between the two doors of a passage)
           for (const pl of lay) {
             if ((pl.x < 0 ? -1 : 1) !== sg) continue;
+            if (inner && env.innerAfterOpen && !b.open) continue;                                  // (Vic: no house between the two roads of the junction while they are still parting or merging: it would stand across the road)
             if (inner && (!env.innerOk.has(pl.prop) || Math.abs(pl.x) - hwM > avail - 0.8)) continue;
             if (this.tubeCut && /^aqua/.test(pl.prop) && (zs < this.tubeCut[0] || zs + SL > this.tubeCut[1])) continue;        // (the ribs and their dark lines of a slot that sticks out of a mouth are not drawn: the ring is the mouth)
             if (pl.under !== undefined && w.seaDepth((zs + pl.dist) / U.Z) * U.Z < pl.under) continue;                    // sea life only where the sea is deep enough over the road (never in the air)
