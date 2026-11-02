@@ -28,7 +28,7 @@ window.ENV3D = window.ENV3D || {};
   // THE MOSAIC: a facade picture is no longer one big panel but a grid of small panes the size of the buildings' windows (1.25 x 1.7 m, 0.4 m of wall between them), each showing its own piece of the picture,
   // so the picture reads as lit windows. The picture keeps its proportions (as wide as the facade allows, as tall as its shape makes it).
   const mosaic = (set, cell, x, pw0, hAvail, y0) => {
-    const c = set[cell], ar = c.ar || pw0 / hAvail, pw = Math.min(pw0, hAvail * ar), ph = pw / ar, TW = 1.25, TH = 1.7, G = 0.4;
+    const c = set[cell], ar = c.ar || pw0 / hAvail, pw = Math.min(pw0, hAvail * ar), ph = pw / ar, TW = 1.25, TH = 1.7, G = cell === 'lamps' ? 0.4 : 0.07;       // (block E keeps its wide grid of the lamps; the other photographs have only a very thin joint: they read as a screen)
     const nc = Math.max(1, Math.round((pw + G) / (TW + G))), nr = Math.max(1, Math.round((ph + G) / (TH + G))), tw = (pw - (nc - 1) * G) / nc, th = (ph - (nr - 1) * G) / nr, list = [];
     for (let r = 0; r < nr; r++) for (let k = 0; k < nc; k++) {
       const za = -pw / 2 + k * (tw + G), zb = za + tw, ya = y0 + r * (th + G), yb = ya + th, a0 = (za + pw / 2) / pw, a1 = (zb + pw / 2) / pw, b0 = (ya - y0) / ph, b1 = (yb - y0) / ph;
