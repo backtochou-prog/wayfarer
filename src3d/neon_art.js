@@ -49,6 +49,18 @@ const NeonArt = {
     }
     return this._mat4;
   },
+  // the same atlas, dimmed: the doors of the quarter are dark, only their neon entrance (src3d/env_neon.js) is lit
+  _mat4d: null,
+  material4dark() {
+    if (!this._mat4d) {
+      const img = new Image(), tex = new THREE.Texture(img);
+      tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; tex.generateMipmaps = true; tex.minFilter = THREE.LinearMipmapLinearFilter;
+      const mat = new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.3, side: THREE.DoubleSide, color: 0x3a3f58 });
+      mat.visible = false; img.onload = () => { tex.needsUpdate = true; mat.visible = true; }; img.src = NEON_ASSETS4.src;
+      this._mat4d = mat;
+    }
+    return this._mat4d;
+  },
   panel4(cell, x, z0, z1, y0, y1) { return this.panel(cell, x, z0, z1, y0, y1, NEON_ASSETS4); },
   panel3(cell, x, z0, z1, y0, y1) { return this.panel(cell, x, z0, z1, y0, y1, NEON_ASSETS3); },
   // same as panel(), for a cell of the second atlas

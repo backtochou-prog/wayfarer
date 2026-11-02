@@ -312,3 +312,5 @@ CHROMIUM=/path/to/chrome node tests/qa3d_audio.js
 Set `TEST_URL=https://your-deployment/` to run the same checks against a deployed copy. Both start their own static server, drive the real page (scene graph and game rules, WebGL stubbed for speed) and exit non-zero on failure. `qa3d_coins.js` asserts on every frame that the number of coin meshes on screen equals the number of uncollected coins in range, so a collected coin that stays visible (or an effect built from the coin mesh) fails at once.
 
 Score = distance in metres + 10 per coin. Best score is kept in `localStorage`.
+
+**Dark doors with a neon entrance.** Every door of the neon quarter (buildings, shops, the hotel's blue door) is dimmed (`NeonArt.material4dark`), and 2 m in front of it stands a **neon entrance**: an arch of light tubes (two uprights, a lintel, an inner line and a strip of light on the ground) in a colour of its own, a different hue for each door (`hue(i)`, golden-ratio spacing; `doorArch` in `src3d/env_neon.js`).

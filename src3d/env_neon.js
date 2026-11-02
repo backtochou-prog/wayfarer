@@ -254,13 +254,19 @@ window.ENV3D = window.ENV3D || {};
   const postLamp = (cell, h, y0, col, arm) => () => art4([Kit.box(0.3, 0.4, 0.3, 0, 0, 0, N.post), Kit.cyl(0.07, 0.1, y0 + 0.1, 0, 0, 0, N.post), Kit.box(0.5, 0.12, 0.5, 0, y0 + h, 0, col, { glow: true })].concat(arm ? [Kit.box(arm, 0.08, 0.08, -arm / 2, y0 + h + 0.1, 0, N.post)] : []), [NeonArt.crossSet(NEON_ASSETS4, cell, h, y0)]);
   // ... and the doors: one of the four door pictures on the facade of a building or a shop (a flat panel 2.2 m tall, in front of the wall), added as an extra textured panel of the prop
   const DOORS = ['tiles', 'tiles2', 'panelBlue', 'tilewall'], doorSprite = (cell, z) => { const h = 2.2, w = h * A4(cell).ar; return NeonArt.panel4(cell, -0.34, z - w / 2, z + w / 2, 0.15, 0.15 + h); };
+  // ... DARK (the picture dimmed), with a NEON ENTRANCE 2 m in front of it: an arch of light tubes (two uprights, a lintel and an inner line) in a colour of its own, one hue per door
+  const hue = i => { const c = new THREE.Color(); c.setHSL((i * 0.382) % 1, 1, 0.55); return '#' + c.getHexString(); };
+  const doorArch = (z, w, h, col, x) => Kit.merge([Kit.box(0.22, h + 0.35, 0.16, x, 0, z - w / 2 - 0.1, col, { glow: true }), Kit.box(0.22, h + 0.35, 0.16, x, 0, z + w / 2 + 0.1, col, { glow: true }),
+    Kit.box(0.22, 0.16, w + 0.52, x, h + 0.35, z, col, { glow: true }), Kit.box(0.12, 0.07, w + 0.1, x - 0.02, h + 0.2, z, col, { glow: true }),
+    Kit.box(0.5, 0.05, w + 0.4, x - 0.2, 0.02, z, col, { glow: true })]).glow;                                       // (and a strip of light on the ground under it)
+  const darkMat = () => NeonArt.material4dark(), glowMat = () => Kit.materials().glow, ARCH_X = -2.34;
   const DOORED = { neonTowerA: 0, neonTowerB: 1, neonBlockA: 2, neonBlockB: 3, neonBlockC: 0, neonBlockD: 1, neonBlockE: 2, neonShopA: 3, neonShopB: 0, neonShopC: 1, neonShopD: 2, neonShopF: 3, neonShopG: 0, neonShopH: 1, neonShopI: 2,
                    neonSwirlR: 3, neonSwirlP: 0, neonSwirlG: 1, neonSwirlT: 2, neonStreetBlock: 3, neonDotsBlock: 0, neonRaysTower: 1 };
   const SHOPZ = { neonShopA: 3.3, neonShopB: 3.55, neonShopF: 3.85, neonShopG: 3.15, neonShopH: 3.65, neonShopI: 3.45 };           // the shops have their door at the end of the front; the others at -2.3
-  ENV3D.neon.doors = {};
+  ENV3D.neon.doors = {}; let doorN = 0;
   for (const name of Object.keys(DOORED)) {
-    const f = ENV3D.neon.props[name]; if (!f) continue; const cell = DOORS[DOORED[name]], z = SHOPZ[name] !== undefined ? SHOPZ[name] : -2.3; ENV3D.neon.doors[name] = cell;
-    ENV3D.neon.props[name] = () => { let m = f(); const d = { sprite: doorSprite(cell, z), material: mat4 }; if (m.sprite) { (m.extra = m.extra || []).push(d); return m; } return { merged: m.merged || m, sprite: d.sprite, material: d.material }; };
+    const f = ENV3D.neon.props[name]; if (!f) continue; const idx = ++doorN, cell = DOORS[DOORED[name]], z = SHOPZ[name] !== undefined ? SHOPZ[name] : -2.3; ENV3D.neon.doors[name] = cell;
+    ENV3D.neon.props[name] = () => { let m = f(); const d = { sprite: doorSprite(cell, z), material: darkMat }, w = 2.2 * A4(cell).ar, ar = { sprite: doorArch(z, w, 2.2, hue(idx), ARCH_X), material: glowMat }; if (m.sprite) { (m.extra = m.extra || []).push(d, ar); return m; } return { merged: m.merged || m, sprite: d.sprite, material: d.material, extra: [ar] }; };
   }
   // the hotel: a tower of the quarter, its entrance under the burlap vault (the arch of the user's photo with the rose), a neon HOTEL sign over it, a blue glass door (the blue panel)
   const hotel = () => {
@@ -273,7 +279,7 @@ window.ENV3D = window.ENV3D || {};
       Kit.box(0.3, 3.5, 0.3, -BD + 0.4, 0, BZ - vw / 2 + 0.4, PLASTER_D), Kit.box(0.3, 3.5, 0.3, -BD + 0.4, 0, BZ + vw / 2 - 0.4, PLASTER_D)];                              // two pillars under it
     const m = tower(F, D, H, 3, bal);
     const door = NeonArt.panel4('panelBlue', -0.36, -1.4, 0.1, 0.15, 2.8), vault = NeonArt.panel4('vault', -BD - 0.03, BZ - vw / 2, BZ + vw / 2, BY + 0.28, BY + 0.28 + vh), sign = NeonArt.panel4('hotel', -0.4, -sw / 2, sw / 2, BY + 0.28 + vh + 0.6, BY + 0.28 + vh + 0.6 + sh);
-    return { merged: m, sprite: TramArt.join([door, vault, sign]), material: mat4 };
+    return { merged: m, sprite: TramArt.join([vault, sign]), material: mat4, extra: [{ sprite: door, material: darkMat }, { sprite: doorArch(-0.65, 1.5, 2.8, hue(++doorN), ARCH_X), material: glowMat }] };
   };
   const LAMPS = ['neonMoroccanLamp', 'neonPendantLamp', 'neonLanternPierced', 'neonPillarLamp', 'neonLightbox'];            // (the chandelier lamp was removed at the user's request)
   Object.assign(ENV3D.neon.props, {
