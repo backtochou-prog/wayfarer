@@ -240,7 +240,7 @@ const TRACK = {
     // `h` units (34.5 = 3.45 m, 5 cm under the street of the quay props) over `up` units once the roads have parted (the stairs), keeps it there and brings it down over `down` units before the roads merge (all on the grid of 120 units = one 12 m slot). `c`: the lateral centre of each road once
     // open (1.225 lanes: the street, 0.75 lane of half-width, narrower than the canal, runs beside it, 8.7 m from its axis, as the real quay does; FORK_C otherwise).
     gateUtrecht: { zone: 480, branchLen: 4000, merge: 360, blend: 40, hold: true, c: 1.225, rise: { side: 'right', hw: 0.75, h: 34.5, up: 960, down: 840, grid: 120 }, left: { route: 'utrechtD', sign: 'signCanal' }, right: { route: 'utrechtQuay', sign: 'signQuay' } },
-    gateVic: { zone: 480, branchLen: 1800, merge: 360, blend: 40, hold: true, c: 1.7, preHw: 0.62, mergeHw: 0.62, left: { route: 'vicM', sign: 'signVic' }, right: { route: 'vicAlley', sign: 'signAlley' } },
+    gateVic: { zone: 480, branchLen: 1800, merge: 360, blend: 40, hold: true, c: 2.2, preHw: 0.62, mergeHw: 0.62, left: { route: 'vicM', sign: 'signVic' }, right: { route: 'vicAlley', sign: 'signAlley' } },
     // THE JUNCTIONS OF THE CIRCUIT. The coast and the neon quarter are zones of their own now (Neon > Beach > Saint-Gilles > Utrecht), so the pairs the junction of Saint-Gilles takes (picks.A) offer only the
     // detours that stay in its neighbourhood: forest, market, ruins. The pairs above that lead to the coast or the neon quarter (gate3, gate4, gate2, gate3B, gate4B) are no longer on the circuit.
     gate5: { zone: 440, branchLen: 1300, merge: 360, blend: 40, left: { route: 'ruinsRun', sign: 'signRuins' }, right: { route: 'detourB', sign: 'signMarket' } },
