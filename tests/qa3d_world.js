@@ -22,7 +22,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
 
   // ================================================================ 1. data-level checks (no rendering)
   const D = await pg.evaluate(() => {
-    const out = {}, LIM = 90000;
+    const out = {}, LIM = 150000;
     const mk = () => { const w = new World(TRACK); w.extend(LIM); return w; };
     // a. deterministic: two fresh worlds are item-for-item identical; per-slot scenery layouts are reproducible
     const w1 = mk(), w2 = mk();
@@ -41,7 +41,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
         prev = { n: bs.length, lo, hi, off };
       }
       if (P.type === 'fork') {                                          // the two roads cover the single road at both ends (no gap at the fork tip or the merge)
-        for (const z of [P.z0 + 0.5, P.z1 - 0.5]) { const bs = w.bandsAt(z).slice().sort((x, y) => x.lo - y.lo); out.forkCover = (out.forkCover === undefined || out.forkCover) && bs[0].lo <= -0.89 && Math.max(...bs.map(x => x.hi)) >= 0.89 && bs[1].lo <= bs[0].hi + 0.05; }   // the roads touch or overlap: no gap
+        for (const z of [P.z0 + 0.5, P.z1 - 0.5]) { const bs = w.bandsAt(z).slice().sort((x, y) => x.lo - y.lo); out.forkCover = (out.forkCover === undefined || out.forkCover) && bs[0].lo <= -((P.fork.mergeHw || 0.9) - 0.01) && Math.max(...bs.map(x => x.hi)) >= (P.fork.mergeHw || 0.9) - 0.01 && bs[1].lo <= bs[0].hi + 0.05; }   // the roads touch or overlap: no gap
       }
     }
     out.routes = Object.values(TRACK.forks).flatMap(f => [f.left.route, f.right.route]);
@@ -99,7 +99,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('deterministic: two fresh worlds are item-for-item identical (items, pieces), scenery layouts reproducible', D.sameItems && D.sameLayouts, JSON.stringify({ items: D.sameItems, layouts: D.sameLayouts }));
   const I = D.integrity; const TRACK_ROUTES = Object.fromEntries(D.routes.map(r => [r, 1]));
   T('track integrity: pieces touch, 1 road on segments / 2 on junctions, road bands change smoothly (no jumps) along all ' + I.pieces + ' pieces incl. the junction pairs of the circuit and every segment variant',
-    I.badSeam === 0 && I.badCount === 0 && I.maxJump < 0.03 && I.forkIds.includes('gate') && I.forkIds.every(f => ['gate', 'gate5', 'gate6', 'gateIslandSunset', 'gateIslandMidday', 'gateIslandBlue', 'gateIslandMorning', 'gateUtrecht'].includes(f)) && I.forkIds.some(f => /^gateIsland/.test(f)) && I.segs.includes('cityRunB') && I.segs.includes('neonRun') && ['forest', 'detour', 'forestB', 'detourB'].every(r => !!TRACK_ROUTES[r]), JSON.stringify(I));
+    I.badSeam === 0 && I.badCount === 0 && I.maxJump < 0.03 && I.forkIds.includes('gate') && I.forkIds.every(f => ['gate', 'gate5', 'gate6', 'gateIslandSunset', 'gateIslandMidday', 'gateIslandBlue', 'gateIslandMorning', 'gateUtrecht', 'gateVic'].includes(f)) && I.forkIds.some(f => /^gateIsland/.test(f)) && I.segs.includes('cityRunB') && I.segs.includes('neonRun') && ['forest', 'detour', 'forestB', 'detourB'].every(r => !!TRACK_ROUTES[r]), JSON.stringify(I));
   T('both roads of every junction cover the single road at the fork tip and the merge (no gap)', D.forkCover === true, String(D.forkCover));
   const Pt = D.patterns;
   T('obstacle patterns: never the same pattern twice running, several orderings, spacing varies, hazards >= 19 m apart on a road, nothing in the run-up to a junction, first hazard >= 60 m in', Pt.repeats === 0 && Pt.orderings >= 2 && Pt.minGap >= 190 && Pt.guide >= 390 && Pt.firstHazard >= 600 && D.gapKinds >= 8 && Object.values(Pt.distinct).every(n => n >= 2), JSON.stringify({ ...Pt, gapKinds: D.gapKinds }));
@@ -141,15 +141,15 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     let zP = 0, cP = 0, sP = 0, scP = 0, camP = null, nFork = 0, nIsle = 0, want = null, lastUid = -1, f = 0;
     const vis = o => { for (let n = o; n; n = n.parent) if (!n.visible) return false; return true; };
     out.scenes = 0; let wasScene = false;
-    while (out.picks.length < 8 && f < 60 * 60 * 10 && (g.state === 'play' || g.state === 'scene')) {
+    while (out.picks.length < 11 && f < 60 * 60 * 10 && (g.state === 'play' || g.state === 'scene')) {
       if (g.state === 'scene') { if (!wasScene) out.scenes++; wasScene = true; g.advance(1 / 60); f++; zP = g.p.z; cP = g.coins; sP = 0; scP = g.score(); camP = null; if (f % 3 === 0) r.draw(g); continue; } wasScene = false;      /* the Gare du Midi cutscene: the bot lets it play (qa3d_gare checks it) */
       const p = g.p, w = g.world, F = w.openFork();
       if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = F.fork.tube ? (nIsle++ % 2 === 0 ? 'right' : 'left') : (nFork++ % 2 === 0 ? 'left' : 'right'); out.wants.push(want); }      // (the island junction of the beach alternates tunnel / coast road; the Saint-Gilles junctions alternate forest / market)
       g.keys.left = g.keys.right = false;
       if (F && want && p.z > F.z0 - 500 && p.z < F.z0 - 400) g.keys[want] = true;
-      let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
-      { const vt = g.world.items.filter(i => /^vic/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { g.keys.left = vt.x > 0; g.keys.right = vt.x < 0; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic/.test(tg.kind)) tg = null; }
-      if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || tg.kind !== 'over')) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
+      let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic[^A]/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
+      { const vt = g.world.items.filter(i => /^vic[^A]/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { const cc = g.world.playerBand(p.z, p.x).c; g.keys.left = vt.x > cc; g.keys.right = vt.x < cc; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic[^A]/.test(tg.kind)) tg = null; }
+      if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || !/^(over|vicASlide)$/.test(tg.kind))) key(/^(over|vicASlide)$/.test(tg.kind) ? 'ArrowDown' : 'Space');
       g.advance(1 / 60); f++;
       for (const P of w.pieces) if (P.type === 'fork' && P.choice && !out.forkRoutes.has(P.uid)) { out.forkRoutes.add(P.uid); out.picks.push(P.choice); }
       if (g.p.z < zP) out.backwards++; if (g.coins < cP) out.backwards++; if (g.p.speed < sP - 1e-9) out.backwards++; if (g.score() < scP) out.backwards++; zP = g.p.z; cP = g.coins; sP = g.p.speed; scP = g.score();

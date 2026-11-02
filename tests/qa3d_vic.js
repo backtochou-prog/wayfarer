@@ -15,19 +15,19 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const open = async url => { const pg = await (await b.newContext({ viewport: { width: 480, height: 270 } })).newPage(); pg.errs = []; pg.on('pageerror', e => pg.errs.push(e.message)); pg.on('console', m => m.type() === 'error' && !/404/.test(m.text()) && pg.errs.push(m.text())); await pg.goto(url, { timeout: 90000 }); await pg.waitForFunction(() => window.__wf, null, { timeout: 60000 }); await pg.waitForTimeout(500); return pg; };
   const pg = await open(base);
   const K = await pg.evaluate(() => {
-    const out = {}, w = new World(TRACK); w.extras = true; w.extend(160000); const ids = w.pieces.map(p => p.id || 'fork'), i = ids.indexOf('vicA'), V = w.pieces.slice(i, i + 11);
-    out.seq = ids.slice(i - 1, i + 12).join('>'); out.curves = V.map(P => P.seg.curve); out.hw = V.map(P => P.seg.hw); out.len = V.map(P => P.z1 - P.z0); out.biome = [...new Set(V.map(P => P.seg.biome))].join();
+    const out = {}, w = new World(TRACK); w.extras = true; w.extend(160000); const ids = w.pieces.map(p => p.id || 'fork'), i = ids.indexOf('vicA'), V = w.pieces.slice(i, i + 12).filter(P => P.type === 'seg');
+    out.seq = ids.slice(i - 1, i + 13).join('>'); out.curves = V.map(P => P.seg.curve); out.hw = V.map(P => P.seg.hw); out.len = V.map(P => P.z1 - P.z0); out.biome = [...new Set(V.map(P => P.seg.biome))].join();
     const bends = V.filter(P => P.seg.curve); out.alt = bends.length === 6 && bends.every((P, k) => !k || Math.sign(P.seg.curve) !== Math.sign(bends[k - 1].seg.curve)) && V.filter(P => !P.seg.curve).length === 5 && V.every((P, k) => !!P.seg.curve === (k % 2 === 0));
     const wid = z => { const b = w.bandsAt(z)[0]; return +((b.hi - b.lo) * U3.X).toFixed(2); };
     out.width = [wid(V[0].z0 - 5), wid(V[0].z0 + 200), wid(V[0].z0 + 500), wid(V[3].z0 + 300), wid(V[10].z1 + 5), wid(V[10].z1 + 500)];
-    let jump = 0, prev = null; for (let z = V[0].z0 - 100; z < V[10].z1 + 600; z += 5) { const b = w.bandsAt(z)[0]; if (prev) jump = Math.max(jump, Math.abs(b.hi - prev.hi), Math.abs(b.lo - prev.lo)); prev = b; } out.jump = +jump.toFixed(3);
-    const hz = w.items.filter(it => OBST[it.kind] && it.z >= V[0].z0 && it.z < V[10].z1); out.kinds = [...new Set(hz.map(it => it.kind))].sort(); out.n = hz.length; out.xs = [...new Set(hz.filter(it => /^vic/.test(it.kind)).map(it => +it.x.toFixed(2)))].sort();
+    let jump = 0, prev = null; for (let z = V[0].z0 - 100; z < V[10].z1 + 600; z += 5) { const bb = w.bandsAt(z); if (bb.length > 1) { prev = null; continue; } const b = bb[0]; if (prev) jump = Math.max(jump, Math.abs(b.hi - prev.hi), Math.abs(b.lo - prev.lo)); prev = b; } out.jump = +jump.toFixed(3);
+    const hz = w.items.filter(it => OBST[it.kind] && it.tag === 'main' && it.z >= V[0].z0 && it.z < V[10].z1); out.kinds = [...new Set(hz.map(it => it.kind))].sort(); out.n = hz.length; out.xs = [...new Set(hz.filter(it => /^vic/.test(it.kind)).map(it => +it.x.toFixed(2)))].sort();
     out.both = hz.some(it => it.x < 0) && hz.some(it => it.x > 0); out.box = { low: OBST.vicLow, high: OBST.vicHigh, hang: OBST.vicHang, bar: OBST.vicBarrel, ch: OBST.vicChairs, pot: OBST.vicPot };
     out.zones = [Portal.fam(TRACK.segments.vicA.biome), BIOMES.vic && BIOMES.vic.atmo, !!ENV3D.vic, typeof VIC_ASSETS]; out.noTree = !ENV3D.vic.props.vicTree && !Array.from({ length: 80 }, (_, k) => ENV3D.vic.layout(k, rnd)).flat().some(q => /Tree/.test(q.prop));
     return out;
   });
   T('after the junction of Utrecht come eleven pieces of Vic (' + K.seq + '), 90 m each, eleven in all: the six original bends, left then right and so on, with a straight stretch between two of them (' + K.curves.join(' / ') + ': ' + K.alt + '), all biome ' + K.biome + ', one atmosphere for the 2D game too (' + K.zones[1] + ')',
-     /^fork>vicA>vicS1>vicB>vicS2>vicC>vicS3>vicD>vicS4>vicE>vicS5>vicF>neonRun$/.test(K.seq) && K.alt && K.len.every(l => l === 900) && K.biome === 'vic' && K.zones[0] === 'vic' && K.zones[1] === 'vic' && K.zones[2], JSON.stringify(K.seq));
+     /^fork>vicA>vicS1>vicB>vicS2>fork>vicC>vicS3>vicD>vicS4>vicE>vicS5>vicF>neonRun$/.test(K.seq) && K.alt && K.len.every(l => l === 900 || l === 1400) && K.biome === 'vic' && K.zones[0] === 'vic' && K.zones[1] === 'vic' && K.zones[2], JSON.stringify(K.seq));
   T('the street is narrow, 4.4 m wide (' + K.width.join(' / ') + ' m at the entrance, in the street, in a bend, at the end, after the street, further on: it narrows over 40 m and widens again, no jump of its edge: ' + K.jump + ' lane per 0.5 m)',
     K.width[0] > 6 && Math.abs(K.width[2] - 4.4) < 0.05 && Math.abs(K.width[3] - 4.4) < 0.05 && K.width[1] < K.width[0] && K.width[5] > 6 && K.jump < 0.05, JSON.stringify(K.width));
   T('the hazards of the street stand against the walls, half a street wide (lane +-0.28, half-width 0.3: ' + K.xs.join(', ') + '), on both sides (' + K.both + '), six kinds (' + K.kinds.join(', ') + ', ' + K.n + ' of them); no tree, no photograph on the street (' + K.zones[3] + ')',
@@ -59,15 +59,53 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
 
   // only TWO places: the left half and the right half of the street, a key sends the runner to its half and it stays there
   const L2 = await pg.evaluate(() => {
-    const g = __wf, out = { xs: [] }; g.r.renderer.render = () => {}; g.start(); g.world.extend(90000); const V = g.world.pieces.find(p => p.id === 'vicB'); g.world.items = g.world.items.filter(i => i.kind === 'prop'); g.state = 'play'; g.scene = null; g.fadeIn = 0; g.p.z = V.z0 + 100; g.p.x = 0.05; g.p.speed = 340; g.world.extend(g.p.z);
+    const g = __wf, out = { xs: [] }; g.r.renderer.render = () => {}; g.start(); g.world.extend(90000); const V = g.world.pieces.find(p => p.id === 'vicB'); g.world.items = g.world.items.filter(i => i.kind === 'prop'); g.state = 'play'; g.scene = null; g.fadeIn = 0; g.p.z = V.z0 + 10; g.p.x = 0.05; g.p.speed = 340; g.world.extend(g.p.z);
     const step = n => { for (let i = 0; i < n; i++) g.advance(1 / 60); }, press = (k, on) => { g.keys[k] = on; };
-    step(30); out.xs.push(+g.p.x.toFixed(3)); press('left', true); step(4); press('left', false); step(40); out.xs.push(+g.p.x.toFixed(3)); step(60); out.xs.push(+g.p.x.toFixed(3));
-    press('right', true); step(40); press('right', false); step(40); out.xs.push(+g.p.x.toFixed(3)); step(60); out.xs.push(+g.p.x.toFixed(3));
+    step(20); out.xs.push(+g.p.x.toFixed(3)); press('left', true); step(3); press('left', false); step(20); out.xs.push(+g.p.x.toFixed(3)); step(15); out.xs.push(+g.p.x.toFixed(3));
+    press('right', true); step(3); press('right', false); step(20); out.xs.push(+g.p.x.toFixed(3)); step(15); out.xs.push(+g.p.x.toFixed(3));
     g.p.z = g.world.pieces.find(p => p.id === 'neonRun').z0 + 300; g.world.extend(g.p.z); step(5); press('left', true); step(40); press('left', false); step(30); out.free = +g.p.x.toFixed(2);       // after the street the steering is free again
     return out;
   });
   T('in Vic the runner has only two places, the left half and the right half of the street (x ' + L2.xs.join(', ') + '): a key sends it to its half, it stays there when the key is released; outside the street the steering is free again (x ' + L2.free + ')',
-    L2.xs[0] === 0.28 && L2.xs[1] === -0.28 && L2.xs[2] === -0.28 && L2.xs[3] === 0.28 && L2.xs[4] === 0.28 && L2.free < -0.4, JSON.stringify(L2));
+    Math.abs(L2.xs[0] - 0.28) < 0.005 && Math.abs(L2.xs[1] + 0.28) < 0.005 && Math.abs(L2.xs[2] + 0.28) < 0.005 && Math.abs(L2.xs[3] - 0.28) < 0.005 && Math.abs(L2.xs[4] - 0.28) < 0.005 && L2.free < -0.4, JSON.stringify(L2));
+
+
+  // THE ALLEY: a junction of the street (left, two places) and an alley (right, ONE place, wall to wall): only jump or slide
+  const AL = await pg.evaluate(() => {
+    const out = {}, w = new World(TRACK); w.extras = true; w.extend(120000); const F = w.pieces.find(p => p.type === 'fork' && p.fork === TRACK.forks.gateVic), f = F.fork, S = TRACK.segments;
+    out.routes = [f.left.route, f.right.route]; out.lanes = [S[f.left.route].lanes, S[f.right.route].lanes]; out.biomes = [S[f.left.route].biome, S[f.right.route].biome]; out.signs = [f.left.sign, f.right.sign]; out.signKit = [f.left.sign, f.right.sign].every(n => !!SPR[n] && !!ENV3D.common.props[n]);
+    out.seq = w.pieces.map(p => p.id || 'fork').join('>').match(/vicS2>fork>vicC/) !== null; const bs = w.bandsAt(F.fe + 200), l = bs.find(b => b.side < 0), r = bs.find(b => b.side > 0); out.width = [+((l.hi - l.lo) * U3.X).toFixed(2), +((r.hi - r.lo) * U3.X).toFixed(2)]; out.centres = [+((l.lo + l.hi) / 2).toFixed(2), +((r.lo + r.hi) / 2).toFixed(2)];
+    const mg = w.bandsAt(F.z1 - 1); out.merge = mg.map(b => +((b.hi - b.lo) * U3.X).toFixed(2)); out.after = +((w.bandsAt(F.z1 + 50)[0].hi - w.bandsAt(F.z1 + 50)[0].lo) * U3.X).toFixed(2);
+    const R = w.items.filter(i => i.tag === F.uid + 'right' && i.z >= F.fe), hz = R.filter(i => OBST[i.kind]); out.kinds = [...new Set(hz.map(i => i.kind))].filter(k => k !== 'crate').sort(); out.hz = hz.filter(i => i.kind !== 'crate').length; out.xs = [...new Set(hz.map(i => +i.x.toFixed(2)))]; out.pk = [...new Set(R.filter(i => i.kind !== 'prop' && !OBST[i.kind]).map(i => +i.x.toFixed(2)))];
+    const hh = hz.filter(i => i.kind !== 'crate').sort((a, b) => a.z - b.z); out.gap = hh.length > 1 ? Math.min(...hh.slice(1).map((h, k) => h.z - hh[k].z)) : 0; out.way = ['slide', 'jump'].includes(S.vicM.waymark) && ['slide', 'jump'].includes(S.vicAlley.waymark);
+    out.box = [OBST.vicAJump, OBST.vicASlide]; return out;
+  });
+  T('the junction of Vic: the street goes on LEFT (' + AL.routes[0] + ', two places, ' + AL.width[0] + ' m) and an alley goes RIGHT (' + AL.routes[1] + ', ONE place, ' + AL.width[1] + ' m wall to wall), signs ' + AL.signs.join(' / ') + ' in both builds, they merge into the street (' + AL.merge.join(' / ') + ' then ' + AL.after + ' m)',
+    AL.seq && AL.lanes.join() === '2,1' && AL.biomes.join() === 'vic,vicAlley' && AL.signKit && Math.abs(AL.width[0] - 4.4) < 0.1 && Math.abs(AL.width[1] - 2.27) < 0.1 && Math.abs(AL.after - 4.4) < 0.1 && AL.merge.every(x => x < 6), JSON.stringify(AL.width));
+  T('the alley has only two kinds of hazard, wall to wall (' + AL.kinds.join(', ') + ', ' + AL.hz + ' of them, boxes ' + JSON.stringify(AL.box) + '), all in the middle of its one place, at least ' + Math.round(AL.gap / 10) + ' m apart; the coins and the power-ups too (' + AL.pk.length + ' places)',
+    AL.kinds.join() === 'vicAJump,vicASlide' && AL.hz >= 4 && AL.xs.length === 1 && AL.gap >= 190 && AL.pk.length === 1 && AL.pk[0] === AL.xs[0] && AL.way, JSON.stringify({ xs: AL.xs, pk: AL.pk }));
+  const AR = await pg.evaluate(() => {
+    const g = __wf, out = {}; g.r.renderer.render = () => {}; const run = (kind, act, dx, key) => {
+      g.start(); g.world.extend(90000); const F = g.world.pieces.find(p => p.type === 'fork' && p.fork === TRACK.forks.gateVic); g.world.commit(F, 'right'); g.world.items = g.world.items.filter(i => i.kind === 'prop'); g.state = 'play'; g.scene = null; g.fadeIn = 0; g.pk.reset();
+      g.p.z = F.fe + 700; const c = g.world.playerBand(g.p.z, 0).c; g.world.items.push({ kind, z: g.p.z + 300, x: c, h: 12, tag: 'main' }); g.p.x = c + dx; g.p.speed = 340; g.world.extend(g.p.z); g.keys.left = g.keys.right = false;
+      for (let f = 0; f < 80 && g.state === 'play'; f++) { if (key && f < 40) g.keys[key] = true; if (act === 'jump' && f === 36) g.onKey({ code: 'Space', key: ' ', repeat: false, preventDefault() {} }, true); if (act === 'slide' && f === 22) g.onKey({ code: 'ArrowDown', key: 'ArrowDown', repeat: false, preventDefault() {} }, true); g.advance(1 / 60); }
+      return { alive: g.state === 'play', dx: +(g.p.x - c).toFixed(3) };
+    };
+    out.jumpWalk = run('vicAJump', null, 0).alive; out.jumpJump = run('vicAJump', 'jump', 0).alive; out.slideWalk = run('vicASlide', null, 0).alive; out.slideSlide = run('vicASlide', 'slide', 0).alive; out.slideJump = run('vicASlide', 'jump', 0).alive;
+    out.keyL = run('vicAJump', 'jump', 0, 'left').dx; out.keyR = run('vicAJump', 'jump', 0, 'right').dx; out.off = run('vicAJump', null, 0.2).alive; out.off2 = run('vicAJump', null, -0.2).alive; return out;
+  });
+  T('in the alley there is nothing to go round: walking into a hazard crashes (' + !AR.jumpWalk + ' / ' + !AR.slideWalk + '), even a little to one side (' + !AR.off + ' / ' + !AR.off2 + '), the arrow keys do not move the runner (' + AR.keyL + ' / ' + AR.keyR + '); the crate row is jumped (' + AR.jumpJump + '), the washing line is slid under (' + AR.slideSlide + ') and not jumped (' + AR.slideJump + ')',
+    !AR.jumpWalk && !AR.slideWalk && !AR.off && !AR.off2 && Math.abs(AR.keyL) < 0.03 && Math.abs(AR.keyR) < 0.03 && AR.jumpJump && AR.slideSlide && !AR.slideJump, JSON.stringify(AR));
+  const AB = await pg.evaluate(() => {
+    const g = __wf; g.r.renderer.render = () => {}; g.start(); g.world.extend(90000); const F = g.world.pieces.find(p => p.type === 'fork' && p.fork === TRACK.forks.gateVic); g.state = 'play'; g.scene = null; g.fadeIn = 0; g.die = Game.prototype.die; g.p.z = F.z0 - 120; g.p.x = 0.28; g.p.speed = 340; g.world.extend(g.p.z);
+    const key = c => g.onKey({ code: c, key: c, repeat: false, preventDefault() {} }, true), out = { frames: 0, coins: 0, names: new Set() }; const c0 = g.coins; let f = 0;
+    while (g.state === 'play' && g.p.z < F.z1 + 100 && f < 60 * 40) { const p = g.p; g.keys.left = g.keys.right = false; if (p.z < F.z0 + 200) g.keys.right = true;
+      const hz = g.world.items.filter(i => OBST[i.kind] && i.z > p.z && i.z - p.z < 140 && Math.abs(i.x - p.x) < 0.7)[0]; if (hz && hz.z - p.z < 105 && p.jy === 0 && p.slide <= 0) key(hz.kind === 'vicASlide' ? 'ArrowDown' : 'Space');
+      g.advance(1 / 60); f++; out.names.add(g.world.track.segments[g.world.playerBand(g.p.z, g.p.x).route].name); }
+    out.state = g.state; out.reached = g.p.z >= F.z1 + 100 - 1; out.coins = g.coins - c0; out.frames = f; out.names = [...out.names]; out.choice = F.choice; return out;
+  });
+  T('a bot takes the alley by jumping and sliding only (' + AB.frames + ' frames, ' + AB.coins + ' coins, alive ' + AB.state + ', HUD ' + AB.names.join(' / ') + ') and comes out into the street',
+    AB.state === 'play' && AB.reached && AB.choice === 'right' && AB.coins >= 10 && AB.names.includes('RUELLE'), JSON.stringify(AB));
 
   // the models
   const M = await pg.evaluate(() => {
@@ -91,11 +129,11 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
 
   // a bot plays the whole zone: from before it to the neon quarter
   const BOT = await pg.evaluate(() => {
-    const g = __wf; g.r.renderer.render = () => {}; g.start(); g.world.extend(90000); const V = g.world.pieces.find(p => p.id === 'vicA'), L = g.world.pieces.find(p => p.id === 'vicF'); g.state = 'play'; g.scene = null; g.fadeIn = 0; g.die = Game.prototype.die; g.p.z = V.z0 - 300; g.p.x = 0; g.p.speed = 340; g.world.extend(g.p.z);
+    const g = __wf; g.r.renderer.render = () => {}; g.start(); g.world.extend(90000); const V = g.world.pieces.find(p => p.id === 'vicA'), L = g.world.pieces.find(p => p.id === 'vicF'); g.state = 'play'; g.scene = null; g.fadeIn = 0; g.die = Game.prototype.die; g.p.z = V.z0 - 300; g.p.x = 0; g.p.speed = 340; g.world.extend(g.p.z); const GF = g.world.pieces.find(p => p.type === 'fork' && p.fork === TRACK.forks.gateVic);
     const key = c => g.onKey({ code: c, key: c, repeat: false, preventDefault() {} }, true), out = { off: 0, coins: 0, minX: 9, maxX: -9 }; let f = 0; const c0 = g.coins;
-    while (g.state === 'play' && g.p.z < L.z1 + 200 && f < 60 * 60) { const p = g.p, w = g.world; g.keys.left = g.keys.right = false; let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
-      { const vt = g.world.items.filter(i => /^vic/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { g.keys.left = vt.x > 0; g.keys.right = vt.x < 0; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic/.test(tg.kind)) tg = null; } if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || tg.kind !== 'over')) key(tg.kind === 'over' ? 'ArrowDown' : 'Space');
-      g.advance(1 / 60); f++; const bs = w.bandsAt(g.p.z), ch = bs.find(q => q.chosen) || bs[0]; if (g.p.x < ch.lo - 0.02 || g.p.x > ch.hi + 0.02) out.off++; if (g.p.z > V.z0 && g.p.z < L.z1) { out.minX = Math.min(out.minX, g.p.x); out.maxX = Math.max(out.maxX, g.p.x); } }
+    while (g.state === 'play' && g.p.z < L.z1 + 200 && f < 60 * 60) { const p = g.p, w = g.world; g.keys.left = g.keys.right = false; let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic[^A]/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
+      { const vt = g.world.items.filter(i => /^vic[^A]/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { const cc = g.world.playerBand(p.z, p.x).c; g.keys.left = vt.x > cc; g.keys.right = vt.x < cc; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic[^A]/.test(tg.kind)) tg = null; } if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || !/^(over|vicASlide)$/.test(tg.kind))) key(/^(over|vicASlide)$/.test(tg.kind) ? 'ArrowDown' : 'Space');
+      if (g.p.z > GF.z0 - 450 && g.p.z < GF.z0 + 5) { g.keys.left = true; g.keys.right = false; } g.advance(1 / 60); f++; const bs = w.bandsAt(g.p.z), ch = bs.find(q => q.chosen) || bs[0]; if (g.p.x < ch.lo - 0.02 || g.p.x > ch.hi + 0.02) out.off++; if (g.p.z > V.z0 && g.p.z < L.z1) { out.minX = Math.min(out.minX, g.p.x); out.maxX = Math.max(out.maxX, g.p.x); } }
     out.state = g.state; out.reached = g.p.z >= L.z1 + 200 - 1; out.coins = g.coins - c0; out.frames = f; return out;
   });
   T('a bot plays the six pieces (' + BOT.frames + ' frames, ' + BOT.coins + ' coins, alive ' + BOT.state + '), stepping from one half of the street to the other (x from ' + BOT.minX.toFixed(2) + ' to ' + BOT.maxX.toFixed(2) + '), off the road for ' + BOT.off + ' frames at most while the street narrows (the game puts the runner back)',

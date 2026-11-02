@@ -45,6 +45,16 @@ window.ENV3D = window.ENV3D || {};
         p.push(Kit.box(2.0, 0.08, 0.1, 0, 2.28, 0.14, '#7a5230'), Kit.cyl(0.34, 0.34, 0.16, -0.45, 2.36, 0.15, '#e8b830', { seg: 8 }), Kit.cyl(0.3, 0.3, 0.16, 0.5, 2.36, 0.15, '#d9a838', { seg: 8 }), Kit.cyl(0.3, 0.3, 0.12, -0.45, 2.52, 0.15, '#e8c870', { seg: 8 }));
         return Kit.merge(p);
       },
+      signVic: () => {                                                   // a street between two ochre houses with a lantern, on a terracotta board
+        const p = board('#e8a33d', '#7a3a24');
+        p.push(Kit.box(0.5, 1.1, 0.1, -0.55, 2.0, 0.12, '#d9a35e'), Kit.box(0.5, 1.1, 0.1, 0.55, 2.0, 0.12, '#e0a090'), Kit.box(0.3, 0.9, 0.12, 0, 2.0, 0.13, '#4c4e5c'), Kit.box(0.14, 0.2, 0.1, 0, 3.1, 0.16, '#ffbd70', { glow: true }));
+        return Kit.merge(p);
+      },
+      signAlley: () => {                                                  // a very narrow alley between two walls, a lit window at the end, on a dark board
+        const p = board('#e8a33d', '#2a2230');
+        p.push(Kit.box(0.7, 1.2, 0.1, -0.5, 2.0, 0.12, '#c4724a'), Kit.box(0.7, 1.2, 0.1, 0.5, 2.0, 0.12, '#d9a35e'), Kit.box(0.18, 1.0, 0.12, 0, 2.0, 0.13, '#15121a'), Kit.box(0.1, 0.14, 0.1, 0, 2.5, 0.16, '#ffbd70', { glow: true }));
+        return Kit.merge(p);
+      },
       signRuins: () => {                                                  // a stone arch with a glowing green keystone on a dark green board
         const p = board('#9aa690', '#16301f');
         p.push(Kit.box(0.34, 1.3, 0.12, -0.6, 1.75, 0.12, '#a8b09c'), Kit.box(0.34, 1.3, 0.12, 0.6, 1.75, 0.12, '#a8b09c'), Kit.box(1.5, 0.3, 0.12, 0, 3.05, 0.12, '#a8b09c'), Kit.box(0.5, 0.2, 0.12, 0, 2.82, 0.12, '#a8b09c'),

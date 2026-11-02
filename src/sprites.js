@@ -193,6 +193,8 @@ function buildSprites() {
   SPR.signIsland = sign(r => { r(C.amberL, 13, 3, 8, 12); r('#d8392b', 13, 3, 8, 1); r('#d8392b', 13, 3, 1, 12); r('#d8392b', 20, 3, 1, 12); r('#f7e9c6', 15, 5, 1, 8); r('#f7e9c6', 18, 5, 1, 8); r(C.tealL, 6, 16, 22, 2); r(C.teal, 8, 18, 18, 1); }, 'ISLE');   // a painted tower over the water
   SPR.signCanal = sign(r => { r('#dfe2dc', 12, 8, 10, 3); r('#dfe2dc', 14, 6, 6, 2); r('#9b9c94', 12, 11, 10, 1); r(C.teal, 5, 13, 24, 2); r(C.tealL, 7, 15, 20, 1); r(C.teal, 5, 17, 24, 1); }, 'CANAL');         // a white rowing boat on the canal
   SPR.signQuay = sign(r => { for (let i = 0; i < 8; i++) r(i % 2 ? '#f2e6e2' : '#c8483c', 9 + i * 2, 4, 2, 4); r(C.earth, 10, 8, 14, 1); r('#e8b830', 12, 11, 5, 5); r('#e8c870', 12, 11, 5, 1); r('#d9a838', 19, 12, 5, 4); r(C.earth, 9, 16, 16, 2); }, 'KAAS');       // a gingham awning over wheels of cheese
+  SPR.signVic = sign(r => { r(C.amber, 9, 5, 16, 3); r('#d9a35e', 9, 8, 16, 9); r(C.ink, 12, 10, 3, 4); r(C.ink, 19, 10, 3, 4); r('#7a5230', 15, 12, 4, 5); }, 'VIC');
+  SPR.signAlley = sign(r => { r('#d9a35e', 7, 4, 7, 14); r('#d9a35e', 20, 4, 7, 14); r(C.ink, 15, 6, 4, 12); r('#ffbd70', 16, 9, 2, 2); }, 'RUELLE');
   SPR.signRuins = sign(r => { r(C.stoneL, 9, 6, 3, 11); r(C.stoneL, 22, 6, 3, 11); r(C.stone, 9, 4, 16, 3); r(C.stoneD, 12, 7, 10, 2); r(C.mossL, 9, 15, 3, 2); r(C.mossL, 22, 12, 3, 2); r(C.moss, 13, 8, 8, 1); }, 'RUINS');
   SPR.signNeon = sign(r => { r('#ff2fd0', 9, 5, 16, 2); r('#ff2fd0', 9, 14, 16, 2); r('#ff2fd0', 9, 7, 2, 7); r('#ff2fd0', 23, 7, 2, 7); r('#22e0e8', 13, 9, 8, 3); r('#22e0e8', 15, 8, 4, 5); }, 'NEON');
   // ---- market street furniture

@@ -118,7 +118,7 @@ class World {
   }
   genExtras(id, seg, z0, end, tag, cx) {
     const h = hashStr(id) ^ 0x5bd1e995, tail = end - 160;
-    const LX = l => seg.lanes === 2 ? cx + (l >= 0 ? 1 : -1) * 0.28 : cx + l * LANE_W;                 // (a street with two places only, Vic: the pickups too stand on the left half or the right half)
+    const LX = l => seg.lanes === 2 ? cx + (l >= 0 ? 1 : -1) * 0.28 : seg.lanes === 1 ? cx : cx + l * LANE_W;                 // (a street with two places only, Vic: the pickups too stand on the left half or the right half)
     if (seg.waymark && tag !== 'main') {                                           // the route's Golden Waymark: its pattern replaces whatever the grid put in a window of the branch
       const W = WAYMARKS[seg.waymark], zc = z0 + (end - z0) * 0.45;
       this.items = this.items.filter(it => !(it.tag === tag && it.kind !== 'prop' && it.z > zc - 175 && it.z < zc + W.last + 205));
@@ -161,7 +161,7 @@ class World {
       const sg = side === 'left' ? -1 : 1, tag = P.uid + side;
       for (let k = 0; k < 6; k++) {
         const z = s + f.zone * (0.4 + 0.1 * k), e = ease((z - s) / f.zone);
-        this.items.push({ kind: 'coin', z, x: sg * (0.45 + (FC - 0.45) * e), h: 12, tag });
+        this.items.push({ kind: 'coin', z, x: sg * ((f.preHw || 0.9) / 2 + (FC - (f.preHw || 0.9) / 2) * e), h: 12, tag });
       }
       this.genSegment(f[side].route, P.fe, f.branchLen, tag, sg * FC);
     }
@@ -247,7 +247,7 @@ class World {
         to = T.segments[pv.fork[pv.choice].route].biome;
         t = clamp(1 - (z - pv.be) / (pv.fork.merge + 250), 0, 1);
       }
-      const kn = z0 => z0.type === 'seg' && z0.seg.hw ? z0.seg.hw : 0.9, from = pv ? kn(pv) : 0.9, ws = (s.hw || 0.9), wk = ease(clamp((z - P.z0) / 400, 0, 1)), hwS = from === ws ? ws : from + (ws - from) * wk;      // (a narrow street opens and closes over its first 400 units: no jump of the road's width)
+      const kn = z0 => z0.type === 'seg' && z0.seg.hw ? z0.seg.hw : z0.type === 'fork' && z0.fork.mergeHw ? z0.fork.mergeHw : 0.9, from = pv ? kn(pv) : 0.9, ws = (s.hw || 0.9), wk = ease(clamp((z - P.z0) / 400, 0, 1)), hwS = from === ws ? ws : from + (ws - from) * wk;      // (a narrow street opens and closes over its first 400 units: no jump of the road's width)
       const b = { lo: -hwS, hi: hwS, side: 0, route: P.id, off: s.curve * bump((z - P.z0) / (P.z1 - P.z0)), to, t, chosen: true };
       b.eL = b.eR = { to, t };
       const F = this.pieces[this.pieces.indexOf(P) + 1];
@@ -261,10 +261,10 @@ class World {
     const F = P.fork, out = [], FC = F.c || FORK_C;
     for (const sg of [-1, 1]) {
       const side = sg < 0 ? 'left' : 'right', seg = T.segments[F[side].route];
-      let c, hw = 0.9, off = 0; const kh = F.rise && side === F.rise.side && F.rise.hw ? F.rise.hw : 0.9;      // (the raised road may be narrower: the street of the old town is not as wide as the canal)
-      if (z < P.fe) { const e = ease((z - P.z0) / F.zone); c = 0.45 + (FC - 0.45) * e; hw = 0.45 + (kh - 0.45) * e; }
+      let c, hw = 0.9, off = 0; const kh = F.rise && side === F.rise.side && F.rise.hw ? F.rise.hw : seg.hw || 0.9;      // (the raised road may be narrower: the street of the old town is not as wide as the canal)
+      if (z < P.fe) { const e = ease((z - P.z0) / F.zone); const c0 = (F.preHw || 0.9) / 2; c = c0 + (FC - c0) * e; hw = c0 + (kh - c0) * e; }
       else if (z < P.be) { c = FC; hw = kh; off = seg.curve * bump((z - P.fe) / F.branchLen); }
-      else { const e = ease((z - P.be) / F.merge); c = FC * (1 - e); hw = kh + (0.9 - kh) * e; }
+      else { const e = ease((z - P.be) / F.merge); c = FC * (1 - e); hw = kh + ((F.mergeHw || 0.9) - kh) * e; }
       const a = sg * (c - hw), b2 = sg * (c + hw);
       const up = F.hold ? 1 : clamp((z - P.z0) / (F.zone + F.blend), 0, 1);               // `hold`: the look of the piece before goes through the junction (no fade in from the base look)
       const down = z > P.be ? clamp(1 - (z - P.be) / (F.merge + 250), 0, 1) : 1;

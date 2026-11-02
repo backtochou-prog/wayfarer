@@ -122,3 +122,4 @@ BIOMES.coastAqua = Object.assign({}, BIOMES.coastBlue, { keep: true, label: 'AQU
 
 // VIC (the narrow streets of the old town): the 3D build has its own look (ENV3D.vic); the 2D game gets the tram street's palette in warm light
 BIOMES.vic = Object.assign({}, BIOMES.tram, { name: 'VIC', atmo: 'vic', density: 0.2 });
+BIOMES.vicAlley = Object.assign({}, BIOMES.vic, { name: 'VIC' });

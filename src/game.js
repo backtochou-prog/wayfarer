@@ -333,10 +333,11 @@ class Game {
   steer(dt) {
     const w = this.world, p = this.p;
     const dir = (this.keys.right || this.tright ? 1 : 0) - (this.keys.left || this.tleft ? 1 : 0);
-    const vp = w.pieceAt(p.z);
-    if (vp && vp.type === 'seg' && vp.seg.lanes === 2) {                                   // VIC, the narrow streets: only TWO places, the left half and the right half of the street (lane +-0.28): a key sends the runner to that half, it stays there until the other key
-      if (dir) this.lane2 = dir; else if (!this.lane2) this.lane2 = p.x < 0 ? -1 : 1;
-      const tx = this.lane2 * 0.28, nx = p.x + (tx - p.x) * Math.min(1, dt * 15); p.vx = dt > 0 ? (nx - p.x) / dt : 0; p.x = nx;
+    const vp = w.pieceAt(p.z); let lanes = 0, lc = 0;
+    if (vp && vp.type === 'seg') lanes = vp.seg.lanes || 0; else if (vp && vp.type === 'fork' && vp.choice) { lanes = w.track.segments[vp.fork[vp.choice].route].lanes || 0; lc = w.playerBand(p.z, p.x).c; }       // (on a chosen road of a junction the places are those of that road)
+    if (lanes) {                                   // VIC, the narrow streets: only TWO places, the left half and the right half of the street (lane +-0.28), or ONE in the alley: a key sends the runner to that half, it stays there until the other key
+      if (dir) this.lane2 = dir; else if (!this.lane2) this.lane2 = p.x < lc ? -1 : 1;
+      const tx = lc + (lanes === 1 ? 0 : this.lane2 * 0.28), nx = p.x + (tx - p.x) * Math.min(1, dt * 15); p.vx = dt > 0 ? (nx - p.x) / dt : 0; p.x = nx;
     } else {
       this.lane2 = 0; p.vx += (dir * STEER - p.vx) * Math.min(1, dt * 14);
       p.x += p.vx * dt;

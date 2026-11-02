@@ -20,14 +20,14 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const pg = await open(base);
   await pg.evaluate(() => {
     window.H = {
-      at(seg, dz, speed = 300) { const g = __wf; g.r.renderer.render = () => {}; g.start(); g.world.extend(170000); const P = g.world.pieces.find(p => p.id === seg) || (F => F && { id: seg, z0: F.fe + F.fork.tube.len, z1: F.be })(g.world.pieces.find(p => p.type === 'fork' && p.fork.right.route === seg)); g.state = 'play'; g.p.z = P.z0 + dz; g.p.x = 0; g.p.speed = speed; g.scene = null; g.fadeIn = 0; g.world.extend(g.p.z);
+      at(seg, dz, speed = 300) { const g = __wf; g.r.renderer.render = () => {}; g.start(); g.world.extend(260000); const P = g.world.pieces.find(p => p.id === seg) || (F => F && { id: seg, z0: F.fe + F.fork.tube.len, z1: F.be })(g.world.pieces.find(p => p.type === 'fork' && p.fork.right.route === seg)); g.state = 'play'; g.p.z = P.z0 + dz; g.p.x = 0; g.p.speed = speed; g.scene = null; g.fadeIn = 0; g.world.extend(g.p.z);
         const a = g.world.playerBand(g.p.z + 300, 0); g.bgTo = a.to; g.bgT = a.t; g.die = () => {}; return { g, P }; },
       draw(n = 3) { const g = __wf; for (let i = 0; i < n; i++) { g.time += 1 / 60; g.r.draw(g); } },
       bot() {
         const g = __wf, p = g.p, hz = g.world.items.filter(it => OBST[it.kind] && !it.taken && it.z > p.z - 12 && it.z < p.z + 300); g.keys.left = g.keys.right = false;
         let tg = null; for (const it of hz) { const o = OBST[it.kind]; if (Math.abs(it.x - p.x) > o.hw + P_HW + 0.08 || it.z <= p.z - 2) continue; if (!tg || it.z < tg.z) tg = it; }
-        { const vt = g.world.items.filter(i => /^vic/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { g.keys.left = vt.x > 0; g.keys.right = vt.x < 0; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic/.test(tg.kind)) tg = null; }
-        if (tg) { const d = tg.z - p.z, v = p.speed * (g.pk ? g.pk.speedMul : 1), key = c => g.onKey({ code: c, key: c, repeat: false, preventDefault() {} }, true); if (tg.kind === 'over') { if (d < v * 0.2 + 10 && p.jy === 0 && p.slide <= 0) key('ArrowDown'); } else if (d < v * 0.26 + 8 && p.jy === 0 && !hz.some(it => it.kind === 'over' && it.z > p.z - 10 && it.z < p.z + 12)) key('Space'); }
+        { const vt = g.world.items.filter(i => /^vic[^A]/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { const cc = g.world.playerBand(p.z, p.x).c; g.keys.left = vt.x > cc; g.keys.right = vt.x < cc; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic[^A]/.test(tg.kind)) tg = null; }
+        if (tg) { const d = tg.z - p.z, v = p.speed * (g.pk ? g.pk.speedMul : 1), key = c => g.onKey({ code: c, key: c, repeat: false, preventDefault() {} }, true); if (/^(over|vicASlide)$/.test(tg.kind)) { if (d < v * 0.2 + 10 && p.jy === 0 && p.slide <= 0) key('ArrowDown'); } else if (d < v * 0.26 + 8 && p.jy === 0 && !hz.some(it => it.kind === 'over' && it.z > p.z - 10 && it.z < p.z + 12)) key('Space'); }
       },
     };
   });

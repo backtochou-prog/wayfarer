@@ -13,6 +13,9 @@ const OBST = {
   vicBarrel: { hw: 0.3, y0: 0, y1: 14 }, // two oak wine barrels, a zinc bucket of flowers on one: jump over (the user's photo)
   vicChairs: { hw: 0.3, y0: 0, y1: 11 },  // two wooden armchairs of the street furniture, facing each other: jump over (the user's photo)
   vicPot: { hw: 0.3, y0: 0, y1: 14 },    // two big terracotta flower pots with shrubs (the street's planters): jump over
+  // VIC, THE ALLEY (one place only, wall to wall): a low hazard is jumped, a hanging one is slid under, there is no room to go round
+  vicAJump:  { hw: 0.5, y0: 0,  y1: 11 },  // baskets, crates and flower pots across the alley: jump over it
+  vicASlide: { hw: 0.5, y0: 14, y1: 48 },  // a washing line across the alley with sheets and clothes: slide under it
   vicHigh: { hw: 0.3, y0: 0,  y1: 48 },   // a patio heater, a planter and stacked chairs: too tall to jump, only the other side
   vicHang: { hw: 0.3, y0: 14, y1: 48 },   // a big parasol over the wall side: slide under it, or the other side
 };
@@ -32,6 +35,9 @@ const PATTERNS = {
   vicPotL: [['coin', 20, 0.45], ['vicPot', 60, -0.45], ['coin', 60, 0.45], ['coin', 100, 0.45]],
   vicPotR: [['coin', 20, -0.45], ['vicPot', 60, 0.45], ['coin', 60, -0.45], ['coin', 100, -0.45]],
   // (vicSlalom and vicMix are long patterns, not used by the street pieces: they would run over the next piece, where two hazards on opposite walls could end up a few metres apart)
+  vicAJ: [['coin', 20, 0], ['vicAJump', 60, 0], ['coin', 60, 0, 28], ['coin', 100, 0]],
+  vicAS: [['coin', 30, 0, 6], ['vicASlide', 70, 0], ['coin', 70, 0, 6], ['coin', 110, 0, 6]],
+  vicAM: [['vicAJump', 50, 0], ['coin', 50, 0, 28], ['coin', 150, 0], ['vicASlide', 260, 0], ['coin', 260, 0, 6]],
   vicSlalom: [['coin', 10, 0.45], ['vicHigh', 50, -0.45], ['coin', 220, 0], ['vicHigh', 400, 0.45], ['coin', 450, -0.45]],
   vicMix:   [['vicLow', 50, 0.45], ['coin', 60, -0.45], ['vicHang', 380, -0.45], ['coin', 390, 0.45]],
   line:      [['coin', 0, 0], ['coin', 26, 0], ['coin', 52, 0], ['coin', 78, 0], ['coin', 104, 0]],
@@ -148,10 +154,15 @@ const TRACK = {
     vicE: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: 1.1, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR'], extra: [] },
     vicF: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: -1.1, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR', 'vicHighR', 'vicLowL'], extra: [] },
     vicS1: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: 0, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR', 'vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR'], extra: [] },
-    vicS2: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: 0, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR', 'vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL'], extra: [] },
+    vicS2: { name: 'VIC', biome: 'vic', lanes: 2, length: 1400, curve: 0, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR', 'vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL'], extra: [] },
     vicS3: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: 0, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicPotR', 'vicLowR', 'vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL'], extra: [] },
     vicS4: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: 0, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR'], extra: [] },
     vicS5: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: 0, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR', 'vicHighR', 'vicLowL', 'vicBarrelR'], extra: [] },
+    // THE JUNCTION OF VIC (`gateVic`, after the second straight): LEFT the street goes on (`vicM`: the two halves), RIGHT an ALLEY between two walls, as in the user's photo (`vicAlley`, one place only, `lanes: 1`): no room to go round, the hazards are
+    // only jumped or slid under. The two roads come back to the street after 180 m.
+    vicM: { name: 'VIC', biome: 'vic', lanes: 2, length: 1800, curve: 0, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, waymark: 'slide',
+            patterns: ['vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR', 'vicHighR'], extra: [] },
+    vicAlley: { name: 'RUELLE', biome: 'vicAlley', lanes: 1, length: 1800, curve: 0, hw: 0.32, first: 220, spacing: 260, district: 300, opening: true, stay: true, waymark: 'jump', patterns: ['vicAJ', 'vicAS', 'vicAS', 'vicAJ', 'vicAJ', 'vicAS'], extra: [] },
     // THE COASTAL ZONE, on the main circuit (after the first plaza of every lap), one of four pieces by turns (`pickSegs.C`): the same safe sprint of coin waves, dunes and a few barriers, on a 420 m
     // coast road, under four lights: the sunset (the look of the coast branches of the junctions), the morning haze, the midday sun and the blue hour. A district fading in and out over 90 m.
     coastMorning:  { name: 'MORNING COAST',   biome: 'coastMorning', length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
@@ -229,6 +240,7 @@ const TRACK = {
     // `h` units (34.5 = 3.45 m, 5 cm under the street of the quay props) over `up` units once the roads have parted (the stairs), keeps it there and brings it down over `down` units before the roads merge (all on the grid of 120 units = one 12 m slot). `c`: the lateral centre of each road once
     // open (1.225 lanes: the street, 0.75 lane of half-width, narrower than the canal, runs beside it, 8.7 m from its axis, as the real quay does; FORK_C otherwise).
     gateUtrecht: { zone: 480, branchLen: 4000, merge: 360, blend: 40, hold: true, c: 1.225, rise: { side: 'right', hw: 0.75, h: 34.5, up: 960, down: 840, grid: 120 }, left: { route: 'utrechtD', sign: 'signCanal' }, right: { route: 'utrechtQuay', sign: 'signQuay' } },
+    gateVic: { zone: 480, branchLen: 1800, merge: 360, blend: 40, hold: true, c: 1.7, preHw: 0.62, mergeHw: 0.62, left: { route: 'vicM', sign: 'signVic' }, right: { route: 'vicAlley', sign: 'signAlley' } },
     // THE JUNCTIONS OF THE CIRCUIT. The coast and the neon quarter are zones of their own now (Neon > Beach > Saint-Gilles > Utrecht), so the pairs the junction of Saint-Gilles takes (picks.A) offer only the
     // detours that stay in its neighbourhood: forest, market, ruins. The pairs above that lead to the coast or the neon quarter (gate3, gate4, gate2, gate3B, gate4B) are no longer on the circuit.
     gate5: { zone: 440, branchLen: 1300, merge: 360, blend: 40, left: { route: 'ruinsRun', sign: 'signRuins' }, right: { route: 'detourB', sign: 'signMarket' } },
@@ -239,7 +251,7 @@ const TRACK = {
   base: 'city',          // the biome every segment's palette blends from (the "unblended" look); NOT the biome of the first piece, which is the neon quarter
   // THE ZONES IN ORDER (Utrecht is followed by VIC, the narrow streets, before the neon quarter): Neon > Beach (the coast, in the four lights by turns, then the island junction: the coast goes on or an optional bridge leads to the coastal town on its island) > Saint-Gilles (the street, a junction with forest / market / ruins detours, the tram street, the Gare du Midi) > Utrecht (by train) >
   // Neon again, and so on: one door between each zone and the next (Saint-Gilles to Utrecht is the train, not a door). The run starts in the neon quarter (neonStart); the loop starts at the beach.
-  sequence: [{ seg: 'neonStart' }, { pick: 'C' }, { pick: 'E' }, { seg: 'cityRun' }, { pick: 'A' }, { seg: 'plaza' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { seg: 'gareMidi' }, { seg: 'utrechtA' }, { seg: 'utrechtB' }, { seg: 'utrechtC' }, { fork: 'gateUtrecht' }, { seg: 'vicA' }, { seg: 'vicS1' }, { seg: 'vicB' }, { seg: 'vicS2' }, { seg: 'vicC' }, { seg: 'vicS3' }, { seg: 'vicD' }, { seg: 'vicS4' }, { seg: 'vicE' }, { seg: 'vicS5' }, { seg: 'vicF' }, { seg: 'neonRun' }],
+  sequence: [{ seg: 'neonStart' }, { pick: 'C' }, { pick: 'E' }, { seg: 'cityRun' }, { pick: 'A' }, { seg: 'plaza' }, { seg: 'cityRunB' }, { seg: 'tramRun' }, { seg: 'gareMidi' }, { seg: 'utrechtA' }, { seg: 'utrechtB' }, { seg: 'utrechtC' }, { fork: 'gateUtrecht' }, { seg: 'vicA' }, { seg: 'vicS1' }, { seg: 'vicB' }, { seg: 'vicS2' }, { fork: 'gateVic' }, { seg: 'vicC' }, { seg: 'vicS3' }, { seg: 'vicD' }, { seg: 'vicS4' }, { seg: 'vicE' }, { seg: 'vicS5' }, { seg: 'vicF' }, { seg: 'neonRun' }],
   // a `pick` slot of `pickSegs` chooses a SEGMENT instead of a fork pair: one after the other at each passage (the first one with seed 0, a seeded starting point for a real run), so every ambiance of the coastal zone is met in turn
   pickSegs: { C: ['coastSunset', 'coastMidday', 'coastBlueHour', 'coastMorning'] },
   pickForks: { E: ['gateIslandSunset', 'gateIslandMidday', 'gateIslandBlue', 'gateIslandMorning'] },       // a `pick` slot of `pickForks` chooses a FORK by turns, like `pickSegs` a segment

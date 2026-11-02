@@ -29,8 +29,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
         const g = __wf, p = g.p, hz = g.world.items.filter(it => OBST[it.kind] && !it.taken && it.z > p.z - 12 && it.z < p.z + 300);
         g.keys.left = g.keys.right = false;                                                  /* (no lane changes: every hazard can be jumped or slid under) */
         let tg = null; for (const it of hz) { const o = OBST[it.kind]; if (Math.abs(it.x - p.x) > o.hw + P_HW + 0.08 || it.z <= p.z - 2) continue; if (!tg || it.z < tg.z) tg = it; }
-        { const vt = g.world.items.filter(i => /^vic/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { g.keys.left = vt.x > 0; g.keys.right = vt.x < 0; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic/.test(tg.kind)) tg = null; }
-        if (tg) { const d = tg.z - p.z, v = p.speed * (g.pk ? g.pk.speedMul : 1); if (tg.kind === 'over') { if (d < v * 0.2 + 10 && p.jy === 0 && p.slide <= 0) g.slideKey(); } else if (d < v * 0.26 + 8 && p.jy === 0 && !hz.some(it => it.kind === 'over' && it.z > p.z - 10 && it.z < p.z + 12)) g.jump(); }
+        { const vt = g.world.items.filter(i => /^vic[^A]/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { const cc = g.world.playerBand(p.z, p.x).c; g.keys.left = vt.x > cc; g.keys.right = vt.x < cc; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic[^A]/.test(tg.kind)) tg = null; }
+        if (tg) { const d = tg.z - p.z, v = p.speed * (g.pk ? g.pk.speedMul : 1); if (/^(over|vicASlide)$/.test(tg.kind)) { if (d < v * 0.2 + 10 && p.jy === 0 && p.slide <= 0) g.slideKey(); } else if (d < v * 0.26 + 8 && p.jy === 0 && !hz.some(it => it.kind === 'over' && it.z > p.z - 10 && it.z < p.z + 12)) g.jump(); }
       },
     };
   };

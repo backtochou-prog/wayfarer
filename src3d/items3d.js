@@ -12,7 +12,7 @@
 class Items3D {
   constructor(scene) {
     const P = PAL3, mats = Kit.materials(), X = U3.X, Y = U3.Y;
-    const vHW = OBST.vicLow.hw * X, hwB = OBST.barrier.hw * X, cHW = OBST.crate.hw * X, cH = OBST.crate.y1 * Y, bHW = OBST.barrier.hw * X, bH = OBST.barrier.y1 * Y;
+    const vHW = OBST.vicLow.hw * X, vAW = OBST.vicAJump.hw * X, hwB = OBST.barrier.hw * X, cHW = OBST.crate.hw * X, cH = OBST.crate.y1 * Y, bHW = OBST.barrier.hw * X, bH = OBST.barrier.y1 * Y;
     const oHW = OBST.over.hw * X, gap = OBST.over.y0 * Y, oTop = OBST.over.y1 * Y;
     // the cheese cart's chalkboard (shared by every cart): the board of the photo, white chalk on black in a wooden frame
     const chalk = (() => {
@@ -96,7 +96,7 @@ class Items3D {
     };
     this.extraKinds = ['magnet', 'shard', 'dash', 'waymark', 'aura']; this.extraSet = { magnet: 1, shard: 1, dash: 1, waymark: 1, aura: 1 };
     // pool sizes cover everything inside the 150 m draw range, including both roads of a fork
-    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, crateS: 24, vicLow: 24, vicBarrel: 24, vicPot: 24, vicChairs: 24, vicHigh: 24, vicHang: 24, barrierS: 24, barrierB: 24, overS: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
+    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, crateS: 24, vicLow: 24, vicBarrel: 24, vicPot: 24, vicAJump: 24, vicASlide: 24, vicChairs: 24, vicHigh: 24, vicHang: 24, barrierS: 24, barrierB: 24, overS: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
     this.pool = {}; this.used = {}; this.merged = {}; this.dropped = 0;
     // ---- the hazards on the canals (Renderer3D picks `<kind>W` for an item on a water road): the same sizes and boxes as the crate, the low barrier and the gate, so what you see is what you can hit
     //   crateW   a whirlpool: the same vortex (it was floating barrels)
@@ -150,6 +150,18 @@ class Items3D {
       vicPot: () => {                                                                                       // two big terracotta pots with round shrubs (the planters of the street): 1.05 m, jump over
         const p = [];
         for (const [bx, s2, c] of [[-0.5, 1, '#3f7a3f'], [0.55, 0.9, '#355d3a']]) p.push(Kit.cyl(0.42 * s2, 0.3 * s2, 0.75 * s2, bx, 0, 0, '#b0603f', { seg: 10 }), Kit.cyl(0.46 * s2, 0.46 * s2, 0.08, bx, 0.72 * s2, 0, '#9a4e32', { seg: 10 }), Kit.ico(0.62 * s2, bx, 1.2 * s2, 0, c, { detail: 1 }), Kit.ico(0.4 * s2, bx + 0.25, 1.55 * s2 - 0.1, 0.1, '#4d7a45', { detail: 1 }), Kit.ico(0.1, bx - 0.2, 1.6 * s2 - 0.1, 0.25, '#d9667c', { detail: 0 }));
+        return Kit.merge(p);
+      },
+      vicAJump: () => {                                                                                     // across the alley: three low wooden crates with pots of flowers and a basket, wall to wall (0.8 m): jump over it
+        const p = [], aw = vAW, W = '#b2814f', WD = '#8a5e36';
+        for (const bx of [-aw * 0.62, 0, aw * 0.62]) { p.push(Kit.box(0.95, 0.62, 0.8, bx, 0, 0, W), Kit.box(0.99, 0.06, 0.84, bx, 0.6, 0, '#d3a76c'), Kit.box(0.97, 0.05, 0.82, bx, 0.28, 0, WD)); }
+        for (const [bx, c] of [[-aw * 0.31, '#d9667c'], [aw * 0.31, '#e8b84a'], [-aw * 0.9, '#b07ad9'], [aw * 0.9, '#d9667c']]) p.push(Kit.cyl(0.2, 0.15, 0.3, bx, 0.0, 0.3, '#b0603f', { seg: 8 }), Kit.ico(0.26, bx, 0.45, 0.3, '#4d7a45', { detail: 1 }), Kit.ico(0.12, bx + 0.05, 0.62, 0.32, c, { detail: 0 }));
+        return Kit.merge(p);
+      },
+      vicASlide: () => {                                                                                    // a washing line from wall to wall with sheets and clothes hanging from it (1.15 m up to 2.8 m): slide under
+        const p = [], aw = vAW, cols = ['#f2efe6', '#e8a0a0', '#8ab0d8', '#f2c230', '#f2efe6', '#a8c890', '#d9667c'];
+        p.push(Kit.box(0.18, 0.14, 0.2, -aw, 2.8, 0, '#202228'), Kit.box(0.18, 0.14, 0.2, aw, 2.8, 0, '#202228'), Kit.box(2 * aw, 0.03, 0.03, 0, 2.85, 0, '#202228'));
+        for (let k = 0; k < 7; k++) { const x = -aw + 0.35 + k * (2 * aw - 0.7) / 6, h = 0.9 + (k % 3) * 0.28; p.push(Kit.box(0.5, h, 0.05, x, 2.85 - h, 0, cols[k], { rz: ((k % 2) ? 1 : -1) * 0.05 }), Kit.box(0.06, 0.06, 0.08, x - 0.2, 2.82, 0, '#6a5a40'));  }
         return Kit.merge(p);
       },
       vicHigh: () => {                                                                                      // a patio heater (a black column with a glass lamp), a big planter, folding chairs stacked against the wall: too tall to jump

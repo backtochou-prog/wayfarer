@@ -21,7 +21,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const pg = await open(base);
   await pg.evaluate(() => {
     window.H = {
-      at(z) { const g = __wf; g.r.renderer.render = () => {}; g.start(); g.world.extend(170000); g.portal.scan(g.world); g.state = 'play'; g.p.z = z; g.p.x = 0; g.p.speed = 300; g.scene = null; g.fadeIn = 0; g.world.extend(z); g.world.items = g.world.items.filter(i => i.kind === 'prop');
+      at(z) { const g = __wf; g.r.renderer.render = () => {}; g.start(); g.world.extend(260000); g.portal.scan(g.world); g.state = 'play'; g.p.z = z; g.p.x = 0; g.p.speed = 300; g.scene = null; g.fadeIn = 0; g.world.extend(z); g.world.items = g.world.items.filter(i => i.kind === 'prop');
         const a = g.world.playerBand(z + 300, 0); g.bgTo = a.to; g.bgT = a.t; g.die = () => {}; if (g.r.saucers) g.r.saucers.state.clear(); return g; },
       draw(n = 3) { const g = __wf; for (let i = 0; i < n; i++) { g.time += 1 / 60; g.r.draw(g); } },
       slot(P, prop, env, from = 300, to = 300) { for (let i = Math.ceil((P.z0 + from) * 0.1 / 12); i < (P.z1 - to) * 0.1 / 12; i++) if (ENV3D[env].layout(i, rnd).some(q => q.prop === prop)) return i; return null; },
@@ -33,7 +33,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const K = await pg.evaluate(() => {
     const C = TRACK.pickSegs.C, E = TRACK.pickForks.E, fid = f => Object.keys(TRACK.forks).find(k => TRACK.forks[k] === f), out = { seeds: {}, lights: new Set() };
     for (const s of [0, 1, 7, 99, 12345]) {
-      const w = new World(TRACK); w.seed = s; w.reset(); w.extend(260000); const P = w.pieces; let n = 0, ok = 0, bad = 0; const before = new Set(), after = new Set();
+      const w = new World(TRACK); w.seed = s; w.reset(); w.extend(340000); const P = w.pieces; let n = 0, ok = 0, bad = 0; const before = new Set(), after = new Set();
       for (let i = 1; i + 2 < P.length; i++) if (C.includes(P[i].id)) { n++; const same = P[i + 1].type === 'fork' && E.indexOf(fid(P[i + 1].fork)) === C.indexOf(P[i].id); if (same) ok++; else bad++; before.add(P[i - 1].id); after.add(P[i + 2].id); out.lights.add(P[i].id + '+' + fid(P[i + 1].fork || {})); }
       out.seeds[s] = { n, ok, bad, before: [...before].sort().join(), after: [...after].sort().join() };
     }
@@ -47,7 +47,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     let dip = 0, leftOther = 0; const seq = []; for (let z = Pf.z0 + 1; z < Pf.be; z += 5) { const l = band(z, -1), r = band(z, 1); if (l.t < 0.999 || r.t < 0.999) dip++; if (!/^coast$/.test(l.to)) leftOther++; if (seq[seq.length - 1] !== r.to) seq.push(r.to); }
     out.dip = dip; out.leftOther = leftOther; out.rightSeq = seq.join('>'); out.mouth = [band(Pf.fe - 5, 1).to, band(Pf.fe + 5, 1).to, band(Pf.fe + F.tube.len - 5, 1).to, band(Pf.fe + F.tube.len + 5, 1).to];
     out.mergeT = [+w0.bandsAt(Pf.be + 10)[0].t.toFixed(2), +w0.bandsAt(Pf.z1 - 2)[0].t.toFixed(2)];
-    const P2 = new Portal({}); P2.scan(w0); out.passages = P2.list.filter(q => q.zIn < 46000).map(q => q.from + '>' + q.to).join(','); out.inside = P2.list.filter(q => q.zIn > Pc.z0 + 200 && q.zIn < Pf.z1).length;
+    const P2 = new Portal({}); P2.scan(w0); out.passages = P2.list.filter(q => q.zIn < 52000).map(q => q.from + '>' + q.to).slice(0, 3).join(','); out.inside = P2.list.filter(q => q.zIn > Pc.z0 + 200 && q.zIn < Pf.z1).length;
     const ex = P2.list.find(q => q.from === 'coast' && q.to === 'saintgilles'); out.exit = ex ? [ex.zIn - Pf.z1, ex.zOut - ex.zIn] : null;
     out.envs = ['coastTown', 'coastTownNoon', 'coastTownBlue', 'coastTownMorning'].map(k => !!ENV3D[k] && !!ENV3D[k].layout && ENV3D[k].props.coastTower3 && ENV3D[k].props.coastPad && ENV3D[k].props.coastRound && ENV3D[k].props.coastParasol && ENV3D[k].props.coastCanal && !!BIOMES[k] && ENV3D[k].sky.top !== undefined);
     out.sky = ['coastTown', 'coastTownNoon', 'coastTownBlue', 'coastTownMorning'].map(k => ENV3D[k].sky.top + ENV3D[k].fog.color).join(',');
@@ -63,7 +63,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('the way to the island goes UNDER THE SEA: the right road keeps the coast look while the two roads part (' + K.mouth[0] + '), runs ' + K.tube.len / 10 + ' m through the aquarium tunnel (' + K.mouth[1] + ' to ' + K.mouth[2] + ') and comes up on the island (' + K.mouth[3] + '): ' + K.rightSeq + '; the coast road beside it stays the coast (' + K.leftOther + ' samples elsewhere)',
     K.tube.biome === 'coastAqua' && K.tube.len === 9000 && K.mouth[0] === K.tube.pre && K.mouth[1] === 'coastAqua' && K.mouth[2] === 'coastAqua' && /^coastTown/.test(K.mouth[3]) && /^coast[A-Za-z]*>coastAqua>coastTown[A-Za-z]*$/.test(K.rightSeq) && K.leftOther === 0, JSON.stringify(K.mouth));
   T('the hand-over is seamless and there is NO door in the beach zone: the coast stays in to its end (t ' + K.t.coastEnd + '), nothing dips back to the city look in the junction (' + K.dip + ' dips: it holds the look of the coast), the merge fades into Saint-Gilles (t ' + K.mergeT.join(' / ') + '), all one zone family (' + K.fam + '), and the passages around it are ' + K.passages + ' (' + K.inside + ' inside), the door out standing ' + (K.exit && K.exit[0] / 10) + ' m after the roads have merged',
-    K.t.coastStart < 0.05 && K.t.coastMid === 1 && K.t.coastEnd === 1 && K.dip === 0 && K.hold && K.mergeT[0] > 0.5 && K.mergeT[1] < 0.5 && K.fam === 'coast,coast,coast,coast,coast' && K.inside === 0 && K.passages === 'neon>coast,coast>saintgilles,utrecht>neon' && K.exit && K.exit[0] === 50 && K.exit[1] === 700 && K.music, JSON.stringify(K.t));
+    K.t.coastStart < 0.05 && K.t.coastMid === 1 && K.t.coastEnd === 1 && K.dip === 0 && K.hold && K.mergeT[0] > 0.5 && K.mergeT[1] < 0.5 && K.fam === 'coast,coast,coast,coast,coast' && K.inside === 0 && K.passages === 'neon>coast,coast>saintgilles,utrecht>vic' && K.exit && K.exit[0] === 50 && K.exit[1] === 700 && K.music, JSON.stringify(K.t));
   T('the island has its own names (' + K.names[2] + ', biome ' + K.biomes[1] + '), and one environment per light with the coast\'s sky and fog (' + K.sky + '), its props (towers, roundabout, landing pad, parasol, canal) and a 2D palette', /ISLAND$/.test(K.names[2]), JSON.stringify(K.envs));
   T('the four island environments are complete', K.envs.every(Boolean) && new Set(K.sky.split(',')).size === 4, K.sky);
 
@@ -96,7 +96,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   // ---- below the level of the sea and of the land: the road of the tunnel dives, runs on the sea bed and comes back up (World.dropAt: only for a runner who took it); under the sea the coast road is not seen and the surface hangs above
   const DV = await pg.evaluate(() => {
     const out = {}; const dip = choice => {
-      const w = new World(TRACK); w.extend(30000); const F = w.pieces.find(p => p.type === 'fork' && p.fork.tube); if (choice) F.choice = choice; const d = z => w.dropAt(z) - w.dropAt(F.fe - 100), tb = F.fork.tube; let maxSlope = 0, neg = 0, pos = 0;
+      const w = new World(TRACK); w.extend(70000); const F = w.pieces.find(p => p.type === 'fork' && p.fork.tube); if (choice) F.choice = choice; const d = z => w.dropAt(z) - w.dropAt(F.fe - 100), tb = F.fork.tube; let maxSlope = 0, neg = 0, pos = 0;
       for (let z = F.fe - 200; z < F.fe + tb.len + 200; z += 10) { const sl = (d(z + 10) - d(z)) / 10; maxSlope = Math.max(maxSlope, Math.abs(sl)); if (sl < -1e-6) neg++; if (sl > 1e-6) pos++; }
       return { mouth: +d(F.fe + 1).toFixed(1), mid: +d(F.fe + 3500).toFixed(1), end: +d(F.fe + tb.len - 1).toFixed(1), after: +d(F.fe + tb.len + 200).toFixed(1), merge: +d(F.z1 + 500).toFixed(1), half: +d(F.fe + tb.ramp / 2).toFixed(1), maxSlope: +maxSlope.toFixed(3), neg, pos, gDown: +w.gradeAt(F.fe + 1000).toFixed(3), gUp: +w.gradeAt(F.fe + tb.len - 1000).toFixed(3), gMid: +w.gradeAt(F.fe + 3500).toFixed(3), depth: tb.depth, ramp: tb.ramp };
     };
@@ -141,7 +141,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.apex = apex; out.rimR = [Math.min(...rim), Math.max(...rim)].map(v => +v.toFixed(3)); out.size = [+(g.boundingBox.max.y - g.boundingBox.min.y).toFixed(2), +g.boundingBox.max.y.toFixed(2), +(g.boundingBox.max.x - g.boundingBox.min.x).toFixed(2)];
     const m = ENV3D.coast.props.coastParasol(); out.prop = { hasPole: !!m.merged.lit, sprite: !!m.sprite, material: m.material() === mat };
     // where they stand: the land side of the coast, now and then, never taking the place of a club or of Club Delphi
-    const w = new World(TRACK); w.extend(30000); const Pc = w.pieces.find(p => /^coast(Sunset|Midday|BlueHour|Morning)$/.test(p.id)); let n = 0, land = true, clash = 0;
+    const w = new World(TRACK); w.extend(70000); const Pc = w.pieces.find(p => /^coast(Sunset|Midday|BlueHour|Morning)$/.test(p.id)); let n = 0, land = true, clash = 0;
     for (let i = Math.ceil(Pc.z0 * 0.1 / 12); i < Pc.z1 * 0.1 / 12; i++) { const L = ENV3D.coast.layout(i, rnd), has = L.filter(q => q.prop === 'coastParasol'); if (has.length) { n++; if (!has.every(q => q.x > 0)) land = false; if (L.some(q => q.prop === 'coastClub' || q.prop === 'coastDelphi')) clash++; } }
     out.slots = { n, land, clash };
     const g2 = H.at(H.slot(Pc, 'coastParasol', 'coast') * 120 - 400); H.draw(4); out.used = g2.r.propUsed.coastParasol; const o = g2.r.props.coastParasol.find(q => q.visible); out.kids = o ? o.children.length : 0; out.dropped = g2.r.dropped;
@@ -154,7 +154,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
 
   // ================================================================ 3. the town: towers, roundabouts, the landing pad; the pools
   const TW = await pg.evaluate(() => {
-    const out = {}; const w = new World(TRACK); w.extend(30000); const Pt = H.isle(w); out.id = Pt.id;
+    const out = {}; const w = new World(TRACK); w.extend(70000); const Pt = H.isle(w); out.id = Pt.id;
     const kinds = new Set(), count = { tower: 0, round: 0, pad: 0, club: 0 }; let seaSame = 0, seaN = 0, landOk = true, landEmpty = 0;
     for (let i = Math.ceil(Pt.z0 * 0.1 / 12); i < Pt.z1 * 0.1 / 12; i++) {
       const L = ENV3D.coastTown.layout(i, rnd), land = L.filter(q => q.x > 0), sea = JSON.stringify(L.filter(q => q.x < 0 && q.prop !== 'coastCanal')), cs = JSON.stringify(ENV3D.coast.layout(i, rnd).filter(q => q.x < 0)); seaN++; if (sea === cs) seaSame++;
@@ -188,7 +188,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
 
   // ================================================================ 3b. the long buildings are separate from the chalets: the cottages only on the beach (the coast, on both roads), the towers and the clubs only on the island
   const SEP = await pg.evaluate(() => {
-    const w = new World(TRACK); w.extend(30000); const Pc = w.pieces.find(p => /^coast(Sunset|Midday|BlueHour|Morning)$/.test(p.id)), Pt = H.isle(w), F = Pt.F, cnt = (z0, z1, env) => {
+    const w = new World(TRACK); w.extend(70000); const Pc = w.pieces.find(p => /^coast(Sunset|Midday|BlueHour|Morning)$/.test(p.id)), Pt = H.isle(w), F = Pt.F, cnt = (z0, z1, env) => {
       const c = { cottage: 0, tower: 0, club: 0, other: 0 }; for (let i = Math.ceil(z0 * 0.1 / 12); i < z1 * 0.1 / 12; i++) for (const q of ENV3D[env].layout(i, rnd)) { if (q.x < 0) continue; if (/^cottage/.test(q.prop)) c.cottage++; else if (/^coastTower/.test(q.prop)) c.tower++; else if (q.prop === 'coastClub' || q.prop === 'coastDelphi') c.club++; else c.other++; } return c; };
     const walk = TRACK.segments[F.fork.left.route].biome;
     return { beach: cnt(Pc.z0, Pc.z1, 'coast'), walk: cnt(F.fe, F.be, walk), island: cnt(Pt.z0, Pt.z1, TRACK.segments[Pt.id].biome), walkBiome: walk, islandBiome: TRACK.segments[Pt.id].biome, long: Pt.z1 - Pt.z0 };
@@ -198,7 +198,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
 
   // ================================================================ 3c. the everyday life of the coast (a standing rule): a bike lane along the road, green spaces, a sports court and a youth playground, on the beach and in the town
   const LF = await pg.evaluate(() => {
-    const w = new World(TRACK); w.extend(30000); const Pc = w.pieces.find(p => /^coast(Sunset|Midday|BlueHour|Morning)$/.test(p.id)), Pt = H.isle(w), out = {};
+    const w = new World(TRACK); w.extend(70000); const Pc = w.pieces.find(p => /^coast(Sunset|Midday|BlueHour|Morning)$/.test(p.id)), Pt = H.isle(w), out = {};
     const count = (P, env) => { const c = { slots: 0, bike: 0, park: 0, court: 0, play: 0, trees: 0, sea: 0 }; for (let i = Math.ceil(P.z0 * 0.1 / 12); i < P.z1 * 0.1 / 12; i++) { const L = ENV3D[env].layout(i, rnd), land = L.filter(q => q.x > 0); c.slots++; if (land.some(q => q.prop === 'coastBike' && q.x > 3.5 && q.x < 4)) c.bike++; if (land.some(q => q.prop === 'coastPark')) c.park++; if (land.some(q => q.prop === 'coastCourt')) c.court++; if (land.some(q => q.prop === 'coastPlay')) c.play++; c.trees += land.filter(q => q.prop === 'tree').length; if (L.some(q => q.x < 0 && /^coast(Bike|Park|Court|Play)/.test(q.prop))) c.sea++; } return c; };
     out.beach = count(Pc, 'coast'); out.town = count(Pt, 'coastTown');
     const size = n => { const m = ENV3D.coast.props[n](); const g = m.lit; g.computeBoundingBox(); const bb = g.boundingBox; return [+(bb.max.x - bb.min.x).toFixed(1), +bb.max.y.toFixed(1), +(bb.max.z - bb.min.z).toFixed(1), !!m.glow]; };
