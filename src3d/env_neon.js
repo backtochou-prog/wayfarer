@@ -61,11 +61,11 @@ window.ENV3D = window.ENV3D || {};
   // props made of the user's materials (NeonArt, second atlas). A block / shop with a picture panel on its facade; free-standing cut-outs; posts with a banner or a glowing tube.
   const art2 = (merged, sprite) => ({ merged: Kit.merge(merged), sprite, material: () => NeonArt.material2() });
   const artBlock = (F, D, H, seed, cell, rim) => art2([Kit.box(D, H, F, D / 2, 0, 0, N.body), Kit.box(D + 0.1, 0.5, F + 0.1, D / 2, 0, 0, N.base), Kit.box(0.2, 0.18, F, -0.02, H - 0.1, 0, rim, { glow: true }), Kit.box(0.2, 0.18, F, -0.02, 0.9, 0, rim, { glow: true }), Kit.box(D * 0.8, 0.4, F * 0.9, D / 2, H, 0, N.base)],
-    NeonArt.panel2(cell, -0.06, -F * 0.46, F * 0.46, 1.1, H - 0.4));
+    (() => { const ar = NEON_ASSETS2[cell].ar, avail = H - 1.5, pw = Math.min(F * 0.92, avail * ar), ph = pw / ar; return NeonArt.panel2(cell, -0.06, -pw / 2, pw / 2, 1.1, 1.1 + ph); })());       // (the picture keeps its own proportions: as wide as the facade allows, as tall as its shape makes it)
   // props of the third set (NEON_ASSETS3: 17 more pictures). `art3` = merged parts + one textured panel of the third atlas.
   const art3 = (merged, sprite) => ({ merged: Kit.merge(merged), sprite, material: () => NeonArt.material3() });
   const facadeBlock = (cell, F, D, H, rim) => art3([Kit.box(D, H, F, D / 2, 0, 0, N.body), Kit.box(D + 0.1, 0.5, F + 0.1, D / 2, 0, 0, N.base), Kit.box(0.2, 0.18, F, -0.02, H - 0.1, 0, rim, { glow: true }), Kit.box(0.2, 0.18, F, -0.02, 0.9, 0, rim, { glow: true }), Kit.box(D * 0.8, 0.4, F * 0.9, D / 2, H, 0, N.base)],
-    NeonArt.panel3(cell, -0.06, -F * 0.46, F * 0.46, 1.1, H - 0.4));
+    (() => { const ar = NEON_ASSETS3[cell].ar, avail = H - 1.5, pw = Math.min(F * 0.92, avail * ar), ph = pw / ar; return NeonArt.panel3(cell, -0.06, -pw / 2, pw / 2, 1.1, 1.1 + ph); })());
   // a free-standing picture on two posts (a billboard / sign): `w` m wide, the height follows the picture's aspect, its frame glows
   const board = (cell, w, y0, col) => { const h = w / NEON_ASSETS3[cell].ar, hw = w / 2 + 0.3;
     return art3([Kit.box(0.36, y0 + 0.2, 0.36, 0, 0, -hw + 0.1, N.post), Kit.box(0.36, y0 + 0.2, 0.36, 0, 0, hw - 0.1, N.post), Kit.box(0.28, h + 0.5, w + 0.5, -0.04, y0 - 0.1, 0, N.base),
@@ -80,6 +80,13 @@ window.ENV3D = window.ENV3D || {};
     Kit.box(0.12, 1.7, 3.3, -0.06, 3.0, 0, a, { glow: true }), Kit.box(0.14, 1.2, 2.7, -0.08, 3.25, 0, N.base), Kit.box(0.16, 0.5, 2.3, -0.1, 3.6, 0, b, { glow: true }), Kit.box(0.16, 0.12, 2.3, -0.1, 3.2, 0, b, { glow: true })]);
   const ring = (cx, cy, R, thick, col, parts, n = 20) => { for (let k = 0; k < n; k++) { const a = 2 * Math.PI * k / n, len = 2 * Math.PI * R / n * 1.15; parts.push(Kit.box(len, thick, thick, cx + Math.cos(a) * R, cy + Math.sin(a) * R, 0, col, { glow: true, rz: a + Math.PI / 2 })); } };
 
+  // the name of the tower, RED TOWER, in neon letters on a dark board at its foot (one material per colour)
+  const _lab = {}, redTowerLabel = col => {
+    if (!_lab[col]) { const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128; const x = cv.getContext('2d'); x.fillStyle = '#0a0618'; x.fillRect(0, 0, 512, 128); x.strokeStyle = col; x.lineWidth = 6; x.strokeRect(6, 6, 500, 116);
+      x.font = 'bold 76px "Arial Black", Impact, Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = col; x.shadowBlur = 18; x.fillStyle = '#fff0ff'; x.fillText('RED TOWER', 256, 68);
+      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; _lab[col] = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }); }
+    return _lab[col];
+  };
   const terrace = M => () => {
         const p = [], FL = 3.3;
         for (let f = 0; f < 11; f++) {
@@ -90,7 +97,8 @@ window.ENV3D = window.ENV3D || {};
           for (const z of [-2.4, 0.2, 2.4]) if (rnd(f * 7 + z * 3, 5) < 0.5) p.push(Kit.box(0.1, 1.5, 1.7, 0.02 + sx, y + 0.9, z, '#ffd27a', { glow: true }));                          // warm lit windows
         }
         p.push(Kit.box(0.35, 7, 0.35, 3.6, 36.3, 0, '#ff2fd0', { glow: true }), Kit.box(8, 0.3, 8, 3.8, 36.3, 0, '#1a1030'));
-        return Kit.merge(p);
+        const lab = new THREE.BufferGeometry(); lab.setAttribute('position', new THREE.Float32BufferAttribute([-0.75, 4.3, -3.6, -0.75, 4.3, 3.6, -0.75, 6.2, 3.6, -0.75, 6.2, -3.6], 3)); lab.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2)); lab.setIndex([0, 1, 2, 0, 2, 3]); lab.computeBoundingSphere(); lab.computeBoundingBox();
+        return { merged: Kit.merge(p), sprite: lab, material: () => redTowerLabel(M[1]) };
   };
   ENV3D.neon = {
     name: 'NEON QUARTER',
@@ -138,8 +146,8 @@ window.ENV3D = window.ENV3D || {};
       neonRing: () => { const p = [Kit.cyl(0.18, 0.24, 5.4, 0, 0, -3.2, N.post), Kit.cyl(0.18, 0.24, 5.4, 0, 0, 3.2, N.post)]; ring(0, 6.4, 3.4, 0.3, N.mag, p); ring(0, 6.4, 2.6, 0.22, N.teal, p, 16); ring(0, 6.4, 1.8, 0.16, N.yellow, p, 12); ring(0, 6.4, 1.0, 0.12, N.green, p, 8); return Kit.merge(p); },
       // THE TERRACE TOWER (the user's photo of a tower lit in violet and pink at night): eleven dark floors, each ringed by a deep terrace whose edge glows violet or magenta, the terraces shifted from floor to floor (the tower leans
       // and steps), a beaded line of pink lights running along the corner of each terrace, warm lit windows behind them, a pink mast on top. Facade toward the road (-X). Modelled, never the photograph.
-      neonTerrace: terrace(['#b02cff', '#ff2fd0', '#9a3cff', '#ff2fd0']),
-      neonTerraceB: terrace(['#22e0e8', '#39ff9a', '#2a9cff', '#22e0e8']),                                                      // (the same tower lit in teal and green)
+      neonRedTower: terrace(['#b02cff', '#ff2fd0', '#9a3cff', '#ff2fd0']),
+      neonRedTowerB: terrace(['#22e0e8', '#39ff9a', '#2a9cff', '#22e0e8']),                                                      // (the same tower lit in teal and green)
       neonSpire: () => { const p = [Kit.box(3.4, 26, 3.4, 0, 0, 0, N.body)]; for (let k = 0; k < 7; k++) p.push(Kit.box(3.7, 0.28, 3.7, 0, 2.5 + k * 3.4, 0, [N.mag, N.teal, N.yellow, N.purple][k % 4], { glow: true }));
         p.push(Kit.box(0.2, 26, 0.3, -1.72, 0, 0, N.teal, { glow: true }), Kit.cone(1.6, 5, 0, 26, 0, N.body), Kit.cyl(0.07, 0.07, 4, 0, 31, 0, N.post), Kit.ico(0.28, 0, 35.2, 0, N.red, { glow: true })); return Kit.merge(p); },
       // the big billboard: the user's neon LOUNGE sign (a square picture, shown square, 7.4 x 7.4 m) in a glowing frame on two posts
@@ -162,7 +170,7 @@ window.ENV3D = window.ENV3D || {};
     //   7 screens: floating cyan dots, light-ray towers, a striped boutique, green-line banners, cap signs
     // A landmark (neon ring / spire / billboard / halo / the four pictures on posts: vortex, sphere, rings, spiral) replaces the building on its side of one slot per stretch.
     layout(i, rnd) {
-      const out = [], LMS = ['neonRing', 'neonSpire', 'neonBillboard', 'neonHalo', 'neonBoardVortex', 'neonBoardSphere', 'neonBoardRings', 'neonBoardSpiral', 'neonHotel', 'neonTerrace', 'neonTerraceB'], S = Stretch.of(i, 120, 10, LMS), TOW = ['neonTowerA', 'neonBlockA', 'neonTowerB', 'neonBlockD', 'neonBlockB', 'neonBlockE', 'neonBlockC'], SH = ['neonShopA', 'neonShopB', 'neonShopF', 'neonShopG', 'neonShopH', 'neonShopI'];
+      const out = [], LMS = ['neonRing', 'neonSpire', 'neonBillboard', 'neonHalo', 'neonBoardVortex', 'neonBoardSphere', 'neonBoardRings', 'neonBoardSpiral', 'neonHotel', 'neonRedTower', 'neonRedTowerB'], S = Stretch.of(i, 120, 10, LMS), TOW = ['neonTowerA', 'neonBlockA', 'neonTowerB', 'neonBlockD', 'neonBlockB', 'neonBlockE', 'neonBlockC'], SH = ['neonShopA', 'neonShopB', 'neonShopF', 'neonShopG', 'neonShopH', 'neonShopI'];
       for (const side of [-1, 1]) {
         const k = i * 2 + (side > 0 ? 1 : 0), r = n => rnd(k, n), lm = S.lm && S.lm.slot === i && S.lm.side === side ? S.lm.kind : null;
         const bld = (prop, x, dz) => { if (!lm) out.push({ prop, x: side * x, dist: 6 + dz }); };
@@ -206,7 +214,7 @@ window.ENV3D = window.ENV3D || {};
             if (mod(i + (side > 0 ? 1 : 0), 3) === 1) bld(TOW[mod(i + S.b + (side > 0 ? 3 : 0), TOW.length)], 15 + r(1) * 4, (r(2) - 0.5) * 2);
             out.push({ prop: strip, x: side * 3.9, dist: 6 }); if (mod(i + (side > 0 ? 1 : 0), 2) === 0) out.push({ prop: lamp, x: side * 4.4, dist: 4 + r(3) * 4 });
         }
-        if (lm) out.push({ prop: lm, x: side * (lm === 'neonRing' ? 9.5 : lm === 'neonSpire' ? 10.5 : lm === 'neonHalo' ? 9.5 : lm.startsWith('neonBoard') ? 11.5 : lm === 'neonHotel' ? 7.2 : /^neonTerrace/.test(lm) ? 8.6 : 9.0), dist: 6 });
+        if (lm) out.push({ prop: lm, x: side * (lm === 'neonRing' ? 9.5 : lm === 'neonSpire' ? 10.5 : lm === 'neonHalo' ? 9.5 : lm.startsWith('neonBoard') ? 11.5 : lm === 'neonHotel' ? 7.2 : /^neonRedTower/.test(lm) ? 8.6 : 9.0), dist: 6 });
       }
       return out;
     },
@@ -276,9 +284,10 @@ window.ENV3D = window.ENV3D || {};
     neonPuddle: () => Kit.merge([Kit.box(2.6, 0.02, 3.6, 0, -0.13, 0, '#0a0e2a'), Kit.box(1.9, 0.025, 0.14, 0.1, -0.12, -0.7, N.mag, { glow: true }), Kit.box(1.5, 0.025, 0.1, -0.2, -0.12, 0.5, N.teal, { glow: true }), Kit.box(0.8, 0.025, 0.08, 0.4, -0.12, 1.2, N.yellow, { glow: true })]),
   });
   // ... placed by wrapping the layout: a board on about one side of seven of the slots, a station on about one in fourteen, a lamp on about one in eight (never on a landmark's side)
-  const layout0 = ENV3D.neon.layout, LMX = /^(neonRing|neonSpire|neonBillboard|neonHalo|neonBoardVortex|neonBoardSphere|neonBoardRings|neonBoardSpiral|neonTerrace|neonTerraceB)$/;
+  const layout0 = ENV3D.neon.layout, LMX = /^(neonRing|neonSpire|neonBillboard|neonHalo|neonBoardVortex|neonBoardSphere|neonBoardRings|neonBoardSpiral|neonRedTower|neonRedTowerB)$/;
   ENV3D.neon.layout = (i, rnd) => {
     const out = layout0(i, rnd);
+    for (const q of out.slice()) if (/^neonRedTower/.test(q.prop) && !out.some(o => Math.sign(o.x) === -Math.sign(q.x) && Math.abs(o.x) > 6 && LMX.test(o.prop))) out.push({ prop: q.prop, x: -q.x, dist: q.dist });       // RED TOWER stands in pairs: another one facing it across the road
     for (const side of [-1, 1]) {
       const k = i * 2 + (side > 0 ? 1 : 0), e = rnd(k, 70);
       out.push({ prop: 'neonWire', x: side * 1.3, dist: 6 });                                                                // the two cables over the road (one each side of the centre line)
