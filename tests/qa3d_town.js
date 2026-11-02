@@ -33,7 +33,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const K = await pg.evaluate(() => {
     const C = TRACK.pickSegs.C, E = TRACK.pickForks.E, fid = f => Object.keys(TRACK.forks).find(k => TRACK.forks[k] === f), out = { seeds: {}, lights: new Set() };
     for (const s of [0, 1, 7, 99, 12345]) {
-      const w = new World(TRACK); w.seed = s; w.reset(); w.extend(340000); const P = w.pieces; let n = 0, ok = 0, bad = 0; const before = new Set(), after = new Set();
+      const w = new World(TRACK); w.seed = s; w.reset(); w.extend(420000); const P = w.pieces; let n = 0, ok = 0, bad = 0; const before = new Set(), after = new Set();
       for (let i = 1; i + 2 < P.length; i++) if (C.includes(P[i].id)) { n++; const same = P[i + 1].type === 'fork' && E.indexOf(fid(P[i + 1].fork)) === C.indexOf(P[i].id); if (same) ok++; else bad++; before.add(P[i - 1].id); after.add(P[i + 2].id); out.lights.add(P[i].id + '+' + fid(P[i + 1].fork || {})); }
       out.seeds[s] = { n, ok, bad, before: [...before].sort().join(), after: [...after].sort().join() };
     }

@@ -65,6 +65,37 @@ window.ENV3D = window.ENV3D || {};
   const tree_unused = () => Kit.merge([Kit.cyl(0.14, 0.2, 2.6, 0, 0, 0, '#6a5640', { seg: 6 }), Kit.ico(1.5, 0, 3.6, 0, '#e0903a', { detail: 1 }), Kit.ico(1.1, 0.8, 3.2, 0.5, V.leaf, { detail: 1 }), Kit.ico(1.1, -0.6, 3.1, -0.4, V.leaf, { detail: 1 })]);
   const bench = () => Kit.merge([Kit.box(0.5, 0.1, 1.8, 0.3, 0.45, 0, V.wood), Kit.box(0.08, 0.5, 1.8, 0.55, 0.45, 0, V.wood), Kit.box(0.08, 0.45, 0.08, 0.2, 0, -0.7, V.iron), Kit.box(0.08, 0.45, 0.08, 0.2, 0, 0.7, V.iron)]);
 
+
+  // THE SQUARE (the user's six photos of the town centre): the cinema with its hanging sign and its three arched shopfronts, the tobacconist with its lit TABACS sign, the red brick block, the crossing with its
+  // stripes, the granite bollards and the trees in big dark planters; houses, planters and flags as in the street
+  const _sg = {}, signMat = (text, bg, fg, glow) => { const k = text + bg;
+    if (!_sg[k]) { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 80; const x = cv.getContext('2d'); x.fillStyle = bg; x.fillRect(0, 0, 256, 80); x.strokeStyle = fg; x.lineWidth = 3; x.strokeRect(4, 4, 248, 72);
+      x.font = 'bold 46px Georgia, "Times New Roman", serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; if (glow) { x.shadowColor = glow; x.shadowBlur = 7; } x.fillStyle = fg; x.fillText(text, 128, 43);
+      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; _sg[k] = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }); }
+    return _sg[k]; };
+  const quad = (x, y0, y1, z0, z1) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute([x, y0, z0, x, y0, z1, x, y1, z1, x, y1, z0], 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2));
+    g.setIndex([0, 1, 2, 0, 2, 3]); g.computeBoundingSphere(); g.computeBoundingBox(); return g; };
+  const cinema = () => { const p = []; house(p, { F: 8.4, floors: 3, wall: '#d98a6a', plinth: '#b8a890', zc: -SLOT / 2 + 4.2, seed: 41 });
+    for (const k of [-1, 0, 1]) p.push(Kit.box(0.5, 3.0, 1.9, -0.1, 0, -SLOT / 2 + 4.2 + k * 2.6, V.stone), Kit.cyl(0.95, 0.95, 0.5, -0.1, 3.0, -SLOT / 2 + 4.2 + k * 2.6, V.stone, { rz: Math.PI / 2, seg: 10 }), Kit.box(0.4, 2.9, 1.5, -0.3, 0, -SLOT / 2 + 4.2 + k * 2.6, '#3a2418'));   // the three arched entrances
+    p.push(Kit.box(1.6, 0.06, 0.06, -0.8, 5.2, -SLOT / 2 + 1.1, V.iron));                                                                                // the arm of the hanging sign
+    house(p, { F: 3.6, floors: 3, wall: '#e8d5a8', zc: SLOT / 2 - 1.8, seed: 42 });
+    return { merged: Kit.merge(p), sprite: quad(-1.7, 4.3, 5.2, -SLOT / 2 + 0.1, -SLOT / 2 + 2.1), material: () => signMat('CINEMA', '#14100c', '#f2e6c8') }; };
+  const tabacs = () => { const p = []; house(p, { F: 6.0, floors: 3, wall: '#d9b98a', plinth: '#b8a890', zc: -SLOT / 2 + 3.0, seed: 43, kind: 'shop' });
+    p.push(Kit.box(0.3, 1.0, 3.2, -0.2, 2.9, -SLOT / 2 + 3.0, '#c8302a', { glow: true }));
+    house(p, { F: 6.0, floors: 3, wall: '#c4724a', zc: SLOT / 2 - 3.0, seed: 44 });
+    return { merged: Kit.merge(p), sprite: quad(-0.37, 2.95, 3.85, -SLOT / 2 + 1.5, -SLOT / 2 + 4.5), material: () => signMat('TABACS', '#7a1a10', '#ffe6b0', '#ff8a30') }; };
+  const brick = () => { const p = []; house(p, { F: 6.0, floors: 4, wall: '#9a4a3a', plinth: '#2a2420', zc: -SLOT / 2 + 3.0, seed: 45 }); house(p, { F: 6.0, floors: 3, wall: '#c9b48a', zc: SLOT / 2 - 3.0, seed: 46 }); return Kit.merge(p); };
+  const zebra = () => { const p = []; for (let k = 0; k < 8; k++) p.push(Kit.box(5.4, 0.03, 0.42, 0, 0.04, -3.2 + k * 0.92, '#d8d4cc')); return Kit.merge(p); };
+  const bollard = () => { const p = []; for (const z of [-1.3, 1.3]) p.push(Kit.box(0.8, 0.8, 0.8, 0, 0, z, '#a89c88'), Kit.box(0.34, 0.34, 0.06, -0.42, 0.28, z, '#2a2a2a')); return Kit.merge(p); };
+  const treePot = () => Kit.merge([Kit.cyl(0.8, 0.6, 0.8, 0, 0, 0, '#2c2e34', { seg: 8 }), Kit.cyl(0.07, 0.1, 3.2, 0, 0.7, 0, '#6a5640', { seg: 5 }), Kit.ico(1.2, 0, 4.0, 0, V.leaf, { detail: 1 }), Kit.ico(0.9, 0.6, 3.5, 0.4, V.leafD, { detail: 1 }), Kit.ico(0.9, -0.5, 3.4, -0.3, V.leaf, { detail: 1 }), Kit.ico(0.6, 0, 1.2, 0, V.leafD, { detail: 1 })]);
+  const makeSquare = HX => (i, r) => {
+    const out = [{ prop: 'vicCobble', x: 0, dist: 6 }], N = ['vicA', 'vicB', 'vicCinema', 'vicTabacs', 'vicBrick', 'vicC', 'vicYellow', 'vicArch', 'vicOrange', 'vicD'];
+    for (const side of [-1, 1]) { const k = i * 2 + (side > 0 ? 1 : 0);
+      out.push({ prop: N[Math.floor(r(k, 3) * N.length)], x: side * HX, dist: 6 });
+      if (mod(i + (side > 0 ? 1 : 0), 3) === 1) out.push({ prop: 'vicTreePot', x: side * 3.3, dist: 2 + r(k, 6) * 6 }); else if (mod(k, 5) === 2) out.push({ prop: 'vicBollard', x: side * 3.3, dist: 6 }); }
+    if (mod(i, 4) === 2) out.push({ prop: 'vicZebra', x: 0, dist: 6 });
+    if (mod(i, 5) === 2) out.push({ prop: 'vicFlags', x: 0, dist: 6 });
+    return out; };
   // the street's layout (houses 4.5 m from the axis); the alley's (the same, 2.9 m from the axis of a road 2.3 m wide)
   const makeLayout = HX => (i, r) => {
 
@@ -84,14 +115,15 @@ window.ENV3D = window.ENV3D || {};
     hemi: { sky: '#cfd8f0', ground: '#6a5a50', intensity: 1.6 }, sun: { color: '#ffc890', intensity: 2.0, position: [-8, 5, -9] }, groundFar: '#5a4a40',
     road: { asphalt: ['#4c4e5c', '#484a58'], mark: '#4c4e5c', edge: '#5a5c6c', curb: ['#9a8e7a', '#948874'], curbFace: '#7a6e5c', walk: ['#a89c88', '#a29682'], court: '#8a7e6c', verge: ['#7e725f', '#786c5a'] },
     innerOk: new Set(), entrance: null,
-    props: { vicA: row(1), vicB: row(2), vicC: row(3), vicD: row(4), vicE: row(5), vicF: row(6), vicYellow: row(7, 'yellow'), vicArch: row(8, 'arch'), vicOrange: row(9, 'orange'), vicCobble: cobble, vicM1: rowM(11), vicM2: rowM(12), vicM3: rowM(13), vicM4: rowM(14), vicFlags: flags, vicPlanter: planter, vicBench: bench },
+    props: { vicA: row(1), vicB: row(2), vicC: row(3), vicD: row(4), vicE: row(5), vicF: row(6), vicYellow: row(7, 'yellow'), vicArch: row(8, 'arch'), vicOrange: row(9, 'orange'), vicCobble: cobble, vicM1: rowM(11), vicM2: rowM(12), vicM3: rowM(13), vicM4: rowM(14), vicFlags: flags, vicPlanter: planter, vicBench: bench, vicCinema: cinema, vicTabacs: tabacs, vicBrick: brick, vicZebra: zebra, vicBollard: bollard, vicTreePot: treePot },
     layout: null,
   };
   const down = g => g && g.translate(0, -WALK_Y, 0);
   const PR = {}; for (const k of Object.keys(UT.props)) { const f = UT.props[k]; PR[k] = () => { const m = f(); if (m.merged || m.sprite) { if (m.merged) { down(m.merged.lit); down(m.merged.glow); } down(m.sprite); } else { down(m.lit); down(m.glow); } return m; }; }
-  const HOUSES = new Set(['vicA', 'vicB', 'vicC', 'vicD', 'vicE', 'vicF', 'vicYellow', 'vicArch', 'vicOrange', 'vicPlanter', 'vicBench']);        // (on the inner side of the junction of the street and the alley: the houses between them)
+  const HOUSES = new Set(['vicA', 'vicB', 'vicC', 'vicD', 'vicE', 'vicF', 'vicYellow', 'vicArch', 'vicOrange', 'vicPlanter', 'vicBench', 'vicCinema', 'vicTabacs', 'vicBrick', 'vicTreePot', 'vicBollard']);        // (on the inner side of the junction of the street and the alley: the houses between them)
   ENV3D.vic = Object.assign({}, UT, { props: PR, layout: makeLayout(4.5), innerOk: HOUSES, innerAfterOpen: true });
   ENV3D.vicMedina = Object.assign({}, UT, { props: PR, layout: layoutM, name: 'RUELLE', innerOk: new Set(), sky: { top: '#7aa0d8', mid: '#e8c0b0', horizon: '#ffd8b8' }, fog: { color: '#e8b8a0', near: 30, far: 150 }, groundFar: '#8a5a48',
     road: { asphalt: ['#6a5a58', '#665654'], mark: '#6a5a58', edge: '#7a6a66', curb: ['#b0806a', '#a87862'], curbFace: '#8a6050', walk: ['#b8866e', '#b28068'], court: '#9a6a58', verge: ['#8a5a48', '#845444'] } });
+  ENV3D.vicSquare = Object.assign({}, UT, { props: PR, layout: makeSquare(4.5), innerOk: HOUSES, innerAfterOpen: true });
   ENV3D.vicAlley = Object.assign({}, UT, { props: PR, layout: makeLayout(2.9), innerOk: HOUSES, innerAfterOpen: true, name: 'RUELLE' });
 })();

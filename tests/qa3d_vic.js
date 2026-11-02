@@ -19,7 +19,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     out.seq = ids.slice(i - 1, i + 17).join('>'); out.curves = V.map(P => P.seg.curve); out.hw = V.map(P => P.seg.hw); out.len = V.map(P => P.z1 - P.z0); out.biome = [...new Set(V.map(P => P.seg.biome))].join();
     const bends = V.filter(P => P.seg.curve); out.alt = bends.length === 6 && bends.every((P, k) => !k || Math.sign(P.seg.curve) !== Math.sign(bends[k - 1].seg.curve)) && V.filter(P => !P.seg.curve).length === 5 && V.every((P, k) => !!P.seg.curve === (k % 2 === 0));
     const wid = z => { const b = w.bandsAt(z)[0]; return +((b.hi - b.lo) * U3.X).toFixed(2); };
-    out.width = [wid(V[0].z0 - 5), wid(V[0].z0 + 200), wid(V[0].z0 + 500), wid(V[3].z0 + 300), wid(V[10].z1 + 5), wid(V[10].z1 + 500)];
+    out.width = [wid(V[0].z0 - 5), wid(V[0].z0 + 200), wid(V[0].z0 + 500), wid(V[3].z0 + 300), wid(V[10].z1 + 5), wid(w.pieces.find(P => P.id === 'vicR2').z0 + 300)];
     let jump = 0, prev = null; for (let z = V[0].z0 - 100; z < V[10].z1 + 600; z += 5) { const bb = w.bandsAt(z); if (bb.length > 1) { prev = null; continue; } const b = bb[0]; if (prev) jump = Math.max(jump, Math.abs(b.hi - prev.hi), Math.abs(b.lo - prev.lo)); prev = b; } out.jump = +jump.toFixed(3);
     const hz = w.items.filter(it => OBST[it.kind] && it.tag === 'main' && it.z >= V[0].z0 && it.z < V[10].z1); out.kinds = [...new Set(hz.map(it => it.kind))].sort(); out.n = hz.length; out.xs = [...new Set(hz.filter(it => /^vic/.test(it.kind)).map(it => +it.x.toFixed(2)))].sort();
     out.both = hz.some(it => it.x < 0) && hz.some(it => it.x > 0); out.box = { low: OBST.vicLow, high: OBST.vicHigh, hang: OBST.vicHang, bar: OBST.vicBarrel, ch: OBST.vicChairs, pot: OBST.vicPot };
@@ -27,7 +27,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   T('after the junction of Utrecht come eleven pieces of Vic (' + K.seq + '), 90 m each, eleven in all: the six original bends, left then right and so on, with a straight stretch between two of them (' + K.curves.join(' / ') + ': ' + K.alt + '), all biome ' + K.biome + ', one atmosphere for the 2D game too (' + K.zones[1] + ')',
-     /^fork>vicA>vicS1>vicB>vicS2>fork>vicC>vicS3>vicD>vicS4>vicE>vicS5>vicF>vicR1>vicR2>vicR3>vicR4>neonRun$/.test(K.seq) && K.alt && K.len.every(l => l === 900 || l === 1400) && K.biome === 'vic' && K.zones[0] === 'vic' && K.zones[1] === 'vic' && K.zones[2], JSON.stringify(K.seq));
+     /^fork>vicA>vicS1>vicB>vicS2>fork>vicC>vicS3>vicD>vicS4>vicE>vicS5>vicF>vicP1>vicP2>vicP3>vicR1>vicR2$/.test(K.seq) && K.alt && K.len.every(l => l === 900 || l === 1400) && K.biome === 'vic' && K.zones[0] === 'vic' && K.zones[1] === 'vic' && K.zones[2], JSON.stringify(K.seq));
   T('the street is narrow, 4.4 m wide (' + K.width.join(' / ') + ' m at the entrance, in the street, in a bend, at the end, after the street, further on: it narrows over 40 m at the entrance and again into the pink alley at the end, no jump of its edge: ' + K.jump + ' lane per 0.5 m)',
     K.width[0] > 6 && Math.abs(K.width[2] - 4.4) < 0.05 && Math.abs(K.width[3] - 4.4) < 0.05 && K.width[1] < K.width[0] && K.width[5] < 3 && K.jump < 0.05, JSON.stringify(K.width));
   T('the hazards of the street stand against the walls, half a street wide (lane +-0.28, half-width 0.3: ' + K.xs.join(', ') + '), on both sides (' + K.both + '), six kinds (' + K.kinds.join(', ') + ', ' + K.n + ' of them); no tree, no photograph on the street (' + K.zones[3] + ')',
