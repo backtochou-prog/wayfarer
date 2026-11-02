@@ -33,6 +33,13 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('the hazards of the street stand against the walls, half a street wide (lane +-0.28, half-width 0.3: ' + K.xs.join(', ') + '), on both sides (' + K.both + '), six kinds (' + K.kinds.join(', ') + ', ' + K.n + ' of them); no tree, no photograph on the street (' + K.zones[3] + ')',
     K.xs.length === 2 && K.xs[0] === -0.28 && K.xs[1] === 0.28 && K.both && ['vicBarrel', 'vicChairs', 'vicHang', 'vicHigh', 'vicLow', 'vicPot'].every(k => K.kinds.includes(k)) && K.n >= 10 && K.noTree && K.zones[3] === 'undefined', JSON.stringify(K.box));
 
+  const PK = await pg.evaluate(() => {
+    const out = { kinds: {}, bad: 0, n: 0 }; for (const seed of [0, 1, 2, 3, 4, 5]) { const w = new World(TRACK); w.seed = seed; w.reset(); w.extras = true; w.extend(160000); const ids = w.pieces.filter(p => p.id && /^vic/.test(p.id)); if (!ids.length) continue; const z0 = ids[0].z0, z1 = ids[ids.length - 1].z1;
+      for (const it of w.items) if (ids.some(P => it.z >= P.z0 && it.z < P.z1) && it.kind !== 'prop' && !OBST[it.kind]) { out.n++; out.kinds[it.kind] = (out.kinds[it.kind] || 0) + 1; if (Math.abs(Math.abs(it.x) - 0.28) > 0.005) out.bad++; } }
+    return out;
+  });
+  T('in the street everything to pick up stands on one of the two places too, coins and power-ups (' + Object.entries(PK.kinds).map(e => e.join(' ')).join(', ') + ': ' + PK.n + ' items over six runs, ' + PK.bad + ' off the two places)', PK.n > 40 && PK.bad === 0 && ['magnet', 'aura', 'dash', 'shard'].some(k => PK.kinds[k] > 0), JSON.stringify(PK.kinds));
+
   // the rule of the street: the free half is the way round, a low hazard is jumped, the tall one cannot be, the parasol is slid under
   const R = await pg.evaluate(() => {
     const out = {}, g = __wf; g.r.renderer.render = () => {}; const run = (kind, side, act, atX) => {

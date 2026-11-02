@@ -118,10 +118,11 @@ class World {
   }
   genExtras(id, seg, z0, end, tag, cx) {
     const h = hashStr(id) ^ 0x5bd1e995, tail = end - 160;
+    const LX = l => seg.lanes === 2 ? cx + (l >= 0 ? 1 : -1) * 0.28 : cx + l * LANE_W;                 // (a street with two places only, Vic: the pickups too stand on the left half or the right half)
     if (seg.waymark && tag !== 'main') {                                           // the route's Golden Waymark: its pattern replaces whatever the grid put in a window of the branch
       const W = WAYMARKS[seg.waymark], zc = z0 + (end - z0) * 0.45;
       this.items = this.items.filter(it => !(it.tag === tag && it.kind !== 'prop' && it.z > zc - 175 && it.z < zc + W.last + 205));
-      for (const [kind, dz, lane, hh] of W.items) this.items.push({ kind, z: zc + dz, x: cx + lane * LANE_W, h: hh === undefined ? 12 : hh, tag, pat: 'wm' + seg.waymark, seg: id, inst: 0 });
+      for (const [kind, dz, lane, hh] of W.items) this.items.push({ kind, z: zc + dz, x: LX(lane), h: hh === undefined ? 12 : hh, tag, pat: 'wm' + seg.waymark, seg: id, inst: 0 });
     }
     const base = k => this[k][tag] !== undefined ? this[k][tag] : (this[k].main !== undefined ? this[k].main : -1e9);
     let lastPU = base('lastPU'), lastSh = base('lastShard');
@@ -131,16 +132,16 @@ class World {
         let kind = ['magnet', 'aura', 'dash'][Math.floor(rnd(h, m * 7 + 4) * 3)];
         if (kind === this.puKind) kind = ['magnet', 'aura', 'dash'][(['magnet', 'aura', 'dash'].indexOf(kind) + 1) % 3];
         for (let t = 0; t < 3; t++) {
-          const lane = ((pre + 1 + t) % 3) - 1, x = cx + lane * LANE_W;
+          const lane = ((pre + 1 + t) % 3) - 1, x = LX(lane);
           if (this.free(tag, z, x, 70, kind === 'dash' ? 130 : 70, kind === 'dash')) { this.items.push({ kind, z, x, h: 12, tag, seg: id }); lastPU = z; this.puKind = kind; break; }
         }
       } else if (z > 500 && z - lastSh >= 650 && rnd(h, m * 7 + 5) < 0.6) {       // a Memory Shard: off the usual line, or high enough to need a jump
         const how = Math.floor(rnd(h, m * 7 + 6) * 3);
         for (let t = 0; t < 3; t++) {
           const lane = ((pre + 1 + t) % 3) - 1;
-          if (how === 0) { const l = lane || 1, x = cx + l * LANE_W; if (this.free(tag, z, x, 60, 60, false)) { this.items.push({ kind: 'shard', z, x, h: 12, tag, seg: id }); lastSh = z; break; } }                                  // at the edge of the road
-          else if (how === 1) { const x = cx + lane * LANE_W; if (this.free(tag, z, x, 60, 60, true)) { this.items.push({ kind: 'shard', z, x, h: 36, tag, seg: id }); lastSh = z; break; } }                              // up in the air: a jump
-          else if (this.free(tag, z - 22, cx - LANE_W, 60, 60, false) && this.free(tag, z + 22, cx + LANE_W, 60, 60, false)) { for (const [dz, sl] of [[-22, -1], [22, 1]]) this.items.push({ kind: 'shard', z: z + dz, x: cx + sl * LANE_W, h: 14, tag, seg: id }); lastSh = z; break; }   // a pair on both edges: one side only
+          if (how === 0) { const l = lane || 1, x = LX(l); if (this.free(tag, z, x, 60, 60, false)) { this.items.push({ kind: 'shard', z, x, h: 12, tag, seg: id }); lastSh = z; break; } }                                  // at the edge of the road
+          else if (how === 1) { const x = LX(lane); if (this.free(tag, z, x, 60, 60, true)) { this.items.push({ kind: 'shard', z, x, h: 36, tag, seg: id }); lastSh = z; break; } }                              // up in the air: a jump
+          else if (this.free(tag, z - 22, LX(-1), 60, 60, false) && this.free(tag, z + 22, LX(1), 60, 60, false)) { for (const [dz, sl] of [[-22, -1], [22, 1]]) this.items.push({ kind: 'shard', z: z + dz, x: LX(sl), h: 14, tag, seg: id }); lastSh = z; break; }   // a pair on both edges: one side only
         }
       }
     }
