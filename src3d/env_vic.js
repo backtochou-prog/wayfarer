@@ -109,8 +109,8 @@ window.ENV3D = window.ENV3D || {};
       if (HX > 4 && mod(i, 5) === 2) out.push({ prop: 'vicFlags', x: 0, dist: 6 });
       return out;
     };
-  // 3 in 10 of the orange houses are lipstick red (the user's pick): the layouts swap them by a fixed formula
-  const redden = L => (i, r) => L(i, r).map(q => q.prop === 'vicOrange' && r(i * 7 + (q.x > 0 ? 1 : 0), 9) < 0.3 ? Object.assign({}, q, { prop: 'vicOrangeR' }) : q);
+  // 3 in 10 of the orange houses are lipstick red (the user's pick): the layouts swap them by a fixed formula; the two on the left of the alley at 4960 m (the wall the user traced on a screenshot) are always red
+  const redden = L => (i, r) => L(i, r).map(q => q.prop === 'vicOrange' && (r(i * 7 + (q.x > 0 ? 1 : 0), 9) < 0.3 || (q.x < 0 && (i === 414 || i === 415))) ? Object.assign({}, q, { prop: 'vicOrangeR' }) : q);
   const UT = {
     name: 'VIC',
     sky: { top: '#5a86c8', mid: '#a8c0e0', horizon: '#f2b08a' }, sunDisc: { color: '#ffe8c0', size: 8 }, sunPos: [-26, 10], sunGlow: 0.6, fog: { color: '#d8b8a0', near: 36, far: 170 },
