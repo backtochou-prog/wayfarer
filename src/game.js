@@ -13,8 +13,8 @@ const BTN = {
 const TOUCH = [
   { id: 'left',  x: 12,  y: 133, w: 46, h: 42 },        // (moved 9 px in from the screen edges and 4 px up, at the user's request; a little bigger than before, to match the 42 px ring picture they wear: 46 x 42 instead of 38 x 32)
   { id: 'right', x: 61,  y: 133, w: 46, h: 42 },
-  { id: 'slide', x: 213, y: 133, w: 46, h: 42 },
-  { id: 'jump',  x: 262, y: 133, w: 46, h: 42 },
+  { id: 'slide', x: 199, y: 133, w: 46, h: 42 },
+  { id: 'jump',  x: 248, y: 133, w: 46, h: 42 },
   { id: 'pause', x: 145, y: 2,   w: 30, h: 18 },
   { id: 'scooter', x: 132, y: 154, w: 56, h: 20 },       // 'hop off' (only while riding the scooter); getting on is a tap on the indicator over a parked scooter
 ];
