@@ -177,7 +177,7 @@ class Renderer {
         if (it.kind === 'coin') { spr = SPR.coin[Math.floor(g.time * 8 + it.z / 20) & 3]; lift = (it.h - 4) * sc; }
         else if (it.kind === 'prop') spr = SPR[it.spr];
         else if (it.kind === 'crate' || it.kind === 'vicHigh' || it.kind === 'vicBarrel' || it.kind === 'vicPot') spr = SPR.crate;
-        else { const kk = it.kind === 'vicLow' || it.kind === 'vicChairs' || it.kind === 'vicAJump' ? 'barrier' : it.kind === 'vicHang' || it.kind === 'vicASlide' ? 'over' : it.kind; spr = SPR[w.themeAt(it.z, it.x) + kk[0].toUpperCase() + kk.slice(1)]; }       // (the 2D game draws the street's hazards as the usual ones)
+        else { const kk = it.kind === 'vicLow' || it.kind === 'vicChairs' || it.kind === 'vicAJump' || it.kind === 'vicMJump' ? 'barrier' : it.kind === 'vicHang' || it.kind === 'vicASlide' || it.kind === 'vicMSlide' ? 'over' : it.kind; spr = SPR[w.themeAt(it.z, it.x) + kk[0].toUpperCase() + kk.slice(1)]; }       // (the 2D game draws the street's hazards as the usual ones)
       } else spr = o.spr;
       if (!spr) continue;                                                                          // (a prop that only the 3D build draws, such as the station hall)
       const sw = Math.max(1, Math.round(spr.width * sc)), sh = Math.max(1, Math.round(spr.height * sc));

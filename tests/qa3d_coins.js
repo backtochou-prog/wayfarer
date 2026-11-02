@@ -100,9 +100,9 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const bot = want => {
       const p = g.p, w = g.world, F = w.openFork(); g.keys.left = g.keys.right = false;
       if (F && p.z > F.z0 - 500 && p.z < F.z0 - 400) g.keys[want] = true;
-      let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic[^A]/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
-      { const vt = g.world.items.filter(i => /^vic[^A]/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { const cc = g.world.playerBand(p.z, p.x).c; g.keys.left = vt.x > cc; g.keys.right = vt.x < cc; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic[^A]/.test(tg.kind)) tg = null; }
-      if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || !/^(over|vicASlide)$/.test(tg.kind))) key(/^(over|vicASlide)$/.test(tg.kind) ? 'ArrowDown' : 'Space');
+      let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic[^AM]/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
+      { const vt = g.world.items.filter(i => /^vic[^AM]/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { const cc = g.world.playerBand(p.z, p.x).c; g.keys.left = vt.x > cc; g.keys.right = vt.x < cc; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic[^AM]/.test(tg.kind)) tg = null; }
+      if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || !/^(over|vicASlide|vicMSlide)$/.test(tg.kind))) key(/^(over|vicASlide|vicMSlide)$/.test(tg.kind) ? 'ArrowDown' : 'Space');
     };
     for (const want of ['left', 'right']) {
       CT.fresh(); g.world.reset(); g.start();

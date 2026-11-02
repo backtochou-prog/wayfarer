@@ -96,7 +96,7 @@ class Items3D {
     };
     this.extraKinds = ['magnet', 'shard', 'dash', 'waymark', 'aura']; this.extraSet = { magnet: 1, shard: 1, dash: 1, waymark: 1, aura: 1 };
     // pool sizes cover everything inside the 150 m draw range, including both roads of a fork
-    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, crateS: 24, vicLow: 24, vicBarrel: 24, vicPot: 24, vicAJump: 24, vicASlide: 24, vicChairs: 24, vicHigh: 24, vicHang: 24, barrierS: 24, barrierB: 24, overS: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
+    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, crateS: 24, vicLow: 24, vicBarrel: 24, vicPot: 24, vicAJump: 24, vicMJump: 24, vicMSlide: 24, vicASlide: 24, vicChairs: 24, vicHigh: 24, vicHang: 24, barrierS: 24, barrierB: 24, overS: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
     this.pool = {}; this.used = {}; this.merged = {}; this.dropped = 0;
     // ---- the hazards on the canals (Renderer3D picks `<kind>W` for an item on a water road): the same sizes and boxes as the crate, the low barrier and the gate, so what you see is what you can hit
     //   crateW   a whirlpool: the same vortex (it was floating barrels)
@@ -162,6 +162,17 @@ class Items3D {
         const p = [], aw = vAW, cols = ['#f2efe6', '#e8a0a0', '#8ab0d8', '#f2c230', '#f2efe6', '#a8c890', '#d9667c'];
         p.push(Kit.box(0.18, 0.14, 0.2, -aw, 2.8, 0, '#202228'), Kit.box(0.18, 0.14, 0.2, aw, 2.8, 0, '#202228'), Kit.box(2 * aw, 0.03, 0.03, 0, 2.85, 0, '#202228'));
         for (let k = 0; k < 7; k++) { const x = -aw + 0.35 + k * (2 * aw - 0.7) / 6, h = 0.9 + (k % 3) * 0.28; p.push(Kit.box(0.5, h, 0.05, x, 2.85 - h, 0, cols[k], { rz: ((k % 2) ? 1 : -1) * 0.05 }), Kit.box(0.06, 0.06, 0.08, x - 0.2, 2.82, 0, '#6a5a40'));  }
+        return Kit.merge(p);
+      },
+      vicMJump: () => {                                                                                     // big blue tapered planters with green rims and shrubs, wall to wall (0.75 m): jump over them (the user's photo)
+        const p = [], aw = vAW;
+        for (const bx of [-aw * 0.62, 0, aw * 0.62]) p.push(Kit.cyl(0.5, 0.33, 0.72, bx, 0, 0, '#2f5d9a', { seg: 4, ry: Math.PI / 4 }), Kit.cyl(0.54, 0.54, 0.07, bx, 0.7, 0, '#3f8a5a', { seg: 4, ry: Math.PI / 4 }), Kit.ico(0.36, bx, 0.98, 0, '#4d7a45', { detail: 1 }), Kit.ico(0.2, bx + 0.12, 1.2, 0.1, '#6aa050', { detail: 1 }));
+        return Kit.merge(p);
+      },
+      vicMSlide: () => {                                                                                    // a carved wooden awning wall to wall, its toothed front edge hanging to 1.2 m (the user's photo): slide under it
+        const p = [], aw = vAW, W = '#b0652e', WD = '#7a4a24';
+        p.push(Kit.box(2 * aw, 0.12, 1.1, 0, 2.9, 0, W), Kit.box(2 * aw, 1.3, 0.08, 0, 1.55, 0.5, W), Kit.box(0.14, 1.5, 0.2, -aw + 0.1, 1.5, 0, WD), Kit.box(0.14, 1.5, 0.2, aw - 0.1, 1.5, 0, WD));
+        for (let t = 0; t < 14; t++) p.push(Kit.box(0.16, 0.22, 0.1, -aw + 0.25 + t * (2 * aw - 0.5) / 13, 1.35, 0.5, WD), Kit.cyl(0.07, 0.07, 0.1, -aw + 0.4 + t * (2 * aw - 0.8) / 13, 1.9 + (t % 3) * 0.2, 0.55, '#2a1a10', { rx: Math.PI / 2, seg: 6 }));
         return Kit.merge(p);
       },
       vicHigh: () => {                                                                                      // a patio heater (a black column with a glass lamp), a big planter, folding chairs stacked against the wall: too tall to jump

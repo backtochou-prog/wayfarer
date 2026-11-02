@@ -16,7 +16,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const pg = await open(base);
   const K = await pg.evaluate(() => {
     const out = {}, w = new World(TRACK); w.extras = true; w.extend(160000); const ids = w.pieces.map(p => p.id || 'fork'), i = ids.indexOf('vicA'), V = w.pieces.slice(i, i + 12).filter(P => P.type === 'seg');
-    out.seq = ids.slice(i - 1, i + 13).join('>'); out.curves = V.map(P => P.seg.curve); out.hw = V.map(P => P.seg.hw); out.len = V.map(P => P.z1 - P.z0); out.biome = [...new Set(V.map(P => P.seg.biome))].join();
+    out.seq = ids.slice(i - 1, i + 17).join('>'); out.curves = V.map(P => P.seg.curve); out.hw = V.map(P => P.seg.hw); out.len = V.map(P => P.z1 - P.z0); out.biome = [...new Set(V.map(P => P.seg.biome))].join();
     const bends = V.filter(P => P.seg.curve); out.alt = bends.length === 6 && bends.every((P, k) => !k || Math.sign(P.seg.curve) !== Math.sign(bends[k - 1].seg.curve)) && V.filter(P => !P.seg.curve).length === 5 && V.every((P, k) => !!P.seg.curve === (k % 2 === 0));
     const wid = z => { const b = w.bandsAt(z)[0]; return +((b.hi - b.lo) * U3.X).toFixed(2); };
     out.width = [wid(V[0].z0 - 5), wid(V[0].z0 + 200), wid(V[0].z0 + 500), wid(V[3].z0 + 300), wid(V[10].z1 + 5), wid(V[10].z1 + 500)];
@@ -27,14 +27,14 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   T('after the junction of Utrecht come eleven pieces of Vic (' + K.seq + '), 90 m each, eleven in all: the six original bends, left then right and so on, with a straight stretch between two of them (' + K.curves.join(' / ') + ': ' + K.alt + '), all biome ' + K.biome + ', one atmosphere for the 2D game too (' + K.zones[1] + ')',
-     /^fork>vicA>vicS1>vicB>vicS2>fork>vicC>vicS3>vicD>vicS4>vicE>vicS5>vicF>neonRun$/.test(K.seq) && K.alt && K.len.every(l => l === 900 || l === 1400) && K.biome === 'vic' && K.zones[0] === 'vic' && K.zones[1] === 'vic' && K.zones[2], JSON.stringify(K.seq));
-  T('the street is narrow, 4.4 m wide (' + K.width.join(' / ') + ' m at the entrance, in the street, in a bend, at the end, after the street, further on: it narrows over 40 m and widens again, no jump of its edge: ' + K.jump + ' lane per 0.5 m)',
-    K.width[0] > 6 && Math.abs(K.width[2] - 4.4) < 0.05 && Math.abs(K.width[3] - 4.4) < 0.05 && K.width[1] < K.width[0] && K.width[5] > 6 && K.jump < 0.05, JSON.stringify(K.width));
+     /^fork>vicA>vicS1>vicB>vicS2>fork>vicC>vicS3>vicD>vicS4>vicE>vicS5>vicF>vicR1>vicR2>vicR3>vicR4>neonRun$/.test(K.seq) && K.alt && K.len.every(l => l === 900 || l === 1400) && K.biome === 'vic' && K.zones[0] === 'vic' && K.zones[1] === 'vic' && K.zones[2], JSON.stringify(K.seq));
+  T('the street is narrow, 4.4 m wide (' + K.width.join(' / ') + ' m at the entrance, in the street, in a bend, at the end, after the street, further on: it narrows over 40 m at the entrance and again into the pink alley at the end, no jump of its edge: ' + K.jump + ' lane per 0.5 m)',
+    K.width[0] > 6 && Math.abs(K.width[2] - 4.4) < 0.05 && Math.abs(K.width[3] - 4.4) < 0.05 && K.width[1] < K.width[0] && K.width[5] < 3 && K.jump < 0.05, JSON.stringify(K.width));
   T('the hazards of the street stand against the walls, half a street wide (lane +-0.28, half-width 0.3: ' + K.xs.join(', ') + '), on both sides (' + K.both + '), six kinds (' + K.kinds.join(', ') + ', ' + K.n + ' of them); no tree, no photograph on the street (' + K.zones[3] + ')',
     K.xs.length === 2 && K.xs[0] === -0.28 && K.xs[1] === 0.28 && K.both && ['vicBarrel', 'vicChairs', 'vicHang', 'vicHigh', 'vicLow', 'vicPot'].every(k => K.kinds.includes(k)) && K.n >= 10 && K.noTree && K.zones[3] === 'undefined', JSON.stringify(K.box));
 
   const PK = await pg.evaluate(() => {
-    const out = { kinds: {}, bad: 0, n: 0 }; for (const seed of [0, 1, 2, 3, 4, 5]) { const w = new World(TRACK); w.seed = seed; w.reset(); w.extras = true; w.extend(160000); const ids = w.pieces.filter(p => p.id && /^vic/.test(p.id)); if (!ids.length) continue; const z0 = ids[0].z0, z1 = ids[ids.length - 1].z1;
+    const out = { kinds: {}, bad: 0, n: 0 }; for (const seed of [0, 1, 2, 3, 4, 5]) { const w = new World(TRACK); w.seed = seed; w.reset(); w.extras = true; w.extend(160000); const ids = w.pieces.filter(p => p.id && /^vic/.test(p.id) && !/^vicR/.test(p.id)); if (!ids.length) continue; const z0 = ids[0].z0, z1 = ids[ids.length - 1].z1;
       for (const it of w.items) if (ids.some(P => it.z >= P.z0 && it.z < P.z1) && it.kind !== 'prop' && !OBST[it.kind]) { out.n++; out.kinds[it.kind] = (out.kinds[it.kind] || 0) + 1; if (Math.abs(Math.abs(it.x) - 0.28) > 0.005) out.bad++; } }
     return out;
   });
@@ -107,6 +107,26 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('a bot takes the alley by jumping and sliding only (' + AB.frames + ' frames, ' + AB.coins + ' coins, alive ' + AB.state + ', HUD ' + AB.names.join(' / ') + ') and comes out into the street',
     AB.state === 'play' && AB.reached && AB.choice === 'right' && AB.coins >= 10 && AB.names.includes('RUELLE'), JSON.stringify(AB));
 
+
+  // THE PINK ALLEY at the end of Vic: four pieces, ONE place, from the photo of a rose alley: blue planters to jump, wooden awnings to slide under
+  const MD = await pg.evaluate(() => {
+    const out = {}, w = new World(TRACK); w.extras = true; w.extend(160000); const R = w.pieces.filter(p => p.id && /^vicR\d$/.test(p.id)).slice(0, 4);
+    out.n = R.length; out.lanes = R.map(P => P.seg.lanes); out.biome = [...new Set(R.map(P => P.seg.biome))].join(); out.name = R[0].seg.name; out.len = R.map(P => P.z1 - P.z0);
+    const wid = z => { const b = w.bandsAt(z)[0]; return +((b.hi - b.lo) * U3.X).toFixed(2); }; out.width = [wid(R[0].z0 + 50), wid(R[0].z0 + 600), wid(R[2].z0 + 400), wid(R[3].z1 + 600)];
+    const hz = w.items.filter(i => OBST[i.kind] && i.tag === 'main' && i.z >= R[0].z0 && i.z < R[3].z1); out.kinds = [...new Set(hz.map(i => i.kind))].sort(); out.hz = hz.length; out.xs = [...new Set(hz.map(i => +i.x.toFixed(2)))]; hz.sort((a, b) => a.z - b.z); out.gap = Math.min(...hz.slice(1).map((h, k) => h.z - hz[k].z));
+    out.pk = [...new Set(w.items.filter(i => i.tag === 'main' && i.z >= R[0].z0 && i.z < R[3].z1 && i.kind !== 'prop' && !OBST[i.kind]).map(i => +i.x.toFixed(2)))];
+    out.env = !!ENV3D.vicMedina && !!BIOMES.vicMedina && Portal.fam('vicMedina') === 'vic'; out.box = [OBST.vicMJump, OBST.vicMSlide]; return out;
+  });
+  T('the pink alley ends Vic: ' + MD.n + ' pieces of ' + MD.len[0] / 10 + ' m, one place (' + MD.lanes.join('') + '), ' + MD.width[1] + ' m wide (narrowing from ' + MD.width[0] + ', widening to ' + MD.width[3] + ' m after it), HUD "' + MD.name + '", only ' + MD.kinds.join(' and ') + ' (' + MD.hz + ' hazards, ' + Math.round(MD.gap / 10) + ' m apart at least), all and the pickups in the middle (' + MD.xs.join() + ' / ' + MD.pk.join() + ')',
+    MD.n === 4 && MD.lanes.every(l => l === 1) && MD.biome === 'vicMedina' && MD.name === 'RUELLE' && Math.abs(MD.width[1] - 2.27) < 0.1 && MD.width[0] > 2.4 && MD.width[3] > 6 && MD.kinds.join() === 'vicMJump,vicMSlide' && MD.hz >= 6 && MD.gap >= 190 && MD.xs.join() === '0' && MD.pk.join() === '0' && MD.env, JSON.stringify(MD.box));
+  const MB = await pg.evaluate(() => {
+    const g = __wf; g.r.renderer.render = () => {}; g.start(); g.world.extend(90000); const R1 = g.world.pieces.find(p => p.id === 'vicR1'), R4 = g.world.pieces.find(p => p.id === 'vicR4'); g.state = 'play'; g.scene = null; g.fadeIn = 0; g.die = Game.prototype.die; g.p.z = R1.z0 - 150; g.p.x = 0.28; g.p.speed = 340; g.world.extend(g.p.z);
+    const key = c => g.onKey({ code: c, key: c, repeat: false, preventDefault() {} }, true), out = { frames: 0, coins: 0, minX: 9, maxX: -9 }; const c0 = g.coins; let f = 0;
+    while (g.state === 'play' && g.p.z < R4.z1 + 200 && f < 60 * 40) { const p = g.p; g.keys.left = g.keys.right = false; const hz = g.world.items.filter(i => OBST[i.kind] && i.z > p.z && i.z - p.z < 140)[0]; if (hz && hz.z - p.z < 105 && p.jy === 0 && p.slide <= 0) key(hz.kind === 'vicMSlide' ? 'ArrowDown' : 'Space'); g.advance(1 / 60); f++; if (g.p.z > R1.z0 + 500) { out.minX = Math.min(out.minX, g.p.x); out.maxX = Math.max(out.maxX, g.p.x); } }
+    out.state = g.state; out.reached = g.p.z >= R4.z1 + 200 - 1; out.coins = g.coins - c0; out.frames = f; return out;
+  });
+  T('a bot runs the pink alley by jumping and sliding only (' + MB.frames + ' frames, ' + MB.coins + ' coins, alive ' + MB.state + '), staying on its one line (x ' + MB.minX.toFixed(2) + ' to ' + MB.maxX.toFixed(2) + ')', MB.state === 'play' && MB.reached && MB.coins >= 10 && Math.abs(MB.minX) < 0.05 && Math.abs(MB.maxX) < 0.05, JSON.stringify(MB));
+
   // the models
   const M = await pg.evaluate(() => {
     const out = {}, g = __wf, r = g.r; for (const k of ['vicLow', 'vicBarrel', 'vicChairs', 'vicPot', 'vicHigh', 'vicHang']) { const m = r.items.pool[k] && r.items.pool[k][0]; if (!m) { out[k] = null; continue; } m.visible = true; m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(m); out[k] = { w: +(bb.max.x - bb.min.x).toFixed(2), h: +bb.max.y.toFixed(2), y0: +bb.min.y.toFixed(2), x0: +bb.min.x.toFixed(2), x1: +bb.max.x.toFixed(2) }; m.visible = false; }
@@ -131,8 +151,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const BOT = await pg.evaluate(() => {
     const g = __wf; g.r.renderer.render = () => {}; g.start(); g.world.extend(90000); const V = g.world.pieces.find(p => p.id === 'vicA'), L = g.world.pieces.find(p => p.id === 'vicF'); g.state = 'play'; g.scene = null; g.fadeIn = 0; g.die = Game.prototype.die; g.p.z = V.z0 - 300; g.p.x = 0; g.p.speed = 340; g.world.extend(g.p.z); const GF = g.world.pieces.find(p => p.type === 'fork' && p.fork === TRACK.forks.gateVic);
     const key = c => g.onKey({ code: c, key: c, repeat: false, preventDefault() {} }, true), out = { off: 0, coins: 0, minX: 9, maxX: -9 }; let f = 0; const c0 = g.coins;
-    while (g.state === 'play' && g.p.z < L.z1 + 200 && f < 60 * 60) { const p = g.p, w = g.world; g.keys.left = g.keys.right = false; let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic[^A]/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
-      { const vt = g.world.items.filter(i => /^vic[^A]/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { const cc = g.world.playerBand(p.z, p.x).c; g.keys.left = vt.x > cc; g.keys.right = vt.x < cc; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic[^A]/.test(tg.kind)) tg = null; } if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || !/^(over|vicASlide)$/.test(tg.kind))) key(/^(over|vicASlide)$/.test(tg.kind) ? 'ArrowDown' : 'Space');
+    while (g.state === 'play' && g.p.z < L.z1 + 200 && f < 60 * 60) { const p = g.p, w = g.world; g.keys.left = g.keys.right = false; let tg = null; for (const it of w.items) { const ob = OBST[it.kind]; if (!ob || it.z <= p.z || it.z - p.z > p.speed * (/^vic[^AM]/.test(it.kind) ? 1.1 : 0.5)) continue; if (Math.abs(it.x - p.x) > ob.hw + 0.25) continue; if (!tg || it.z < tg.z) tg = it; }
+      { const vt = g.world.items.filter(i => /^vic[^AM]/.test(i.kind) && i.z > p.z - 14 && i.z - p.z < p.speed * 1.1).sort((a, b) => a.z - b.z)[0]; if (vt) { const cc = g.world.playerBand(p.z, p.x).c; g.keys.left = vt.x > cc; g.keys.right = vt.x < cc; } else if (!g.lane2 && Math.abs(p.x) > 0.2 && Math.abs(p.x) < 0.3 && !(g.world.openFork() && p.z > g.world.openFork().z0 - 900)) { g.keys.left = p.x > 0; g.keys.right = p.x < 0; } if (tg && /^vic[^AM]/.test(tg.kind)) tg = null; } if (tg && tg.z - p.z < p.speed * 0.3 && p.jy === 0 && (p.slide <= 0 || !/^(over|vicASlide|vicMSlide)$/.test(tg.kind))) key(/^(over|vicASlide|vicMSlide)$/.test(tg.kind) ? 'ArrowDown' : 'Space');
       if (g.p.z > GF.z0 - 450 && g.p.z < GF.z0 + 5) { g.keys.left = true; g.keys.right = false; } g.advance(1 / 60); f++; const bs = w.bandsAt(g.p.z), ch = bs.find(q => q.chosen) || bs[0]; if (g.p.x < ch.lo - 0.02 || g.p.x > ch.hi + 0.02) out.off++; if (g.p.z > V.z0 && g.p.z < L.z1) { out.minX = Math.min(out.minX, g.p.x); out.maxX = Math.max(out.maxX, g.p.x); } }
     out.state = g.state; out.reached = g.p.z >= L.z1 + 200 - 1; out.coins = g.coins - c0; out.frames = f; return out;
   });
