@@ -3,7 +3,7 @@
 // DROIDS must be avoided (change lane) or jumped over from a RAMP; two RARE TOKENS lie on the track (the counter is kept between runs). Losing ends the race at once (the robot crossed first).
 // Units: metres and seconds along the track `s`; lanes -1, 0, 1 (LANE_M apart). Every number a test or the renderer needs is a field of the Race.
 const RACE = {
-  LEN: 1500, LANE_M: 2.4, BASE: 22, BOT: 33, ACCEL: 34,                         // BASE: the car's own pace (m/s); BOT: the robot's pace
+  LEN: 1800, LANE_M: 2.4, BASE: 28, BOT: 36, ACCEL: 34,                         // BASE: the car's own pace (m/s); BOT: the robot's pace
   SPIRAL: [{ name: 'RED', add: 20 }, { name: 'PURPLE', add: 14 }, { name: 'GREEN', add: 9 }, { name: 'LIME', add: 5 }],      // the speed each colour adds (m/s) while it lasts
   SPIRAL_T: 3.0, BRAKE_MUL: 0.55, BRAKE_T: 2.0, HIT_MUL: 0.3, HIT_T: 0.9, JUMP_T: 1.1,
   DROID_V: 12, DROID_TRIGGER: 50, RAMP_BEFORE: 30,
@@ -12,7 +12,7 @@ class Race {
   constructor(seed) {
     this.seed = seed || 1; this.t = 0; this.done = false; this.result = null; this.fin = 0;          // result: 'win' | 'lose'
     this.p = { s: 0, lane: 0, x: 0, speed: RACE.BASE * 0.6, boost: 0, boostT: 0, brakeT: 0, hitT: 0, air: 0, spirals: 0, rare: 0, hits: 0, rings: 0, jumps: 0, near: 0 };
-    this.bot = { s: 18, speed: RACE.BOT, finishT: null };                                              // the robot starts a little ahead
+    this.bot = { s: 18, speed: RACE.BASE * 0.65, finishT: null };                                              // the robot starts a little ahead
     this.items = []; this.events = []; this.build();
   }
   rnd(n) { let h = (this.seed * 374761393 + n * 668265263) >>> 0; h = ((h ^ (h >>> 13)) * 1274126177) >>> 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -49,7 +49,7 @@ class Race {
     let target = RACE.BASE + p.boost; if (p.brakeT > 0) target *= RACE.BRAKE_MUL; if (p.hitT > 0) target *= RACE.HIT_MUL;
     p.speed += Math.max(-RACE.ACCEL * 2.2 * dt, Math.min(RACE.ACCEL * dt, target - p.speed));
     const s0 = p.s; p.s += p.speed * dt;
-    bot.speed = RACE.BOT * (1 + 0.04 * Math.sin(this.t * 0.9)); bot.s += bot.speed * dt;                           // the robot's pace breathes a little
+    bot.speed += Math.min(18 * dt, RACE.BOT * (1 + 0.04 * Math.sin(this.t * 0.9)) - bot.speed); bot.s += bot.speed * dt;                           // the robot's pace breathes a little
     for (const it of this.items) {
       if (it.type === 'droid') {
         if (!it.run && it.s - p.s < RACE.DROID_TRIGGER && !it.hit) { it.run = true; this.events.push({ e: 'droid', id: it.id }); }
