@@ -52,5 +52,28 @@ const Car3D = {
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeBoundingSphere(); g.computeBoundingBox();
     return g;
   },
+
+  // THE RACE CAR, GENERATED FROM THE USER'S PICTURE OF ITS BACK: the picture itself is the tail (hung as it is by Race3D, never redrawn), and the rest of the car is modelled from what the picture shows —
+  // a wide low body in near-black blue, a blue band along the flanks at the height of the rear window, a green line low down continuing the light bar, dark wheels with a faint rim and a magenta glow underneath.
+  // `backW` is how wide the body is (the picture is hung wider than that, because its own glow spreads beyond the car).
+  fromBack(o) {
+    o = Object.assign({ body: '#090a16', dark: '#05060d', blue: '#1636ff', green: '#2bff3a', rim: '#1b2440' }, o || {});
+    const p = [], W = 2.3, L = 4.6, zT = 2.0, zN = zT - L;
+    p.push(Kit.box(W, 0.62, L, 0, 0.3, zT - L / 2, o.body));                                                                      // the tub
+    p.push(Kit.box(W - 0.12, 0.34, L * 0.42, 0, 0.9, zT - 1.1, o.body));                                                          // the shoulders behind the cabin
+    p.push(Kit.box(W - 0.5, 0.42, L * 0.36, 0, 1.2, zT - 1.9, o.dark));                                                           // the cabin
+    p.push(Kit.box(W - 0.62, 0.1, L * 0.3, 0, 1.6, zT - 2.0, o.body));                                                            // the roof
+    p.push(Kit.box(W - 0.2, 0.26, 1.0, 0, 0.72, zN + 0.5, o.body, { rx: -0.18 }));                                                 // the nose, sloping down
+    for (const s2 of [-1, 1]) {
+      p.push(Kit.box(0.05, 0.05, L - 1.4, s2 * W / 2, 0.86, zT - L / 2 - 0.1, o.blue, { glow: true }));                                  // the blue band of the back, carried along the flanks
+      p.push(Kit.box(0.05, 0.05, L - 1.2, s2 * (W / 2 - 0.02), 0.2, zT - L / 2 - 0.2, o.green, { glow: true }));                   // the green line of the light bar, carried low
+      for (const z of [zT - 1.0, zN + 1.2]) {                                                                                      // the wheels
+        p.push(Kit.cyl(0.44, 0.44, 0.34, s2 * (W / 2 - 0.1), 0.44, z, '#07080e', { rz: Math.PI / 2, seg: 14 }));
+        p.push(Kit.cyl(0.2, 0.2, 0.06, s2 * (W / 2 + 0.07), 0.44, z, o.rim, { rz: Math.PI / 2, seg: 10 }));
+      }
+    }
+    return p;
+  },
+  buildFromBack(o) { return Kit.mesh(Kit.merge(Car3D.fromBack(o))); },
   build(o) { return Kit.mesh(Kit.merge(Car3D.parts(o))); },
 };
