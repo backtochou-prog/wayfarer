@@ -3,16 +3,17 @@
 // DROIDS must be avoided (change lane) or jumped over from a RAMP; two RARE TOKENS lie on the track (the counter is kept between runs). Losing ends the race at once (the robot crossed first).
 // Units: metres and seconds along the track `s`; lanes -1, 0, 1 (LANE_M apart). Every number a test or the renderer needs is a field of the Race.
 const RACE = {
-  LEN: 1800, LANE_M: 2.4, BASE: 28, BOT: 36, ACCEL: 34,                         // BASE: the car's own pace (m/s); BOT: the robot's pace
+  LEN: 2600, LANE_M: 2.4, BASE: 34, BOT: 47, ACCEL: 40,                         // BASE: the car's own pace (m/s); BOT: the robot's pace
   SPIRAL: [{ name: 'RED', add: 20 }, { name: 'PURPLE', add: 14 }, { name: 'GREEN', add: 9 }, { name: 'LIME', add: 5 }],      // the speed each colour adds (m/s) while it lasts
-  SPIRAL_T: 3.0, BRAKE_MUL: 0.55, BRAKE_T: 2.0, HIT_MUL: 0.3, HIT_T: 0.9, JUMP_T: 1.1,
-  DROID_V: 12, DROID_TRIGGER: 50, RAMP_BEFORE: 30,
+  SPIRAL_T: 3.2, BRAKE_MUL: 0.55, BRAKE_T: 2.0, HIT_MUL: 0.3, HIT_T: 0.9, JUMP_T: 1.1,
+  LAST: 0.75,     /* where the run-in starts (the last quarter: more spirals, the strong colours, fewer traps, so the player can still take the robot) */
+  DROID_V: 12, DROID_TRIGGER: 50, RAMP_BEFORE: 30, BUMP_MUL: 0.6, BUMP_T: 0.9, BUMP_GAP: 4.4,          /* running into the back of the robot's car: it is an obstacle like any other, the player is slowed and held behind it */
 };
 class Race {
   constructor(seed) {
     this.seed = seed || 1; this.t = 0; this.done = false; this.result = null; this.fin = 0;          // result: 'win' | 'lose'
-    this.p = { s: 0, lane: 0, x: 0, speed: RACE.BASE * 0.6, boost: 0, boostT: 0, brakeT: 0, hitT: 0, air: 0, spirals: 0, rare: 0, hits: 0, rings: 0, jumps: 0, near: 0 };
-    this.bot = { s: 18, speed: RACE.BASE * 0.65, finishT: null };                                              // the robot starts a little ahead
+    this.p = { s: 0, lane: 0, x: 0, speed: RACE.BASE * 0.6, boost: 0, boostT: 0, brakeT: 0, hitT: 0, air: 0, spirals: 0, rare: 0, hits: 0, rings: 0, jumps: 0, near: 0, bumps: 0 };
+    this.bot = { s: 18, speed: RACE.BASE * 0.65, lane: 0, x: 0, finishT: null };                                              // the robot starts a little ahead
     this.items = []; this.events = []; this.build();
   }
   rnd(n) { let h = (this.seed * 374761393 + n * 668265263) >>> 0; h = ((h ^ (h >>> 13)) * 1274126177) >>> 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -22,10 +23,12 @@ class Race {
     let s = 110, n = 0, rare = 0;
     while (s < RACE.LEN - 90) {
       const r = k => this.rnd(n * 17 + k), lane = Math.floor(r(1) * 3) - 1, kind = r(2), other = lane === 1 ? -1 : lane + 1, third = -lane - other;
-      if (kind < 0.34) {                                                                               // a line of three spirals of one colour in one lane (the colour by luck, rarer the stronger)
-        const c = r(3) < 0.12 ? 0 : r(3) < 0.32 ? 1 : r(3) < 0.62 ? 2 : 3;
-        for (let k = 0; k < 3; k++) this.add({ type: 'spiral', color: c, lane, s: s + k * 9 });
-      } else if (kind < 0.62) {                                                                        // a single brake ring in one lane (lying on the road), a spiral in the third (the colour of the spiral again by luck)
+      const late = s > RACE.LEN * RACE.LAST;                                                        // the run-in of the race
+      if (late ? kind < 0.72 : kind < 0.34) {                                                                               // a line of three spirals of one colour in one lane (the colour by luck, rarer the stronger)
+        const c = late ? (r(3) < 0.55 ? 0 : 1) : r(3) < 0.12 ? 0 : r(3) < 0.32 ? 1 : r(3) < 0.62 ? 2 : 3;                 // in the run-in the strong colours (red, purple) and a longer line of them
+        for (let k = 0, nS = late ? 5 : 3; k < nS; k++) this.add({ type: 'spiral', color: c, lane, s: s + k * 9 });
+        if (late) for (let k = 0; k < 3; k++) this.add({ type: 'spiral', color: r(8) < 0.5 ? 1 : 2, lane: other, s: s + 4 + k * 9 });   // and a second line beside it: there is always a way to gain
+      } else if (late ? kind < 0.86 : kind < 0.62) {                                                                        // a single brake ring in one lane (lying on the road), a spiral in the third (the colour of the spiral again by luck)
         this.add({ type: 'ring', lane, s });
         this.add({ type: 'spiral', color: r(4) < 0.2 ? 0 : r(4) < 0.5 ? 1 : 2, lane: third, s: s + 2 });
       } else {                                                                                         // a droid in a lane: dodge it, or take the ramp that lies in front of it; a spiral waits after it in that lane
@@ -34,7 +37,7 @@ class Race {
         this.add({ type: 'spiral', color: r(6) < 0.3 ? 0 : 1, lane, s: droid.s + 14 });
         if (n % 5 === 4 && rare < 2) { this.add({ type: 'rare', lane: other, s: droid.s + 6 }); rare++; }
       }
-      s += 52 + Math.floor(r(7) * 16); n++;
+      s += (late ? 44 : 52) + Math.floor(r(7) * 16); n++;
     }
     while (rare < 2) { const q = this.items.filter(i => i.type === 'droid'); const d = q[rare * 3 + 1] || q[q.length - 1]; this.add({ type: 'rare', lane: d.lane === 1 ? -1 : d.lane + 1, s: d.s + 6 }); rare++; }
     this.items.sort((a, b) => a.s - b.s);
@@ -49,6 +52,8 @@ class Race {
     let target = RACE.BASE + p.boost; if (p.brakeT > 0) target *= RACE.BRAKE_MUL; if (p.hitT > 0) target *= RACE.HIT_MUL;
     p.speed += Math.max(-RACE.ACCEL * 2.2 * dt, Math.min(RACE.ACCEL * dt, target - p.speed));
     const s0 = p.s; p.s += p.speed * dt;
+    bot.lane = Math.max(-1, Math.min(1, Math.round(Math.sin(this.t * 0.33) * 1.3)));                       // the robot drifts from lane to lane: the player has to go round it, not through it
+    bot.x += (bot.lane * RACE.LANE_M - bot.x) * Math.min(1, dt * 1.6);
     bot.speed += Math.min(18 * dt, RACE.BOT * (1 + 0.04 * Math.sin(this.t * 0.9)) - bot.speed); bot.s += bot.speed * dt;                           // the robot's pace breathes a little
     for (const it of this.items) {
       if (it.type === 'droid') {
@@ -71,6 +76,9 @@ class Race {
       else if (it.type === 'ring' && p.air <= 0) { it.taken = true; p.rings++; p.brakeT = RACE.BRAKE_T; this.events.push({ e: 'ring' }); }
       else if (it.type === 'ramp' && p.air <= 0) { it.taken = true; p.air = RACE.JUMP_T; p.jumps++; this.events.push({ e: 'jump' }); }
       else if (it.type === 'rare') { it.taken = true; p.rare++; this.events.push({ e: 'rare' }); }
+    }
+    if (!this.done && p.s > bot.s - RACE.BUMP_GAP && p.s < bot.s + 2 && Math.abs(p.x - bot.x) < 1.5) {        // the back of the robot's car: an obstacle. The player is slowed and cannot drive through it
+      p.s = bot.s - RACE.BUMP_GAP; p.speed = Math.min(p.speed * RACE.BUMP_MUL, bot.speed * 0.8); p.hitT = Math.max(p.hitT, RACE.BUMP_T); p.bumps = (p.bumps || 0) + 1; this.events.push({ e: 'bump' });
     }
     if (bot.finishT === null && bot.s >= RACE.LEN) bot.finishT = this.t;
     if (p.s >= RACE.LEN) { this.done = true; this.result = bot.finishT === null ? 'win' : 'lose'; this.events.push({ e: this.result }); }

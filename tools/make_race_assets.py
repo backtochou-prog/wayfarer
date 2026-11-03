@@ -39,6 +39,11 @@ for k, cid in CARS.items():
     bb = c.getbbox(); c = c.crop(bb) if bb else c
     AR[k] = round(c.width / c.height, 4)
     res[k] = uri(fit(c, 384))
+_dr = Image.open(f'{U}/c864b4e4-image.png').convert('RGBA')                 # the user's DROID (the obstacle that runs at the car): it carries its own alpha, keep it as it is
+_dr = _dr.crop(_dr.getbbox()); res['droid'] = uri(fit(_dr, 384)); AR['droid'] = round(_dr.width / _dr.height, 4)
+_pod = Image.open(f'{U}/2f7a0cb6-image.png').convert('RGBA')                 # the user's last picture of the ROBOT's car (the magnetic pod seen head on): it already carries its own alpha, so keep it as it is
+_pod = _pod.crop(_pod.getbbox())
+res['botPod'] = uri(fit(_pod, 384)); AR['botPod'] = round(_pod.width / _pod.height, 4)
 rr = Image.open(f'{U}/{REAR}-image.png').convert('RGB')                      # white background out, and the black frame of the drawing with it: keep the painted part
 _r = _np.asarray(rr).astype(_np.float32); _white = (_r.min(axis=2) > 170); _black = (_r.max(axis=2) < 26)
 _al = _np.where(_white | _black, 0, 255).astype(_np.uint8)

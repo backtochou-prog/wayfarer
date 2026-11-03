@@ -6,6 +6,7 @@ const best = (r, w, lane0) => {                                                 
   for (const it of r.items) { if (it.taken || it.hit) continue; const d = it.s - p.s; if (d < -1 || d > w) continue; const L = it.lane + 1, k = 1 - d / (w * 1.4);
     if (it.type === 'spiral') sc[L] += RACE.SPIRAL[it.color].add * 2.2 * k; else if (it.type === 'ring') sc[L] -= 60 * k; else if (it.type === 'rare') sc[L] += 12 * k;
     else if (it.type === 'ramp') sc[L] += 25 * k; else if (it.type === 'droid') { const ramp = r.items.some(q => q.type === 'ramp' && !q.taken && q.lane === it.lane && q.s < it.s && q.s > it.s - 40); sc[L] -= (ramp ? 4 : 55) * k; } }
+  const bd = r.bot.s - p.s; if (bd > 0 && bd < 30) sc[Math.max(-1, Math.min(1, Math.round(r.bot.x / RACE.LANE_M))) + 1] -= 90;      /* the back of the robot's car is an obstacle too */
   let b = lane0 + 1, bs = -1e9; for (let L = 0; L < 3; L++) { const v = sc[L] - Math.abs(L - (lane0 + 1)) * 2.5; if (v > bs) { bs = v; b = L; } } return b - 1;
 };
 const play = (seed, pol) => { const r = new Race(seed); let lane = 0, n = 0; while (!r.done && n++ < 20000) { if (pol === 'best') lane = best(r, 55, lane); else if (pol === 'random' && n % 45 === 0) lane = Math.floor(r.rnd(1000 + n) * 3) - 1; r.step(1 / 60, { lane }); } return r; };

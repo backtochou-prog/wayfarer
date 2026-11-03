@@ -36,6 +36,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   // ---- a bot that plays well wins; the exit is at once, back on the road, the sphere used up; the rare tokens are kept
   const W = await pz.evaluate(() => { const g = __wf; localStorage.removeItem('wf.rare'); g.rare = 0; g.start(); g.advance(1 / 60); const R0 = g.race, R = g.race, coins0 = g.coins; let n = 0, lane = 0;
     const best = () => { const p = R.p, sc = [0, 0, 0]; for (const it of R.items) { if (it.taken || it.hit) continue; const d = it.s - p.s; if (d < -1 || d > 55) continue; const L = it.lane + 1, k = 1 - d / 77; if (it.type === 'spiral') sc[L] += RACE.SPIRAL[it.color].add * 2.2 * k; else if (it.type === 'ring') sc[L] -= 60 * k; else if (it.type === 'rare') sc[L] += 12 * k; else if (it.type === 'ramp') sc[L] += 25 * k; else if (it.type === 'droid') { const ramp = R.items.some(q => q.type === 'ramp' && !q.taken && q.lane === it.lane && q.s < it.s && q.s > it.s - 40); sc[L] -= (ramp ? 4 : 55) * k; } }
+      const bd = R.bot.s - p.s; if (bd > 0 && bd < 30) sc[Math.max(-1, Math.min(1, Math.round(R.bot.x / RACE.LANE_M))) + 1] -= 90;
       let b = lane + 1, bs = -1e9; for (let L = 0; L < 3; L++) { const v = sc[L] - Math.abs(L - (lane + 1)) * 2.5; if (v > bs) { bs = v; b = L; } } return b - 1; };
     while (g.state === 'race' && n++ < 20000) { if (g.race.cd <= 0 && !g.race.done) { const want = best(); g.laneQ = Math.sign(want - g.race.p.lane); g.advance(1 / 60); lane = g.race.p.lane; g.advance(1 / 60); } else g.advance(1 / 60); }
     return { res: R0.result, t: +R0.t.toFixed(1), s: Math.round(R0.p.s), state: g.state, race: !!g.race, coins: g.coins - coins0, rare: g.rare, saved: localStorage.getItem('wf.rare'), got: R0.p.rare, bot: Math.round(R0.bot.s) }; });
@@ -43,8 +44,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     W.res === 'win' && W.coins >= 30 && W.state === 'play' && !W.race && W.rare === W.got && String(W.rare) === W.saved, JSON.stringify(W));
 
   // ---- a passive player loses: the robot crosses first, the race ends at once, back on the road
-  const L = await pz.evaluate(() => { const g = __wf; g.start(); g.advance(1 / 60); const R = g.race, coins0 = g.coins; let n = 0; while (g.state === 'race' && n++ < 20000) g.advance(1 / 60); return { res: R.result, t: +R.t.toFixed(1), s: Math.round(R.p.s), state: g.state, coins: g.coins - coins0, bot: R.bot.finishT && +R.bot.finishT.toFixed(1) }; });
-  T('a passive player loses (' + L.res + ': the robot crossed at ' + L.bot + ' s while the car was at ' + L.s + ' m): thrown back on the road at once, no bonus (' + L.coins + ')', L.res === 'lose' && L.state === 'play' && L.coins === 0 && L.s < 1800, JSON.stringify(L));
+  const L = await pz.evaluate(() => { const g = __wf; g.start(); g.advance(1 / 60); const R = g.race, coins0 = g.coins; let n = 0; while (g.state === 'race' && n++ < 20000) g.advance(1 / 60); return { res: R.result, t: +R.t.toFixed(1), s: Math.round(R.p.s), len: RACE.LEN, state: g.state, coins: g.coins - coins0, bot: R.bot.finishT && +R.bot.finishT.toFixed(1) }; });
+  T('a passive player loses (' + L.res + ': the robot crossed at ' + L.bot + ' s while the car was at ' + L.s + ' m): thrown back on the road at once, no bonus (' + L.coins + ')', L.res === 'lose' && L.state === 'play' && L.coins === 0 && L.s < L.len, JSON.stringify(L));
 
   // ---- the sphere: passing into it opens the race, once; the next zone's sphere is a new chance
   const S = await pz.evaluate(() => { const g = __wf; g.raceTest = true; g.start(); for (let i = 0; i < 4; i++) g.advance(1 / 60); g.state = 'play'; g.race = null; g.raceNow = false; g.world.extend(150000);
@@ -84,6 +85,33 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   });
   T('the race moves with its music: on a kick the spirals flare (' + AN.off.sp + ' -> ' + AN.on.sp + '), the track lifts (' + AN.off.y + ' -> ' + AN.on.y + ') and every neon light brightens (' + AN.off.glow + ' -> ' + AN.on.glow + ')',
     AN.on.sp > AN.off.sp + 0.1 && AN.on.y > AN.off.y && AN.on.glow > AN.off.glow + 0.1, JSON.stringify(AN));
+
+  // ---- the engine of the race cars, and the back of the robot's car as an obstacle
+  const EN = await pz.evaluate(() => {
+    const g = __wf, sfx = g.sfx; const out = {};
+    sfx.ctx = sfx.ctx || new (window.AudioContext || window.webkitAudioContext)(); sfx.master = sfx.master || (() => { const m = sfx.ctx.createGain(); m.connect(sfx.ctx.destination); return m; })(); sfx.unlocked = true; sfx.musicVol = 0.8;
+    g.start(); for (let i = 0; i < 300; i++) g.advance(1 / 60);
+    sfx.tick(g, 1 / 60); out.on = !!sfx.eng; out.nodes = sfx.eng ? sfx.eng.nodes.length : 0; out.f1 = sfx.eng ? sfx.eng.want.f0 : 0;
+    const R = g.race; R.p.speed = RACE.BASE * 1.9; sfx.tick(g, 1 / 60); out.fFast = sfx.eng.want.f0; out.cut = sfx.eng.want.cut;
+    g.state = 'play'; sfx.tick(g, 1 / 60); out.off = !sfx.eng; g.state = 'race';
+    return out;
+  });
+  T('the race cars have an electric engine of their own (' + EN.nodes + ' voices, no file): it runs while the race runs, its pitch follows the speed (' + EN.f1 + ' -> ' + EN.fFast + ' Hz, filter ' + EN.cut + ' Hz) and it stops when the race ends (' + EN.off + ')',
+    EN.on && EN.nodes >= 5 && EN.fFast > EN.f1 && EN.cut > 1000 && EN.off, JSON.stringify(EN));
+  const BU = await pz.evaluate(() => {
+    const g = __wf; g.start(); g.advance(1 / 60); const R = g.race; R.cd = 0;
+    R.p.s = 300; R.p.speed = RACE.BASE * 1.6; R.bot.s = 306; R.step(1 / 60, { lane: 0 });                      // one step first: the robot picks the lane it is really in
+    const bl = Math.round(R.bot.x / RACE.LANE_M); R.p.lane = bl; R.p.x = R.bot.x; R.p.s = R.bot.s - 6; R.p.speed = RACE.BASE * 1.6;
+    const before = R.p.speed; let n = 0; while (n++ < 60 && !R.p.bumps) R.step(1 / 60, { lane: bl });
+    const hit = { bumps: R.p.bumps, speed: +R.p.speed.toFixed(1), before: +before.toFixed(1), gap: +(R.bot.s - R.p.s).toFixed(2), hurt: +R.p.hitT.toFixed(2) };
+    R.p.s = 500; R.bot.s = 506; R.step(1 / 60, { lane: 0 });
+    const bl2 = Math.round(R.bot.x / RACE.LANE_M), other = bl2 === 1 ? -1 : 1; R.p.lane = other; R.p.x = other * RACE.LANE_M; R.p.s = R.bot.s - 6; R.p.speed = RACE.BASE * 1.6; const b0 = R.p.bumps;
+    R.p.s = R.bot.s - 1; n = 0; while (n++ < 30) { R.step(1 / 60, { lane: other }); if (R.p.bumps !== b0) break; }                 // beside it, in another lane: it may stay level with the robot, nothing stops it
+    hit.pastInOtherLane = R.p.bumps === b0 && R.p.s > R.bot.s - RACE.BUMP_GAP;
+    return hit;
+  });
+  T('running into the back of the robot\'s car is an obstacle: the player is slowed (' + BU.before + ' -> ' + BU.speed + ' m/s, held ' + BU.gap + ' m behind it, ' + BU.hurt + ' s of recovery) and cannot drive through it; in another lane it can stay level with it (' + BU.pastInOtherLane + ')',
+    BU.bumps >= 1 && BU.speed < BU.before * 0.8 && BU.gap > 3.9 && BU.gap < 5 && BU.hurt > 0 && BU.pastInOtherLane, JSON.stringify(BU));
 
   // ---- the classic 2D game: no sphere, no race, no error
   const p2 = await open(base + '2d.html');
