@@ -86,6 +86,12 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('the race moves with its music: on a kick the spirals flare (' + AN.off.sp + ' -> ' + AN.on.sp + '), the track lifts (' + AN.off.y + ' -> ' + AN.on.y + ') and every neon light brightens (' + AN.off.glow + ' -> ' + AN.on.glow + ')',
     AN.on.sp > AN.off.sp + 0.1 && AN.on.y > AN.off.y && AN.on.glow > AN.off.glow + 0.1, JSON.stringify(AN));
 
+  // ---- the start: the two cars side by side on the line
+  const ST = await pz.evaluate(() => { const g = __wf; g.start(); g.advance(1 / 60); const R = g.race;
+    return { pS: R.p.s, bS: R.bot.s, pX: +R.p.x.toFixed(2), bX: +R.bot.x.toFixed(2), lane: RACE.LANE_M, cd: +R.cd.toFixed(1) }; });
+  T('the two cars start SIDE BY SIDE on the line (both at ' + ST.pS + ' m, the player at x ' + ST.pX + ' and the robot one lane away at ' + ST.bX + '), held by the countdown',
+    ST.pS === 0 && ST.bS === 0 && Math.abs(ST.pX) < 0.01 && Math.abs(Math.abs(ST.bX) - ST.lane) < 0.3 && ST.cd > 2, JSON.stringify(ST));
+
   // ---- the engine of the race cars, and the back of the robot's car as an obstacle
   const EN = await pz.evaluate(() => {
     const g = __wf, sfx = g.sfx; const out = {};

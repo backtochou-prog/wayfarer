@@ -18,7 +18,7 @@ class Race3D {
     const halo = col => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'), gr = x.createRadialGradient(64, 64, 4, 64, 64, 62); gr.addColorStop(0, col + 'cc'); gr.addColorStop(0.45, col + '55'); gr.addColorStop(1, col + '00'); x.fillStyle = gr; x.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return mat(t, true); };
     this.droidMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.droid), transparent: true, side: THREE.DoubleSide, depthWrite: false });
     this.droidGlowMat = mat(L(RACE_ASSETS.droid), true);
-    this.spiralMat = RACE_ASSETS.spirals.map(u => mat(L(u), true)); this.haloMat = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'].map(halo); this.ringHalo = halo('#ff3fd0'); this.carGlow = halo('#4a2a70'); this.botGlow = halo('#1a6a80'); this.droidGlow = halo('#2bff6a'); this.backGlowG = halo('#2bff3a'); this.backGlowM = halo('#2a4cff'); this.ringMat = mat(L(RACE_ASSETS.ring)); this.ringMatFlat = mat(L(RACE_ASSETS.ring), true); this.carMat = mat(L(RACE_ASSETS.carSide), true); this.backMat = mat(L(RACE_ASSETS.carBack), true); this.rearMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.rear), transparent: true, side: THREE.DoubleSide }); this.botMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botPod), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botGlowMat = mat(L(RACE_ASSETS.botPod), true); this.rampMat = mat(L(RACE_ASSETS.ramp), true); this.sphereMat = mat(L(RACE_ASSETS.sphere));
+    this.spiralMat = RACE_ASSETS.spirals.map(u => mat(L(u), true)); this.haloMat = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'].map(halo); this.ringHalo = halo('#ff3fd0'); this.carGlow = halo('#4a2a70'); this.botGlow = halo('#1a6a80'); this.droidGlow = halo('#2bff6a'); this.botHalo = halo('#ff2a7a'); this.backGlowG = halo('#2bff3a'); this.backGlowM = halo('#2a4cff'); this.ringMat = mat(L(RACE_ASSETS.ring)); this.ringMatFlat = mat(L(RACE_ASSETS.ring), true); this.carMat = mat(L(RACE_ASSETS.carSide), true); this.backMat = mat(L(RACE_ASSETS.carBack), true); this.rearMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.rear), transparent: true, side: THREE.DoubleSide }); this.botMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botPod), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botGlowMat = mat(L(RACE_ASSETS.botPod), true); this.rampMat = mat(L(RACE_ASSETS.ramp), true); this.sphereMat = mat(L(RACE_ASSETS.sphere));
     this.plane = (w, h) => new THREE.PlaneGeometry(w, h);
     this.track = this.buildTrack(); sc.add(this.track);
     this.crystal = this.buildCrystal(); sc.add(this.crystal);
@@ -40,7 +40,8 @@ class Race3D {
     sc.add(this.car);
     this.bot = new THREE.Group();
     { const w = 3.4, h = w / RACE_ASSETS.ar.botPod, m = new THREE.Mesh(this.plane(w, h), this.botMat); m.position.y = h / 2 + 0.3; this.bot.add(m); this.bot.userData.pic = m;  /* the pod is the user's picture, as it is (its own alpha), with a second additive copy over it so its neon is lit */
-      const g2 = new THREE.Mesh(this.plane(w, h), this.botGlowMat); g2.position.z = 0.01; m.add(g2);      const gl = new THREE.Mesh(this.plane(w * 1.0, w * 0.7), this.botGlow); gl.rotation.x = -Math.PI / 2; gl.position.y = -(h / 2 + 0.28); m.add(gl); }
+      for (const dz of [0.01, 0.02]) { const g2 = new THREE.Mesh(this.plane(w, h), this.botGlowMat); g2.position.z = dz; m.add(g2); }                /* the pod's neon LIT: the picture added over itself twice */
+      const bh = new THREE.Mesh(this.plane(w * 1.5, h * 1.5), this.botHalo); bh.position.z = -0.05; m.add(bh); this.bot.userData.halo = bh;      const gl = new THREE.Mesh(this.plane(w * 1.0, w * 0.7), this.botGlow); gl.rotation.x = -Math.PI / 2; gl.position.y = -(h / 2 + 0.28); m.add(gl); }
     sc.add(this.bot);
     this.itemsGroup = new THREE.Group(); sc.add(this.itemsGroup); this.meshes = []; this.bound = null; this.camPos = new THREE.Vector3();
   }
@@ -97,8 +98,10 @@ class Race3D {
   buildDroid() {
     const g = new THREE.Group(), h = 3.6, w = h * RACE_ASSETS.ar.droid;
     const m = new THREE.Mesh(this.plane(w, h), this.droidMat); m.position.y = h / 2; g.add(m);
-    const lit = new THREE.Mesh(this.plane(w, h), this.droidGlowMat); lit.position.z = 0.01; m.add(lit);
-    const gl = new THREE.Mesh(this.plane(w * 2.2, w * 1.6), this.droidGlow); gl.rotation.x = -Math.PI / 2; gl.position.y = 0.02; g.add(gl);
+    for (const dz of [0.01, 0.02]) { const lit = new THREE.Mesh(this.plane(w, h), this.droidGlowMat); lit.position.z = dz; m.add(lit); }        // the droid's neon LIT: the picture added over itself twice
+    const back = new THREE.Mesh(this.plane(w * 2.0, h * 0.95), this.droidGlow); back.position.set(0, h * 0.52, -0.05); g.add(back);              // a green halo behind it
+    const gl = new THREE.Mesh(this.plane(w * 2.4, w * 1.8), this.droidGlow); gl.rotation.x = -Math.PI / 2; gl.position.y = 0.02; g.add(gl);
+    g.userData.halo = [back, gl];
     g.userData.legs = []; g.userData.arms = []; g.userData.pic = m;
     return g;
   }
@@ -142,7 +145,7 @@ class Race3D {
       const m = this.meshes[i], z = -it.s, x = it.lane * M, vis = !it.taken && !(it.type === 'droid' && it.hit) && it.s > p.s - 12 && it.s < p.s + 230; m.visible = vis; if (!vis) return;
       if (it.type === 'spiral') { m.position.set(x, 1.5 + 0.12 * Math.sin(t * 3 + i), z); m.rotation.z = t * 1.6 * (i % 2 ? 1 : -1); m.scale.setScalar(1 + 0.05 * Math.sin(t * 6 + i) + 0.22 * pulse); }                 // they flare on every kick
       else if (it.type === 'ring') { m.position.set(x, 0.06, z); m.userData.flat.rotation.z = t * 0.5 * (i % 2 ? 1 : -1); m.scale.setScalar(1 + 0.04 * Math.sin(t * 5 + i) + 0.1 * pulse); }
-      else if (it.type === 'droid') { const run = it.run ? 1 : 0; m.position.set(x, run * Math.abs(Math.sin(t * 13 + i)) * 0.16, z); m.rotation.z = Math.sin(t * (run ? 13 : 3) + i) * (run ? 0.06 : 0.02); m.userData.pic.scale.set(1 + run * 0.04 * Math.sin(t * 13 + i), 1 - run * 0.04 * Math.sin(t * 13 + i), 1); }
+      else if (it.type === 'droid') { const run = it.run ? 1 : 0; m.position.set(x, run * Math.abs(Math.sin(t * 13 + i)) * 0.16, z); m.rotation.z = Math.sin(t * (run ? 13 : 3) + i) * (run ? 0.06 : 0.02); m.userData.pic.scale.set(1 + run * 0.04 * Math.sin(t * 13 + i), 1 - run * 0.04 * Math.sin(t * 13 + i), 1); for (const h2 of m.userData.halo) h2.scale.setScalar(0.85 + 0.3 * pulse + 0.15 * run); }
       else if (it.type === 'rare') { m.position.set(x, 0.15 * Math.sin(t * 3 + i), z); m.rotation.y = t * 2.4; }
       else { m.position.set(x, 0, z); if (m.userData.pic) m.userData.pic.scale.setScalar(1 + 0.03 * Math.sin(t * 4 + i) + 0.07 * pulse); }
     });
@@ -152,7 +155,7 @@ class Race3D {
     Kit.materials().glow.color.setScalar(1 - 0.16 * (1 - pulse));                                                                                            // every neon light of the race (lines, posts, cars) pulses with the music
     this.car.position.set(p.x, 0.02 + air * 2.6 + 0.05 * pulse, -p.s); this.car.rotation.set(-air * 0.12 * (p.air / RACE.JUMP_T > 0.5 ? 1 : -1), -(p.lane * M - p.x) * 0.05, (p.lane * M - p.x) * 0.03); this.car.userData.pic.scale.set(1, 1 + 0.03 * pulse, 1); for (const h2 of this.car.userData.halo) h2.scale.setScalar(0.9 + 0.25 * pulse);
     const gap = R.bot.s - p.s;                                                                               // the robot is drawn where it really is (it never slows down when the player does); far ahead it is simply drawn bigger, so it stays easy to see
-    const far = Math.max(0, gap - 30); this.bot.position.set(R.bot.x, 0.06 + 0.07 * Math.sin(t * 4) + 0.05 * pulse, -R.bot.s);           // the same height as the player's car, in the lane it is really in (it can be run into from behind) this.bot.userData.pic.rotation.z = Math.sin(t * 1.6) * 0.05 + 0.03 * pulse; this.bot.userData.pic.lookAt(this.camera.position.x, this.bot.position.y + 1.1, this.camera.position.z); this.bot.scale.setScalar(1 + Math.min(far, 140) / 130);
+    const far = Math.max(0, gap - 30); this.bot.position.set(R.bot.x, 0.06 + 0.07 * Math.sin(t * 4) + 0.05 * pulse, -R.bot.s);           // the same height as the player's car, in the lane it is really in (it can be run into from behind) this.bot.userData.pic.rotation.z = Math.sin(t * 1.6) * 0.05 + 0.03 * pulse; this.bot.userData.halo.scale.setScalar(0.85 + 0.3 * pulse); this.bot.userData.pic.lookAt(this.camera.position.x, this.bot.position.y + 1.1, this.camera.position.z); this.bot.scale.setScalar(1 + Math.min(far, 140) / 130);
     const f = 62 + Math.min(14, p.speed - RACE.BASE) * 0.9 + (p.hitT > 0 ? -4 : 0); if (Math.abs(this.camera.fov - f) > 0.05) { this.camera.fov += (f - this.camera.fov) * 0.1; this.camera.updateProjectionMatrix(); }
     const cx = p.x * 0.55, cz = -p.s + 8.2; this.camPos.set(cx, 3.5 + air * 1.4, cz); this.camera.position.lerp(this.camPos, 0.5); this.camera.position.z = cz; this.camera.lookAt(p.x * 0.4, 1.3 + air * 0.8, -p.s - 12);
     renderer.render(this.scene, this.camera);

@@ -13,7 +13,7 @@ class Race {
   constructor(seed) {
     this.seed = seed || 1; this.t = 0; this.done = false; this.result = null; this.fin = 0;          // result: 'win' | 'lose'
     this.p = { s: 0, lane: 0, x: 0, speed: RACE.BASE * 0.6, boost: 0, boostT: 0, brakeT: 0, hitT: 0, air: 0, spirals: 0, rare: 0, hits: 0, rings: 0, jumps: 0, near: 0, bumps: 0 };
-    this.bot = { s: 18, speed: RACE.BASE * 0.65, lane: 0, x: 0, finishT: null };                                              // the robot starts a little ahead
+    this.bot = { s: 0, speed: RACE.BASE * 0.65, lane: 1, x: RACE.LANE_M, finishT: null };             // the two cars start SIDE BY SIDE on the line, the robot in the lane beside the player's                                              
     this.items = []; this.events = []; this.build();
   }
   rnd(n) { let h = (this.seed * 374761393 + n * 668265263) >>> 0; h = ((h ^ (h >>> 13)) * 1274126177) >>> 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -52,7 +52,7 @@ class Race {
     let target = RACE.BASE + p.boost; if (p.brakeT > 0) target *= RACE.BRAKE_MUL; if (p.hitT > 0) target *= RACE.HIT_MUL;
     p.speed += Math.max(-RACE.ACCEL * 2.2 * dt, Math.min(RACE.ACCEL * dt, target - p.speed));
     const s0 = p.s; p.s += p.speed * dt;
-    bot.lane = Math.max(-1, Math.min(1, Math.round(Math.sin(this.t * 0.33) * 1.3)));                       // the robot drifts from lane to lane: the player has to go round it, not through it
+    bot.lane = Math.max(-1, Math.min(1, Math.round(Math.sin(this.t * 0.33 + Math.PI / 2) * 1.3)));                       // the robot drifts from lane to lane: the player has to go round it, not through it
     bot.x += (bot.lane * RACE.LANE_M - bot.x) * Math.min(1, dt * 1.6);
     bot.speed += Math.min(18 * dt, RACE.BOT * (1 + 0.04 * Math.sin(this.t * 0.9)) - bot.speed); bot.s += bot.speed * dt;                           // the robot's pace breathes a little
     for (const it of this.items) {
