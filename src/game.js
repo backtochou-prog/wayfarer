@@ -11,13 +11,14 @@ const BTN = {
 };
 // touch controls (canvas pixels): hold left/right to steer, tap jump/slide/pause; each finger is tracked separately
 const TOUCH = [
-  { id: 'left',  x: 0,  y: 137, w: 46, h: 42 },        // (pushed out to the screen edges, away from the centre, at the user's request; a little bigger than before, to match the 42 px ring picture they wear: 46 x 42 instead of 38 x 32)
-  { id: 'right', x: 49,  y: 137, w: 46, h: 42 },
-  { id: 'slide', x: 225, y: 137, w: 46, h: 42 },
-  { id: 'jump',  x: 274, y: 137, w: 46, h: 42 },
+  { id: 'left',  x: -15,  y: 137, w: 46, h: 42 },        // (pushed out to the screen edges, away from the centre, at the user's request; a little bigger than before, to match the 42 px ring picture they wear: 46 x 42 instead of 38 x 32)
+  { id: 'right', x: 34,  y: 137, w: 46, h: 42 },
+  { id: 'slide', x: 240, y: 137, w: 46, h: 42 },
+  { id: 'jump',  x: 289, y: 137, w: 46, h: 42 },
   { id: 'pause', x: 145, y: 2,   w: 30, h: 18 },
   { id: 'scooter', x: 132, y: 154, w: 56, h: 20 },       // 'hop off' (only while riding the scooter); getting on is a tap on the indicator over a parked scooter
 ];
+const TOUCH_OUT = 15;      // the smooth buttons may stand this many canvas pixels outside the screen canvas, on each side (the user wanted them nearer the edges of the phone): the touch layer and the pointer listeners cover that margin
 const GRAV = 900, JUMP_V = 268, SLIDE_T = 0.55, P_HW = 0.12;   // P_HW: runner half-width (0.43 m in the 3D build)
 
 class Game {
@@ -45,14 +46,15 @@ class Game {
     cv.addEventListener('contextmenu', e => e.preventDefault());
     const zone = () => TOUCH.find(c => (c.id !== 'scooter' || this.riding) && this.mouse.x >= c.x && this.mouse.x <= c.x + c.w && this.mouse.y >= c.y && this.mouse.y <= c.y + c.h);
     const overHint = () => { const h = this.scooterHint, m = this.mouse; return !!h && !this.riding && Math.abs(m.x - h.x) <= 14 + Math.min(36, h.rx * 1.4) + 24 && m.y >= h.y - 80 && m.y <= h.y + h.ry * 1.6 + 36; };      // the ring under a parked scooter and the scooter above it, with a very generous touch area (it passes at running speed)
-    cv.addEventListener('pointerdown', e => {
+    addEventListener('pointerdown', e => {
+      if (e.target !== cv && !(this.state === 'play' && e.pointerType === 'touch')) return;
       at(e); this.mouse.down = true;
       if (e.pointerType === 'touch') this.touch = true;
       const c = this.state === 'play' && this.touch && zone();
       if (!c && this.state === 'play' && overHint()) { this.mount(); return; }                // a tap or click on the ring gets on the scooter (the touch buttons keep priority)
       if (c) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} this.hold(e.pointerId, c.id, true); }
     });
-    cv.addEventListener('pointermove', e => { // sliding a finger between left and right keeps steering
+    addEventListener('pointermove', e => { // sliding a finger between left and right keeps steering
       if (this.held[e.pointerId] !== 'left' && this.held[e.pointerId] !== 'right') return;
       const c = zone(); this.hold(e.pointerId, c && (c.id === 'left' || c.id === 'right') ? c.id : null, false);
     });
@@ -97,8 +99,8 @@ class Game {
   // the smooth touch layer (canvas #touch, see Renderer.touchLayer): the same place and size on the page as the screen canvas, one canvas pixel per device pixel (pointer events go through it to the screen canvas)
   fitTouch() {
     const t = typeof document !== 'undefined' && document.getElementById('touch'); if (!t) return;
-    const r = this.cv.getBoundingClientRect(), dpr = Math.max(1, window.devicePixelRatio || 1), w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
-    t.style.left = r.left + 'px'; t.style.top = r.top + 'px'; t.style.width = r.width + 'px'; t.style.height = r.height + 'px'; if (t.width !== w) t.width = w; if (t.height !== h) t.height = h;
+    const r = this.cv.getBoundingClientRect(), dpr = Math.max(1, window.devicePixelRatio || 1), m = r.width * TOUCH_OUT / VW, w = Math.max(1, Math.round((r.width + 2 * m) * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    t.style.left = (r.left - m) + 'px'; t.style.top = r.top + 'px'; t.style.width = (r.width + 2 * m) + 'px'; t.style.height = r.height + 'px'; if (t.width !== w) t.width = w; if (t.height !== h) t.height = h;
   }
 
   // The route order of a run: seed 0 is the canonical order (the first lap goes forest / market, then seeded laps), what automated browsers (navigator.webdriver) and ?seed=0 get so tests

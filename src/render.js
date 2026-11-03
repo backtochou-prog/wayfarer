@@ -269,8 +269,8 @@ class Renderer {
     return this._tl;
   }
   smoothButton(L, g, t, p, fade) {
-    const c = L.ctx, k = L.cv.width / VW, cx = t.x + (t.w >> 1), cy = t.y + (t.h >> 1), f = t.id === 'pause' ? 22 : 42, s = f * (1 + 0.1 * p);
-    c.setTransform(k, 0, 0, k, 0, 0); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+    const c = L.ctx, k = L.cv.width / (VW + 2 * TOUCH_OUT), cx = t.x + (t.w >> 1), cy = t.y + (t.h >> 1), f = t.id === 'pause' ? 22 : 42, s = f * (1 + 0.1 * p);
+    c.setTransform(k, 0, 0, k, TOUCH_OUT * k, 0); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
     c.globalAlpha = (0.8 + 0.2 * p) * fade;
     if (p > 0.02) { c.shadowColor = 'rgba(214,120,255,0.95)'; c.shadowBlur = 12 * k * p; }
     c.drawImage(L.img, cx - s / 2, cy - s / 2, s, s); c.shadowBlur = 0; c.shadowColor = 'rgba(0,0,0,0)';
