@@ -12,8 +12,8 @@ const BTN = {
 // touch controls (canvas pixels): hold left/right to steer, tap jump/slide/pause; each finger is tracked separately
 const TOUCH = [
   { id: 'left',  x: -15,  y: 137, w: 46, h: 42 },        // (pushed out to the screen edges, away from the centre, at the user's request; a little bigger than before, to match the 42 px ring picture they wear: 46 x 42 instead of 38 x 32)
-  { id: 'right', x: 34,  y: 137, w: 46, h: 42 },
-  { id: 'slide', x: 240, y: 137, w: 46, h: 42 },
+  { id: 'right', x: 41,  y: 137, w: 46, h: 42 },
+  { id: 'slide', x: 233, y: 137, w: 46, h: 42 },
   { id: 'jump',  x: 289, y: 137, w: 46, h: 42 },
   { id: 'pause', x: 145, y: 2,   w: 30, h: 18 },
   { id: 'scooter', x: 132, y: 154, w: 56, h: 20 },       // 'hop off' (only while riding the scooter); getting on is a tap on the indicator over a parked scooter
