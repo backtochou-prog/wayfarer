@@ -18,7 +18,8 @@ class Race3D {
     const halo = col => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'), gr = x.createRadialGradient(64, 64, 4, 64, 64, 62); gr.addColorStop(0, col + 'cc'); gr.addColorStop(0.45, col + '55'); gr.addColorStop(1, col + '00'); x.fillStyle = gr; x.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return mat(t, true); };
     this.droidMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.droid), transparent: true, side: THREE.DoubleSide, depthWrite: false });
     this.droidGlowMat = mat(L(RACE_ASSETS.droid), true);
-    this.spiralMat = RACE_ASSETS.spirals.map(u => mat(L(u), true)); this.haloMat = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'].map(halo); this.ringHalo = halo('#ff3fd0'); this.carGlow = halo('#4a2a70'); this.botGlow = halo('#1a6a80'); this.droidGlow = halo('#2bff6a'); this.botHalo = halo('#ff2a7a'); this.backGlowG = halo('#2bff3a'); this.backGlowM = halo('#2a4cff'); this.ringMat = mat(L(RACE_ASSETS.ring)); this.ringMatFlat = mat(L(RACE_ASSETS.ring), true); this.carMat = mat(L(RACE_ASSETS.carSide), true); this.backMat = mat(L(RACE_ASSETS.carBack), true); this.rearMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.rear), transparent: true, side: THREE.DoubleSide }); this.botMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botPod), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botGlowMat = mat(L(RACE_ASSETS.botPod), true); this.rampMat = mat(L(RACE_ASSETS.ramp), true); this.sphereMat = mat(L(RACE_ASSETS.sphere));
+    this.spiralMat = RACE_ASSETS.spirals.map(u => mat(L(u), true)); this.haloMat = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'].map(halo); this.ringHalo = halo('#ff3fd0'); this.carGlow = halo('#4a2a70'); this.botGlow = halo('#1a6a80'); this.droidGlow = halo('#2bff6a'); this.botHalo = halo('#ff2a7a'); this.backGlowG = halo('#2bff3a'); this.backGlowM = halo('#2a4cff'); this.ringMat = mat(L(RACE_ASSETS.ring)); this.ringMatFlat = mat(L(RACE_ASSETS.ring), true); this.carMat = mat(L(RACE_ASSETS.carSide), true); this.backMat = mat(L(RACE_ASSETS.carBack), true); this.rearMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.rear), transparent: true, side: THREE.DoubleSide }); this.botMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botPod), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botGlowMat = mat(L(RACE_ASSETS.botPod), true);
+    this.botSideMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botSide), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botSideGlow = mat(L(RACE_ASSETS.botSide), true); this.rampMat = mat(L(RACE_ASSETS.ramp), true); this.sphereMat = mat(L(RACE_ASSETS.sphere));
     this.plane = (w, h) => new THREE.PlaneGeometry(w, h);
     this.track = this.buildTrack(); sc.add(this.track);
     this.crystal = this.buildCrystal(); sc.add(this.crystal);
@@ -38,10 +39,23 @@ class Race3D {
       this.car.userData.halo = [hG, hM];
       const gl = new THREE.Mesh(this.plane(w * 0.7, w * 0.9), this.carGlow); gl.rotation.x = -Math.PI / 2; gl.position.set(0, 0.015, 0.2); this.car.add(gl); }
     sc.add(this.car);
+    // THE ROBOT'S CAR, in 3D from the user's own pictures: its head-on view at the back and at the front of the pod, and its SIDE view on both flanks (mirrored on the far one). Each picture is drawn once
+    // for the paint and twice more additively so its neon is lit, with a pink halo round the whole pod.
     this.bot = new THREE.Group();
-    { const w = 3.4, h = w / RACE_ASSETS.ar.botPod, m = new THREE.Mesh(this.plane(w, h), this.botMat); m.position.y = h / 2 + 0.3; this.bot.add(m); this.bot.userData.pic = m;  /* the pod is the user's picture, as it is (its own alpha), with a second additive copy over it so its neon is lit */
-      for (const dz of [0.01, 0.02]) { const g2 = new THREE.Mesh(this.plane(w, h), this.botGlowMat); g2.position.z = dz; m.add(g2); }                /* the pod's neon LIT: the picture added over itself twice */
-      const bh = new THREE.Mesh(this.plane(w * 1.5, h * 1.5), this.botHalo); bh.position.z = -0.05; m.add(bh); this.bot.userData.halo = bh;      const gl = new THREE.Mesh(this.plane(w * 1.0, w * 0.7), this.botGlow); gl.rotation.x = -Math.PI / 2; gl.position.y = -(h / 2 + 0.28); m.add(gl); }
+    { const A = RACE_ASSETS.ar, L2 = 3.8, hS = L2 / A.botSide, hP = hS, W = hP * A.botPod, Y = 0.22;      /* the four pictures share one height, so the pod is a solid body: 3.8 m long, 3.6 m wide, 1.6 m tall */
+      const piece = (geo, mat2, glow, pos, rotY, mirror) => {
+        const g2 = new THREE.Group(), m = new THREE.Mesh(geo, mat2); g2.add(m);
+        for (const dz of [0.012, 0.024]) { const lit = new THREE.Mesh(geo, glow); lit.position.z = dz; g2.add(lit); }
+        g2.position.set(pos[0], pos[1], pos[2]); g2.rotation.y = rotY; if (mirror) g2.scale.x = -1; this.bot.add(g2); return g2;
+      };
+      const back = this.plane(W, hP), side = this.plane(L2, hS);
+      piece(back, this.botMat, this.botGlowMat, [0, Y + hP / 2, L2 / 2 - 0.1], 0, false);                                   // the tail, facing the player behind
+      piece(back, this.botMat, this.botGlowMat, [0, Y + hP / 2, -L2 / 2 + 0.1], Math.PI, false);                            // the nose
+      piece(side, this.botSideMat, this.botSideGlow, [-W / 2 + 0.05, Y + hS / 2, 0], -Math.PI / 2, false);                   // the two flanks
+      piece(side, this.botSideMat, this.botSideGlow, [W / 2 - 0.05, Y + hS / 2, 0], Math.PI / 2, false);
+      const bh = new THREE.Mesh(this.plane(W * 1.3, hP * 1.6), this.botHalo); bh.position.set(0, Y + hP / 2, L2 / 2 - 0.15); this.bot.add(bh); this.bot.userData.halo = bh;
+      const gl = new THREE.Mesh(this.plane(W * 1.1, L2 * 0.9), this.botGlow); gl.rotation.x = -Math.PI / 2; gl.position.y = 0.02; this.bot.add(gl);
+      this.bot.userData.pic = this.bot; }
     sc.add(this.bot);
     this.itemsGroup = new THREE.Group(); sc.add(this.itemsGroup); this.meshes = []; this.bound = null; this.camPos = new THREE.Vector3();
   }

@@ -41,6 +41,8 @@ for k, cid in CARS.items():
     res[k] = uri(fit(c, 384))
 _dr = Image.open(f'{U}/c864b4e4-image.png').convert('RGBA')                 # the user's DROID (the obstacle that runs at the car): it carries its own alpha, keep it as it is
 _dr = _dr.crop(_dr.getbbox()); res['droid'] = uri(fit(_dr, 384)); AR['droid'] = round(_dr.width / _dr.height, 4)
+_sd = Image.open(f'{U}/7f1540a6-image.png').convert('RGBA')                 # the SIDE of the robot's car (its own alpha): hung on both flanks of the pod
+_sd = _sd.crop(_sd.getbbox()); res['botSide'] = uri(fit(_sd, 384)); AR['botSide'] = round(_sd.width / _sd.height, 4)
 _pod = Image.open(f'{U}/2f7a0cb6-image.png').convert('RGBA')                 # the user's last picture of the ROBOT's car (the magnetic pod seen head on): it already carries its own alpha, so keep it as it is
 _pod = _pod.crop(_pod.getbbox())
 res['botPod'] = uri(fit(_pod, 384)); AR['botPod'] = round(_pod.width / _pod.height, 4)
