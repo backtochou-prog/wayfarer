@@ -27,7 +27,7 @@ class Race3D {
     // it; only that one piece, at the user's request. The modelled car (src3d/car3d.js, whose back is built from the user's material picture) is kept for the renders in docs/race.
     // THE PLAYER'S CAR is GENERATED FROM THE USER'S PICTURE OF ITS BACK: the picture is the tail, hung as it is (never redrawn), and the body in front of it is modelled from what it shows (Car3D.fromBack).
     this.car = Car3D.buildFromBack();
-    { const w = 4.1, h = w / RACE_ASSETS.ar.carBack, m = new THREE.Mesh(this.plane(w, h), this.backMat); m.position.set(0, h / 2 - 0.42, 2.02); this.car.add(m); this.car.userData.pic = m;
+    { const w = 2.95, h = w / RACE_ASSETS.ar.carBack, m = new THREE.Mesh(this.plane(w, h), this.backMat); m.position.set(0, h / 2 + 0.06, 2.02); this.car.add(m); this.car.userData.pic = m;
       const gl = new THREE.Mesh(this.plane(w * 0.7, w * 0.9), this.carGlow); gl.rotation.x = -Math.PI / 2; gl.position.set(0, 0.015, 0.2); this.car.add(gl); }
     sc.add(this.car);
     this.bot = new THREE.Group();

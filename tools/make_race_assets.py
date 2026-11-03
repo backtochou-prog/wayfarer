@@ -30,8 +30,10 @@ _a = _np.asarray(m).astype(_np.float32); _rgb, _al = _a[..., :3], _a[..., 3]
 _sat = _rgb.max(axis=2) - _rgb.min(axis=2); _keep = _np.clip(_np.maximum(_sat * 4, (_rgb.max(axis=2) - 60) * 3), 0, 255)
 m = Image.fromarray(_np.dstack([_rgb, _np.minimum(_al, _keep)]).astype(_np.uint8), 'RGBA'); m = m.crop(m.getbbox())
 res['ramp'] = uri(fit(m, 320))
+CROP = {'carBack': (430, 650, 2140, 1660)}      # only the car itself: the magenta and blue wings painted round it in the drawing were showing in the game as debris behind the car
 for k, cid in CARS.items():
     c = Image.open(f'{U}/{cid}-image.png').convert('RGBA')
+    if k in CROP: c = c.crop(CROP[k])
     _a2 = _np.asarray(c).astype(_np.float32); _m2 = _a2[..., :3].max(axis=2)
     c = Image.fromarray(_np.dstack([_a2[..., :3], _np.minimum(_a2[..., 3], _np.clip(_m2 * 6, 0, 255))]).astype(_np.uint8), 'RGBA')
     bb = c.getbbox(); c = c.crop(bb) if bb else c
