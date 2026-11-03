@@ -34,6 +34,8 @@ class Game {
     this.pk = (this.r.supportsPerks && typeof Perks !== 'undefined') ? new Perks(this) : null;               // the 3D build's power-ups, shards and missions (Perks); the classic game has none
     this.world.extras = !!this.pk;
     this.portal = (this.r.supportsPortals && typeof Portal !== 'undefined') ? new Portal(this) : null;      // the passages between zones as a journey through a Stargate (3D build only; it draws and sounds, nothing else)
+    this.rare = 0; try { this.rare = +localStorage.getItem('wf.rare') || 0; } catch (e) {}                           // the rare tokens of the race zone, kept between runs
+    this.race = null; this.raceN = 0; this.rl = this.rr = false;
     this.state = 'title';
     this.resetRun();
     addEventListener('keydown', e => this.onKey(e, true));
@@ -50,9 +52,9 @@ class Game {
       if (e.target !== cv && !(this.state === 'play' && e.pointerType === 'touch')) return;
       at(e); this.mouse.down = true;
       if (e.pointerType === 'touch') this.touch = true;
-      const c = this.state === 'play' && this.touch && zone();
+      const c = (this.state === 'play' || this.state === 'race') && this.touch && zone();
       if (!c && this.state === 'play' && overHint()) { this.mount(); return; }                // a tap or click on the ring gets on the scooter (the touch buttons keep priority)
-      if (c) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} this.hold(e.pointerId, c.id, true); }
+      if (c) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} this.hold(e.pointerId, c.id, true); if (this.state === 'race') this.laneQ = (this.laneQ || 0) + (c.id === 'right' ? 1 : c.id === 'left' ? -1 : 0); }
     });
     addEventListener('pointermove', e => { // sliding a finger between left and right keeps steering
       if (this.held[e.pointerId] !== 'left' && this.held[e.pointerId] !== 'right') return;
@@ -117,7 +119,8 @@ class Game {
     this.world.reset();
     this.p = { x: 0, z: 0, vx: 0, jy: 0, vy: 0, slide: 0, speed: BASE_SPEED };
     const zm = typeof location !== 'undefined' && location.search.match(/[?&]zone=(\w+)/);                       // ?zone=vic starts the run just before that piece of the track (a segment id, or vic / utrecht / coast / neon / city as shortcuts): to test a zone without running to it
-    if (zm) { const id = { vic: 'vicA', utrecht: 'utrechtA', coast: 'coastSunset', neon: 'neonRun', city: 'cityRun', tram: 'tramRun', gare: 'gareMidi' }[zm[1]] || zm[1]; this.world.extend(120000); const Z = this.world.pieces.find(q => q.id === id); if (Z) { this.p.z = Math.max(0, Z.z0 - 250); this.world.extend(this.p.z + 3000); } }
+    if (zm) { const id = { race: 'neonRun', vic: 'vicA', utrecht: 'utrechtA', coast: 'coastSunset', neon: 'neonRun', city: 'cityRun', tram: 'tramRun', gare: 'gareMidi' }[zm[1]] || zm[1]; this.world.extend(120000); const Z = this.world.pieces.find(q => q.id === id); if (Z) { this.p.z = Math.max(0, Z.z0 - 250); this.world.extend(this.p.z + 3000); } }
+    this.raceNow = !!(zm && zm[1] === 'race'); this.race = null;                                  // ?zone=race: the run opens straight in the race zone (to test it)
     this.coins = 0; if (this.pk) this.pk.reset(); if (this.portal) this.portal.reset(); this.camX = 0; this.camOff = 0; this.camRel = 0; this.camErr = 0; this.prevTgt = 0; this.killer = null;
     const ahead0 = this.world.playerBand(300, 0);                                    // the atmosphere starts as the road ahead looks (the run opens in the neon quarter), not eased in from the base look
     this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0; this.overDelay = 0.5;
@@ -180,6 +183,7 @@ class Game {
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(c)) e.preventDefault();
     if (L) this.keys.left = down;
     if (R) this.keys.right = down;
+    if (down && !e.repeat && this.state === 'race') { if (L) this.laneQ = (this.laneQ || 0) - 1; if (R) this.laneQ = (this.laneQ || 0) + 1; }                 // in the race a press changes lane (one lane per press)
     if (!down || e.repeat) return;
     if (c === 'KeyM' && this.sfx) { this.sfx.toggle(); return; }                      // M: sound on / off
     if (c === 'KeyC' && this.state === 'title' && this.r.nextCharacter) { this.nextCharacter(); return; }   // C (menu): the other character
@@ -204,6 +208,7 @@ class Game {
     this.updateFx(dt);
     if (this.state === 'play') this.step(dt);
     else if (this.state === 'scene') this.sceneStep(dt);
+    else if (this.state === 'race') this.raceStep(dt);
     else if (this.state === 'title') {
       const z0 = p.z;
       p.z += 110 * dt; w.extend(p.z);
@@ -311,11 +316,13 @@ class Game {
     if (this.portal) this.portal.update(this, prevZ);                                                 // the doors crossed this step, and the light of the journey
     if (this.r.supportsScene) { const P = w.pieceAt(p.z); if (P && P.type === 'seg' && P.seg.scene && !P.sceneDone && p.z >= P.z0 + P.seg.scene.at) { this.beginScene(P); return; } }   // the station: the cutscene (only in a front end that can show it)
 
+    if (this.raceNow) { this.raceNow = false; this.beginRace(null); return; }
     const top = p.slide > 0 ? 8 : 24;
     if (pk && pk.t.magnet > 0) pk.pull(w.items, dt);
     for (const it of w.items) {
       if (it.taken || it.z < prevZ - 10 || it.z > p.z + 10) continue;
       const dx = Math.abs(it.x - p.x);
+      if (it.kind === 'raceGate') { if (dx < 0.5 && it.z > prevZ - 12 && it.z < p.z + 12 && this.r.supportsRace && (this.raceTest || typeof navigator === 'undefined' || !navigator.webdriver)) { this.beginRace(it); return; } continue; }                // the sphere: the way into the race zone (automated browsers run through it unless a test sets g.raceTest: the bots of the other tests must not be taken off the road)
       if (it.kind === 'coin') {
         if (dx < 0.2 && it.z > prevZ - 9 && it.z < p.z + 9 && p.jy < it.h + 6 && p.jy + top > it.h - 6) {
           it.taken = true; this.coins++; this.coinPulse = 0.2;
@@ -329,6 +336,30 @@ class Game {
         if (pk && it.z <= p.z) pk.passed(it, o, dx, top);                           // past the runner without a hit: near miss, sequence bonus, dash count (once per hazard)
       }
     }
+  }
+
+  // THE RACE ZONE (3D build): the sphere in a zone opens a race against the robot's magnetic car (rules: src/race.js, scene: src3d/race3d.js). One sphere in each zone, used up when entered; a lost race throws the player
+  // straight back onto the road (the robot crossed first), a won one pays a bonus; the rare tokens picked up on the way are kept at once (this.rare, saved on the device).
+  beginRace(gate) {
+    if (!this.r.supportsRace || typeof Race === 'undefined' || this.state !== 'play') return;
+    if (gate) gate.taken = true;
+    const R = this.race = new Race(((Game.runSeed() || 0) + (++this.raceN) * 977) % 100000 + 1); R.cd = 3.2; this.state = 'race'; this.riding = false; this.scooterHint = null; this.keys = {}; this.releaseTouch(); this.rl = this.rr = false;
+    this.emit('start');
+  }
+  raceStep(dt) {
+    const R = this.race; if (!R) { this.state = 'play'; return; }
+    if (R.cd > 0) { R.cd -= dt; return; }
+    const lane = R.p.lane + Math.max(-1, Math.min(1, this.laneQ || 0)); this.laneQ = 0;
+    R.step(Math.min(dt, 0.05), { lane });
+    for (const ev of R.events.splice(0)) {
+      if (ev.e === 'rare') { this.rare++; try { localStorage.setItem('wf.rare', String(this.rare)); } catch (e) {} this.emit('coin'); }
+      else if (ev.e === 'spiral') this.emit('coin'); else if (ev.e === 'jump') this.emit('jump'); else if (ev.e === 'hit' || ev.e === 'ring') this.emit('land');
+    }
+    if (R.done && R.fin > 2.8) this.endRace();
+  }
+  endRace() {
+    const R = this.race; if (R && R.result === 'win') this.coins += 30;
+    this.race = null; this.state = 'play'; this.fadeIn = 0.6; this.p.speed = BASE_SPEED; this.p.x = this.world.playerBand(this.p.z, this.p.x).c || this.p.x; this.keys = {};
   }
 
   // free steering across the road, the junction choice, and keeping the runner on its road

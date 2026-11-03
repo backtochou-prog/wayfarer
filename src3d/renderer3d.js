@@ -128,6 +128,7 @@ class Renderer3D {
     this.scene.add(this.runner.group); this.scene.add(this.runner.shadow);
 
     this.supportsAbsorb = true;                                                     // Game shows a crate (the vortex) absorbing the runner instead of a crash only with a front end that sets this
+    this.supportsRace = typeof Race3D !== 'undefined' && typeof Race !== 'undefined';                    // the race zone (Game.beginRace) only with a front end that sets this
     this.supportsScene = true;                                                      // Game plays the Gare du Midi cutscene only with a front end that sets this
     this.supportsPerks = true; this.supportsPortals = true; this.perk = new Perk3D(this.scene);                  // Game builds its power-ups, shards and missions (Perks) only with a front end that sets this; Perk3D draws their effects
     this.train = new Train3D(this.scene); this.crowd = new Crowd3D(this.scene); this.crowdT = 0; this.sceneK = 0; this.scCam = new THREE.Vector3(); this.scLook = new THREE.Vector3(); this.garePiece = null;
@@ -289,6 +290,10 @@ class Renderer3D {
   }
 
   draw(g) {
+    if (g.state === 'race' && g.race) {                                                              // the race zone: its own scene (src3d/race3d.js) on the same renderer, under the pixel HUD
+      if (!this.race3d) this.race3d = new Race3D(); if (g.state !== 'pause') this.lastT = g.time;
+      this.race3d.draw(g, this.renderer); this.uiCtx.clearRect(0, 0, VW, VH); this.ui.drawUI(g); return;
+    }
     const w = g.world, p = g.p, U = U3, dt = Math.min(0.05, this.lastT ? (g.time - this.lastT) : 0.016) || 0.016;
     if (g.state !== 'pause') this.lastT = g.time;
     const rz = p.z * U.Z, Lref = (g.camX + g.camOff) * U.X, SL = SEG_LEN;

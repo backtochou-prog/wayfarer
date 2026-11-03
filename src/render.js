@@ -37,9 +37,26 @@ class Renderer {
     this.drawUI(g);
   }
 
+  // the race zone's HUD: two progress bars (the player in turquoise, the robot in red), the gap, the speed, the boost or brake, the rare tokens, the countdown and the result
+  drawRaceHud(g) {
+    const R = g.race, p = R.p, ctx = this.ctx, x0 = 80, w = 160, gap = R.gap(), kmh = Math.round(p.speed * 3.6);
+    ctx.fillStyle = 'rgba(8,4,16,0.72)'; ctx.fillRect(x0 - 4, 3, w + 8, 27);
+    const bar = (frac, y, col) => { ctx.fillStyle = '#1a1030'; ctx.fillRect(x0, y, w, 5); ctx.fillStyle = col; ctx.fillRect(x0, y, Math.round(w * Math.max(0, Math.min(1, frac))), 5); ctx.fillStyle = '#fff'; ctx.fillRect(x0 + Math.round(w * Math.max(0, Math.min(1, frac))) - 1, y - 1, 2, 7); };
+    bar(p.s / RACE.LEN, 6, '#35e6ff'); bar(R.bot.s / RACE.LEN, 16, '#ff2a4a');
+    this.txt('YOU', x0 - 24, 5, '#35e6ff'); this.txt('BOT', x0 - 24, 15, '#ff2a4a');
+    this.ctr(gap > 0 ? 'ROBOT +' + Math.round(gap) + ' M' : 'YOU +' + Math.round(-gap) + ' M', 33, gap > 0 ? '#ff6a7a' : '#7affc8');
+    this.txt('RARE ' + g.rare, 6, 6, '#ffd24a');
+    this.ctr(kmh + ' KM/H', 160, '#f2ead6');
+    if (p.brakeT > 0) this.ctr('BRAKE', 146, '#ff4fd8'); else if (p.hitT > 0) this.ctr('HIT', 146, '#ff4a4a'); else if (p.boostT > 0) this.ctr('BOOST +' + Math.round(p.boost * 3.6), 146, ['#ff5a6a', '#d070ff', '#7aff40', '#d8ff30'][RACE.SPIRAL.findIndex(c => c.add === p.boost)] || '#fff');
+    if (R.cd > 0) this.ctr(R.cd > 0.5 ? String(Math.ceil(R.cd - 0.5)) : 'GO', 70, '#fff', 6);
+    else if (R.t < 1.2) this.ctr('GO', 70, '#7affc8', 6);
+    if (R.done) { const win = R.result === 'win'; ctx.fillStyle = 'rgba(8,4,16,0.6)'; ctx.fillRect(0, 62, VW, 54); this.ctr(win ? 'YOU WIN' : 'ROBOT WINS', 68, win ? '#7affc8' : '#ff6a7a', 4); this.ctr(win ? '+30 COINS' : 'BACK TO THE ROAD', 98, '#f2ead6'); this.ctr('THE SPHERE IS CLOSED UNTIL THE NEXT ZONE', 108, '#a090c0'); }
+  }
+
   // HUD, touch controls and screens; also used on its own as the overlay of the 3D front end
   drawUI(g) {
     const ctx = this.ctx;
+    if (g.state === 'race' && g.race) { this.drawRaceHud(g); this.drawTouch(g); if (g.fadeIn > 0) this.drawSceneOverlay(g); return; }
     if (g.state === 'over' && g.flash > 0) { ctx.globalAlpha = 0.5; ctx.fillStyle = C.burg; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
     if (g.portal && (g.portal.k > 0.004 || g.portal.flash > 0.01) && g.state !== 'title') this.drawPortalFx(g);              // the journey through a Stargate, under the HUD
     if (g.state !== 'title') this.drawHud(g);
@@ -287,7 +304,7 @@ class Renderer {
   drawTouch(g) {
     const L = this.touchLayer();
     if (L && L.dirty) { L.ctx.setTransform(1, 0, 0, 1, 0, 0); L.ctx.clearRect(0, 0, L.cv.width, L.cv.height); L.dirty = false; }
-    if (!g.touch || g.state !== 'play') { if (L) L.t = null; return; }
+    if (!g.touch || (g.state !== 'play' && g.state !== 'race')) { if (L) L.t = null; return; }
     const sm = L && L.img.complete && L.img.naturalWidth ? L : null;
     if (sm) {
       const now = performance.now(); if (now - sm.syncT > 500 && g.fitTouch) { g.fitTouch(); sm.syncT = now; }                // (keeps the layer on the screen canvas, whatever the layout does)

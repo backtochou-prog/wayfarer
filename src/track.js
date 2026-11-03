@@ -107,7 +107,7 @@ const TRACK = {
   segments: {
     cityStart: { name: 'OLD TOWN',      biome: 'city',   length: 900,  curve: 0,    first: 420, spacing: 210, calmStart: true,   // calmStart: the run always opens with the first (hazard-free) pattern
                  patterns: ['line', 'crateJump', 'hurdle', 'slideGate'] },
-    cityRun:   { name: 'OLD TOWN',      biome: 'city',   length: 1000, curve: 1.1,  first: 60,  spacing: 210,
+    cityRun:   { gate: 0.5, name: 'OLD TOWN',      biome: 'city',   length: 1000, curve: 1.1,  first: 60,  spacing: 210,
                  patterns: ['rowR', 'hurdle', 'trailL', 'crateJump', 'slideGate', 'dodgeL', 'risky', 'trailR', 'line'], extra: ['crateBarrier', 'gateTrail', 'stagger'] },
     forest:    { name: 'GREENWOOD',     biome: 'forest', curve: -1.2, first: 80, spacing: 210,
                  patterns: ['dodgeR', 'zig', 'twin', 'hurdle', 'trailL', 'dodgeL', 'slideGate', 'risky', 'zig'], extra: ['slideJump', 'stagger', 'gateTrail'], waymark: 'slide' },
@@ -118,9 +118,9 @@ const TRACK = {
     // the NEON QUARTER: a night district of the city. `district` (a distance in units) makes the world fade the atmosphere, road palette and scenery into this biome over its first
     // and last `district` units (see World.bandsAt), so it is entered and left smoothly however long the segment is; 5000 units = 500 m = about 15 s.
     // the run opens in the quarter: `opening` = no fade-in (it is already night at distance 0); it fades back to the sunset city over its last 1200 units
-    neonStart: { name: 'NEON QUARTER',  biome: 'neon',   length: 4000, curve: 0,    first: 420, spacing: 210, district: 1200, opening: true, calmStart: true,
+    neonStart: { gate: 0.5, name: 'NEON QUARTER',  biome: 'neon',   length: 4000, curve: 0,    first: 420, spacing: 210, district: 1200, opening: true, calmStart: true,
                  patterns: ['line', 'crateJump', 'hurdle', 'slideGate', 'trailR', 'dodgeL', 'risky', 'zig'] },
-    neonRun:   { name: 'NEON QUARTER',  biome: 'neon',   length: 5000, curve: -0.8, first: 140, spacing: 210, district: 1200,
+    neonRun:   { gate: 0.5, name: 'NEON QUARTER',  biome: 'neon',   length: 5000, curve: -0.8, first: 140, spacing: 210, district: 1200,
                  patterns: ['line', 'trailR', 'crateJump', 'dodgeL', 'hurdle', 'risky', 'slideGate', 'zig'], extra: ['gateTrail', 'slideJump', 'stagger'] },
     // the TRAM STREET: a Brussels street at sunset (low sun ahead, tram rails in the cobbles, overhead wires); a district like the neon quarter, fading in and out over 120 m
     tramRun:   { name: 'SAINT-GILLES',   biome: 'tram',   length: 4500, curve: 0.6,  first: 140, spacing: 210, district: 1200, stay: true, grade: 0.07,   // grade: the street runs downhill (7 %), like in the photos
@@ -137,7 +137,7 @@ const TRACK = {
     // fades back out over its last 700 units before the next junction. Straight (curve 0): the water is drawn as one strip along the road (Road3D). The Dom is a fixed prop of the Oudegracht.
     utrechtA:  { name: 'UTRECHT CENTRAAL', biome: 'utrechtA', length: 2200, curve: 0, first: 300, spacing: 210, district: 600, opening: true, stay: true, calmStart: true,
                  patterns: ['line', 'coastWave', 'trailL', 'hurdle', 'trailR', 'line'], extra: ['crateBarrier'] },
-    utrechtB:  { name: 'HOOG CATHARIJNE',  biome: 'utrechtB', length: 1800, curve: 0, first: 160, spacing: 210, district: 600, opening: true, stay: true,
+    utrechtB:  { gate: 0.5, name: 'HOOG CATHARIJNE',  biome: 'utrechtB', length: 1800, curve: 0, first: 160, spacing: 210, district: 600, opening: true, stay: true,
                  patterns: ['slideGate', 'line', 'neonGantry', 'trailL', 'slideGate', 'trailR'], extra: ['gateTrail', 'slideJump'] },
     // The Oudegracht is now in two parts: the canal alone (`utrechtC`, 1100 units: the first bridges and quays), then a JUNCTION (`gateUtrecht`, below): LEFT the canal goes on (`utrechtD`, the Dom at its end), RIGHT the
     // flight of stairs of a bridge climbs to the street along the water, an optional upper circuit with the cheese carts (`utrechtQuay`: the street 3.5 m over the water, the houses and shops, on foot). `stay`: fully in to the end.
@@ -157,7 +157,7 @@ const TRACK = {
     vicD: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: -1.3, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicChairsL', 'vicPotR', 'vicLowR', 'vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR'], extra: [] },
     vicE: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: 1.1, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR'], extra: [] },
     vicF: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: -1.1, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR', 'vicHighR', 'vicLowL'], extra: [] },
-    vicS1: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: 0, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR', 'vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR'], extra: [] },
+    vicS1: { gate: 0.5, name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: 0, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR', 'vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR'], extra: [] },
     vicS2: { name: 'VIC', biome: 'vic', lanes: 2, length: 1400, curve: 0, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR', 'vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL'], extra: [] },
     vicS3: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: 0, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicPotR', 'vicLowR', 'vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL'], extra: [] },
     vicS4: { name: 'VIC', biome: 'vic', lanes: 2, length: 900, curve: 0, hw: 0.62, first: 170, spacing: 280, district: 300, opening: true, stay: true, patterns: ['vicHighR', 'vicLowL', 'vicBarrelR', 'vicHangL', 'vicChairsR', 'vicPotL', 'vicHighL', 'vicBarrelL', 'vicHangR', 'vicChairsL', 'vicPotR', 'vicLowR'], extra: [] },
@@ -178,13 +178,13 @@ const TRACK = {
     vicAlley: { name: 'RUELLE', biome: 'vicAlley', lanes: 1, length: 1800, curve: 0, hw: 0.32, first: 220, spacing: 260, district: 300, opening: true, stay: true, waymark: 'jump', patterns: ['vicAJ', 'vicAS', 'vicAS', 'vicAJ', 'vicAJ', 'vicAS'], extra: [] },
     // THE COASTAL ZONE, on the main circuit (after the first plaza of every lap), one of four pieces by turns (`pickSegs.C`): the same safe sprint of coin waves, dunes and a few barriers, on a 420 m
     // coast road, under four lights: the sunset (the look of the coast branches of the junctions), the morning haze, the midday sun and the blue hour. A district fading in and out over 90 m.
-    coastMorning:  { name: 'MORNING COAST',   biome: 'coastMorning', length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
+    coastMorning:  { gate: 0.5, name: 'MORNING COAST',   biome: 'coastMorning', length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
                      patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave', 'crateJump'], extra: ['crateBarrier', 'hopWeave'] },
-    coastMidday:   { name: 'MIDDAY COAST',    biome: 'coastNoon',    length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
+    coastMidday:   { gate: 0.5, name: 'MIDDAY COAST',    biome: 'coastNoon',    length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
                      patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave', 'crateJump'], extra: ['crateBarrier', 'hopWeave'] },
-    coastSunset:   { name: 'SUNSET COAST',    biome: 'coast',        length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
+    coastSunset:   { gate: 0.5, name: 'SUNSET COAST',    biome: 'coast',        length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
                      patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave', 'crateJump'], extra: ['crateBarrier', 'hopWeave'] },
-    coastBlueHour: { name: 'BLUE HOUR COAST', biome: 'coastBlue',    length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
+    coastBlueHour: { gate: 0.5, name: 'BLUE HOUR COAST', biome: 'coastBlue',    length: 4200, curve: -0.8, first: 220, spacing: 210, district: 900, stay: true, calmStart: true,
                      patterns: ['coastWave', 'coastDunes', 'line', 'coastWave', 'trailR', 'coastDunes', 'trailL', 'hurdle', 'coastWave', 'crateJump'], extra: ['crateBarrier', 'hopWeave'] },
     // THE COASTAL TOWN, now a small ISLAND next to the coast, reached by an OPTIONAL passage: the junction after the coastal piece (`pick: 'E'`, `pickForks.E`: one of four forks by turns, in the same light as
     // the coastal piece before it) offers LEFT the coast road going on (`coastWalk*`: chalets, dunes) or RIGHT the island, by an aquarium tunnel under the sea (`island*`: the painted towers, the clubs, the roundabouts, the landing pad

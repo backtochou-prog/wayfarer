@@ -89,14 +89,15 @@ class Items3D {
                    // the pickup IS the protective sphere, full size (the same 1.15 m as the bubble round the runner, the user's dotted sphere): the runner that collects it is INSIDE it, and the bubble that takes its place is the same sphere
                    const sp = SphereArt.mesh(1.15, 0.5, 28); sp.position.y = 0.2; g.add(sp); g.userData.sphere = sp;
                    const r1 = new THREE.Mesh(G.ring, SH.auraRing), r2 = new THREE.Mesh(G.ring, SH.auraRing); r1.scale.setScalar(2.74); r2.scale.setScalar(2.74); r1.position.y = r2.position.y = 0.2; r2.rotation.x = Math.PI / 2; g.add(r1, r2); g.userData.r1 = r1; g.userData.r2 = r2; },
+      raceGate: g => { const sp = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), RaceArt.sphereMaterial()); sp.position.y = 1.5; g.add(sp); g.userData.sp = sp; const r1 = new THREE.Mesh(G.ringWay, SH.wayRing); r1.scale.setScalar(1.7); r1.position.y = 1.5; g.add(r1); g.userData.r1 = r1; },
       crate: g => VortexArt.attach(g), crateW: g => VortexArt.attach(g),
       crateS: g => { const m = new THREE.Mesh(chalk.geo, chalk.mat); m.position.set(0, 0.64, 0.472); g.add(m); },                // the chalkboard on the counter's front
       dash: g => { const r = new THREE.Mesh(G.ringBig, SH.dashRing); r.position.z = -0.05; g.add(r); g.userData.r1 = r; },
       waymark: g => { const r1 = new THREE.Mesh(G.ringWay, SH.wayRing), r2 = new THREE.Mesh(G.ringWay, SH.wayRing); r2.rotation.x = Math.PI / 2; g.add(r1, r2); g.userData.r1 = r1; g.userData.r2 = r2; },
     };
-    this.extraKinds = ['magnet', 'shard', 'dash', 'waymark', 'aura']; this.extraSet = { magnet: 1, shard: 1, dash: 1, waymark: 1, aura: 1 };
+    this.extraKinds = ['magnet', 'shard', 'dash', 'waymark', 'aura', 'raceGate']; this.extraSet = { magnet: 1, shard: 1, dash: 1, waymark: 1, aura: 1, raceGate: 1 };
     // pool sizes cover everything inside the 150 m draw range, including both roads of a fork
-    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, crateS: 24, vicLow: 24, vicBarrel: 24, vicPot: 24, vicAJump: 24, vicMJump: 24, vicMSlide: 24, vicASlide: 24, vicChairs: 24, vicHigh: 24, vicHang: 24, barrierS: 24, barrierB: 24, overS: 24, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
+    const POOL = { coin: 140, crate: 40, barrier: 24, over: 24, crateW: 40, barrierW: 24, overW: 24, crateS: 24, vicLow: 24, vicBarrel: 24, vicPot: 24, vicAJump: 24, vicMJump: 24, vicMSlide: 24, vicASlide: 24, vicChairs: 24, vicHigh: 24, vicHang: 24, barrierS: 24, barrierB: 24, overS: 24, raceGate: 3, magnet: 6, shard: 16, dash: 6, waymark: 6, aura: 6 };
     this.pool = {}; this.used = {}; this.merged = {}; this.dropped = 0;
     // ---- the hazards on the canals (Renderer3D picks `<kind>W` for an item on a water road): the same sizes and boxes as the crate, the low barrier and the gate, so what you see is what you can hit
     //   crateW   a whirlpool: the same vortex (it was floating barrels)
@@ -226,7 +227,7 @@ class Items3D {
         return Kit.merge(p);
       },
     };
-    Object.assign(kinds, kinds2, kindsW, kindsS); kinds.aura = () => ({});                                                    // (aura: no merged geometry, only its extra meshes)
+    Object.assign(kinds, kinds2, kindsW, kindsS); kinds.aura = () => ({}); kinds.raceGate = () => ({});                                                    // (aura: no merged geometry, only its extra meshes)
     for (const k of Object.keys(kinds)) {
       const m = this.merged[k] = kinds[k](); this.pool[k] = []; this.used[k] = 0;
       for (let i = 0; i < POOL[k]; i++) {
@@ -265,6 +266,7 @@ class Items3D {
         else if (k === 'shard') { c.rotation.y = time * 2.2 + ph; c.rotation.z = Math.sin(time * 1.7 + ph) * 0.18; const pulse = 1 + Math.sin(time * 5 + ph) * 0.06; c.scale.set(pulse, pulse, pulse); }
         else if (k === 'dash') { c.rotation.y = Math.sin(time * 1.8 + ph) * 0.55; const s = 1 + Math.sin(time * 6 + ph) * 0.08; c.scale.set(s, s, s); u.r1.rotation.z = time * 2; u.r1.scale.setScalar(1 + 0.12 * Math.sin(time * 5 + ph)); }
         else if (k === 'waymark') { c.rotation.y = time * 1.4 + ph; u.r1.rotation.y = time * 1.1; u.r2.rotation.z = time * 1.3; }
+        else if (k === 'raceGate') { u.sp.rotation.z = Math.sin(time * 0.7 + ph) * 0.12; u.sp.scale.setScalar(1 + 0.04 * Math.sin(time * 3 + ph)); u.r1.rotation.z = time * 1.1; u.r1.rotation.y = time * 0.8; }
         else if (k === 'aura') { c.rotation.y = time * 1.2 + ph; u.r1.rotation.z = time * 1.6; u.r2.rotation.y = time * 1.9; c.scale.setScalar(1 + Math.sin(time * 3 + ph) * 0.03); }
       }
     }

@@ -102,7 +102,12 @@ class World {
       z += Math.max(seg.spacing, px ? px.last + 140 : 0) + Math.floor(rnd(h, n * 3 + 2) * 50);    // a skill pattern is followed by the usual gap after its LAST hazard
     }
     this.cursor[id] = n; this.lastPat[id] = last;
-    if (X) this.genExtras(id, seg, z0, end, tag, cx);
+    if (X) { this.genExtras(id, seg, z0, end, tag, cx);
+      if (seg.gate !== undefined && tag === 'main') {                                // THE RACE ZONE'S ENTRANCE (a sphere of glass with a rose in it): one in each zone, in the middle of the road, replacing what stands near it
+        const zg = z0 + (end - z0) * seg.gate; this.items = this.items.filter(it => !(it.tag === tag && it.kind !== 'prop' && Math.abs(it.z - zg) < 260));
+        this.items.push({ kind: 'raceGate', z: zg, x: cx, h: 14, tag, seg: id, inst: 0 });
+      }
+    }
   }
 
   // ---- extras (the 3D build): one Golden Waymark spot per fork branch, then power-ups and Memory Shards in the clear gaps. All seeded by the segment id and the spot index, so the same track gives the same items.
