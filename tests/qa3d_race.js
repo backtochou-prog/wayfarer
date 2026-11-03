@@ -64,6 +64,27 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const T2 = await pt.evaluate(() => { const g = __wf; for (let i = 0; i < 30; i++) g.advance(1 / 60); return { lane: g.race.p.lane, state: g.state }; });
   T('on a phone the race shows the touch buttons (layer drawn ' + TT.drawn + ') and a tap on the right button moves the car from lane ' + TT.lane + ' to ' + T2.lane, TT.state === 'race' && TT.drawn === true && T2.lane === 1 && pt.errs.length === 0, JSON.stringify({ TT, T2, errs: pt.errs.slice(0, 2) }));
 
+  // ---- the race zone's own music: its own file and beat map, it takes the mix over while a race runs and gives the clock back after
+  const MU = await pz.evaluate(async () => {
+    const g = __wf, sfx = g.sfx, out = { src: sfx.srcRace, beats: !!sfx.beatsRace, bpm: sfx.beatsRace && +(60 / sfx.beatsRace.beat).toFixed(1), dur: sfx.beatsRace && sfx.beatsRace.duration, el: !!sfx.musicRace, loop: sfx.musicRace && sfx.musicRace.loop };
+    const r = await fetch(sfx.srcRace); const buf = await r.arrayBuffer(); out.bytes = buf.byteLength; out.ok = r.ok;
+    g.state = 'play'; sfx.raceW = 0; for (let i = 0; i < 120; i++) sfx.tick(g, 1 / 60); out.offRoad = +sfx.raceW.toFixed(2);
+    g.state = 'race'; for (let i = 0; i < 120; i++) sfx.tick(g, 1 / 60); out.inRace = +sfx.raceW.toFixed(2);
+    g.state = 'play'; for (let i = 0; i < 180; i++) sfx.tick(g, 1 / 60); out.after = +sfx.raceW.toFixed(2);
+    return out;
+  });
+  T('the race zone has its own track (' + MU.src + ', ' + Math.round(MU.bytes / 1024) + ' kB, a loop of ' + (MU.dur && MU.dur.toFixed(1)) + ' s at ' + MU.bpm + ' BPM) with its beat map: it is silent on the road (' + MU.offRoad + '), takes the mix over within 2 s of a race starting (' + MU.inRace + ') and fades out again after it (' + MU.after + ')',
+    MU.ok && MU.bytes > 200000 && MU.beats && MU.el && MU.loop && MU.bpm > 60 && MU.offRoad === 0 && MU.inRace === 1 && MU.after === 0, JSON.stringify(MU));
+  // ---- the scene moves with the beat
+  const AN = await pz.evaluate(() => {
+    const g = __wf; g.start(); for (let i = 0; i < 400; i++) g.advance(1 / 60); g.r.draw(g);                       // (one frame first: the scene binds its meshes to this race)
+    const R3 = g.r.race3d, k = g.race.items.findIndex(i => i.type === 'spiral' && i.s > g.race.p.s + 20 && !i.taken), sp = R3.meshes[k];
+    const read = pulse => { g.sfx.b = { t: 0, beat: 0, phase: 0, pulse, energy: 1, kick: 1, playing: true, track: 'race' }; g.r.draw(g); return { sp: +sp.scale.x.toFixed(3), y: +R3.track.position.y.toFixed(3), glow: +Kit.materials().glow.color.r.toFixed(3) }; };
+    return { off: read(0), on: read(1) };
+  });
+  T('the race moves with its music: on a kick the spirals flare (' + AN.off.sp + ' -> ' + AN.on.sp + '), the track lifts (' + AN.off.y + ' -> ' + AN.on.y + ') and every neon light brightens (' + AN.off.glow + ' -> ' + AN.on.glow + ')',
+    AN.on.sp > AN.off.sp + 0.1 && AN.on.y > AN.off.y && AN.on.glow > AN.off.glow + 0.1, JSON.stringify(AN));
+
   // ---- the classic 2D game: no sphere, no race, no error
   const p2 = await open(base + '2d.html');
   const D2 = await p2.evaluate(() => { const g = __wf; g.start(); g.world.extend(150000); let draws = 0, err = null; g.state = 'play'; g.die = () => {}; try { for (let i = 0; i < 300; i++) { g.p.speed = 340; g.advance(1 / 60); g.r.draw(g); draws++; } } catch (e) { err = e.message; } return { gates: g.world.items.filter(i => i.kind === 'raceGate').length, state: g.state, draws, err, race: typeof Race }; });

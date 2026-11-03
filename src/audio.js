@@ -5,25 +5,29 @@
 //    A SECOND track (assets/music_coast.mp3, MUSIC_BEATS_COAST: the whole of the user's redone 'afro Mediterraneo', 170 s) belongs to the island of the coastal town: it crossfades with the main one as the runner comes up on the
 //    island and leaves it (the weight follows the game's biome blend, /^coast/.test(g.bgTo) ? g.bgT : 0: the COASTAL ZONE, the road, the tunnel and the island of the coastal town, in every light; the coast road and the tunnel under the sea keep the main track), LONG
 //    and SOFT: it comes in over 3 s and goes out over 5 s (GameAudio.ISLAND_FADE, an S-curve, the two together always at the music volume), starts from its beginning on every entry, and the beat clock follows whichever track is louder.
+//    A THIRD track (assets/music_race.mp3, MUSIC_BEATS_RACE: a 40-bar loop of the user's 'Casablanca Trance', 95.6 s) belongs to the RACE ZONE: while a race runs (g.state === 'race') it takes the whole mix over (in over 1.2 s, out over 1.8 s),
+//    from its beginning on every race, and it leads the beat clock while it is the louder (b.track === 'race').
 //  - EFFECTS: short sounds synthesised with the Web Audio API (no sound files): jump, land, slide, coin (the pitch climbs with a streak), crash, game-over, fork prompt / choice,
 //    start, pause / resume. Every voice is a pure function of (ctx, out, time, arg), so tests can render them offline.
 // Sound is allowed from the first user gesture; M toggles mute (remembered); the game pauses it with the tab. The Game just calls `g.sfx.play(name)` where things happen and
 // `g.sfx.tick(g, dt)` once per frame. Without a GameAudio (the 2D page) nothing changes.
 class GameAudio {
   constructor(opts = {}) {
-    this.src = opts.src || 'assets/music.mp3'; this.srcCoast = opts.srcCoast || 'assets/music_coast.mp3';
+    this.src = opts.src || 'assets/music.mp3'; this.srcCoast = opts.srcCoast || 'assets/music_coast.mp3'; this.srcRace = opts.srcRace || 'assets/music_race.mp3';
     this.beats = opts.beats || (typeof MUSIC_BEATS !== 'undefined' ? MUSIC_BEATS : null);
-    this.beatsCoast = opts.beatsCoast || (typeof MUSIC_BEATS_COAST !== 'undefined' ? MUSIC_BEATS_COAST : null); this.coastW = 0;      // coastW: 0..1, how much of the coast track is heard
+    this.beatsCoast = opts.beatsCoast || (typeof MUSIC_BEATS_COAST !== 'undefined' ? MUSIC_BEATS_COAST : null); this.coastW = 0;
+    this.beatsRace = opts.beatsRace || (typeof MUSIC_BEATS_RACE !== 'undefined' ? MUSIC_BEATS_RACE : null); this.raceW = 0;      // raceW: 0..1, how much of the race zone's track is heard (it takes over the whole mix while a race runs)      // coastW: 0..1, how much of the coast track is heard
     this.counts = {};                       // how many times each effect was requested (also while muted / locked: tests and the HUD can read it)
     this.muted = false; try { this.muted = localStorage.getItem('wayfarer.sound') === '0'; } catch (e) {}
     this.ctx = null; this.master = null; this.unlocked = false; this.active = 0; this.nodesMade = 0;
     this.musicVol = 0; this.sceneOut = 0; this.streak = 0; this.streakT = -9; this.lastState = ''; this.clock = 0; this.b = { t: 0, beat: 0, phase: 0, pulse: 0, energy: 0, kick: 0, playing: false };
     this.music = null; this.musicBlocked = false; this.musicTries = 0;
     try { const a = new Audio(); a.loop = true; a.preload = 'auto'; a.src = this.src; a.volume = 0; a.muted = this.muted; this.music = a; } catch (e) {}
+    this.musicRace = null; try { const r = new Audio(); r.loop = true; r.preload = 'none'; r.src = this.srcRace; r.volume = 0; r.muted = this.muted; this.musicRace = r; } catch (e) {}      // (fetched only when a race is first entered)
     this.musicCoast = null; try { const c = new Audio(); c.loop = true; c.preload = 'none'; c.src = this.srcCoast; c.volume = 0; c.muted = this.muted; this.musicCoast = c; } catch (e) {}      // (fetched only when the coast is first approached)
     // Every gesture (re)tries to start the music until it is really playing. Browsers on phones do not count a touch's pointerdown as a user gesture (touchend / click are), so
     // the first attempt there is rejected and a later one succeeds; a single attempt at the first event left the music silent while the effects worked.
-    const go = () => { this.unlock(); this.startMusic(); this.unlockCoast(); };
+    const go = () => { this.unlock(); this.startMusic(); this.unlockCoast(); this.unlockRace(); };
     for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(ev, go, { passive: true });
     document.addEventListener('visibilitychange', () => this.visibility());
   }
@@ -48,6 +52,12 @@ class GameAudio {
     this.coastUnlocking = true;
     try { c.volume = 0; const p = c.play(); if (p && p.then) p.then(() => { if (!this.coastOn) { try { c.pause(); c.currentTime = 0; } catch (e) {} } this.coastUnlocked = true; this.coastUnlocking = false; }, () => { this.coastUnlocking = false; }); else { this.coastUnlocking = false; } } catch (e) { this.coastUnlocking = false; }
   }
+  // the same for the race zone's track
+  unlockRace() {
+    const r = this.musicRace; if (!this.unlocked || !r || this.raceUnlocked || this.raceUnlocking || document.hidden) return;
+    this.raceUnlocking = true;
+    try { r.volume = 0; const p = r.play(); if (p && p.then) p.then(() => { if (!this.raceOn) { try { r.pause(); r.currentTime = 0; } catch (e) {} } this.raceUnlocked = true; this.raceUnlocking = false; }, () => { this.raceUnlocking = false; }); else { this.raceUnlocking = false; } } catch (e) { this.raceUnlocking = false; }
+  }
   // start the track if it is not playing (a rejected attempt is remembered in musicBlocked and simply tried again on the next gesture)
   startMusic() {
     const a = this.music; if (!this.unlocked || !a || !a.paused || document.hidden) return;
@@ -57,7 +67,7 @@ class GameAudio {
   resume() { try { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); } catch (e) {} }
   visibility() {
     if (!this.unlocked) return;
-    if (document.hidden) { try { this.music.pause(); if (this.musicCoast) this.musicCoast.pause(); if (this.ctx) this.ctx.suspend(); } catch (e) {} }
+    if (document.hidden) { try { this.music.pause(); if (this.musicCoast) this.musicCoast.pause(); if (this.musicRace) this.musicRace.pause(); if (this.ctx) this.ctx.suspend(); } catch (e) {} }
     else { this.resume(); this.startMusic(); }
   }
 
@@ -67,6 +77,7 @@ class GameAudio {
     if (this.master) this.master.gain.value = this.muted ? 0 : 0.8;
     if (this.music) this.music.muted = this.muted;
     if (this.musicCoast) this.musicCoast.muted = this.muted;
+    if (this.musicRace) this.musicRace.muted = this.muted;
     if (!this.muted) { this.unlock(); this.play('click'); }
   }
   toggle() { this.setMuted(!this.muted); }
@@ -74,13 +85,14 @@ class GameAudio {
   // ---- the beat clock, read by the animation. beat = beats since the first kick; phase = 0..1 within the beat; pulse = 1 on the kick, decaying to 0; energy / kick = 0..1 loudness
   beat() { return this.b; }
   update(g, dt) {
-    const w = this.coastW, c = this.musicCoast, useCoast = !!(c && this.beatsCoast && w > 0.5 && this.unlocked && !c.paused && c.readyState >= 2);       // the coast track leads the clock once it is the louder
-    const a = useCoast ? c : this.music, B = useCoast ? this.beatsCoast : this.beats, playing = !!(a && this.unlocked && !a.paused && a.readyState >= 2);
+    const w = this.coastW, c = this.musicCoast, rr = this.musicRace, useRace = !!(rr && this.beatsRace && this.raceW > 0.5 && this.unlocked && !rr.paused && rr.readyState >= 2);       // whichever track is the louder leads the clock: the race's own track while a race runs,
+    const useCoast = !useRace && !!(c && this.beatsCoast && w > 0.5 && this.unlocked && !c.paused && c.readyState >= 2);                                                                                  // then the coast's, then the main one
+    const a = useRace ? rr : useCoast ? c : this.music, B = useRace ? this.beatsRace : useCoast ? this.beatsCoast : this.beats, playing = !!(a && this.unlocked && !a.paused && a.readyState >= 2);
     this.clock += dt; const t = playing ? a.currentTime : this.clock;
     const period = B ? B.beat : 60 / 118, first = B ? B.first : 0, beat = (t - first) / period, phase = beat - Math.floor(beat);
     let energy = 0.6, kick = 0.6;
     if (B && playing) { const i = Math.min(B.energy.length - 1, Math.max(0, Math.floor(t * B.fps))); energy = B.energy[i] / 255; kick = B.kick[i] / 255; }
-    this.b = { t, beat, phase, pulse: Math.exp(-phase * 5.5), energy, kick, playing, track: useCoast ? 'coast' : 'main' };
+    this.b = { t, beat, phase, pulse: Math.exp(-phase * 5.5), energy, kick, playing, track: useRace ? 'race' : useCoast ? 'coast' : 'main' };
   }
 
   // ---- once per frame: beat clock, music volume by state, state-change sounds
@@ -88,7 +100,7 @@ class GameAudio {
     this.update(g, dt);
     const s = g.state, a = this.music;
     if (a) {
-      const level = { title: 0.55, play: 0.85, pause: 0.22, over: 0.3, scene: 0 }, target = s in level ? level[s] : 0.5;                       // the station scene has no music: only the place and its people (see voices.station)
+      const level = { title: 0.55, play: 0.85, race: 0.9, pause: 0.22, over: 0.3, scene: 0 }, target = s in level ? level[s] : 0.5;                       // the station scene has no music: only the place and its people (see voices.station)
       if (s === 'scene') this.sceneOut = 5; else if (this.sceneOut > 0) this.sceneOut = Math.max(0, this.sceneOut - dt);
       this.musicVol += (target - this.musicVol) * Math.min(1, dt * (s === 'scene' ? 3 : this.sceneOut > 0 ? 0.7 : 4));      // out in about a second; back in slowly over the first seconds after the scene
       if (s === 'scene' && this.musicVol < 0.004) this.musicVol = 0;
@@ -102,7 +114,17 @@ class GameAudio {
         else if (this.coastW === 0 && !c.paused) { try { c.pause(); } catch (e) {} this.coastOn = false; }
         try { c.volume = Math.max(0, Math.min(1, this.musicVol * cw)); } catch (e) {}
       }
-      try { a.volume = Math.max(0, Math.min(1, this.musicVol * (1 - cw))); } catch (e) {}
+      // THE RACE ZONE has its own track (the user's 'Casablanca Trance'): while a race runs it takes the whole mix over, in over 1.2 s and out over 1.8 s, and it starts from its beginning on every race
+      const wantR = s === 'race' ? 1 : 0, r = this.musicRace, rrate = 1 / (wantR > this.raceW ? 1.2 : 1.8);
+      this.raceW = wantR > this.raceW ? Math.min(wantR, this.raceW + dt * rrate) : Math.max(wantR, this.raceW - dt * rrate);
+      const rw = this.raceW * this.raceW * (3 - 2 * this.raceW);
+      if (r) {
+        if (this.raceW > 0.01 && r.paused && this.unlocked && !document.hidden && !this.raceBlocked) { if (!this.raceOn) { try { r.currentTime = 0; } catch (e) {} } this.raceOn = true; try { const p = r.play(); if (p && p.then) p.then(() => { this.raceBlocked = false; }, () => { this.raceBlocked = true; }); } catch (e) { this.raceBlocked = true; } }
+        else if (this.raceW === 0 && !r.paused) { try { r.pause(); } catch (e) {} this.raceOn = false; }
+        try { r.volume = Math.max(0, Math.min(1, this.musicVol * rw)); } catch (e) {}
+      }
+      if (c) { try { c.volume = Math.max(0, Math.min(1, this.musicVol * cw * (1 - rw))); } catch (e) {} }
+      try { a.volume = Math.max(0, Math.min(1, this.musicVol * (1 - cw) * (1 - rw))); } catch (e) {}
     }
     if (s !== this.lastState) {
       if (this.lastState === 'play' && s === 'pause') this.play('pause');

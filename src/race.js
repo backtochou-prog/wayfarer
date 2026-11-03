@@ -25,8 +25,8 @@ class Race {
       if (kind < 0.34) {                                                                               // a line of three spirals of one colour in one lane (the colour by luck, rarer the stronger)
         const c = r(3) < 0.12 ? 0 : r(3) < 0.32 ? 1 : r(3) < 0.62 ? 2 : 3;
         for (let k = 0; k < 3; k++) this.add({ type: 'spiral', color: c, lane, s: s + k * 9 });
-      } else if (kind < 0.62) {                                                                        // a brake ring over two lanes, a spiral in the third (the colour of the spiral again by luck)
-        this.add({ type: 'ring', lane, s }); this.add({ type: 'ring', lane: other, s });
+      } else if (kind < 0.62) {                                                                        // a single brake ring in one lane (lying on the road), a spiral in the third (the colour of the spiral again by luck)
+        this.add({ type: 'ring', lane, s });
         this.add({ type: 'spiral', color: r(4) < 0.2 ? 0 : r(4) < 0.5 ? 1 : 2, lane: third, s: s + 2 });
       } else {                                                                                         // a droid in a lane: dodge it, or take the ramp that lies in front of it; a spiral waits after it in that lane
         const droid = this.add({ type: 'droid', lane, s: s + 38, run: false, v: 0, hit: false });
