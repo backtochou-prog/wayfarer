@@ -43,8 +43,31 @@ for k, cid in CARS.items():
     res[k] = uri(fit_rect(c, 384) if k in ('carBack', 'car34', 'carSide', 'carFront', 'bot34') else fit(c, 384))
 _dr = Image.open(f'{U}/c864b4e4-image.png').convert('RGBA')                 # the user's DROID (the obstacle that runs at the car): it carries its own alpha, keep it as it is
 _dr = _dr.crop(_dr.getbbox()); res['droid'] = uri(fit_rect(_dr, 384)); AR['droid'] = round(_dr.width / _dr.height, 4)
-_sd = Image.open(f'{U}/7f1540a6-image.png').convert('RGBA')                 # the SIDE of the robot's car (its own alpha): hung on both flanks of the pod
-_sd = _sd.crop(_sd.getbbox()); res['botSide'] = uri(fit_rect(_sd, 384)); AR['botSide'] = round(_sd.width / _sd.height, 4)
+# THE ROBOT'S FLANK holds the upper half of its side too. The user circled that upper part (the red lattice and the dark shell) on a copy of the picture (9300573c): it becomes a separate piece, laid on the top of the
+# car, and the rest stays the flank. Both are cut from the same canvas, so they share one size and one scale.
+from collections import deque
+from PIL import ImageFilter
+_c = Image.open(f'{U}/9300573c-image.jpg').convert('RGB'); _ca = _np.asarray(_c).astype(int)
+_st = (_ca[..., 0] > 150) & (_ca[..., 1] < 95) & (_ca[..., 2] < 95) & (_ca[..., 0] - _ca[..., 1] > 70); _H, _W = _st.shape; _free = ~_st; _rc = _np.zeros((_H, _W), bool); _q = deque()
+for _x in range(_W):
+    for _y in (0, _H - 1):
+        if _free[_y, _x] and not _rc[_y, _x]: _rc[_y, _x] = True; _q.append((_y, _x))
+for _y in range(_H):
+    for _x in (0, _W - 1):
+        if _free[_y, _x] and not _rc[_y, _x]: _rc[_y, _x] = True; _q.append((_y, _x))
+while _q:
+    _y, _x = _q.popleft()
+    for _dy, _dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        _ny, _nx = _y + _dy, _x + _dx
+        if 0 <= _ny < _H and 0 <= _nx < _W and _free[_ny, _nx] and not _rc[_ny, _nx]: _rc[_ny, _nx] = True; _q.append((_ny, _nx))
+_sd = Image.open(f'{U}/484d20dd-image.png').convert('RGBA'); _sd = _sd.crop(_sd.getbbox())
+_mk = Image.fromarray(((~_rc) * 255).astype(_np.uint8)).resize(_sd.size, Image.BILINEAR).filter(ImageFilter.MinFilter(25)).filter(ImageFilter.GaussianBlur(6))      # eroded: the stroke is wide, the true edge is its middle
+_mk = _np.asarray(_mk).astype(_np.float32) / 255.0; _sa = _np.asarray(_sd).astype(_np.float32)
+for _name, _k in (('botFlankTop', _mk), ('botFlankLow', 1 - _mk)):
+    _o = _sa.copy(); _o[..., 3] = _sa[..., 3] * _k
+    res[_name] = uri(fit_rect(Image.fromarray(_o.astype(_np.uint8), 'RGBA'), 384))
+res['botSide'] = uri(fit_rect(_sd, 512))                       # the whole flank picture, to be WRAPPED over the pod's rounded side and roof
+AR['botSide'] = round(_sd.width / _sd.height, 4)
 _pod = Image.open(f'{U}/2f7a0cb6-image.png').convert('RGBA')                 # the user's last picture of the ROBOT's car (the magnetic pod seen head on): it already carries its own alpha, so keep it as it is
 _pod = _pod.crop(_pod.getbbox())
 res['botPod'] = uri(fit_rect(_pod, 384)); AR['botPod'] = round(_pod.width / _pod.height, 4)

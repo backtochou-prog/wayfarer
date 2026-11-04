@@ -19,7 +19,9 @@ class Race3D {
     this.droidMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.droid), transparent: true, side: THREE.DoubleSide, depthWrite: false });
     this.droidGlowMat = mat(L(RACE_ASSETS.droid), true);
     this.spiralMat = RACE_ASSETS.spirals.map(u => mat(L(u), true)); this.haloMat = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'].map(halo); this.ringHalo = halo('#ff3fd0'); this.carGlow = halo('#4a2a70'); this.botGlow = halo('#1a6a80'); this.droidGlow = halo('#2bff6a'); this.botHalo = halo('#ff2a7a'); this.backGlowG = halo('#2bff3a'); this.backGlowM = halo('#2a4cff'); this.ringMat = mat(L(RACE_ASSETS.ring)); this.ringMatFlat = mat(L(RACE_ASSETS.ring), true); this.carMat = mat(L(RACE_ASSETS.carSide), true); this.backMat = mat(L(RACE_ASSETS.carBack), true); this.rearMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.rear), transparent: true, side: THREE.DoubleSide }); this.botMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botPod), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botGlowMat = mat(L(RACE_ASSETS.botPod), true);
-    this.botSideMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botSide), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botSideGlow = mat(L(RACE_ASSETS.botSide), true); this.rampMat = mat(L(RACE_ASSETS.ramp), true); this.sphereMat = mat(L(RACE_ASSETS.sphere));
+    this.botWrapMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botSide), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botWrapGlow = mat(L(RACE_ASSETS.botSide), true);
+    this.botLowMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botFlankLow), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botLowGlow = mat(L(RACE_ASSETS.botFlankLow), true);
+    this.botTopMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botFlankTop), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botTopGlow = mat(L(RACE_ASSETS.botFlankTop), true); this.rampMat = mat(L(RACE_ASSETS.ramp), true); this.sphereMat = mat(L(RACE_ASSETS.sphere));
     this.plane = (w, h) => new THREE.PlaneGeometry(w, h);
     this.track = this.buildTrack(); sc.add(this.track);
     this.crystal = this.buildCrystal(); sc.add(this.crystal);
@@ -42,17 +44,35 @@ class Race3D {
     // THE ROBOT'S CAR, in 3D from the user's own pictures: its head-on view at the back and at the front of the pod, and its SIDE view on both flanks (mirrored on the far one). Each picture is drawn once
     // for the paint and twice more additively so its neon is lit, with a pink halo round the whole pod.
     this.bot = new THREE.Group();
-    { const A = RACE_ASSETS.ar, L2 = 3.8, hS = L2 / A.botSide, hP = hS, W = hP * A.botPod, Y = 0.22;      /* the four pictures share one height, so the pod is a solid body: 3.8 m long, 3.6 m wide, 1.6 m tall */
+    { const A = RACE_ASSETS.ar, L2 = 3.8, hS = L2 / A.botSide, hP = hS, W = 3.0, Y = 0.22;      /* the pod is a solid body: 3.8 m long, 3.0 m wide, 1.7 m tall (the head-on pictures are squeezed a little to that width) */
       const piece = (geo, mat2, glow, pos, rotY, mirror) => {
         const g2 = new THREE.Group(), m = new THREE.Mesh(geo, mat2); g2.add(m);
         for (const dz of [0.012, 0.024]) { const lit = new THREE.Mesh(geo, glow); lit.position.z = dz; g2.add(lit); }
         g2.position.set(pos[0], pos[1], pos[2]); g2.rotation.y = rotY; if (mirror) g2.scale.x = -1; this.bot.add(g2); return g2;
       };
-      const back = this.plane(W, hP), side = this.plane(L2, hS);
+      const back = this.plane(W * 0.82, hP), side = this.plane(L2, hS);
       piece(back, this.botMat, this.botGlowMat, [0, Y + hP / 2, L2 / 2 - 0.1], 0, false);                                   // the tail, facing the player behind
-      piece(back, this.botMat, this.botGlowMat, [0, Y + hP / 2, -L2 / 2 + 0.1], Math.PI, false);                            // the nose
-      piece(side, this.botSideMat, this.botSideGlow, [-W / 2 + 0.05, Y + hS / 2, 0], -Math.PI / 2, false);                   // the LEFT flank: the user's picture as it is (it IS the left side of the car)
-      piece(side, this.botSideMat, this.botSideGlow, [W / 2 - 0.05, Y + hS / 2, 0], Math.PI / 2, true);                       // the right flank: the same picture mirrored, so the nose points the same way on both sides
+      // THE NOSE IS POINTED (the user's ask): the head-on picture is split down the middle and its two halves are swept back from a tip on the axis, like the prow of a ship, so that from above the front of the
+      // car is a V and not a flat face. Each half keeps its own half of the picture (the left half on the left, the right half on the right), still lit.
+      const SWEEP = 1.7, WN = W * 0.82, tipZ = -L2 / 2 - SWEEP + 0.1, cornerZ = -L2 / 2 + 0.1, len = Math.hypot(WN / 2, SWEEP), ang = Math.atan2(SWEEP, WN / 2);
+      const half = (u0, u1) => { const g3 = new THREE.PlaneGeometry(len, hP), uv = g3.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setX(k, u0 + uv.getX(k) * (u1 - u0)); uv.needsUpdate = true; return g3; };
+      const prow = (sx, u0, u1) => { const g3 = half(u0, u1), g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botMat));
+        for (const dz of [0.012, 0.024]) { const lit = new THREE.Mesh(g3, this.botGlowMat); lit.position.z = dz; g2.add(lit); }
+        g2.position.set(sx * WN / 4, Y + hP / 2, (tipZ + cornerZ) / 2); g2.rotation.y = -sx * ang; this.bot.add(g2); return g2; };
+      prow(-1, 0, 0.5); prow(1, 0.5, 1);
+      // THE ROUNDED BODY (the user: 'adapter les flancs avec le haut avec un look rendu ou bombe'): the flank picture, which holds the upper half of its side too, is no longer a flat plane with the roof leaned
+      // against it. It is WRAPPED over a rounded shell: along the length the width swells in the middle and narrows to both ends (a barrel seen from above), across it the picture climbs a quarter ellipse from the
+      // outer lower edge (its bottom) up to the middle of the roof (its top), where the twin from the other side meets it. The left is the picture as drawn, the right its mirror. The nose and tail pictures are
+      // fitted to the narrower ends, and the nose is the pointed prow.
+      const NU = 28, NV = 14, a0 = W / 2, endK = 0.82, wid = z => a0 * (endK + (1 - endK) * (1 - Math.pow(2 * z / L2, 2)));
+      const shell = sx => { const pos = [], uv = [], idx = [];
+        for (let i = 0; i <= NU; i++) { const u = i / NU, z = -L2 / 2 + 0.1 + u * (L2 - 0.2), a = wid(z);
+          for (let j = 0; j <= NV; j++) { const v = j / NV, ph = v * Math.PI / 2; pos.push(sx * a * Math.cos(ph), Y + 0.03 + (hS - 0.03) * Math.sin(ph) * (0.9 + 0.1 * (1 - Math.pow(2 * z / L2, 2))), z); uv.push(u, v); } }
+        for (let i = 0; i < NU; i++) for (let j = 0; j < NV; j++) { const k = i * (NV + 1) + j; idx.push(k, k + 1, k + NV + 1, k + 1, k + NV + 2, k + NV + 1); }
+        const g3 = new THREE.BufferGeometry(); g3.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g3.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g3.setIndex(idx); g3.computeBoundingSphere(); return g3; };
+      for (const sx of [-1, 1]) { const g3 = shell(sx), g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botWrapMat));
+        for (const k of [1.0, 1.0]) g2.add(new THREE.Mesh(g3, this.botWrapGlow)); this.bot.add(g2); }
+      this.bot.userData.flanks = [];
       this.bot.add(this.botTop(W, L2, Y + hS, hS));                                                                          // the TOP, modelled to fill what the four pictures leave open
       const bh = new THREE.Mesh(this.plane(W * 1.3, hP * 1.6), this.botHalo); bh.position.set(0, Y + hP / 2, L2 / 2 - 0.15); this.bot.add(bh); this.bot.userData.halo = bh;
       const gl = new THREE.Mesh(this.plane(W * 1.1, L2 * 0.9), this.botGlow); gl.rotation.x = -Math.PI / 2; gl.position.y = 0.02; this.bot.add(gl);
@@ -110,16 +130,12 @@ class Race3D {
   }
   // the TOP of the robot's car, modelled to close the pod between its four pictures: a shallow dark shell in the colours of the drawings (near-black blue), with the magenta cells of the flanks glowing on it,
   // a green rim line all round and a thin cyan line down the middle.
-  botTop(W, L, yTop, h) {
-    const p = [], dark = '#0d1526', cell = '#c01ea8', rim = '#19e08a', line = '#35e6ff', yc = yTop - h * 0.42, w2 = W * 0.33, l2 = L * 0.38;
-    p.push(Kit.ico(1, 0, yc, 0, dark, { sx: w2, sy: h * 0.2, sz: l2, detail: 1 }));                                          // the shell that closes the pod
-    for (let k = 0; k < 7; k++) { const u = (k - 3) / 3.4, z = u * l2 * 1.3, x = (k % 2 ? 0.42 : -0.38) * w2 * (1 - Math.abs(u) * 0.5);
-      p.push(Kit.ico(0.1 + 0.05 * Math.cos(k), x, yc + h * 0.16, z, cell, { sx: 1.6, sy: 0.25, sz: 2.2, glow: true, detail: 0 })); }       // its magenta cells, as on the flanks
-    for (const sx of [-1, 1]) p.push(Kit.box(0.05, 0.05, l2 * 1.5, sx * w2 * 0.92, yc + h * 0.05, 0, rim, { glow: true }));
-    p.push(Kit.box(w2 * 1.5, 0.05, 0.05, 0, yc + h * 0.05, -l2 * 0.78, rim, { glow: true }), Kit.box(w2 * 1.5, 0.05, 0.05, 0, yc + h * 0.05, l2 * 0.78, rim, { glow: true }));
-    p.push(Kit.box(0.05, 0.04, l2 * 1.4, 0, yc + h * 0.2, 0, line, { glow: true }));
-    return Kit.mesh(Kit.merge(p));
+  botTop() {
+    // the roof is now ENTIRELY the user's own picture: the circled upper parts of the two flanks lean in and meet over the middle (see the flanks in the constructor). Nothing modelled is left on top.
+    return new THREE.Group();
   }
+
+
 
   // a droid: a black glossy powerful body (huge shoulders), green glowing chest core, cyan fists, green shoes, a small yellow face light; faces +z (towards the car); legs and arms swing on pivots
   // THE DROID is the user's own picture (the black android with its green core and its cyan fists), standing on the road and facing the car, with an additive copy over it so its lights are lit and a green glow at its feet.
