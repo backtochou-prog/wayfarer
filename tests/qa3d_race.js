@@ -24,6 +24,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('a sphere stands in the middle of the road in every zone of the circuit (' + JSON.stringify(G.zones) + ', ' + G.n + ' in all over a few laps), nothing else within 20 m of it, none in a world without the 3D extras (' + G.plain + ')',
     ['neon', 'coast', 'saintgilles', 'utrecht', 'vic'].every(z => G.zones[z] >= 1) && G.near === 0 && G.plain === 0, JSON.stringify(G.gates.slice(0, 9)));
 
+  await pg.context().close();                                                                       // (the first page is done with: a browser holding four WebGL pages with these textures crashed in software GL)
   // ---- the race through ?zone=race: the countdown, the scene, the HUD, no error
   const pz = await open(base + '?zone=race');
   const NB = await pz.evaluate(() => { const g = __wf; g.start(); g.race = null; g.raceNow = false; g.state = 'play'; g.world.extend(150000); const G1 = g.world.items.filter(i => i.kind === 'raceGate').sort((a, b) => a.z - b.z)[0]; g.p.z = G1.z - 60; g.p.x = G1.x; g.p.speed = 300; g.world.extend(g.p.z + 3000); for (let i = 0; i < 90; i++) g.advance(1 / 60); return { state: g.state, taken: G1.taken, passed: g.p.z > G1.z }; });
@@ -57,13 +58,15 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('the sphere is drawn on the road before it (' + S.seen + ' in view, ' + (S.derr || 'no error') + '), opens the race when the car runs into it (' + S.entered + '), is used up (' + S.taken + ') so a second pass does not reopen it (' + (S.again ? 'reopened' : 'closed') + '), and the sphere of the next zone is still there (' + S.next + ') and works (' + S.second + ')',
     S.seen >= 1 && !S.derr && S.entered && S.taken && !S.again && S.next && S.second, JSON.stringify(S));
 
+  await pz.evaluate(() => { window.requestAnimationFrame = () => 0; });                              // (the race page stops drawing by itself: the tests below step and draw it by hand, and a second page loads far faster without it)
   // ---- touch: the same four buttons are drawn and steer in the race
   const pt = await (await b.newContext({ viewport: { width: 640, height: 360 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true })).newPage(); pt.errs = []; pt.on('pageerror', e => pt.errs.push(e.message));
-  await pt.goto(base + '?zone=race', { timeout: 90000 }); await pt.waitForFunction(() => window.__wf, null, { timeout: 60000 }); await pt.waitForTimeout(600);
+  await pt.goto(base + '?zone=race', { timeout: 90000 }); await pt.waitForFunction(() => window.__wf, null, { timeout: 120000 }); await pt.waitForTimeout(600);
   const TT = await pt.evaluate(() => { const g = __wf; g.touch = true; g.start(); for (let i = 0; i < 260; i++) g.advance(1 / 60); const sc = document.getElementById('screen').getBoundingClientRect(); return { x: sc.left + sc.width * (60 / 320), y: sc.top + sc.height * (158 / 180), state: g.state, lane: g.race.p.lane, drawn: (() => { g.r.draw(g); return g.r.ui.touchLayer() ? g.r.ui.touchLayer().dirty : null; })() }; });
   await pt.touchscreen.tap(TT.x + 20, TT.y); await pt.waitForTimeout(250);
   const T2 = await pt.evaluate(() => { const g = __wf; for (let i = 0; i < 30; i++) g.advance(1 / 60); return { lane: g.race.p.lane, state: g.state }; });
   T('on a phone the race shows the touch buttons (layer drawn ' + TT.drawn + ') and a tap on the right button moves the car one lane to the right (from ' + TT.lane + ' to ' + T2.lane + ')', TT.state === 'race' && TT.drawn === true && T2.lane === TT.lane + 1 && pt.errs.length === 0, JSON.stringify({ TT, T2, errs: pt.errs.slice(0, 2) }));
+  await pt.context().close();
 
   // ---- the race zone's own music: its own file and beat map, it takes the mix over while a race runs and gives the clock back after
   const MU = await pz.evaluate(async () => {
