@@ -65,7 +65,7 @@ class Race3D {
             for (let j = 0; j <= NB; j++) { const t = j / NB; let x, y, z;
               if (kind === 'dome') { const ps = t * Math.PI / 2; x = cx * Math.cos(ps); y = cy; z = zSign * (endZ + c * Math.cos(ph) * Math.sin(ps)); }
               else { const q = Math.sqrt(Math.max(0, 1 - t * t)); x = cx * q; y = y0 + (cy - y0) * q; z = zSign * (endZ - 0.3 + c * t); }                  /* the cone starts 0.3 m INSIDE the flank shell, so there is no gap between the nose and the flank */
-              pos.push(x, y, z); uv.push(0.5 + x / (2 * aE), (y - y0) / hh); } }                  /* projected: the picture as seen from the front or the back, so it is never smeared along the surface */
+              pos.push(x, y, z); uv.push(0.5 - Math.abs(x) / (2 * aE), (y - y0) / hh); } }                  /* MIRRORED: the left half of the picture (the user's good half) is copied to the other side, so the two halves are alike by construction and there is no seam (the picture itself is a little lighter on its left) */                  /* projected: the picture as seen from the front or the back, so it is never smeared along the surface */
           for (let i = 0; i < NA; i++) for (let j = 0; j < NB; j++) { const k = base / 3 + i * (NB + 1) + j; idx.push(k, k + 1, k + NB + 1, k + 1, k + NB + 2, k + NB + 1); } }
         const g3 = new THREE.BufferGeometry(); g3.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g3.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g3.setIndex(idx); g3.computeBoundingSphere(); return g3; };
       for (const [g3] of [[cap(1, 0.9, 'dome')], [cap(-1, 1.0, 'cone')]]) { const g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botMat));
