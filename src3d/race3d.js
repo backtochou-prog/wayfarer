@@ -50,33 +50,39 @@ class Race3D {
         for (const dz of [0.012, 0.024]) { const lit = new THREE.Mesh(geo, glow); lit.position.z = dz; g2.add(lit); }
         g2.position.set(pos[0], pos[1], pos[2]); g2.rotation.y = rotY; if (mirror) g2.scale.x = -1; this.bot.add(g2); return g2;
       };
-      const back = this.plane(W * 0.82, hP), side = this.plane(L2, hS);
-      // THE NOSE IS POINTED (the user's ask): the head-on picture is split down the middle and its two halves are swept back from a tip on the axis, like the prow of a ship, so that from above the front of the
-      // car is a V and not a flat face. Each half keeps its own half of the picture (the left half on the left, the right half on the right), still lit.
       const NU = 28, NV = 14, a0 = W / 2, endK = 0.82, wid = z => a0 * (endK + (1 - endK) * (1 - Math.pow(2 * z / L2, 2)));
-      /* THE SIZE OF THE ENDS: the nose and the stern pictures are fitted to the shell where it ends: as wide as the DISTANCE BETWEEN THE FLANKS there (GAP), as tall as the shell is there (hE), and standing on its bottom edge. */
-      const endZ = L2 / 2 - 0.1, GAP = 2 * wid(endZ), hE = (hS - 0.03) * 0.9, yE = Y + 0.03 + hE / 2; this.bot.userData.ends = { gap: +GAP.toFixed(3), height: +hE.toFixed(3) };
-      const SWEEP = 1.7, WN = GAP, tipZ = -L2 / 2 - SWEEP + 0.1, cornerZ = -L2 / 2 + 0.1, len = Math.hypot(WN / 2, SWEEP), ang = Math.atan2(SWEEP, WN / 2);
-      const half2 = (u0, u1, ln) => { const g3 = new THREE.PlaneGeometry(ln, hE), uv = g3.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setX(k, u0 + uv.getX(k) * (u1 - u0)); uv.needsUpdate = true; return g3; };
-      const half = (u0, u1) => { const g3 = new THREE.PlaneGeometry(len, hE), uv = g3.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setX(k, u0 + uv.getX(k) * (u1 - u0)); uv.needsUpdate = true; return g3; };
-      const prow = (sx, u0, u1) => { const g3 = half(u0, u1), g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botMat));
-        for (const dz of [0.012, 0.024]) { const lit = new THREE.Mesh(g3, this.botGlowMat); lit.position.z = dz; g2.add(lit); }
-        g2.position.set(sx * WN / 4, yE, (tipZ + cornerZ) / 2); g2.rotation.y = -sx * ang; this.bot.add(g2); return g2; };
-      prow(-1, 0, 0.5); prow(1, 0.5, 1);
-      // THE STERN follows the flanks (the user: 'adapter les flancs avec le dos'): the tail picture is no longer a flat wall across the back, which stuck out past the narrowing sides. Split like the nose, its halves
-      // are swept back a little from a rounded tip on the axis (0.9 m) so the body closes on itself like a drop, from the flanks to the rear.
-      const SW2 = 0.9, tipT = L2 / 2 - 0.1 + SW2, cornT = L2 / 2 - 0.1, lenT = Math.hypot(WN / 2, SW2), angT = Math.atan2(SW2, WN / 2);
-      const stern = (sx, u0, u1) => { const g3 = half2(u0, u1, lenT), g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botMat));
-        for (const dz of [0.012, 0.024]) { const lit = new THREE.Mesh(g3, this.botGlowMat); lit.position.z = dz; g2.add(lit); }
-        g2.position.set(sx * WN / 4, yE, (tipT + cornT) / 2); g2.rotation.y = sx * angT; this.bot.add(g2); return g2; };
-      stern(-1, 0, 0.5); stern(1, 0.5, 1);
+      // THE ENDS ARE PART OF THE SHELL (the user: 'redimensionner les flancs et le coffre pour une liaison logique' and 'souder les baguettes des flancs avec celle du dos'): the nose and the stern are no longer flat
+      // pictures stood across the ends, but caps built on the very cross-section where the flank shell stops, so the junction is exact: as wide as the DISTANCE BETWEEN THE FLANKS there (GAP) and as tall as the shell
+      // is there (hE). Both wear the head-on picture, projected from the front or the back. The STERN is a quarter-ellipsoid dome (the roof's centre line slopes down to the ground 0.9 m behind, like a fastback
+      // tail); the NOSE is a cone that closes on a point on the axis (1.9 m ahead): the pointed nose.
+      const endZ = L2 / 2 - 0.1, aE = wid(endZ), GAP = 2 * aE, hE = (hS - 0.03) * 0.9, y0 = Y + 0.03; this.bot.userData.ends = { gap: +GAP.toFixed(3), height: +hE.toFixed(3) };
+      const NA = 22, NB = 12;
+      const cap = (zSign, c, kind) => { const pos = [], uv = [], idx = [];
+        for (const sx of [-1, 1]) { const base = pos.length / 3;
+          for (let i = 0; i <= NA; i++) { const ph = (i / NA) * Math.PI / 2, cx = sx * aE * Math.cos(ph), cy = y0 + hE * Math.sin(ph);
+            for (let j = 0; j <= NB; j++) { const t = j / NB; let x, y, z;
+              if (kind === 'dome') { const ps = t * Math.PI / 2; x = cx * Math.cos(ps); y = cy; z = zSign * (endZ + c * Math.cos(ph) * Math.sin(ps)); }
+              else { x = cx * (1 - t); y = cy + (y0 + 0.28 * hE - cy) * t; z = zSign * (endZ + c * t); }
+              pos.push(x, y, z); uv.push(0.5 + x / (2 * aE), (y - y0) / hE); } }                  /* projected: the picture as seen from the front or the back, so it is never smeared along the surface */
+          for (let i = 0; i < NA; i++) for (let j = 0; j < NB; j++) { const k = base / 3 + i * (NB + 1) + j; idx.push(k, k + 1, k + NB + 1, k + 1, k + NB + 2, k + NB + 1); } }
+        const g3 = new THREE.BufferGeometry(); g3.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g3.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g3.setIndex(idx); g3.computeBoundingSphere(); return g3; };
+      for (const [g3] of [[cap(1, 0.9, 'dome')], [cap(-1, 1.9, 'cone')]]) { const g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botMat));
+        for (const k of [1, 2]) g2.add(new THREE.Mesh(g3, this.botGlowMat)); this.bot.add(g2); }
+      // THE WELDED RIM: one continuous bright line (the 'baguette') round the whole footprint at the foot of the body: along the lower edge of the left flank, round the stern dome, back along the right flank and
+      // round the nose to its tip, closed on itself, so the flanks' edge and the back's edge are one piece.
+      { const path = [], ZS = 20; const A = z => wid(z);
+        for (let i = 0; i <= ZS; i++) { const z = -endZ + (2 * endZ) * i / ZS; path.push([-A(z), z]); }                      // the left flank, nose to stern
+        for (let i = 1; i <= 10; i++) { const ps = (i / 10) * Math.PI; path.push([-aE * Math.cos(ps), endZ + 0.9 * Math.sin(ps)]); }      // round the stern dome, left corner to right corner
+        for (let i = ZS; i >= 0; i--) { const z = -endZ + (2 * endZ) * i / ZS; path.push([A(z), z]); }                        // the right flank, stern to nose
+        path.push([0, -endZ - 1.9]); path.push([-A(-endZ), -endZ]);                                                          // out to the tip of the nose and back to the start: the loop is closed
+        const parts = []; for (let i = 0; i < path.length - 1; i++) { const [x1, z1] = path[i].map((v, k) => v * (k ? 0.95 : 0.92)), [x2, z2] = path[i + 1].map((v, k) => v * (k ? 0.95 : 0.92)), len = Math.hypot(x2 - x1, z2 - z1) + 0.03;
+          if (len > 0.04) parts.push(Kit.box(0.06, 0.05, len, (x1 + x2) / 2, y0 + 0.05, (z1 + z2) / 2, '#7ff0ff', { glow: true, ry: Math.atan2(x2 - x1, z2 - z1) })); }
+        const rim = Kit.mesh(Kit.merge(parts)); this.bot.add(rim); this.bot.userData.rim = rim; this.bot.userData.rimN = parts.length; }
       // THE ROUNDED BODY (the user: 'adapter les flancs avec le haut avec un look rendu ou bombe'): the flank picture, which holds the upper half of its side too, is no longer a flat plane with the roof leaned
       // against it. It is WRAPPED over a rounded shell: along the length the width swells in the middle and narrows to both ends (a barrel seen from above), across it the picture climbs a quarter ellipse from the
       // outer lower edge (its bottom) up to the middle of the roof (its top), where the twin from the other side meets it. The left is the picture as drawn, the right its mirror. The nose and tail pictures are
       // fitted to the narrower ends, and the nose is the pointed prow.
-      // THE FLANKS TURNED DOWN (the user: 'tourner les flancs vers le bas et garder le bombe: ca va donner un sens au design'): the shell keeps its bulge, but the PICTURE on it is turned about its centre, 12 degrees, so
-      // that its front end is lower than its tail: every line of the flank (the cockpit, the bands, the rim) now slopes down towards the nose, and the pod reads as going somewhere. Done in metres, not in
-      // picture units, so the picture is turned and not sheared.
+      // THE FLANKS TURNED DOWN: the shell keeps its bulge, the PICTURE on it is turned 12 degrees about its centre so its front end is lower than its tail (done in metres: turned, not sheared).
       const TURN = 0.21, Lm = L2, Hm = hS, rot = (u, v) => { const du = (u - 0.5) * Lm, dv = (v - 0.5) * Hm; return [0.5 + (du * Math.cos(TURN) + dv * Math.sin(TURN)) / Lm, 0.5 + (-du * Math.sin(TURN) + dv * Math.cos(TURN)) / Hm]; };
       const shell = sx => { const pos = [], uv = [], idx = [];
         for (let i = 0; i <= NU; i++) { const u = i / NU, z = -L2 / 2 + 0.1 + u * (L2 - 0.2), a = wid(z);
@@ -86,8 +92,10 @@ class Race3D {
       for (const sx of [-1, 1]) { const g3 = shell(sx), g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botWrapMat));
         for (const k of [1.0, 1.0]) g2.add(new THREE.Mesh(g3, this.botWrapGlow)); this.bot.add(g2); }
       this.bot.userData.flanks = [];
-      // THE BELLY: the underside is closed with a flat dark-glass hull under the whole footprint, so the pod is a closed shape seen from any side, and from low angles too.
-      { const hull = Kit.merge([Kit.ico(1, 0, Y + 0.0, 0, '#0b1224', { sx: a0 * 1.0, sy: 0.16, sz: L2 * 0.5, detail: 1 })]); const hm = Kit.mesh(hull); this.bot.add(hm); this.bot.userData.hull = hm; }
+      // THE BELLY (the user circled the gap under the body, where the left flank, the stern and the nose meet and the inside showed): the underside is closed with a flat dark-glass hull that fills the whole footprint of
+      // the body, so the pod is a closed shape seen from any side, and from low angles too (the cyan edge lines first tried stuck out like loose bars and were taken off).
+      { const hull = Kit.merge([Kit.ico(1, 0, Y + 0.0, 0, '#0b1224', { sx: a0 * 1.0, sy: 0.16, sz: L2 * 0.5, detail: 1 })]);                 // a flat dark-glass hull under the whole footprint
+        const hm = Kit.mesh(hull); this.bot.add(hm); this.bot.userData.hull = hm; }
       this.bot.add(this.botTop(W, L2, Y + hS, hS));                                                                          // the TOP, modelled to fill what the four pictures leave open
       const bh = new THREE.Mesh(this.plane(W * 1.3, hP * 1.6), this.botHalo); bh.position.set(0, Y + hP / 2, L2 / 2 - 0.15); this.bot.add(bh); this.bot.userData.halo = bh;
       const gl = new THREE.Mesh(this.plane(W * 1.1, L2 * 0.9), this.botGlow); gl.rotation.x = -Math.PI / 2; gl.position.y = 0.02; this.bot.add(gl);
