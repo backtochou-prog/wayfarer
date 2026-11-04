@@ -18,8 +18,8 @@ class Race3D {
     const halo = col => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'), gr = x.createRadialGradient(64, 64, 4, 64, 64, 62); gr.addColorStop(0, col + 'cc'); gr.addColorStop(0.45, col + '55'); gr.addColorStop(1, col + '00'); x.fillStyle = gr; x.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return mat(t, true); };
     this.droidMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.droid), transparent: true, side: THREE.DoubleSide, depthWrite: false });
     this.droidGlowMat = mat(L(RACE_ASSETS.droid), true);
-    this.spiralMat = RACE_ASSETS.spirals.map(u => mat(L(u), true)); this.haloMat = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'].map(halo); this.ringHalo = halo('#ff3fd0'); this.carGlow = halo('#4a2a70'); this.botGlow = halo('#1a6a80'); this.droidGlow = halo('#2bff6a'); this.botHalo = halo('#ff2a7a'); this.backGlowG = halo('#2bff3a'); this.backGlowM = halo('#2a4cff'); this.ringMat = mat(L(RACE_ASSETS.ring)); this.ringMatFlat = mat(L(RACE_ASSETS.ring), true); this.carMat = mat(L(RACE_ASSETS.carSide), true); this.backMat = mat(L(RACE_ASSETS.carBack), true); this.rearMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.rear), transparent: true, side: THREE.DoubleSide }); this.botMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botPod), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botGlowMat = mat(L(RACE_ASSETS.botPod), true);
-    this.botWrapMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botSide), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botWrapGlow = mat(L(RACE_ASSETS.botSide), true);
+    this.spiralMat = RACE_ASSETS.spirals.map(u => mat(L(u), true)); this.haloMat = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'].map(halo); this.ringHalo = halo('#ff3fd0'); this.carGlow = halo('#4a2a70'); this.botGlow = halo('#1a6a80'); this.droidGlow = halo('#2bff6a'); this.botHalo = halo('#ff2a7a'); this.backGlowG = halo('#2bff3a'); this.backGlowM = halo('#2a4cff'); this.ringMat = mat(L(RACE_ASSETS.ring)); this.ringMatFlat = mat(L(RACE_ASSETS.ring), true); this.carMat = mat(L(RACE_ASSETS.carSide), true); this.backMat = mat(L(RACE_ASSETS.carBack), true); this.rearMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.rear), transparent: true, side: THREE.DoubleSide }); this.botMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botPod), alphaTest: 0.45, side: THREE.DoubleSide });      /* solid (alpha-tested, writes depth): a transparent surface that does not write depth is overpainted by any glass drawn after it, even a farther one */ this.botGlowMat = mat(L(RACE_ASSETS.botPod), true);
+    this.botWrapMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botSide), alphaTest: 0.45, side: THREE.DoubleSide });      /* solid (alpha-tested, writes depth): a transparent surface that does not write depth is overpainted by any glass drawn after it, even a farther one */ this.botWrapGlow = mat(L(RACE_ASSETS.botSide), true);
     this.botLowMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botFlankLow), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botLowGlow = mat(L(RACE_ASSETS.botFlankLow), true);
     this.botTopMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botFlankTop), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botTopGlow = mat(L(RACE_ASSETS.botFlankTop), true); this.rampMat = mat(L(RACE_ASSETS.ramp), true); this.sphereMat = mat(L(RACE_ASSETS.sphere));
     this.plane = (w, h) => new THREE.PlaneGeometry(w, h);
@@ -75,7 +75,7 @@ class Race3D {
       // crown profile follows the body: from the tip it climbs along the slope of the nose (the cone's own top line), swells to the ridge of the roof over the middle, and comes back down to the stern; its width
       // tapers to a point at the nose with the cone and closes round at the stern. So the bulge of the windscreen goes down with the nose. Two shells (an outer and a slightly smaller inner one) give it a thickness;
       // it is dark smoked glass (72 % opaque; the roof pictures still show through, dimmed), with a faint cyan sheen and a bright reflected stripe down the crown.
-      { const NA2 = 56, NB2 = 14, zTip = -(endZ + 0.7), zN = -endZ, SD = 0.9, zB = endZ + SD, wx = aE * 0.96, topY = Y + 0.03 + (hS - 0.03) * 0.97, tipY = y0 + 0.18 * hE * 0.62 + 0.05, noseTop = y0 + 0.62 * hE + 0.04, lowY = y0 + 0.03, baseY = y0 + 0.5 * hE, sternTop = y0 + hE + 0.03;
+      { const NA2 = 56, NB2 = 14, zTip = -(endZ + 0.7), zN = -endZ, SD = 0.05, zB = endZ + SD, wx = aE * 0.96, topY = Y + 0.03 + (hS - 0.03) * 0.97, tipY = y0 + 0.18 * hE * 0.62 + 0.05, noseTop = y0 + 0.62 * hE + 0.04, lowY = y0 + 0.03, baseY = y0 + 0.5 * hE, sternTop = y0 + hE + 0.03;
         // the canopy now runs on OVER THE STERN DOME too (the user circled the hole between the windscreen and the dome): past the roof it follows the dome's own profile, an ellipse that comes down to the ground
         // 0.9 m behind, and closes round at its end.
         const centre = z => { if (z < zN) { const u = (z - zTip) / (zN - zTip); return y0 + 0.04 + (noseTop - y0 - 0.04) * Math.sqrt(Math.max(0, 1 - (1 - u) * (1 - u))); }
@@ -85,14 +85,17 @@ class Race3D {
                              if (z <= endZ) { const v = (z - zN) / (endZ - zN), base = Math.sqrt(1 - Math.pow((-zN - (endZ - 0.3)) / 1.0, 2)); return wx * (base + (1 - base) * Math.min(1, v / 0.22)); }
                              const w = Math.min(1, (z - endZ) / SD); return wx * Math.sqrt(Math.max(0, 1 - w * w)); };
         const floorY = z => { if (z < zN) return lowY + (baseY - lowY) * Math.pow((z - zTip) / (zN - zTip), 1.2); if (z <= endZ) return baseY; const w = Math.min(1, (z - endZ) / SD); return Math.min(baseY, lowY + (baseY - lowY) * (1 - w * w)); };
-        const dome = (kx, dy) => { const pos = [], idx = [];
-          for (let i = 0; i <= NA2; i++) { const z = zTip + (zB - zTip) * (i / NA2), w = width(z) * kx, c = centre(z) - dy, f = floorY(z);
+        // THE CANOPY STOPS AT THE CREST OF THE STERN DOME (the user: the left half of the back, bright and clear, is right; the right half was darker because the canopy covered it and not the other): it ends 0.05 m
+        // past the crest and leaves the whole face of the stern, both halves, uncovered (a longer tail of glass, 0.25 m, hung over the top of the face like a hood).
+        const dome = (kx, dy, ia, ib) => { const pos = [], idx = [];
+          for (let i = ia; i <= ib; i++) { const z = zTip + (zB - zTip) * (i / NA2), w = width(z) * kx, c = centre(z) - dy, f = floorY(z);
             for (let j = 0; j <= NB2; j++) { const ph = (j / NB2) * Math.PI; pos.push(-Math.cos(ph) * w, f + Math.max(0, c - f) * Math.sin(ph), z); } }
-          for (let i = 0; i < NA2; i++) for (let j = 0; j < NB2; j++) { const k = i * (NB2 + 1) + j; idx.push(k, k + 1, k + NB2 + 1, k + 1, k + NB2 + 2, k + NB2 + 1); }
+          for (let i = 0; i < ib - ia; i++) for (let j = 0; j < NB2; j++) { const k = i * (NB2 + 1) + j; idx.push(k, k + 1, k + NB2 + 1, k + 1, k + NB2 + 2, k + NB2 + 1); }
           const g3 = new THREE.BufferGeometry(); g3.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g3.setIndex(idx); g3.computeVertexNormals(); return g3; };
-        const smoke = new THREE.MeshLambertMaterial({ color: 0x03060c, emissive: 0x020812, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide }), sheen = new THREE.MeshBasicMaterial({ color: 0x35e6ff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-        const outer = dome(1, 0), inner = dome(0.94, 0.07);
-        const g2 = new THREE.Group(); g2.add(new THREE.Mesh(outer, smoke), new THREE.Mesh(inner, smoke), new THREE.Mesh(outer, sheen));
+        const smoke = new THREE.MeshLambertMaterial({ color: 0x03060c, emissive: 0x020812, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide }), smoke2 = new THREE.MeshLambertMaterial({ color: 0x03060c, emissive: 0x020812, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide });      // two shells, 0.6 and 0.5: 80 % dark in all (at 0.72 each they made 92 %)
+        const sheen = new THREE.MeshBasicMaterial({ color: 0x35e6ff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+        const g2 = new THREE.Group(), meshes = [new THREE.Mesh(dome(1, 0, 0, NA2), smoke), new THREE.Mesh(dome(0.94, 0.07, 0, NA2), smoke2), new THREE.Mesh(dome(1, 0, 0, NA2), sheen)];
+        meshes.forEach((m, k) => { m.renderOrder = 10 + (k === 2 ? 1 : 0); g2.add(m); });      // (transparent surfaces are sorted by distance: the canopy is always drawn after the pictures, or one half of the stern picture came out lighter than the other)
         this.bot.add(g2); this.bot.userData.canopy = g2; }                                                                   // (the bright stripe down the crown that was here is gone: the user wants only the glass)
       // THE ARMOURED SKIRT (the user circled the empty strip between the foot of the body and the rim line on the ground: 'remplir le vide avec une vitre aussi noir fume, un peu cristallisee et blindee'): a
       // band of smoked black glass all round the footprint, from the ground up to the foot of the flank pictures, leaning in a little. The glass is CRYSTALLISED: each segment is cut into flat facets with an
@@ -104,16 +107,16 @@ class Race3D {
         for (let i = 1; i <= 10; i++) { const ps = (i / 10) * Math.PI; path.push([aE * Math.cos(ps), -endZ - 0.7 * Math.sin(ps)]); }
         const pts = path.map(([x, z]) => [x * 0.92, z * 0.95]), H = 0.5, pos = [], plate = [], bolts = [];
         for (let i = 0; i < pts.length - 1; i++) { const [x1, z1] = pts[i], [x2, z2] = pts[i + 1], mx = (x1 + x2) / 2, mz = (z1 + z2) / 2, len = Math.hypot(x2 - x1, z2 - z1); if (len < 0.03) continue;
-          const nx = (z2 - z1) / len, nz = -(x2 - x1) / len, sgn = (mx * nx + mz * nz) >= 0 ? 1 : -1, crease = (i % 2 ? 0.05 : -0.03) * sgn, hT = H + 0.09 * Math.sin(i * 2.3), yB = y0 - 0.01, yM = y0 + hT * 0.52, yT = y0 + hT;
+          const nx = (z2 - z1) / len, nz = -(x2 - x1) / len, sgn = (mx * nx + mz * nz) >= 0 ? 1 : -1, crease = (i % 2 ? 0.05 : -0.03) * sgn, hT = H + 0.035 * Math.sin(i * 2.3), yB = y0 - 0.01, yM = y0 + hT * 0.52, yT = y0 + hT;
           const V = (x, z, y, k) => [x * k, y, z * k];
           const b1 = V(x1, z1, yB, 1), b2 = V(x2, z2, yB, 1), m1 = [x1 + nx * crease, yM, z1 + nz * crease], m2 = [x2 + nx * crease, yM, z2 + nz * crease], t1 = V(x1, z1, yT, 0.955), t2 = V(x2, z2, yT, 0.955);
           pos.push(...b1, ...b2, ...m2, ...b1, ...m2, ...m1, ...m1, ...m2, ...t2, ...m1, ...t2, ...t1);
           if (i % 3 === 0) bolts.push(Kit.cyl(0.035, 0.035, 0.05, mx * 0.995, y0 + 0.12, mz * 0.995, '#4a566e', { seg: 6 }));
           plate.push(Kit.box(0.05, 0.16, len * 0.98, mx * 1.003, y0 + 0.08, mz * 1.003, '#0e121d', { ry: Math.atan2(x2 - x1, z2 - z1) })); }
         const gs = new THREE.BufferGeometry(); gs.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gs.computeVertexNormals();
-        const glass = new THREE.MeshLambertMaterial({ color: 0x03050a, emissive: 0x02060f, flatShading: true, transparent: true, opacity: 0.92, side: THREE.DoubleSide, depthWrite: false });
+        const glass = new THREE.MeshLambertMaterial({ color: 0x03050a, emissive: 0x02060f, flatShading: true, transparent: true, opacity: 0.78, side: THREE.DoubleSide, depthWrite: false });
         const edge = new THREE.LineSegments(new THREE.EdgesGeometry(gs, 6), new THREE.LineBasicMaterial({ color: 0x5fdcff, transparent: true, opacity: 0.4 }));
-        const sk = new THREE.Group(); sk.add(new THREE.Mesh(gs, glass), edge); sk.add(Kit.mesh(Kit.merge(plate.concat(bolts)))); this.bot.add(sk); this.bot.userData.skirt = sk; }
+        const sk = new THREE.Group(); const mG = new THREE.Mesh(gs, glass); mG.renderOrder = 5; edge.renderOrder = 6; sk.add(mG, edge); sk.add(Kit.mesh(Kit.merge(plate.concat(bolts)))); this.bot.add(sk); this.bot.userData.skirt = sk; }
       // THE WELDED RIM: one continuous bright line (the 'baguette') round the whole footprint at the foot of the body: along the lower edge of the left flank, round the stern dome, back along the right flank and
       // round the nose to its tip, closed on itself, so the flanks' edge and the back's edge are one piece.
       { const path = [], ZS = 20; const A = z => wid(z);
