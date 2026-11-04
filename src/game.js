@@ -75,9 +75,17 @@ class Game {
     });
     addEventListener('resize', () => this.fit()); addEventListener('orientationchange', () => setTimeout(() => this.fit(), 200));
     this.fit();
-    let last = performance.now();
+    let last = performance.now(), probe = [], cap = 0;
+    // PERFORMANCE: phones with a 120 Hz (or 144 Hz) screen, as most recent Xiaomi / Redmi are, call this loop twice as often as a 60 Hz phone, and the game drew a full frame every time: twice the work for
+    // the same game. The loop measures the screen's rate over its first 40 frames and, on a screen faster than 100 Hz, draws at most about 60 frames a second (it skips the frames that come early). The game's
+    // clock is the real time, so nothing runs faster or slower. ?fps=0 turns the cap off, ?fps=N sets it.
+    const fq = typeof location !== 'undefined' && location.search.match(/[?&]fps=(\d+)/), fixed = fq ? +fq[1] : -1;
+    this.frameCap = () => cap;
     const loop = now => {
       requestAnimationFrame(loop); // re-arm first so one bad frame can never freeze the game
+      if (fixed >= 0) cap = fixed ? 1000 / fixed - 1 : 0;
+      else if (probe.length < 40) { probe.push(now); if (probe.length === 40) { const d = probe.slice(1).map((t, i) => t - probe[i]).sort((x, y) => x - y)[19]; cap = d < 10 ? 1000 / 60 - 1.5 : 0; } }
+      if (cap && now - last < cap) return;                                            // too early on a fast screen: skip this one
       const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;   // never negative: the first frame's timestamp can precede the clock read at start-up, which used to send the game clock below zero (and hid the pickup sparkle, whose pool marks unused slots with t < 0)
       this.advance(dt); this.draw(dt);
     };
@@ -98,10 +106,11 @@ class Game {
     this.cv.style.width = VW * s + 'px'; this.cv.style.height = VH * s + 'px';
     this.fitTouch();
   }
-  // the smooth touch layer (canvas #touch, see Renderer.touchLayer): the same place and size on the page as the screen canvas, one canvas pixel per device pixel (pointer events go through it to the screen canvas)
+  // the smooth touch layer (canvas #touch, see Renderer.touchLayer): the same place and size on the page as the screen canvas, one canvas pixel per device pixel up to 2 (a 2.75 phone at full density
+  // made a canvas of 3 million pixels redrawn and composited on every frame) (pointer events go through it to the screen canvas)
   fitTouch() {
     const t = typeof document !== 'undefined' && document.getElementById('touch'); if (!t) return;
-    const r = this.cv.getBoundingClientRect(), dpr = Math.max(1, window.devicePixelRatio || 1), m = r.width * TOUCH_OUT / VW, w = Math.max(1, Math.round((r.width + 2 * m) * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    const r = this.cv.getBoundingClientRect(), dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1)), m = r.width * TOUCH_OUT / VW, w = Math.max(1, Math.round((r.width + 2 * m) * dpr)), h = Math.max(1, Math.round(r.height * dpr));
     t.style.left = (r.left - m) + 'px'; t.style.top = r.top + 'px'; t.style.width = (r.width + 2 * m) + 'px'; t.style.height = r.height + 'px'; if (t.width !== w) t.width = w; if (t.height !== h) t.height = h;
   }
 

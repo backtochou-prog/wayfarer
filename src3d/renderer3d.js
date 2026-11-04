@@ -22,6 +22,15 @@ class Renderer3D {
     this.renderer = new THREE.WebGLRenderer({ canvas: gl, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));   // keeps fill-rate modest on high-DPI phones
     this.scene = new THREE.Scene();
+    // PERFORMANCE: the scene holds about 8 500 pooled groups (props, hazards, coins: about 24 000 objects in all) of which only a hundred or two are shown at any moment. three.js walks EVERY object and
+    // recomputes its world matrix on each frame, hidden or not: a third of the frame on a phone. The scene's own walk skips the hidden groups (a group shown again gets its matrix the frame it reappears,
+    // since its position was just set and its parent is the scene itself). `Renderer3D.cullHidden = false` turns it off.
+    this.scene.updateMatrixWorld = function (force) {
+      if (this.matrixAutoUpdate) this.updateMatrix();
+      if (this.matrixWorldNeedsUpdate || force) { this.matrixWorld.copy(this.matrix); this.matrixWorldNeedsUpdate = false; force = true; }
+      const kids = this.children, all = Renderer3D.cullHidden === false;
+      for (let i = 0, n = kids.length; i < n; i++) { const c = kids[i]; if (all || c.visible) c.updateMatrixWorld(force); }
+    };
     this.camera = new THREE.PerspectiveCamera(62, 16 / 9, 0.1, 400);
     this.scene.fog = new THREE.Fog(base.fog.color, base.fog.near, base.fog.far);
     this.scene.background = new THREE.Color(base.fog.color);
@@ -289,7 +298,21 @@ class Renderer3D {
     const o = pool[n]; o.position.set(x, y, z); o.rotation.y = rotY; if (sc || o.scale.x !== 1) o.scale.setScalar(sc || 1); o.visible = true;
   }
 
+  // PERFORMANCE, adaptive resolution: if frames keep coming slowly (over 28 ms on average for 1.5 s: under about 36 frames a second) the 3D picture is drawn at a lower resolution, step by step down to
+  // 0.7 device pixels per CSS pixel; when it is fast again for 5 s it climbs back to its usual 1.5. A phone with a weak GPU stays fluid instead of crawling. Off in automated browsers (tests compare
+  // pictures), unless the page has ?adapt=1; ?adapt=0 turns it off.
+  adapt() {
+    const now = performance.now(), d = this._at ? now - this._at : 16.7; this._at = now;
+    if (this._adOn === undefined) { const q = typeof location !== 'undefined' && location.search.match(/[?&]adapt=(\d)/); this._adOn = q ? q[1] === '1' : !(typeof navigator !== 'undefined' && navigator.webdriver); this._prMax = this.renderer.getPixelRatio(); this._ema = 16.7; this._slow = 0; this._fast = 0; }
+    if (!this._adOn || d > 250) return;                                                             // (a pause, a hidden tab, a hitch at load: not a measure)
+    this._ema += (d - this._ema) * 0.08;
+    if (this._ema > 28) { this._slow += d; this._fast = 0; } else if (this._ema < 17.5) { this._fast += d; this._slow = 0; } else { this._slow = 0; this._fast = 0; }
+    const pr = this.renderer.getPixelRatio();
+    if (this._slow > 1500 && pr > 0.7) { this.renderer.setPixelRatio(Math.max(0.7, pr - 0.2)); this.resize(); this._slow = 0; this._ema = 20; this.adaptSteps = (this.adaptSteps || 0) + 1; }
+    else if (this._fast > 5000 && pr < this._prMax) { this.renderer.setPixelRatio(Math.min(this._prMax, pr + 0.1)); this.resize(); this._fast = 0; }
+  }
   draw(g) {
+    this.adapt();
     if (g.state === 'race' && g.race) {                                                              // the race zone: its own scene (src3d/race3d.js) on the same renderer, under the pixel HUD
       if (!this.race3d) this.race3d = new Race3D(); if (g.state !== 'pause') this.lastT = g.time;
       this.race3d.draw(g, this.renderer); this.uiCtx.clearRect(0, 0, VW, VH); this.ui.drawUI(g); return;

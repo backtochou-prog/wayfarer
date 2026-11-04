@@ -289,8 +289,8 @@ class Renderer {
     const c = L.ctx, k = L.cv.width / (VW + 2 * TOUCH_OUT), cx = t.x + (t.w >> 1), cy = t.y + (t.h >> 1), f = t.id === 'pause' ? 22 : 42, s = f * (1 + 0.1 * p);
     c.setTransform(k, 0, 0, k, TOUCH_OUT * k, 0); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
     c.globalAlpha = (0.8 + 0.2 * p) * fade;
-    if (p > 0.02) { c.shadowColor = 'rgba(214,120,255,0.95)'; c.shadowBlur = 12 * k * p; }
-    c.drawImage(L.img, cx - s / 2, cy - s / 2, s, s); c.shadowBlur = 0; c.shadowColor = 'rgba(0,0,0,0)';
+    if (p > 0.02) { const s2 = s * (1 + 0.18 * p); c.globalAlpha = 0.35 * p * fade; c.drawImage(L.img, cx - s2 / 2, cy - s2 / 2, s2, s2); c.globalAlpha = (0.8 + 0.2 * p) * fade; }      // the glow of a held button: the ring drawn once more, larger and faint (the canvas blur it replaced is very slow on phone GPUs)
+    c.drawImage(L.img, cx - s / 2, cy - s / 2, s, s);
     // the symbol: a soft dark shadow, then the light shape, both with rounded corners (a stroke of the same colour round the polygon)
     const poly = pts => { c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); };
     const bars = () => { for (const x of [-4.4, 1.4]) { c.beginPath(); if (c.roundRect) c.roundRect(x, -4.6, 3, 9.2, 1.1); else c.rect(x, -4.6, 3, 9.2); c.fill(); c.stroke(); } };
@@ -303,13 +303,16 @@ class Renderer {
   }
   drawTouch(g) {
     const L = this.touchLayer();
-    if (L && L.dirty) { L.ctx.setTransform(1, 0, 0, 1, 0, 0); L.ctx.clearRect(0, 0, L.cv.width, L.cv.height); L.dirty = false; }
-    if (!g.touch || (g.state !== 'play' && g.state !== 'race')) { if (L) L.t = null; return; }
+    if (!g.touch || (g.state !== 'play' && g.state !== 'race')) { if (L) { if (L.dirty) { L.ctx.setTransform(1, 0, 0, 1, 0, 0); L.ctx.clearRect(0, 0, L.cv.width, L.cv.height); L.dirty = false; } L.t = null; L.sig = null; } return; }
     const sm = L && L.img.complete && L.img.naturalWidth ? L : null;
     if (sm) {
       const now = performance.now(); if (now - sm.syncT > 500 && g.fitTouch) { g.fitTouch(); sm.syncT = now; }                // (keeps the layer on the screen canvas, whatever the layout does)
-      const dt = sm.t === null ? 1 : Math.max(0, Math.min(0.1, g.time - sm.t)); sm.t = g.time; sm.dirty = true; this._fade = 1 - (g.fadeIn > 0 ? Math.min(1, g.fadeIn * g.fadeIn) : 0);
+      const dt = sm.t === null ? 1 : Math.max(0, Math.min(0.1, g.time - sm.t)); sm.t = g.time; this._fade = 1 - (g.fadeIn > 0 ? Math.min(1, g.fadeIn * g.fadeIn) : 0);
       for (const id of ['left', 'right', 'slide', 'jump', 'pause']) { const target = Object.values(g.held).includes(id) ? 1 : 0, p = sm.press[id] || 0; sm.press[id] = p + (target - p) * (1 - Math.exp(-18 * dt)); }
+      // PERFORMANCE: the layer is cleared and redrawn only when something on it changed (a button easing in or out, the fade, a resize), not on every frame: a still layer costs nothing
+      const sig = ['left', 'right', 'slide', 'jump', 'pause'].map(id => (sm.press[id] || 0).toFixed(2)).join() + '|' + this._fade.toFixed(2) + '|' + sm.cv.width + 'x' + sm.cv.height;
+      sm.redraw = sig !== sm.sig; sm.sig = sig;
+      if (sm.redraw) { sm.ctx.setTransform(1, 0, 0, 1, 0, 0); sm.ctx.clearRect(0, 0, sm.cv.width, sm.cv.height); sm.dirty = true; sm.draws = (sm.draws || 0) + 1; }
     }
     const c = this.ctx, on = new Set(Object.values(g.held));
     if (!this.touchImg && typeof TOUCH_ART !== 'undefined') { this.touchImg = new Image(); this.touchImg.src = TOUCH_ART.src; }
@@ -321,7 +324,7 @@ class Renderer {
         c.fillStyle = C.amberD; c.fillRect(t.x, t.y, t.w, 1); c.fillRect(t.x, t.y + t.h - 1, t.w, 1); c.globalAlpha = 1;
         this.scooterGlyph(t.x + 4, t.y + 5, C.bone); this.txt('HOP OFF', t.x + 20, t.y + 8, C.bone, 1); continue;
       }
-      if (sm) { this.smoothButton(sm, g, t, sm.press[t.id] || 0, this._fade); continue; }
+      if (sm) { if (sm.redraw) this.smoothButton(sm, g, t, sm.press[t.id] || 0, this._fade); continue; }
       const hot = on.has(t.id), cx = t.x + (t.w >> 1), cy = t.y + (t.h >> 1);
       if (art) {
         const f = t.id === 'pause' ? TOUCH_ART.small : TOUCH_ART.big, k = hot ? 1.1 : 1, w = Math.round(f.w * k), h = Math.round(f.h * k);
