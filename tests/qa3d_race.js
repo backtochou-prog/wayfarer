@@ -63,7 +63,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const TT = await pt.evaluate(() => { const g = __wf; g.touch = true; g.start(); for (let i = 0; i < 260; i++) g.advance(1 / 60); const sc = document.getElementById('screen').getBoundingClientRect(); return { x: sc.left + sc.width * (60 / 320), y: sc.top + sc.height * (158 / 180), state: g.state, lane: g.race.p.lane, drawn: (() => { g.r.draw(g); return g.r.ui.touchLayer() ? g.r.ui.touchLayer().dirty : null; })() }; });
   await pt.touchscreen.tap(TT.x + 20, TT.y); await pt.waitForTimeout(250);
   const T2 = await pt.evaluate(() => { const g = __wf; for (let i = 0; i < 30; i++) g.advance(1 / 60); return { lane: g.race.p.lane, state: g.state }; });
-  T('on a phone the race shows the touch buttons (layer drawn ' + TT.drawn + ') and a tap on the right button moves the car from lane ' + TT.lane + ' to ' + T2.lane, TT.state === 'race' && TT.drawn === true && T2.lane === 1 && pt.errs.length === 0, JSON.stringify({ TT, T2, errs: pt.errs.slice(0, 2) }));
+  T('on a phone the race shows the touch buttons (layer drawn ' + TT.drawn + ') and a tap on the right button moves the car one lane to the right (from ' + TT.lane + ' to ' + T2.lane + ')', TT.state === 'race' && TT.drawn === true && T2.lane === TT.lane + 1 && pt.errs.length === 0, JSON.stringify({ TT, T2, errs: pt.errs.slice(0, 2) }));
 
   // ---- the race zone's own music: its own file and beat map, it takes the mix over while a race runs and gives the clock back after
   const MU = await pz.evaluate(async () => {
@@ -89,8 +89,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   // ---- the start: the two cars side by side on the line
   const ST = await pz.evaluate(() => { const g = __wf; g.start(); g.advance(1 / 60); const R = g.race;
     return { pS: R.p.s, bS: R.bot.s, pX: +R.p.x.toFixed(2), bX: +R.bot.x.toFixed(2), lane: RACE.LANE_M, cd: +R.cd.toFixed(1) }; });
-  T('the two cars start SIDE BY SIDE on the line (both at ' + ST.pS + ' m, the player at x ' + ST.pX + ' and the robot one lane away at ' + ST.bX + '), held by the countdown',
-    ST.pS === 0 && ST.bS === 0 && Math.abs(ST.pX) < 0.01 && Math.abs(Math.abs(ST.bX) - ST.lane) < 0.3 && ST.cd > 2, JSON.stringify(ST));
+  T('the two cars start SIDE BY SIDE on the line (both at ' + ST.pS + ' m, one at each side of the track: the player at x ' + ST.pX + ', the robot at ' + ST.bX + ', a lane of road between them), held by the countdown',
+    ST.pS === 0 && ST.bS === 0 && Math.abs(ST.pX + ST.lane) < 0.3 && Math.abs(ST.bX - ST.lane) < 0.3 && Math.abs(ST.bX - ST.pX) > ST.lane * 1.8 && ST.cd > 2, JSON.stringify(ST));
 
   // ---- the engine of the race cars, and the back of the robot's car as an obstacle
   const EN = await pz.evaluate(() => {

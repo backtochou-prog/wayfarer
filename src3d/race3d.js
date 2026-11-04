@@ -51,8 +51,8 @@ class Race3D {
       const back = this.plane(W, hP), side = this.plane(L2, hS);
       piece(back, this.botMat, this.botGlowMat, [0, Y + hP / 2, L2 / 2 - 0.1], 0, false);                                   // the tail, facing the player behind
       piece(back, this.botMat, this.botGlowMat, [0, Y + hP / 2, -L2 / 2 + 0.1], Math.PI, false);                            // the nose
-      piece(side, this.botSideMat, this.botSideGlow, [-W / 2 + 0.05, Y + hS / 2, 0], -Math.PI / 2, true);                    // the LEFT flank (the user's picture is the left side: mirrored here so its nose points the way the pod runs)
-      piece(side, this.botSideMat, this.botSideGlow, [W / 2 - 0.05, Y + hS / 2, 0], Math.PI / 2, false);                      // and the right flank, the same picture seen from the other side
+      piece(side, this.botSideMat, this.botSideGlow, [-W / 2 + 0.05, Y + hS / 2, 0], -Math.PI / 2, false);                   // the LEFT flank: the user's picture as it is (it IS the left side of the car)
+      piece(side, this.botSideMat, this.botSideGlow, [W / 2 - 0.05, Y + hS / 2, 0], Math.PI / 2, true);                       // the right flank: the same picture mirrored, so the nose points the same way on both sides
       this.bot.add(this.botTop(W, L2, Y + hS, hS));                                                                          // the TOP, modelled to fill what the four pictures leave open
       const bh = new THREE.Mesh(this.plane(W * 1.3, hP * 1.6), this.botHalo); bh.position.set(0, Y + hP / 2, L2 / 2 - 0.15); this.bot.add(bh); this.bot.userData.halo = bh;
       const gl = new THREE.Mesh(this.plane(W * 1.1, L2 * 0.9), this.botGlow); gl.rotation.x = -Math.PI / 2; gl.position.y = 0.02; this.bot.add(gl);
