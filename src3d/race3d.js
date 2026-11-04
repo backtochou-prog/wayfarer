@@ -51,15 +51,22 @@ class Race3D {
         g2.position.set(pos[0], pos[1], pos[2]); g2.rotation.y = rotY; if (mirror) g2.scale.x = -1; this.bot.add(g2); return g2;
       };
       const back = this.plane(W * 0.82, hP), side = this.plane(L2, hS);
-      piece(back, this.botMat, this.botGlowMat, [0, Y + hP / 2, L2 / 2 - 0.1], 0, false);                                   // the tail, facing the player behind
       // THE NOSE IS POINTED (the user's ask): the head-on picture is split down the middle and its two halves are swept back from a tip on the axis, like the prow of a ship, so that from above the front of the
       // car is a V and not a flat face. Each half keeps its own half of the picture (the left half on the left, the right half on the right), still lit.
       const SWEEP = 1.7, WN = W * 0.82, tipZ = -L2 / 2 - SWEEP + 0.1, cornerZ = -L2 / 2 + 0.1, len = Math.hypot(WN / 2, SWEEP), ang = Math.atan2(SWEEP, WN / 2);
+      const half2 = (u0, u1, ln) => { const g3 = new THREE.PlaneGeometry(ln, hP), uv = g3.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setX(k, u0 + uv.getX(k) * (u1 - u0)); uv.needsUpdate = true; return g3; };
       const half = (u0, u1) => { const g3 = new THREE.PlaneGeometry(len, hP), uv = g3.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setX(k, u0 + uv.getX(k) * (u1 - u0)); uv.needsUpdate = true; return g3; };
       const prow = (sx, u0, u1) => { const g3 = half(u0, u1), g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botMat));
         for (const dz of [0.012, 0.024]) { const lit = new THREE.Mesh(g3, this.botGlowMat); lit.position.z = dz; g2.add(lit); }
         g2.position.set(sx * WN / 4, Y + hP / 2, (tipZ + cornerZ) / 2); g2.rotation.y = -sx * ang; this.bot.add(g2); return g2; };
       prow(-1, 0, 0.5); prow(1, 0.5, 1);
+      // THE STERN follows the flanks (the user: 'adapter les flancs avec le dos'): the tail picture is no longer a flat wall across the back, which stuck out past the narrowing sides. Split like the nose, its halves
+      // are swept back a little from a rounded tip on the axis (0.9 m) so the body closes on itself like a drop, from the flanks to the rear.
+      const SW2 = 0.9, tipT = L2 / 2 - 0.1 + SW2, cornT = L2 / 2 - 0.1, lenT = Math.hypot(WN / 2, SW2), angT = Math.atan2(SW2, WN / 2);
+      const stern = (sx, u0, u1) => { const g3 = half2(u0, u1, lenT), g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botMat));
+        for (const dz of [0.012, 0.024]) { const lit = new THREE.Mesh(g3, this.botGlowMat); lit.position.z = dz; g2.add(lit); }
+        g2.position.set(sx * WN / 4, Y + hP / 2, (tipT + cornT) / 2); g2.rotation.y = sx * angT; this.bot.add(g2); return g2; };
+      stern(-1, 0, 0.5); stern(1, 0.5, 1);
       // THE ROUNDED BODY (the user: 'adapter les flancs avec le haut avec un look rendu ou bombe'): the flank picture, which holds the upper half of its side too, is no longer a flat plane with the roof leaned
       // against it. It is WRAPPED over a rounded shell: along the length the width swells in the middle and narrows to both ends (a barrel seen from above), across it the picture climbs a quarter ellipse from the
       // outer lower edge (its bottom) up to the middle of the roof (its top), where the twin from the other side meets it. The left is the picture as drawn, the right its mirror. The nose and tail pictures are
