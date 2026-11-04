@@ -51,8 +51,9 @@ class Race3D {
       const back = this.plane(W, hP), side = this.plane(L2, hS);
       piece(back, this.botMat, this.botGlowMat, [0, Y + hP / 2, L2 / 2 - 0.1], 0, false);                                   // the tail, facing the player behind
       piece(back, this.botMat, this.botGlowMat, [0, Y + hP / 2, -L2 / 2 + 0.1], Math.PI, false);                            // the nose
-      piece(side, this.botSideMat, this.botSideGlow, [-W / 2 + 0.05, Y + hS / 2, 0], -Math.PI / 2, false);                   // the two flanks
-      piece(side, this.botSideMat, this.botSideGlow, [W / 2 - 0.05, Y + hS / 2, 0], Math.PI / 2, false);
+      piece(side, this.botSideMat, this.botSideGlow, [-W / 2 + 0.05, Y + hS / 2, 0], -Math.PI / 2, true);                    // the LEFT flank (the user's picture is the left side: mirrored here so its nose points the way the pod runs)
+      piece(side, this.botSideMat, this.botSideGlow, [W / 2 - 0.05, Y + hS / 2, 0], Math.PI / 2, false);                      // and the right flank, the same picture seen from the other side
+      this.bot.add(this.botTop(W, L2, Y + hS, hS));                                                                          // the TOP, modelled to fill what the four pictures leave open
       const bh = new THREE.Mesh(this.plane(W * 1.3, hP * 1.6), this.botHalo); bh.position.set(0, Y + hP / 2, L2 / 2 - 0.15); this.bot.add(bh); this.bot.userData.halo = bh;
       const gl = new THREE.Mesh(this.plane(W * 1.1, L2 * 0.9), this.botGlow); gl.rotation.x = -Math.PI / 2; gl.position.y = 0.02; this.bot.add(gl);
       this.bot.userData.pic = this.bot; }
@@ -107,6 +108,19 @@ class Race3D {
     p.push(Kit.box(2.4, 0.05, 4.4, 0, 0.05, 0.1, '#19f0e0', { glow: true }), Kit.box(0.12, 0.12, 5.0, -1.1, 0.5, 0.1, '#19f0e0', { glow: true }), Kit.box(0.12, 0.12, 5.0, 1.1, 0.5, 0.1, '#19f0e0', { glow: true }));       // the electric field under the pod and two turquoise lines of light along its flanks
     const m = Kit.merge(p); g.add(Kit.mesh(m)); return g;
   }
+  // the TOP of the robot's car, modelled to close the pod between its four pictures: a shallow dark shell in the colours of the drawings (near-black blue), with the magenta cells of the flanks glowing on it,
+  // a green rim line all round and a thin cyan line down the middle.
+  botTop(W, L, yTop, h) {
+    const p = [], dark = '#0d1526', cell = '#c01ea8', rim = '#19e08a', line = '#35e6ff', yc = yTop - h * 0.42, w2 = W * 0.33, l2 = L * 0.38;
+    p.push(Kit.ico(1, 0, yc, 0, dark, { sx: w2, sy: h * 0.2, sz: l2, detail: 1 }));                                          // the shell that closes the pod
+    for (let k = 0; k < 7; k++) { const u = (k - 3) / 3.4, z = u * l2 * 1.3, x = (k % 2 ? 0.42 : -0.38) * w2 * (1 - Math.abs(u) * 0.5);
+      p.push(Kit.ico(0.1 + 0.05 * Math.cos(k), x, yc + h * 0.16, z, cell, { sx: 1.6, sy: 0.25, sz: 2.2, glow: true, detail: 0 })); }       // its magenta cells, as on the flanks
+    for (const sx of [-1, 1]) p.push(Kit.box(0.05, 0.05, l2 * 1.5, sx * w2 * 0.92, yc + h * 0.05, 0, rim, { glow: true }));
+    p.push(Kit.box(w2 * 1.5, 0.05, 0.05, 0, yc + h * 0.05, -l2 * 0.78, rim, { glow: true }), Kit.box(w2 * 1.5, 0.05, 0.05, 0, yc + h * 0.05, l2 * 0.78, rim, { glow: true }));
+    p.push(Kit.box(0.05, 0.04, l2 * 1.4, 0, yc + h * 0.2, 0, line, { glow: true }));
+    return Kit.mesh(Kit.merge(p));
+  }
+
   // a droid: a black glossy powerful body (huge shoulders), green glowing chest core, cyan fists, green shoes, a small yellow face light; faces +z (towards the car); legs and arms swing on pivots
   // THE DROID is the user's own picture (the black android with its green core and its cyan fists), standing on the road and facing the car, with an additive copy over it so its lights are lit and a green glow at its feet.
   buildDroid() {

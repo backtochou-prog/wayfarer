@@ -9,7 +9,9 @@ REAR = '7195575a'      # the user's material for the BACK of the player's car (n
 CARS = {'carSide': '9dd4430e', 'car34': '4b59b77e', 'carFront': 'f312573c', 'carBack': '0b91946f', 'bot34': '014422de', 'botShell': '8aa21757'}      # carBack: the user's view of the BACK of the player's car (the green light bar, the red lines, the blue body and its magenta glow): the piece the chase camera sees      # the user's cars, kept as they are (drawn additively, so their black background disappears on the race's black road)
 def uri(im):
     b = io.BytesIO(); im.save(b, 'WEBP', quality=88, method=6); return 'data:image/webp;base64,' + base64.b64encode(b.getvalue()).decode()
-AR = {}                                 # the proportions of each cut-out, so the game can hang the picture as it is
+AR = {}
+def fit_rect(im, n=384):      # the cars, the droid: no padding, so the picture fills its plane in the game and its size is its own (fit() pads to a square, which shrank them inside their plane)
+    im = im.copy(); im.thumbnail((n, n), Image.LANCZOS); return im                                 # the proportions of each cut-out, so the game can hang the picture as it is
 def fit(im, n=256):
     im = im.copy(); im.thumbnail((n, n), Image.LANCZOS); c = Image.new('RGBA', (n, n), (0, 0, 0, 0)); c.alpha_composite(im, ((n - im.width) // 2, (n - im.height) // 2)); return c
 def from_black(im):
@@ -38,14 +40,14 @@ for k, cid in CARS.items():
     c = Image.fromarray(_np.dstack([_a2[..., :3], _np.minimum(_a2[..., 3], _np.clip(_m2 * 6, 0, 255))]).astype(_np.uint8), 'RGBA')
     bb = c.getbbox(); c = c.crop(bb) if bb else c
     AR[k] = round(c.width / c.height, 4)
-    res[k] = uri(fit(c, 384))
+    res[k] = uri(fit_rect(c, 384) if k in ('carBack', 'car34', 'carSide', 'carFront', 'bot34') else fit(c, 384))
 _dr = Image.open(f'{U}/c864b4e4-image.png').convert('RGBA')                 # the user's DROID (the obstacle that runs at the car): it carries its own alpha, keep it as it is
-_dr = _dr.crop(_dr.getbbox()); res['droid'] = uri(fit(_dr, 384)); AR['droid'] = round(_dr.width / _dr.height, 4)
+_dr = _dr.crop(_dr.getbbox()); res['droid'] = uri(fit_rect(_dr, 384)); AR['droid'] = round(_dr.width / _dr.height, 4)
 _sd = Image.open(f'{U}/7f1540a6-image.png').convert('RGBA')                 # the SIDE of the robot's car (its own alpha): hung on both flanks of the pod
-_sd = _sd.crop(_sd.getbbox()); res['botSide'] = uri(fit(_sd, 384)); AR['botSide'] = round(_sd.width / _sd.height, 4)
+_sd = _sd.crop(_sd.getbbox()); res['botSide'] = uri(fit_rect(_sd, 384)); AR['botSide'] = round(_sd.width / _sd.height, 4)
 _pod = Image.open(f'{U}/2f7a0cb6-image.png').convert('RGBA')                 # the user's last picture of the ROBOT's car (the magnetic pod seen head on): it already carries its own alpha, so keep it as it is
 _pod = _pod.crop(_pod.getbbox())
-res['botPod'] = uri(fit(_pod, 384)); AR['botPod'] = round(_pod.width / _pod.height, 4)
+res['botPod'] = uri(fit_rect(_pod, 384)); AR['botPod'] = round(_pod.width / _pod.height, 4)
 rr = Image.open(f'{U}/{REAR}-image.png').convert('RGB')                      # white background out, and the black frame of the drawing with it: keep the painted part
 _r = _np.asarray(rr).astype(_np.float32); _white = (_r.min(axis=2) > 170); _black = (_r.max(axis=2) < 26)
 _al = _np.where(_white | _black, 0, 255).astype(_np.uint8)
