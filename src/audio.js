@@ -82,31 +82,36 @@ class GameAudio {
   }
   toggle() { this.setMuted(!this.muted); }
 
-  // ---- THE RACE CARS' ENGINE: a powerful electric motor, synthesised and held while a race runs (no file): two detuned saw oscillators an octave apart through a low-pass that opens with the speed, a sub sine,
-  // a thin ring-modulated whine over it (the "spatial" edge) and a breath of filtered noise. Its pitch and its cut follow the car's speed, it growls on a hit and howls on a boost; it fades in and out with the race.
-  engine(on, k = 0, boost = 0, hurt = 0) {
+  // ---- THE RACE CARS' ENGINE: the drive of a sophisticated spacecraft, electric and smooth, synthesised and held while a race runs (no file). It is meant to sit UNDER the music: a sine body with a triangle
+  // beating just beside it, its octave, a sub for the weight, a high shimmer that comes and goes on a slow LFO, a slow drift of the pitch (the drive breathes) and a breath of filtered air whose colour moves.
+  // Nothing sharp: no saw, no ring-modulated whine (the first version had both and they grated). Pitch, cut and shimmer follow the car's speed, open on a boost and drop on a hit.
+  engine(on, k = 0, boost = 0, hurt = 0, level = 1) {
     if (!this.ctx || !this.unlocked) return;
-    if (!on) { if (this.eng) { const e = this.eng; this.eng = null; try { e.gain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.25); setTimeout(() => { try { e.nodes.forEach(n => n.stop && n.stop()); } catch (err) {} }, 1200); } catch (err) {} } return; }
+    if (!on) { if (this.eng) { const e = this.eng; this.eng = null; try { e.gain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.3); setTimeout(() => { try { e.nodes.forEach(n => n.stop && n.stop()); } catch (err) {} }, 1400); } catch (err) {} } return; }
     const c = this.ctx, t = c.currentTime;
     if (!this.eng) {
       const gain = c.createGain(); gain.gain.value = 0; gain.connect(this.master);
-      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500; lp.Q.value = 6; lp.connect(gain);
-      const mk = (type, f, g2, dest) => { const o = c.createOscillator(), gg = c.createGain(); o.type = type; o.frequency.value = f; gg.gain.value = g2; o.connect(gg); gg.connect(dest || lp); o.start(); return [o, gg]; };
-      const [o1, g1] = mk('sawtooth', 70, 0.5), [o2, g2b] = mk('sawtooth', 70.9, 0.45), [o3, g3] = mk('square', 35, 0.3);
-      const sub = c.createOscillator(), subG = c.createGain(); sub.type = 'sine'; sub.frequency.value = 35; subG.gain.value = 0.5; sub.connect(subG); subG.connect(gain); sub.start();
-      const whine = c.createOscillator(), wG = c.createGain(), wf = c.createBiquadFilter(); whine.type = 'triangle'; whine.frequency.value = 900; wf.type = 'bandpass'; wf.frequency.value = 1800; wf.Q.value = 8; wG.gain.value = 0.05; whine.connect(wf); wf.connect(wG); wG.connect(gain); whine.start();
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500; lp.Q.value = 0.9; lp.connect(gain);
+      const osc = (type, f, g2, dest) => { const o = c.createOscillator(), gg = c.createGain(); o.type = type; o.frequency.value = f; gg.gain.value = g2; o.connect(gg); gg.connect(dest || lp); o.start(); return [o, gg]; };
+      const [o1] = osc('sine', 70, 0.5), [o2] = osc('triangle', 70.4, 0.26), [o3] = osc('sine', 140, 0.12);                 // the body: a sine, a triangle just beside it (they beat slowly) and its octave
+      const [sub, subG] = osc('sine', 35, 0.42, gain);                                                                      // the sub, straight to the output: the weight of the thing
+      const [sh, shG] = osc('sine', 350, 0.0, gain);                                                                        // the shimmer: a high partial that comes and goes (the "sophisticated" edge of a ship, not a whine)
+      const lfo = c.createOscillator(), lfoG = c.createGain(); lfo.type = 'sine'; lfo.frequency.value = 0.27; lfoG.gain.value = 0.018; lfo.connect(lfoG); lfoG.connect(shG.gain); lfo.start();
+      const vib = c.createOscillator(), vibG = c.createGain(); vib.type = 'sine'; vib.frequency.value = 0.16; vibG.gain.value = 1.2; vib.connect(vibG); vibG.connect(o1.frequency); vibG.connect(o2.frequency); vib.start();      // a slow drift of the pitch: the drive breathes
       const n = c.createBufferSource(), nb = c.createBuffer(1, c.sampleRate, c.sampleRate), nd = nb.getChannelData(0);
       for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * 0.6;
-      n.buffer = nb; n.loop = true; const nf = c.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 1200; nf.Q.value = 0.7; const nG = c.createGain(); nG.gain.value = 0.05; n.connect(nf); nf.connect(nG); nG.connect(gain); n.start();
-      this.eng = { gain, lp, o1, o2, o3, sub, whine, wG, nG, nodes: [o1, o2, o3, sub, whine, n] };
+      n.buffer = nb; n.loop = true; const nf = c.createBiquadFilter(); nf.type = 'lowpass'; nf.frequency.value = 700; nf.Q.value = 0.6; const nG = c.createGain(); nG.gain.value = 0.01; n.connect(nf); nf.connect(nG); nG.connect(gain); n.start();     // the air of the drive
+      const nl = c.createOscillator(), nlG = c.createGain(); nl.type = 'sine'; nl.frequency.value = 0.11; nlG.gain.value = 220; nl.connect(nlG); nlG.connect(nf.frequency); nl.start();
+      this.eng = { gain, lp, o1, o2, o3, sub, subG, sh, shG, nG, nf, nodes: [o1, o2, o3, sub, sh, n, lfo, vib, nl] };
     }
-    const e = this.eng, f0 = 52 + 120 * k + 40 * boost, set = (p2, v) => p2.setTargetAtTime(v, t, 0.08);
-    set(e.o1.frequency, f0); set(e.o2.frequency, f0 * 1.013); set(e.o3.frequency, f0 * 0.5); set(e.sub.frequency, f0 * 0.5);
-    set(e.lp.frequency, 320 + 2600 * k + 1400 * boost); set(e.whine.frequency, 760 + 1500 * k + 600 * boost);
-    set(e.wG.gain, 0.03 + 0.07 * boost); set(e.nG.gain, 0.03 + 0.06 * k);
-    e.want = { f0: +f0.toFixed(1), cut: +(320 + 2600 * k + 1400 * boost).toFixed(0), k: +k.toFixed(3) };          // what the engine is being driven to (the nodes glide there; tests read this)
-    set(e.gain.gain, (hurt ? 0.07 : 0.1 + 0.05 * k) * (this.muted ? 0 : 1) * this.musicVol * 1.1 + 0.02);
+    const e = this.eng, f0 = 44 + 70 * k + 22 * boost, set = (p2, v) => p2.setTargetAtTime(v, t, 0.1);
+    set(e.o1.frequency, f0); set(e.o2.frequency, f0 * 1.006); set(e.o3.frequency, f0 * 2); set(e.sub.frequency, f0 * 0.5);
+    set(e.sh.frequency, f0 * 5 + 120 * boost); set(e.shG.gain, 0.012 + 0.03 * k + 0.03 * boost);                             // the shimmer rises with the speed
+    set(e.lp.frequency, 300 + 800 * k + 400 * boost); set(e.nG.gain, 0.006 + 0.012 * k);
+    e.want = { f0: +f0.toFixed(1), cut: +(300 + 800 * k + 400 * boost).toFixed(0), k: +k.toFixed(3), level: +level.toFixed(2) };
+    set(e.gain.gain, (hurt ? 0.02 : 0.028 + 0.022 * k) * level * (this.muted ? 0 : 1) * this.musicVol);        // `level`: loud at the start (the launch), a faint hum for the rest of the race
   }
+
 
   // ---- the beat clock, read by the animation. beat = beats since the first kick; phase = 0..1 within the beat; pulse = 1 on the kick, decaying to 0; energy / kick = 0..1 loudness
   beat() { return this.b; }
@@ -153,7 +158,11 @@ class GameAudio {
       try { a.volume = Math.max(0, Math.min(1, this.musicVol * (1 - cw) * (1 - rw))); } catch (e) {}
     }
     // the engine of the race cars: on while a race runs, its pitch following the car's speed (the boost of a spiral opens it up, a hit chokes it)
-    if (s === 'race' && g.race) { const R = g.race, k = Math.max(0, Math.min(1, (R.p.speed - RACE.BASE * 0.5) / (RACE.BASE * 1.6))); this.engine(true, k, R.p.boostT > 0 ? 1 : 0, R.p.hitT > 0 ? 1 : 0); }
+    if (s === 'race' && g.race) {                                                                                           // the engine is at its loudest at the START (the countdown and the launch: the user liked it there) and
+      const R = g.race, k = Math.max(0, Math.min(1, (R.p.speed - RACE.BASE * 0.5) / (RACE.BASE * 1.6)));                     // then falls to a faint hum over 3 s, so it does not wear on the ear for the rest of the race
+      const level = R.cd > 0 ? 1.6 : Math.max(0.16, 1.6 - (1.6 - 0.16) * Math.min(1, R.t / 3));
+      this.engine(true, k, R.p.boostT > 0 ? 1 : 0, R.p.hitT > 0 ? 1 : 0, level);
+    }
     else if (this.eng) this.engine(false);
     if (s !== this.lastState) {
       if (this.lastState === 'play' && s === 'pause') this.play('pause');
