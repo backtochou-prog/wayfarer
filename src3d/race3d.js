@@ -54,7 +54,7 @@ class Race3D {
       // THE ENDS ARE PART OF THE SHELL (the user: 'redimensionner les flancs et le coffre pour une liaison logique' and 'souder les baguettes des flancs avec celle du dos'): the nose and the stern are no longer flat
       // pictures stood across the ends, but caps built on the very cross-section where the flank shell stops, so the junction is exact: as wide as the DISTANCE BETWEEN THE FLANKS there (GAP) and as tall as the shell
       // is there (hE). Both wear the head-on picture, projected from the front or the back. The STERN is a quarter-ellipsoid dome (the roof's centre line slopes down to the ground 0.9 m behind, like a fastback
-      // tail); the NOSE is a cone that closes on a point on the axis (1.3 m ahead): the pointed nose.
+      // tail); the NOSE is a cone that closes on a point on the axis (0.7 m ahead, blunt and rounded): the pointed nose.
       const endZ = L2 / 2 - 0.1, aE = wid(endZ), GAP = 2 * aE, hE = (hS - 0.03) * 0.9, y0 = Y + 0.03; this.bot.userData.ends = { gap: +GAP.toFixed(3), height: +hE.toFixed(3) };
       const NA = 22, NB = 12;
       // THE NOSE LOWERED (the user circled the nose, whose top stood above the windscreen): the cone is only 62 % as tall as the shell, so its top meets the front edge of the canopy, which comes down there, and
@@ -64,25 +64,25 @@ class Race3D {
           for (let i = 0; i <= NA; i++) { const ph = (i / NA) * Math.PI / 2, cx = sx * aE * Math.cos(ph), cy = y0 + hh * Math.sin(ph);
             for (let j = 0; j <= NB; j++) { const t = j / NB; let x, y, z;
               if (kind === 'dome') { const ps = t * Math.PI / 2; x = cx * Math.cos(ps); y = cy; z = zSign * (endZ + c * Math.cos(ph) * Math.sin(ps)); }
-              else { x = cx * (1 - t); y = cy + (y0 + 0.18 * hh - cy) * t; z = zSign * (endZ - 0.3 + c * t); }                  /* the cone starts 0.3 m INSIDE the flank shell, so there is no gap between the nose and the flank */
+              else { const q = Math.sqrt(Math.max(0, 1 - t * t)); x = cx * q; y = y0 + (cy - y0) * q; z = zSign * (endZ - 0.3 + c * t); }                  /* the cone starts 0.3 m INSIDE the flank shell, so there is no gap between the nose and the flank */
               pos.push(x, y, z); uv.push(0.5 + x / (2 * aE), (y - y0) / hh); } }                  /* projected: the picture as seen from the front or the back, so it is never smeared along the surface */
           for (let i = 0; i < NA; i++) for (let j = 0; j < NB; j++) { const k = base / 3 + i * (NB + 1) + j; idx.push(k, k + 1, k + NB + 1, k + 1, k + NB + 2, k + NB + 1); } }
         const g3 = new THREE.BufferGeometry(); g3.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g3.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g3.setIndex(idx); g3.computeBoundingSphere(); return g3; };
-      for (const [g3] of [[cap(1, 0.9, 'dome')], [cap(-1, 1.6, 'cone')]]) { const g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botMat));
+      for (const [g3] of [[cap(1, 0.9, 'dome')], [cap(-1, 1.0, 'cone')]]) { const g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botMat));
         for (const k of [1, 2]) g2.add(new THREE.Mesh(g3, this.botGlowMat)); this.bot.add(g2); }
       // THE CANOPY (the user: 'pare-brise fume et solide comme celui d'un vaisseau spatial, bombe, couvre le front entre le nez et les flancs et couvre tout le vide' and then 'adapter le bombe du pare-brise avec la
       // descente du nez'): a smoked, solid, domed windscreen over the whole open top of the body. It is no longer a symmetrical oval that stops at the nose: it runs from the TIP of the nose cone to the stern, and its
       // crown profile follows the body: from the tip it climbs along the slope of the nose (the cone's own top line), swells to the ridge of the roof over the middle, and comes back down to the stern; its width
       // tapers to a point at the nose with the cone and closes round at the stern. So the bulge of the windscreen goes down with the nose. Two shells (an outer and a slightly smaller inner one) give it a thickness;
       // it is dark smoked glass (72 % opaque; the roof pictures still show through, dimmed), with a faint cyan sheen and a bright reflected stripe down the crown.
-      { const NA2 = 56, NB2 = 14, zTip = -(endZ + 1.3), zN = -endZ, SD = 0.9, zB = endZ + SD, wx = aE * 0.96, topY = Y + 0.03 + (hS - 0.03) * 0.97, tipY = y0 + 0.18 * hE * 0.62 + 0.05, noseTop = y0 + 0.62 * hE + 0.04, lowY = y0 + 0.03, baseY = y0 + 0.5 * hE, sternTop = y0 + hE + 0.03;
+      { const NA2 = 56, NB2 = 14, zTip = -(endZ + 0.7), zN = -endZ, SD = 0.9, zB = endZ + SD, wx = aE * 0.96, topY = Y + 0.03 + (hS - 0.03) * 0.97, tipY = y0 + 0.18 * hE * 0.62 + 0.05, noseTop = y0 + 0.62 * hE + 0.04, lowY = y0 + 0.03, baseY = y0 + 0.5 * hE, sternTop = y0 + hE + 0.03;
         // the canopy now runs on OVER THE STERN DOME too (the user circled the hole between the windscreen and the dome): past the roof it follows the dome's own profile, an ellipse that comes down to the ground
         // 0.9 m behind, and closes round at its end.
-        const centre = z => { if (z < zN) { const u = (z - zTip) / (zN - zTip); return tipY + (noseTop - tipY) * u; }
+        const centre = z => { if (z < zN) { const u = (z - zTip) / (zN - zTip); return y0 + 0.04 + (noseTop - y0 - 0.04) * Math.sqrt(Math.max(0, 1 - (1 - u) * (1 - u))); }
                               if (z <= endZ) { const v = (z - zN) / (endZ - zN), f = v < 0.5 ? Math.sin(Math.PI * v) : 1 - 0.07 * (v - 0.5) / 0.5; return noseTop + (topY - noseTop) * Math.pow(f, 0.85) + (sternTop - topY) * 0 * v; }
                               const w = Math.min(1, (z - endZ) / SD); return y0 + 0.03 + (sternTop - y0 - 0.03) * Math.sqrt(Math.max(0, 1 - w * w)) + 0.015; };
-        const width = z => { if (z < zN) { const t = (-z - (endZ - 0.3)) / 1.6; return wx * 1.01 * Math.max(0, 1 - t); }
-                             if (z <= endZ) { const v = (z - zN) / (endZ - zN), base = 1 - (-zN - (endZ - 0.3)) / 1.6; return wx * (base + (1 - base) * Math.min(1, v / 0.22)); }
+        const width = z => { if (z < zN) { const t = (-z - (endZ - 0.3)) / 1.0; return wx * 1.01 * Math.sqrt(Math.max(0, 1 - t * t)); }
+                             if (z <= endZ) { const v = (z - zN) / (endZ - zN), base = Math.sqrt(1 - Math.pow((-zN - (endZ - 0.3)) / 1.0, 2)); return wx * (base + (1 - base) * Math.min(1, v / 0.22)); }
                              const w = Math.min(1, (z - endZ) / SD); return wx * Math.sqrt(Math.max(0, 1 - w * w)); };
         const floorY = z => { if (z < zN) return lowY + (baseY - lowY) * Math.pow((z - zTip) / (zN - zTip), 1.2); if (z <= endZ) return baseY; const w = Math.min(1, (z - endZ) / SD); return Math.min(baseY, lowY + (baseY - lowY) * (1 - w * w)); };
         const dome = (kx, dy) => { const pos = [], idx = [];
@@ -93,9 +93,7 @@ class Race3D {
         const smoke = new THREE.MeshLambertMaterial({ color: 0x03060c, emissive: 0x020812, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide }), sheen = new THREE.MeshBasicMaterial({ color: 0x35e6ff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
         const outer = dome(1, 0), inner = dome(0.94, 0.07);
         const g2 = new THREE.Group(); g2.add(new THREE.Mesh(outer, smoke), new THREE.Mesh(inner, smoke), new THREE.Mesh(outer, sheen));
-        const stripe = []; for (let i = 3; i < NA2 - 1; i++) { const za = zTip + (zB - zTip) * (i / NA2), zb = zTip + (zB - zTip) * ((i + 1) / NA2), ya = centre(za) + 0.02, yb = centre(zb) + 0.02;
-          stripe.push(Kit.box(0.045, 0.035, Math.hypot(zb - za, yb - ya) + 0.02, 0.0, (ya + yb) / 2, (za + zb) / 2, '#d8f6ff', { glow: true, rx: -Math.atan2(yb - ya, zb - za) })); }
-        g2.add(Kit.mesh(Kit.merge(stripe))); this.bot.add(g2); this.bot.userData.canopy = g2; }
+        this.bot.add(g2); this.bot.userData.canopy = g2; }                                                                   // (the bright stripe down the crown that was here is gone: the user wants only the glass)
       // THE ARMOURED SKIRT (the user circled the empty strip between the foot of the body and the rim line on the ground: 'remplir le vide avec une vitre aussi noir fume, un peu cristallisee et blindee'): a
       // band of smoked black glass all round the footprint, from the ground up to the foot of the flank pictures, leaning in a little. The glass is CRYSTALLISED: each segment is cut into flat facets with an
       // alternating crease and a saw-tooth top edge, flat-shaded, with the facet edges drawn in a thin cold line. It is ARMOURED: a darker plated band along its foot, riveted, and a bright upper edge.
@@ -103,7 +101,7 @@ class Race3D {
         for (let i = 0; i <= ZS; i++) { const z = -endZ + (2 * endZ) * i / ZS; path.push([-Ak(z), z]); }
         for (let i = 1; i <= 10; i++) { const ps = (i / 10) * Math.PI; path.push([-aE * Math.cos(ps), endZ + 0.9 * Math.sin(ps)]); }
         for (let i = ZS; i >= 0; i--) { const z = -endZ + (2 * endZ) * i / ZS; path.push([Ak(z), z]); }
-        path.push([0, -endZ - 1.3]); path.push([-Ak(-endZ), -endZ]);
+        for (let i = 1; i <= 10; i++) { const ps = (i / 10) * Math.PI; path.push([aE * Math.cos(ps), -endZ - 0.7 * Math.sin(ps)]); }
         const pts = path.map(([x, z]) => [x * 0.92, z * 0.95]), H = 0.5, pos = [], plate = [], bolts = [];
         for (let i = 0; i < pts.length - 1; i++) { const [x1, z1] = pts[i], [x2, z2] = pts[i + 1], mx = (x1 + x2) / 2, mz = (z1 + z2) / 2, len = Math.hypot(x2 - x1, z2 - z1); if (len < 0.03) continue;
           const nx = (z2 - z1) / len, nz = -(x2 - x1) / len, sgn = (mx * nx + mz * nz) >= 0 ? 1 : -1, crease = (i % 2 ? 0.05 : -0.03) * sgn, hT = H + 0.09 * Math.sin(i * 2.3), yB = y0 - 0.01, yM = y0 + hT * 0.52, yT = y0 + hT;
@@ -122,7 +120,7 @@ class Race3D {
         for (let i = 0; i <= ZS; i++) { const z = -endZ + (2 * endZ) * i / ZS; path.push([-A(z), z]); }                      // the left flank, nose to stern
         for (let i = 1; i <= 10; i++) { const ps = (i / 10) * Math.PI; path.push([-aE * Math.cos(ps), endZ + 0.9 * Math.sin(ps)]); }      // round the stern dome, left corner to right corner
         for (let i = ZS; i >= 0; i--) { const z = -endZ + (2 * endZ) * i / ZS; path.push([A(z), z]); }                        // the right flank, stern to nose
-        path.push([0, -endZ - 1.3]); path.push([-A(-endZ), -endZ]);                                                          // out to the tip of the nose and back to the start: the loop is closed
+        for (let i = 1; i <= 10; i++) { const ps = (i / 10) * Math.PI; path.push([aE * Math.cos(ps), -endZ - 0.7 * Math.sin(ps)]); }                  // round the BLUNT nose, right corner to left corner: the loop is closed
         const parts = []; for (let i = 0; i < path.length - 1; i++) { const [x1, z1] = path[i].map((v, k) => v * (k ? 0.95 : 0.92)), [x2, z2] = path[i + 1].map((v, k) => v * (k ? 0.95 : 0.92)), len = Math.hypot(x2 - x1, z2 - z1) + 0.03;
           if (len > 0.04) parts.push(Kit.box(0.06, 0.05, len, (x1 + x2) / 2, y0 + 0.05, (z1 + z2) / 2, '#7ff0ff', { glow: true, ry: Math.atan2(x2 - x1, z2 - z1) })); }
         const rim = Kit.mesh(Kit.merge(parts)); this.bot.add(rim); this.bot.userData.rim = rim; this.bot.userData.rimN = parts.length; }
