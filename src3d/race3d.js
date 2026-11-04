@@ -68,6 +68,25 @@ class Race3D {
         const g3 = new THREE.BufferGeometry(); g3.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g3.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g3.setIndex(idx); g3.computeBoundingSphere(); return g3; };
       for (const [g3] of [[cap(1, 0.9, 'dome')], [cap(-1, 1.9, 'cone')]]) { const g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botMat));
         for (const k of [1, 2]) g2.add(new THREE.Mesh(g3, this.botGlowMat)); this.bot.add(g2); }
+      // THE CANOPY (the user: 'pare-brise fume et solide comme celui d'un vaisseau spatial, bombe, couvre le front entre le nez et les flancs et couvre tout le vide qui reste visible'): a smoked, solid, domed
+      // windscreen over the whole open top of the body. Its footprint is the opening between the two roof halves, from the stern dome's crown to the nose cone's start; it swells to the height of the roof ridge in
+      // the middle and comes down to meet the flanks and both ends, so nothing of the inside shows from above. Smoked dark glass (dark enough to read as solid, translucent enough to show the roof under it, with a faint blue sheen and a bright reflected stripe
+      // on the crown), a thin pale frame round its edge, and a second, slightly smaller shell inside so it has a thickness.
+      { const NA2 = 26, NB2 = 14, zF = -endZ - 0.15, zB = endZ + 0.05, zc = (zF + zB) / 2, hz = (zB - zF) / 2, wx = aE * 0.96, topY = Y + 0.03 + (hS - 0.03) * 0.97, baseY = Y + 0.03 + hE * 0.5;
+        const dome = (kz, kx, ky) => { const pos = [], idx = [];
+          for (let i = 0; i <= NA2; i++) { const th = (i / NA2) * Math.PI;                                         // along the length, nose to stern
+            for (let j = 0; j <= NB2; j++) { const ph = (j / NB2) * Math.PI;                                      // across, flank to flank
+              const e = Math.sin(th), w = Math.pow(e, 0.7);                                                         // a long, blunt dome: wide almost to its ends
+              pos.push(zc + 0, 0, 0); const o = pos.length - 3; pos[o] = -Math.cos(ph) * wx * kx * w; pos[o + 1] = baseY + (topY - baseY) * ky * Math.sin(ph) * (0.35 + 0.65 * e); pos[o + 2] = zc - Math.cos(th) * hz * kz; } }
+          for (let i = 0; i < NA2; i++) for (let j = 0; j < NB2; j++) { const k = i * (NB2 + 1) + j; idx.push(k, k + 1, k + NB2 + 1, k + 1, k + NB2 + 2, k + NB2 + 1); }
+          const g3 = new THREE.BufferGeometry(); g3.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g3.setIndex(idx); g3.computeVertexNormals(); return g3; };
+        const smoke = new THREE.MeshLambertMaterial({ color: 0x0c1220, emissive: 0x05122a, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide }), sheen = new THREE.MeshBasicMaterial({ color: 0x35e6ff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+        const outer = dome(1, 1, 1), inner = dome(0.97, 0.94, 0.9);
+        const g2 = new THREE.Group(); g2.add(new THREE.Mesh(outer, smoke), new THREE.Mesh(inner, smoke), new THREE.Mesh(outer, sheen));
+        const fr = []; for (let j = 0; j <= 30; j++) { const ph = (j / 30) * Math.PI, x1 = -Math.cos(ph) * wx, x2 = -Math.cos(((j + 1) / 30) * Math.PI) * wx; if (j < 30) fr.push(Kit.box(0.05, 0.04, 0.12, (x1 + x2) / 2, baseY, zF + 0.05 + (zB - zF - 0.1) * (j / 30) * 0, '#9ad8ff', { glow: true, ry: 0 })); }
+        const stripe = []; for (let i = 0; i < 24; i++) { const t1 = (i / 24) * Math.PI, t2 = ((i + 1) / 24) * Math.PI; const y1 = baseY + (topY - baseY) * Math.sin(t1) * (0.35 + 0.65 * Math.sin(t1)) + 0.02, y2 = baseY + (topY - baseY) * Math.sin(t2) * (0.35 + 0.65 * Math.sin(t2)) + 0.02, z1 = zc - Math.cos(t1) * hz, z2 = zc - Math.cos(t2) * hz;
+          stripe.push(Kit.box(0.045, 0.035, Math.hypot(z2 - z1, y2 - y1) + 0.02, 0.0, (y1 + y2) / 2, (z1 + z2) / 2, '#d8f6ff', { glow: true, rx: -Math.atan2(y2 - y1, z2 - z1) })); }
+        g2.add(Kit.mesh(Kit.merge(stripe))); this.bot.add(g2); this.bot.userData.canopy = g2; }
       // THE WELDED RIM: one continuous bright line (the 'baguette') round the whole footprint at the foot of the body: along the lower edge of the left flank, round the stern dome, back along the right flank and
       // round the nose to its tip, closed on itself, so the flanks' edge and the back's edge are one piece.
       { const path = [], ZS = 20; const A = z => wid(z);
