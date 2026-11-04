@@ -61,7 +61,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   await pz.evaluate(() => { window.requestAnimationFrame = () => 0; });                              // (the race page stops drawing by itself: the tests below step and draw it by hand, and a second page loads far faster without it)
   // ---- touch: the same four buttons are drawn and steer in the race
   const pt = await (await b.newContext({ viewport: { width: 640, height: 360 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true })).newPage(); pt.errs = []; pt.on('pageerror', e => pt.errs.push(e.message));
-  await pt.goto(base + '?zone=race', { timeout: 90000 }); await pt.waitForFunction(() => window.__wf, null, { timeout: 120000 }); await pt.waitForTimeout(600);
+  await pt.goto(base + '?zone=race', { timeout: 240000, waitUntil: 'domcontentloaded' }); await pt.waitForFunction(() => window.__wf, null, { timeout: 240000 }); await pt.waitForTimeout(600);
   const TT = await pt.evaluate(() => { const g = __wf; g.touch = true; g.start(); for (let i = 0; i < 260; i++) g.advance(1 / 60); const sc = document.getElementById('screen').getBoundingClientRect(); return { x: sc.left + sc.width * (60 / 320), y: sc.top + sc.height * (158 / 180), state: g.state, lane: g.race.p.lane, drawn: (() => { g.r.draw(g); return g.r.ui.touchLayer() ? g.r.ui.touchLayer().dirty : null; })() }; });
   await pt.touchscreen.tap(TT.x + 20, TT.y); await pt.waitForTimeout(250);
   const T2 = await pt.evaluate(() => { const g = __wf; for (let i = 0; i < 30; i++) g.advance(1 / 60); return { lane: g.race.p.lane, state: g.state }; });

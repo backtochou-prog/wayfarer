@@ -74,24 +74,48 @@ class Race3D {
       // descente du nez'): a smoked, solid, domed windscreen over the whole open top of the body. It is no longer a symmetrical oval that stops at the nose: it runs from the TIP of the nose cone to the stern, and its
       // crown profile follows the body: from the tip it climbs along the slope of the nose (the cone's own top line), swells to the ridge of the roof over the middle, and comes back down to the stern; its width
       // tapers to a point at the nose with the cone and closes round at the stern. So the bulge of the windscreen goes down with the nose. Two shells (an outer and a slightly smaller inner one) give it a thickness;
-      // it is half transparent so the roof pictures show through, with a faint cyan sheen and a bright reflected stripe down the crown.
-      { const NA2 = 44, NB2 = 14, zTip = -(endZ + 1.3), zN = -endZ, zB = endZ + 0.05, wx = aE * 0.96, topY = Y + 0.03 + (hS - 0.03) * 0.97, tipY = y0 + 0.18 * hE * 0.62 + 0.05, noseTop = y0 + 0.62 * hE + 0.04, lowY = y0 + 0.03, baseY = y0 + 0.5 * hE;
+      // it is dark smoked glass (72 % opaque; the roof pictures still show through, dimmed), with a faint cyan sheen and a bright reflected stripe down the crown.
+      { const NA2 = 56, NB2 = 14, zTip = -(endZ + 1.3), zN = -endZ, SD = 0.9, zB = endZ + SD, wx = aE * 0.96, topY = Y + 0.03 + (hS - 0.03) * 0.97, tipY = y0 + 0.18 * hE * 0.62 + 0.05, noseTop = y0 + 0.62 * hE + 0.04, lowY = y0 + 0.03, baseY = y0 + 0.5 * hE, sternTop = y0 + hE + 0.03;
+        // the canopy now runs on OVER THE STERN DOME too (the user circled the hole between the windscreen and the dome): past the roof it follows the dome's own profile, an ellipse that comes down to the ground
+        // 0.9 m behind, and closes round at its end.
         const centre = z => { if (z < zN) { const u = (z - zTip) / (zN - zTip); return tipY + (noseTop - tipY) * u; }
-                              const v = (z - zN) / (zB - zN); return noseTop + (topY - noseTop) * Math.pow(Math.sin(Math.PI * Math.min(1, v)), 0.85); };
-        const width = z => { if (z < zN) { const u = (z - zTip) / (zN - zTip); return wx * Math.pow(u, 0.9); }
-                             const v = (z - zN) / (zB - zN); return wx * Math.sqrt(Math.max(0, 1 - Math.pow(v, 2.4))); };
-        const floorY = z => z < zN ? lowY + (baseY - lowY) * Math.pow((z - zTip) / (zN - zTip), 1.2) : baseY;
+                              if (z <= endZ) { const v = (z - zN) / (endZ - zN), f = v < 0.5 ? Math.sin(Math.PI * v) : 1 - 0.07 * (v - 0.5) / 0.5; return noseTop + (topY - noseTop) * Math.pow(f, 0.85) + (sternTop - topY) * 0 * v; }
+                              const w = Math.min(1, (z - endZ) / SD); return y0 + 0.03 + (sternTop - y0 - 0.03) * Math.sqrt(Math.max(0, 1 - w * w)) + 0.015; };
+        const width = z => { if (z < zN) { const t = (-z - (endZ - 0.3)) / 1.6; return wx * 1.01 * Math.max(0, 1 - t); }
+                             if (z <= endZ) { const v = (z - zN) / (endZ - zN), base = 1 - (-zN - (endZ - 0.3)) / 1.6; return wx * (base + (1 - base) * Math.min(1, v / 0.22)); }
+                             const w = Math.min(1, (z - endZ) / SD); return wx * Math.sqrt(Math.max(0, 1 - w * w)); };
+        const floorY = z => { if (z < zN) return lowY + (baseY - lowY) * Math.pow((z - zTip) / (zN - zTip), 1.2); if (z <= endZ) return baseY; const w = Math.min(1, (z - endZ) / SD); return Math.min(baseY, lowY + (baseY - lowY) * (1 - w * w)); };
         const dome = (kx, dy) => { const pos = [], idx = [];
           for (let i = 0; i <= NA2; i++) { const z = zTip + (zB - zTip) * (i / NA2), w = width(z) * kx, c = centre(z) - dy, f = floorY(z);
             for (let j = 0; j <= NB2; j++) { const ph = (j / NB2) * Math.PI; pos.push(-Math.cos(ph) * w, f + Math.max(0, c - f) * Math.sin(ph), z); } }
           for (let i = 0; i < NA2; i++) for (let j = 0; j < NB2; j++) { const k = i * (NB2 + 1) + j; idx.push(k, k + 1, k + NB2 + 1, k + 1, k + NB2 + 2, k + NB2 + 1); }
           const g3 = new THREE.BufferGeometry(); g3.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g3.setIndex(idx); g3.computeVertexNormals(); return g3; };
-        const smoke = new THREE.MeshLambertMaterial({ color: 0x0c1220, emissive: 0x05122a, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide }), sheen = new THREE.MeshBasicMaterial({ color: 0x35e6ff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+        const smoke = new THREE.MeshLambertMaterial({ color: 0x03060c, emissive: 0x020812, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide }), sheen = new THREE.MeshBasicMaterial({ color: 0x35e6ff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
         const outer = dome(1, 0), inner = dome(0.94, 0.07);
         const g2 = new THREE.Group(); g2.add(new THREE.Mesh(outer, smoke), new THREE.Mesh(inner, smoke), new THREE.Mesh(outer, sheen));
         const stripe = []; for (let i = 3; i < NA2 - 1; i++) { const za = zTip + (zB - zTip) * (i / NA2), zb = zTip + (zB - zTip) * ((i + 1) / NA2), ya = centre(za) + 0.02, yb = centre(zb) + 0.02;
           stripe.push(Kit.box(0.045, 0.035, Math.hypot(zb - za, yb - ya) + 0.02, 0.0, (ya + yb) / 2, (za + zb) / 2, '#d8f6ff', { glow: true, rx: -Math.atan2(yb - ya, zb - za) })); }
         g2.add(Kit.mesh(Kit.merge(stripe))); this.bot.add(g2); this.bot.userData.canopy = g2; }
+      // THE ARMOURED SKIRT (the user circled the empty strip between the foot of the body and the rim line on the ground: 'remplir le vide avec une vitre aussi noir fume, un peu cristallisee et blindee'): a
+      // band of smoked black glass all round the footprint, from the ground up to the foot of the flank pictures, leaning in a little. The glass is CRYSTALLISED: each segment is cut into flat facets with an
+      // alternating crease and a saw-tooth top edge, flat-shaded, with the facet edges drawn in a thin cold line. It is ARMOURED: a darker plated band along its foot, riveted, and a bright upper edge.
+      { const path = [], ZS = 20, Ak = z => wid(z);
+        for (let i = 0; i <= ZS; i++) { const z = -endZ + (2 * endZ) * i / ZS; path.push([-Ak(z), z]); }
+        for (let i = 1; i <= 10; i++) { const ps = (i / 10) * Math.PI; path.push([-aE * Math.cos(ps), endZ + 0.9 * Math.sin(ps)]); }
+        for (let i = ZS; i >= 0; i--) { const z = -endZ + (2 * endZ) * i / ZS; path.push([Ak(z), z]); }
+        path.push([0, -endZ - 1.3]); path.push([-Ak(-endZ), -endZ]);
+        const pts = path.map(([x, z]) => [x * 0.92, z * 0.95]), H = 0.5, pos = [], plate = [], bolts = [];
+        for (let i = 0; i < pts.length - 1; i++) { const [x1, z1] = pts[i], [x2, z2] = pts[i + 1], mx = (x1 + x2) / 2, mz = (z1 + z2) / 2, len = Math.hypot(x2 - x1, z2 - z1); if (len < 0.03) continue;
+          const nx = (z2 - z1) / len, nz = -(x2 - x1) / len, sgn = (mx * nx + mz * nz) >= 0 ? 1 : -1, crease = (i % 2 ? 0.05 : -0.03) * sgn, hT = H + 0.09 * Math.sin(i * 2.3), yB = y0 - 0.01, yM = y0 + hT * 0.52, yT = y0 + hT;
+          const V = (x, z, y, k) => [x * k, y, z * k];
+          const b1 = V(x1, z1, yB, 1), b2 = V(x2, z2, yB, 1), m1 = [x1 + nx * crease, yM, z1 + nz * crease], m2 = [x2 + nx * crease, yM, z2 + nz * crease], t1 = V(x1, z1, yT, 0.955), t2 = V(x2, z2, yT, 0.955);
+          pos.push(...b1, ...b2, ...m2, ...b1, ...m2, ...m1, ...m1, ...m2, ...t2, ...m1, ...t2, ...t1);
+          if (i % 3 === 0) bolts.push(Kit.cyl(0.035, 0.035, 0.05, mx * 0.995, y0 + 0.12, mz * 0.995, '#4a566e', { seg: 6 }));
+          plate.push(Kit.box(0.05, 0.16, len * 0.98, mx * 1.003, y0 + 0.08, mz * 1.003, '#0e121d', { ry: Math.atan2(x2 - x1, z2 - z1) })); }
+        const gs = new THREE.BufferGeometry(); gs.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gs.computeVertexNormals();
+        const glass = new THREE.MeshLambertMaterial({ color: 0x03050a, emissive: 0x02060f, flatShading: true, transparent: true, opacity: 0.92, side: THREE.DoubleSide, depthWrite: false });
+        const edge = new THREE.LineSegments(new THREE.EdgesGeometry(gs, 6), new THREE.LineBasicMaterial({ color: 0x5fdcff, transparent: true, opacity: 0.4 }));
+        const sk = new THREE.Group(); sk.add(new THREE.Mesh(gs, glass), edge); sk.add(Kit.mesh(Kit.merge(plate.concat(bolts)))); this.bot.add(sk); this.bot.userData.skirt = sk; }
       // THE WELDED RIM: one continuous bright line (the 'baguette') round the whole footprint at the foot of the body: along the lower edge of the left flank, round the stern dome, back along the right flank and
       // round the nose to its tip, closed on itself, so the flanks' edge and the back's edge are one piece.
       { const path = [], ZS = 20; const A = z => wid(z);
