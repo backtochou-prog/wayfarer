@@ -20,7 +20,7 @@ class Renderer3D {
 
     const gl = this.gl = document.getElementById('gl');
     this.renderer = new THREE.WebGLRenderer({ canvas: gl, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));   // keeps fill-rate modest on high-DPI phones
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));   // the starting resolution, modest on high-DPI phones: Renderer3D.adapt() raises it to PR_CEIL (2.25) while frames stay fast
     this.scene = new THREE.Scene();
     // PERFORMANCE: the scene holds about 8 500 pooled groups (props, hazards, coins: about 24 000 objects in all) of which only a hundred or two are shown at any moment. three.js walks EVERY object and
     // recomputes its world matrix on each frame, hidden or not: a third of the frame on a phone. The scene's own walk skips the hidden groups (a group shown again gets its matrix the frame it reappears,
@@ -298,18 +298,25 @@ class Renderer3D {
     const o = pool[n]; o.position.set(x, y, z); o.rotation.y = rotY; if (sc || o.scale.x !== 1) o.scale.setScalar(sc || 1); o.visible = true;
   }
 
-  // PERFORMANCE, adaptive resolution: if frames keep coming slowly (over 28 ms on average for 1.5 s: under about 36 frames a second) the 3D picture is drawn at a lower resolution, step by step down to
-  // 0.7 device pixels per CSS pixel; when it is fast again for 5 s it climbs back to its usual 1.5. A phone with a weak GPU stays fluid instead of crawling. Off in automated browsers (tests compare
-  // pictures), unless the page has ?adapt=1; ?adapt=0 turns it off.
+  // PERFORMANCE, adaptive resolution. The 3D picture STARTS at 1.5 device pixels per CSS pixel (what every phone has coped with so far) and may go as high as 2.25 (PR_CEIL, or the screen's own density if lower):
+  // while frames stay fast (under 17.5 ms on average, about 57 frames a second or better, for 2 s) it climbs by 0.15; if they turn slow (over 28 ms on average for 1.5 s: under about 36 a second) it steps down
+  // by 0.2, down to 0.7, and it will not climb back over the level that was too slow for 25 s. So a strong phone ends up sharp, a weak one stays fluid, and a phone that is only just coping does not flicker
+  // between the two. Off in automated browsers (tests compare pictures), unless the page has ?adapt=1; ?adapt=0 turns it off; ?pr=N pins the ratio.
   adapt() {
     const now = performance.now(), d = this._at ? now - this._at : 16.7; this._at = now;
-    if (this._adOn === undefined) { const q = typeof location !== 'undefined' && location.search.match(/[?&]adapt=(\d)/); this._adOn = q ? q[1] === '1' : !(typeof navigator !== 'undefined' && navigator.webdriver); this._prMax = this.renderer.getPixelRatio(); this._ema = 16.7; this._slow = 0; this._fast = 0; }
+    if (this._adOn === undefined) {
+      const q = typeof location !== 'undefined' && location.search.match(/[?&]adapt=(\d)/), pq = typeof location !== 'undefined' && location.search.match(/[?&]pr=([\d.]+)/);
+      this._adOn = q ? q[1] === '1' : !(typeof navigator !== 'undefined' && navigator.webdriver);
+      const dpr = window.devicePixelRatio || 1; this._ceil = Math.min(dpr, Renderer3D.PR_CEIL); this._cap = this._ceil; this._capAt = 0; this._ema = 16.7; this._slow = 0; this._fast = 0; this.adaptSteps = 0;
+      if (pq) { this._adOn = false; this.renderer.setPixelRatio(Math.max(0.5, +pq[1])); this.resize(); }
+    }
     if (!this._adOn || d > 250) return;                                                             // (a pause, a hidden tab, a hitch at load: not a measure)
     this._ema += (d - this._ema) * 0.08;
     if (this._ema > 28) { this._slow += d; this._fast = 0; } else if (this._ema < 17.5) { this._fast += d; this._slow = 0; } else { this._slow = 0; this._fast = 0; }
     const pr = this.renderer.getPixelRatio();
-    if (this._slow > 1500 && pr > 0.7) { this.renderer.setPixelRatio(Math.max(0.7, pr - 0.2)); this.resize(); this._slow = 0; this._ema = 20; this.adaptSteps = (this.adaptSteps || 0) + 1; }
-    else if (this._fast > 5000 && pr < this._prMax) { this.renderer.setPixelRatio(Math.min(this._prMax, pr + 0.1)); this.resize(); this._fast = 0; }
+    if (this._cap < this._ceil && now - this._capAt > 25000) this._cap = Math.min(this._ceil, this._cap + 0.15);       // after 25 s the level that was too slow may be tried again
+    if (this._slow > 1500 && pr > 0.7) { const np = Math.max(0.7, pr - 0.2); this._cap = Math.min(this._cap, Math.max(np, pr - 0.05)); this._capAt = now; this.renderer.setPixelRatio(np); this.resize(); this._slow = 0; this._ema = 20; this.adaptSteps++; }
+    else if (this._fast > 2000 && pr < this._cap - 0.01) { this.renderer.setPixelRatio(Math.min(this._cap, pr + 0.15)); this.resize(); this._fast = 0; }
   }
   draw(g) {
     this.adapt();
@@ -529,3 +536,4 @@ class Renderer3D {
     this.ui.drawUI(g);
   }
 }
+Renderer3D.PR_CEIL = 2.25;                         // the highest 3D resolution (device pixels per CSS pixel) the adaptive resolution may climb to; the picture starts at 1.5 (see Renderer3D.adapt)
