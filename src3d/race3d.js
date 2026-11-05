@@ -66,7 +66,7 @@ class Race3D {
               if (kind === 'dome') { const ps = t * Math.PI / 2; x = cx * Math.cos(ps); y = cy; z = zSign * (endZ + c * Math.cos(ph) * Math.sin(ps)); }
               else { const q = Math.sqrt(Math.max(0, 1 - t * t)); x = cx * q; y = y0 + (cy - y0) * q; z = zSign * (endZ - 0.3 + c * t); }                  /* the cone starts 0.3 m INSIDE the flank shell, so there is no gap between the nose and the flank */
               pos.push(x, y, z); uv.push(0.5 - Math.abs(x) / (2 * aE), (y - y0) / hh); } }                  /* MIRRORED: the left half of the picture (the user's good half) is copied to the other side, so the two halves are alike by construction and there is no seam (the picture itself is a little lighter on its left) */                  /* projected: the picture as seen from the front or the back, so it is never smeared along the surface */
-          for (let i = 0; i < NA; i++) for (let j = 0; j < NB; j++) { const k = base / 3 + i * (NB + 1) + j; idx.push(k, k + 1, k + NB + 1, k + 1, k + NB + 2, k + NB + 1); } }
+          for (let i = 0; i < NA; i++) for (let j = 0; j < NB; j++) { const k = base + i * (NB + 1) + j; idx.push(k, k + 1, k + NB + 1, k + 1, k + NB + 2, k + NB + 1); } }       /* (`base` is already a count of vertices: it was divided by 3 here, so every vertex index of the second half (the right half of the stern and of the nose) was wrong and that half was a garbled mesh while the left one was right) */
         const g3 = new THREE.BufferGeometry(); g3.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g3.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g3.setIndex(idx); g3.computeBoundingSphere(); return g3; };
       for (const [g3] of [[cap(1, 0.9, 'dome')], [cap(-1, 1.0, 'cone')]]) { const g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botMat));
         for (const k of [1, 2]) g2.add(new THREE.Mesh(g3, this.botGlowMat)); this.bot.add(g2); }
@@ -78,19 +78,24 @@ class Race3D {
       { const NA2 = 56, NB2 = 14, zTip = -(endZ + 0.7), zN = -endZ, SD = 0.05, zB = endZ + SD, wx = aE * 0.96, topY = Y + 0.03 + (hS - 0.03) * 0.97, tipY = y0 + 0.18 * hE * 0.62 + 0.05, noseTop = y0 + 0.62 * hE + 0.04, lowY = y0 + 0.03, baseY = y0 + 0.5 * hE, sternTop = y0 + hE + 0.03;
         // the canopy now runs on OVER THE STERN DOME too (the user circled the hole between the windscreen and the dome): past the roof it follows the dome's own profile, an ellipse that comes down to the ground
         // 0.9 m behind, and closes round at its end.
-        const centre = z => { if (z < zN) { const u = (z - zTip) / (zN - zTip); return y0 + 0.04 + (noseTop - y0 - 0.04) * Math.sqrt(Math.max(0, 1 - (1 - u) * (1 - u))); }
+        // THE REAR END CLOSES (a thick dark slab stood across the rear edge of the glass when seen from above, because the crown dropped to the floor over the full width): over the last TAPER metres of the roof
+        // the crown eases down to the floor level and the width narrows with it, so the glass ends in a thin rounded edge at the crest of the stern dome.
+        const TAPER = 0.55, taper = z => { const t = Math.min(1, Math.max(0, (z - (endZ - TAPER)) / (TAPER + SD))); return t * t * (3 - 2 * t); };
+        const crown = z => { if (z < zN) { const u = (z - zTip) / (zN - zTip); return y0 + 0.04 + (noseTop - y0 - 0.04) * Math.sqrt(Math.max(0, 1 - (1 - u) * (1 - u))); }
                               if (z <= endZ) { const v = (z - zN) / (endZ - zN), f = v < 0.5 ? Math.sin(Math.PI * v) : 1 - 0.07 * (v - 0.5) / 0.5; return noseTop + (topY - noseTop) * Math.pow(f, 0.85) + (sternTop - topY) * 0 * v; }
                               const w = Math.min(1, (z - endZ) / SD); return y0 + 0.03 + (sternTop - y0 - 0.03) * Math.sqrt(Math.max(0, 1 - w * w)) + 0.015; };
-        const width = z => { if (z < zN) { const t = (-z - (endZ - 0.3)) / 1.0; return wx * 1.01 * Math.sqrt(Math.max(0, 1 - t * t)); }
+        const centre = z => { const c0 = crown(z), k = taper(z); return c0 > baseY ? baseY + (c0 - baseY) * (1 - k) : c0; };
+        const width0 = z => { if (z < zN) { const t = (-z - (endZ - 0.3)) / 1.0; return wx * 1.01 * Math.sqrt(Math.max(0, 1 - t * t)); }
                              if (z <= endZ) { const v = (z - zN) / (endZ - zN), base = Math.sqrt(1 - Math.pow((-zN - (endZ - 0.3)) / 1.0, 2)); return wx * (base + (1 - base) * Math.min(1, v / 0.22)); }
                              const w = Math.min(1, (z - endZ) / SD); return wx * Math.sqrt(Math.max(0, 1 - w * w)); };
+        const width = width0;                                                                      // (the width is NOT narrowed with the crown: that made a chevron pointing back; the end is thin because the crown comes down, across the full width)
         const floorY = z => { if (z < zN) return lowY + (baseY - lowY) * Math.pow((z - zTip) / (zN - zTip), 1.2); if (z <= endZ) return baseY; const w = Math.min(1, (z - endZ) / SD); return Math.min(baseY, lowY + (baseY - lowY) * (1 - w * w)); };
         // THE CANOPY STOPS AT THE CREST OF THE STERN DOME (the user: the left half of the back, bright and clear, is right; the right half was darker because the canopy covered it and not the other): it ends 0.05 m
         // past the crest and leaves the whole face of the stern, both halves, uncovered (a longer tail of glass, 0.25 m, hung over the top of the face like a hood).
         const dome = (kx, dy, ia, ib) => { const pos = [], idx = [];
           for (let i = ia; i <= ib; i++) { const z = zTip + (zB - zTip) * (i / NA2), w = width(z) * kx, c = centre(z) - dy, f = floorY(z);
             for (let j = 0; j <= NB2; j++) { const ph = (j / NB2) * Math.PI; pos.push(-Math.cos(ph) * w, f + Math.max(0, c - f) * Math.sin(ph), z); } }
-          for (let i = 0; i < ib - ia; i++) for (let j = 0; j < NB2; j++) { const k = i * (NB2 + 1) + j; idx.push(k, k + 1, k + NB2 + 1, k + 1, k + NB2 + 2, k + NB2 + 1); }
+          for (let i = 0; i < ib - ia; i++) for (let j = 0; j < NB2; j++) { const k = i * (NB2 + 1) + j; if (j < NB2 / 2) idx.push(k, k + 1, k + NB2 + 1, k + 1, k + NB2 + 2, k + NB2 + 1); else idx.push(k, k + NB2 + 2, k + NB2 + 1, k, k + 1, k + NB2 + 2); }      // (the diagonal of each quad is mirrored on the right half, so the two halves are triangulated alike)
           const g3 = new THREE.BufferGeometry(); g3.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g3.setIndex(idx); g3.computeVertexNormals(); return g3; };
         const smoke = new THREE.MeshLambertMaterial({ color: 0x03060c, emissive: 0x020812, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide }), smoke2 = new THREE.MeshLambertMaterial({ color: 0x03060c, emissive: 0x020812, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide });      // two shells, 0.6 and 0.5: 80 % dark in all (at 0.72 each they made 92 %)
         const sheen = new THREE.MeshBasicMaterial({ color: 0x35e6ff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
