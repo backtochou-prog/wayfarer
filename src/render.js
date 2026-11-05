@@ -48,6 +48,7 @@ class Renderer {
     this.txt('RARE ' + g.rare, 6, 6, '#ffd24a');
     this.ctr(kmh + ' KM/H', 160, '#f2ead6');
     if (p.brakeT > 0) this.ctr('BRAKE', 146, '#ff4fd8'); else if (p.hitT > 0) this.ctr('HIT', 146, '#ff4a4a'); else if (p.boostT > 0) this.ctr('BOOST +' + Math.round(p.boost * 3.6), 146, ['#ff5a6a', '#d070ff', '#7aff40', '#d8ff30'][RACE.SPIRAL.findIndex(c => c.add === p.boost)] || '#fff');
+    if (p.pedal && !(p.brakeT > 0 || p.hitT > 0 || p.boostT > 0)) this.ctr(p.pedal === 'brake' ? 'BRAKE' : 'ACCEL', 146, p.pedal === 'brake' ? '#ff8aa0' : '#7affc8');      // the pedals (held)
     if (R.cd > 0) this.ctr(R.cd > 0.5 ? String(Math.ceil(R.cd - 0.5)) : 'GO', 70, '#fff', 6);
     else if (R.t < 1.2) this.ctr('GO', 70, '#7affc8', 6);
     if (R.done) { const win = R.result === 'win'; ctx.fillStyle = 'rgba(8,4,16,0.6)'; ctx.fillRect(0, 62, VW, 54); this.ctr(win ? 'YOU WIN' : 'ROBOT WINS', 68, win ? '#7affc8' : '#ff6a7a', 4); this.ctr(win ? '+30 COINS' : 'BACK TO THE ROAD', 98, '#f2ead6'); this.ctr('THE SPHERE IS CLOSED UNTIL THE NEXT ZONE', 108, '#a090c0'); }
@@ -57,11 +58,13 @@ class Renderer {
   drawUI(g) {
     const ctx = this.ctx;
     if (g.state === 'race' && g.race) { this.drawRaceHud(g); this.drawTouch(g); if (g.fadeIn > 0) this.drawSceneOverlay(g); return; }
-    if (g.state === 'over' && g.flash > 0) { ctx.globalAlpha = 0.5; ctx.fillStyle = C.burg; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
-    if (g.portal && (g.portal.k > 0.004 || g.portal.flash > 0.01) && g.state !== 'title') this.drawPortalFx(g);              // the journey through a Stargate, under the HUD
+    // (g.vr: the 3D build in immersive VR, src3d/xr3d.js. This canvas is then a floating panel, so what covers the whole screen (the flash, the portal light, the fades, the letterbox) and the
+    // screen-space scooter disc are left out of it, and so are the keyboard / touch hints; nothing else changes)
+    if (g.state === 'over' && g.flash > 0 && !g.vr) { ctx.globalAlpha = 0.5; ctx.fillStyle = C.burg; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
+    if (g.portal && (g.portal.k > 0.004 || g.portal.flash > 0.01) && g.state !== 'title' && !g.vr) this.drawPortalFx(g);              // the journey through a Stargate, under the HUD
     if (g.state !== 'title') this.drawHud(g);
     this.drawTouch(g);
-    if (g.state === 'play') this.drawScooterHint(g);
+    if (g.state === 'play' && !g.vr) this.drawScooterHint(g);
     if (g.scene || g.fadeIn > 0) this.drawSceneOverlay(g);
     if (g.state === 'title') this.drawTitle(g);
     else if (g.state === 'pause') this.drawPause(g);
@@ -361,13 +364,13 @@ class Renderer {
   drawSceneOverlay(g) {
     const c = this.ctx, S = g.scene;
     if (S) {
-      const k = Math.min(1, S.t / 0.7), bar = Math.round(24 * (k * k * (3 - 2 * k)));
-      c.globalAlpha = 1; c.fillStyle = C.ink; c.fillRect(0, 0, VW, bar); c.fillRect(0, VH - bar, VW, bar);
-      c.fillStyle = C.amber; c.fillRect(0, bar, VW, 1); c.fillRect(0, VH - bar - 1, VW, 1);
+      const k = Math.min(1, S.t / 0.7), bar = g.vr ? 0 : Math.round(24 * (k * k * (3 - 2 * k)));
+      if (bar) { c.globalAlpha = 1; c.fillStyle = C.ink; c.fillRect(0, 0, VW, bar); c.fillRect(0, VH - bar, VW, bar);
+      c.fillStyle = C.amber; c.fillRect(0, bar, VW, 1); c.fillRect(0, VH - bar - 1, VW, 1); }
       if (S.caption) { const w2 = textW(S.caption, 2) + 14, x = Math.round((VW - w2) / 2); c.globalAlpha = 0.9; c.fillStyle = C.ink; c.fillRect(x - 1, 28, w2 + 2, 20); c.fillStyle = C.plum; c.fillRect(x, 29, w2, 18); c.fillStyle = C.amberD; c.fillRect(x, 29, w2, 1); c.fillRect(x, 46, w2, 1); c.globalAlpha = 1; this.ctr(S.caption, 33, C.amberL, 2); }
     }
     const a = Math.max(S ? S.fade : 0, g.fadeIn > 0 ? g.fadeIn * g.fadeIn : 0);
-    if (a > 0.003) { c.globalAlpha = Math.min(1, a); c.fillStyle = '#000'; c.fillRect(0, 0, VW, VH); c.globalAlpha = 1; }
+    if (a > 0.003 && !g.vr) { c.globalAlpha = Math.min(1, a); c.fillStyle = '#000'; c.fillRect(0, 0, VW, VH); c.globalAlpha = 1; }
   }
 
   // a vehicle in pixels, to tell the player what the disc is for: a kick scooter (lime) or the electromagnetic skateboard (cyan deck, red engine ring), about 28 x 18, top-left at (x, y)
@@ -511,11 +514,12 @@ class Renderer {
     this.txt('PROTOTYPE 01', tx, 38, C.tealL, 1);
     this.txt('TAKE A FORK.', tx, 48, C.sand, 1);
     const tc = this.controlsImg && this.controlsImg.complete && this.controlsImg.naturalWidth ? C.tealL : C.bone;     // over the artwork the controls text is light teal (no white)
-    if (g.touch) { this.txt('HOLD < > STEER', 14, 74, tc, 1); this.txt('UP JUMP  DOWN SLIDE', 14, 84, tc, 1); this.txt('II PAUSE', 14, 94, tc, 1); }
+    if (g.vr) { /* VR: no keyboard / touch hints */ }
+    else if (g.touch) { this.txt('HOLD < > STEER', 14, 74, tc, 1); this.txt('UP JUMP  DOWN SLIDE', 14, 84, tc, 1); this.txt('II PAUSE', 14, 94, tc, 1); }
     else { this.txt('Q D / ARROWS STEER', 14, 74, tc, 1); this.txt('Z / SPACE / UP  JUMP', 14, 84, tc, 1); this.txt('S / DOWN SLIDE  P PAUSE', 14, 94, tc, 1); }
     this.button(BTN.title, g);
     if (g.r && g.r.nextCharacter) this.button({ x: BTN.char.x, y: BTN.char.y, w: BTN.char.w, h: BTN.char.h, label: g.r.character === 'zagla' ? 'ZAGLA' : 'STRAWBERRY' }, g);       // the character button: who runs (the other one on click, or the C key)
-    if (!g.touch) { this.txt('OR PRESS ENTER', 24, 144, C.stoneL, 1); if (g.r && g.r.nextCharacter) this.txt('C CHARACTER', 232, 144, C.stoneL, 1); }
+    if (!g.touch && !g.vr) { this.txt('OR PRESS ENTER', 24, 144, C.stoneL, 1); if (g.r && g.r.nextCharacter) this.txt('C CHARACTER', 232, 144, C.stoneL, 1); }
   }
 
   drawTitle(g) {
@@ -543,7 +547,7 @@ class Renderer {
     this.panel(100, 54, 120, 70);
     this.ctr('PAUSED', 64, C.amber, 3, C.burgD);
     this.button(BTN.pause, g);
-    if (!g.touch) this.ctr('P  ESC', 110, C.stoneL);
+    if (!g.touch && !g.vr) this.ctr('P  ESC', 110, C.stoneL);
   }
 
   drawOver(g) {
@@ -567,6 +571,6 @@ class Renderer {
     this.ctr('BEST ' + g.best, 96, C.tealL);
     }
     this.button(BTN.over, g);
-    if (!g.touch) this.ctr('SPACE  ENTER  R', 133, C.sand);
+    if (!g.touch && !g.vr) this.ctr('SPACE  ENTER  R', 133, C.sand);
   }
 }

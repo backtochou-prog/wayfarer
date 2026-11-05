@@ -123,6 +123,18 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   T('running into the back of the robot\'s car is an obstacle: the player is slowed (' + BU.before + ' -> ' + BU.speed + ' m/s, held ' + BU.gap + ' m behind it, ' + BU.hurt + ' s of recovery) and cannot drive through it; in another lane it can stay level with it (' + BU.pastInOtherLane + ')',
     BU.bumps >= 1 && BU.speed < BU.before * 0.8 && BU.gap > 3.9 && BU.gap < 5 && BU.hurt > 0 && BU.pastInOtherLane, JSON.stringify(BU));
 
+  // ---- the PEDALS (accelerate / brake, held): the up / down keys and the jump / slide touch buttons; the race HUD says ACCEL / BRAKE; the car's brake lights come on while braking
+  const PD = await pz.evaluate(() => {
+    const g = __wf; g.start(); g.advance(1 / 60); const R = g.race; R.cd = 0; R.items = []; R.p.speed = RACE.BASE; const o = {};
+    const ev = (code, key, down) => g.onKey({ code, key, repeat: false, preventDefault() {} }, down), run = n => { for (let i = 0; i < n; i++) g.advance(1 / 60); };
+    ev('ArrowUp', 'ArrowUp', true); run(240); o.accKey = +R.p.speed.toFixed(1); o.pedal = R.p.pedal; g.draw(); o.light0 = g.r.race3d.car.userData.brakeLight.visible; ev('ArrowUp', 'ArrowUp', false);
+    ev('KeyS', 's', true); run(150); o.brkKey = +R.p.speed.toFixed(1); g.draw(); g.draw(); o.light = g.r.race3d.car.userData.brakeLight.visible && g.r.race3d.brakeLightMat.opacity > 0.3; ev('KeyS', 's', false); run(120);
+    g.hold(7, 'jump', true); run(240); o.accTouch = +R.p.speed.toFixed(1); g.hold(7, null, false); g.hold(8, 'slide', true); run(150); o.brkTouch = +R.p.speed.toFixed(1); o.hud = R.p.pedal; g.hold(8, null, false);
+    run(240); o.after = +R.p.speed.toFixed(1); o.free = R.p.pedal; o.lane = R.p.lane; o.BASE = RACE.BASE; o.TH = RACE.THROTTLE; o.MUL = RACE.PEDAL_MUL; return o;
+  });
+  T('the race pedals: holding up (or Z / W) accelerates to ' + PD.accKey + ' m/s, holding down (or S) brakes to ' + PD.brkKey + ' and lights the car\'s brake lights; the touch jump / slide buttons held do the same (' + PD.accTouch + ' / ' + PD.brkTouch + '); let go, the car is back to its pace (' + PD.after + ') and no lane changed',
+    Math.abs(PD.accKey - (PD.BASE + PD.TH)) < 0.6 && PD.pedal === 'accel' && !PD.light0 && Math.abs(PD.brkKey - PD.BASE * PD.MUL) < 1 && PD.light && Math.abs(PD.accTouch - (PD.BASE + PD.TH)) < 0.6 && Math.abs(PD.brkTouch - PD.BASE * PD.MUL) < 1 && PD.hud === 'brake' && Math.abs(PD.after - PD.BASE) < 0.6 && PD.free === null, JSON.stringify(PD));
+
   // ---- the classic 2D game: no sphere, no race, no error
   const p2 = await open(base + '2d.html');
   const D2 = await p2.evaluate(() => { const g = __wf; g.start(); g.world.extend(150000); let draws = 0, err = null; g.state = 'play'; g.die = () => {}; try { for (let i = 0; i < 300; i++) { g.p.speed = 340; g.advance(1 / 60); g.r.draw(g); draws++; } } catch (e) { err = e.message; } return { gates: g.world.items.filter(i => i.kind === 'raceGate').length, state: g.state, draws, err, race: typeof Race }; });

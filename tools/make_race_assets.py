@@ -68,9 +68,33 @@ for _name, _k in (('botFlankTop', _mk), ('botFlankLow', 1 - _mk)):
     res[_name] = uri(fit_rect(Image.fromarray(_o.astype(_np.uint8), 'RGBA'), 384))
 res['botSide'] = uri(fit_rect(_sd, 512))                       # the whole flank picture, to be WRAPPED over the pod's rounded side and roof
 AR['botSide'] = round(_sd.width / _sd.height, 4)
+def untint_triangle(im):
+    """the user (on the back of the robot's car): 'eliminer la couleur rose sur le triangle et le centre du triangle'. Inside the triangle of the head-on picture (its outline and its middle,
+    in fractions of the picture so it works at any size) the magenta is taken out: those pixels keep their light and shade but in the dark blue of the rest of the car. Nothing else changes."""
+    a = _np.asarray(im.convert('RGBA')).astype(_np.float32); H, W = a.shape[:2]
+    # the triangle (a few pixels wider than its outline), then the larger V the user drew round it ('eliminer l'inutile pour faire un triangle lisse'): the pink sides of the bulb from the triangle's top
+    # corners down to the point under it, so the dark part is one smooth triangle
+    yy, xx = _np.mgrid[0:H, 0:W]; inside = _np.zeros((H, W), bool)
+    for P in ([(0.412 * W, 0.515 * H), (0.596 * W, 0.515 * H), (0.501 * W, 0.80 * H)], [(0.362 * W, 0.515 * H), (0.640 * W, 0.515 * H), (0.501 * W, 0.95 * H)]):
+        t = _np.ones((H, W), bool)
+        for i in range(3):
+            (x1, y1), (x2, y2) = P[i], P[(i + 1) % 3]; t &= ((x2 - x1) * (yy - y1) - (y2 - y1) * (xx - x1)) >= 0
+        inside |= t
+    for cx in (0.275, 0.725):                                                                      # and the pink arc over each dark 'eye', on both sides ('eliminer ce rose des deux cotes')
+        inside |= ((xx / W - cx) / 0.075) ** 2 + ((yy / H - 0.50) / 0.085) ** 2 <= 1
+    for cx in (0.395, 0.605):                                                                      # and what is left low down beside the triangle, both sides ('eliminer tout ce qui est rose dans la zone marquee')
+        inside |= ((xx / W - cx) / 0.065) ** 2 + ((yy / H - 0.78) / 0.12) ** 2 <= 1
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]; pink = inside & (r > g + 25) & (b > g + 5)
+    lum = 0.3 * r + 0.59 * g + 0.11 * b
+    a[..., 0] = _np.where(pink, lum * 0.22, r); a[..., 1] = _np.where(pink, lum * 0.30, g); a[..., 2] = _np.where(pink, lum * 0.55, b)
+    return Image.fromarray(a.clip(0, 255).astype(_np.uint8), 'RGBA')
 _pod = Image.open(f'{U}/2f7a0cb6-image.png').convert('RGBA')                 # the user's last picture of the ROBOT's car (the magnetic pod seen head on): it already carries its own alpha, so keep it as it is
 _pod = _pod.crop(_pod.getbbox())
+_pod = untint_triangle(_pod)                                                    # no pink on the triangle (see untint_triangle)
 res['botPod'] = uri(fit_rect(_pod, 384)); AR['botPod'] = round(_pod.width / _pod.height, 4)
+_ne = Image.open(f'{U}/2502aa2b-image.png').convert('RGBA'); _ne = _ne.crop(_ne.getbbox())        # BRACK3, the user's NEON of the robot's back (pink light lines, the triangle, the two eyes) on transparency
+_pad = Image.new('RGBA', (_ne.width + 16, _ne.height + 16), (0, 0, 0, 0)); _pad.alpha_composite(_ne, (8, 8)); _ne = _pad   # (a clear margin: the projection clamps to the edge, which must be empty)
+res['brack3'] = uri(fit_rect(_ne, 768)); AR['brack3'] = round(_ne.width / _ne.height, 4)
 rr = Image.open(f'{U}/{REAR}-image.png').convert('RGB')                      # white background out, and the black frame of the drawing with it: keep the painted part
 _r = _np.asarray(rr).astype(_np.float32); _white = (_r.min(axis=2) > 170); _black = (_r.max(axis=2) < 26)
 _al = _np.where(_white | _black, 0, 255).astype(_np.uint8)

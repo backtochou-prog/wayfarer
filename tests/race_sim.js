@@ -23,4 +23,14 @@ const j = new Race(9), ramp = j.items.find(i => i.type === 'ramp'), dr = j.items
 { const g = new Race(3); const sp = g.items.find(i => i.type === 'spiral'); let n = 0; while (n++ < 3000 && g.p.s < sp.s + 3) g.step(1 / 60, { lane: sp.lane }); ok('a spiral gives its speed for a few seconds (boost ' + g.p.boost + ')', g.p.boost > 0 && sp.taken); }
 { const g = new Race(11); const ring = g.items.find(i => i.type === 'ring'); let n = 0; while (n++ < 3000 && g.p.s < ring.s + 3) g.step(1 / 60, { lane: ring.lane }); ok('a brake ring slows the car (brake timer ' + g.p.brakeT.toFixed(2) + ')', ring.taken && g.p.brakeT > 0); }
 { const g = new Race(2); let n = 0; while (!g.done && n++ < 20000) g.step(1 / 60, { lane: 0 }); ok('the robot crossing first ends the race at once, in a loss (' + g.result + ' at ' + g.t.toFixed(1) + ' s, player at ' + Math.round(g.p.s) + ' m)', g.result === 'lose' && g.p.s < RACE.LEN && g.t < 60); }
+{ // THE PEDALS: accelerating while held adds THROTTLE to the pace, braking halves it, braking wins over accelerating; the robot stays faster than a car that only accelerates
+  const run = (inp, secs) => { const g = new Race(4); g.items = []; g.p.speed = RACE.BASE; let n = 0; while (n++ < secs * 60) g.step(1 / 60, Object.assign({ lane: g.p.lane }, inp)); return g; };
+  const base = run({}, 4), acc = run({ accel: true }, 4), brk = run({ brake: true }, 4), both = run({ accel: true, brake: true }, 4);
+  ok('pedals: accelerate holds the car at BASE + THROTTLE (' + acc.p.speed.toFixed(1) + ' m/s), brake at half the pace (' + brk.p.speed.toFixed(1) + '), both = brake (' + both.p.speed.toFixed(1) + '); nothing held: BASE (' + base.p.speed.toFixed(1) + ')',
+    Math.abs(acc.p.speed - (RACE.BASE + RACE.THROTTLE)) < 0.6 && Math.abs(brk.p.speed - RACE.BASE * RACE.PEDAL_MUL) < 0.6 && Math.abs(both.p.speed - brk.p.speed) < 0.01 && Math.abs(base.p.speed - RACE.BASE) < 0.6 && acc.p.pedal === 'accel' && brk.p.pedal === 'brake');
+  ok('pedals: accelerating alone is still slower than the robot (' + (RACE.BASE + RACE.THROTTLE) + ' < ' + RACE.BOT + ' m/s): the spirals stay the way to win', RACE.BASE + RACE.THROTTLE < RACE.BOT * 0.96);
+  const playP = (seed, pol) => { const r = new Race(seed); let lane = 0, n = 0; while (!r.done && n++ < 20000) { if (pol === 'best') lane = best(r, 55, lane); r.step(1 / 60, { lane, accel: true }); } return r; };
+  let wb = 0, wp = 0; for (let sd = 1; sd <= 40; sd++) { if (playP(sd, 'best').result === 'win') wb++; if (playP(sd, 'passive').result === 'win') wp++; }
+  ok('pedals: an attentive player who keeps accelerating still wins (' + Math.round(wb / 40 * 100) + ' %), a passive one holding the accelerator still loses nearly always (' + Math.round(wp / 40 * 100) + ' %)', wb / 40 >= 0.8 && wp / 40 <= 0.2);
+}
 console.log(fails ? fails + ' FAILED' : 'all passed'); process.exit(fails ? 1 : 0);

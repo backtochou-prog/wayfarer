@@ -37,6 +37,7 @@ class Game {
     this.rare = 0; try { this.rare = +localStorage.getItem('wf.rare') || 0; } catch (e) {}                           // the rare tokens of the race zone, kept between runs
     this.race = null; this.raceN = 0; this.rl = this.rr = false;
     this.state = 'title';
+    this.loopOwner = 'window';                                                     // who drives the frames: 'window' (requestAnimationFrame) or 'xr' (the headset, src3d/xr3d.js)
     this.resetRun();
     addEventListener('keydown', e => this.onKey(e, true));
     addEventListener('keyup', e => this.onKey(e, false));
@@ -65,13 +66,7 @@ class Game {
     addEventListener('pointerup', e => { // a click counts when released over the same button it started on
       lift(e);
       const was = this.mouse.down; this.mouse.down = false; at(e);
-      if (was && this.sfx && this.state !== 'play' && this.overButton(BTN.sound)) { this.sfx.toggle(); return; }
-      if (was && this.state === 'title' && this.r.nextCharacter && this.overButton(BTN.char)) { this.nextCharacter(); return; }
-      const b = this.activeButton();
-      if (was && b && this.overButton(b)) {
-        if (this.state === 'pause') this.state = 'play';
-        else { if (this.state === 'title' && this.touch) this.goFullscreen(); this.start(); }
-      }
+      if (was) this.pressAt(this.mouse.x, this.mouse.y);
     });
     addEventListener('resize', () => this.fit()); addEventListener('orientationchange', () => setTimeout(() => this.fit(), 200));
     this.fit();
@@ -83,11 +78,12 @@ class Game {
     this.frameCap = () => cap;
     const loop = now => {
       requestAnimationFrame(loop); // re-arm first so one bad frame can never freeze the game
+      if (this.loopOwner !== 'window') { last = now; return; }                         // VR (src3d/xr3d.js) owns the frames while a session runs: this loop stays armed but idle, and resumes with no time jump
       if (fixed >= 0) cap = fixed ? 1000 / fixed - 1 : 0;
       else if (probe.length < 40) { probe.push(now); if (probe.length === 40) { const d = probe.slice(1).map((t, i) => t - probe[i]).sort((x, y) => x - y)[19]; cap = d < 10 ? 1000 / 60 - 1.5 : 0; } }
       if (cap && now - last < cap) return;                                            // too early on a fast screen: skip this one
       const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;   // never negative: the first frame's timestamp can precede the clock read at start-up, which used to send the game clock below zero (and hid the pickup sparkle, whose pool marks unused slots with t < 0)
-      this.advance(dt); this.draw(dt);
+      this.frame(dt);
     };
     requestAnimationFrame(loop);
   }
@@ -99,6 +95,7 @@ class Game {
   }
 
   draw() { this.r.draw(this); }
+  frame(dt) { this.advance(dt); this.draw(dt); }                                  // one frame: the window loop and the VR loop (src3d/xr3d.js) both call this
 
   fit() {
     // whole-number scaling keeps pixels even; on screens too small for 2x (phones in portrait) use the exact fit instead
@@ -148,13 +145,26 @@ class Game {
     if (this.state === 'over' && this.overT > this.overDelay) return BTN.over;
     return null;
   }
+  // a click released at (x, y) in canvas pixels (320 x 180): the sound icon, the character button, or the screen's main button. The pointer handler calls it, and so does the VR controller ray
+  // (src3d/xr_input.js); returns what it did ('sound', 'char', 'resume', 'start') or null
+  pressAt(x, y) {
+    this.mouse.x = x; this.mouse.y = y;
+    if (this.sfx && this.state !== 'play' && this.overButton(BTN.sound)) { this.sfx.toggle(); return 'sound'; }
+    if (this.state === 'title' && this.r.nextCharacter && this.overButton(BTN.char)) { this.nextCharacter(); return 'char'; }
+    const b = this.activeButton();
+    if (b && this.overButton(b)) {
+      if (this.state === 'pause') { this.state = 'play'; return 'resume'; }
+      if (this.state === 'title' && this.touch) this.goFullscreen(); this.start(); return 'start';
+    }
+    return null;
+  }
   overButton(b) { const m = this.mouse; return m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h; }
 
   start() { this.resetRun(); this.state = 'play'; this.emit('start'); }
   // the optional scooter: get on (the nearest parked scooter / station that has an indicator right now; it is taken) or off again, whenever the player wants. Drawing only: the rules are the same.
   mount() { const h = this.scooterHint; if (this.state !== 'play' || this.riding || this.surf || !h) return false; this.riding = true; this.vehicle = h.kind || 'scooter'; this.scooterHint = null; if (this.r.onScooter) this.r.onScooter(this, h); this.emit('mount'); if (this.touch && navigator.vibrate) navigator.vibrate(30); return true; }
   dismount() { if (this.state !== 'play' || !this.riding) return false; this.riding = false; this.emit('dismount'); return true; }
-  emit(name, arg) { if (this.sfx) this.sfx.play(name, arg); }                       // a sound effect, if the front end has sound
+  emit(name, arg) { if (this.sfx) this.sfx.play(name, arg); if (this.onEmit) this.onEmit(name, arg); }       // a sound effect, if the front end has sound; onEmit: an optional listener (the VR controllers' haptics)
 
   // which road the player would take if the junction line were crossed now: an explicit left/right input given inside the
   // prompt window wins (lane steering outside the window never counts); with no input, the side the runner is on, else right
@@ -177,6 +187,8 @@ class Game {
     if (!fresh || this.state !== 'play') return;
     if (id === 'jump') this.jump(); else if (id === 'slide') this.slideKey(); else if (id === 'scooter') this.dismount(); else if (id === 'pause') { this.state = 'pause'; this.releaseTouch(); }
   }
+  // THE RACE'S PEDALS: accelerate = the up key (Z / W / arrow) or the jump button held (touch, or the VR controllers through the same touch channel); brake = the down key or the slide button held
+  pedal(id) { return id === 'jump' ? !!(this.keys.up || Object.values(this.held).includes('jump')) : !!(this.keys.down || Object.values(this.held).includes('slide')); }
   syncTouch() { const h = Object.values(this.held); this.tleft = h.includes('left'); this.tright = h.includes('right'); }
   releaseTouch() { this.held = {}; this.syncTouch(); }
   goFullscreen() { // hides the browser bars and asks for landscape (Android Chrome); silently ignored elsewhere
@@ -192,6 +204,7 @@ class Game {
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(c)) e.preventDefault();
     if (L) this.keys.left = down;
     if (R) this.keys.right = down;
+    if (U) this.keys.up = down; if (D) this.keys.down = down;                          // (held: the race's pedals read them; a run acts on the press only, below)
     if (down && !e.repeat && this.state === 'race') { if (L) this.laneQ = (this.laneQ || 0) - 1; if (R) this.laneQ = (this.laneQ || 0) + 1; }                 // in the race a press changes lane (one lane per press)
     if (!down || e.repeat) return;
     if (c === 'KeyM' && this.sfx) { this.sfx.toggle(); return; }                      // M: sound on / off
@@ -359,7 +372,7 @@ class Game {
     const R = this.race; if (!R) { this.state = 'play'; return; }
     if (R.cd > 0) { R.cd -= dt; return; }
     const lane = R.p.lane + Math.max(-1, Math.min(1, this.laneQ || 0)); this.laneQ = 0;
-    R.step(Math.min(dt, 0.05), { lane });
+    R.step(Math.min(dt, 0.05), { lane, accel: this.pedal('jump'), brake: this.pedal('slide') });
     for (const ev of R.events.splice(0)) {
       if (ev.e === 'rare') { this.rare++; try { localStorage.setItem('wf.rare', String(this.rare)); } catch (e) {} this.emit('coin'); }
       else if (ev.e === 'spiral') this.emit('coin'); else if (ev.e === 'jump') this.emit('jump'); else if (ev.e === 'hit' || ev.e === 'ring') this.emit('land');

@@ -149,6 +149,7 @@ class Renderer3D {
   }
 
   resize() {
+    if (this.xr && this.xr.presenting) return;                                       // in VR the headset sizes the picture (three refuses setSize while presenting)
     const w = Math.max(2, innerWidth), h = Math.max(2, innerHeight);
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
@@ -303,6 +304,7 @@ class Renderer3D {
   // by 0.2, down to 0.7, and it will not climb back over the level that was too slow for 25 s. So a strong phone ends up sharp, a weak one stays fluid, and a phone that is only just coping does not flicker
   // between the two. Off in automated browsers (tests compare pictures), unless the page has ?adapt=1; ?adapt=0 turns it off; ?pr=N pins the ratio.
   adapt() {
+    if (this.xr && this.xr.presenting) { this._at = 0; return; }                    // VR: the XR framebuffer scale and foveation take the place of the adaptive resolution (src3d/xr3d.js)
     const now = performance.now(), d = this._at ? now - this._at : 16.7; this._at = now;
     if (this._adOn === undefined) {
       const q = typeof location !== 'undefined' && location.search.match(/[?&]adapt=(\d)/), pq = typeof location !== 'undefined' && location.search.match(/[?&]pr=([\d.]+)/);
@@ -495,7 +497,7 @@ class Renderer3D {
     this.journey(g, relX, p.jy * U.Y + lift);
     if (absAt) { const gp = this.runner.group, sh = this.runner.shadow; gp.position.set(absAt.x, absAt.y, absAt.z); gp.scale.setScalar(absAt.s); gp.visible = absAt.vis; sh.position.x = absAt.x; sh.position.z = absAt.z; sh.scale.multiplyScalar(absAt.s); sh.visible = absAt.vis; }      // the runner goes down the hole, its shadow with it
     this.perk.update(g, rz, Lref, relX, this.runner.group.position.y);
-    if (Math.abs(this.camera.fov - this.perk.fov) > 0.02) { this.camera.fov = this.perk.fov; this.camera.updateProjectionMatrix(); }       // the dash opens the view a few degrees
+    if (Math.abs(this.camera.fov - this.perk.fov) > 0.02 && !(this.xr && this.xr.presenting)) { this.camera.fov = this.perk.fov; this.camera.updateProjectionMatrix(); }       // the dash opens the view a few degrees
     const ms = 1 - Math.exp(-3.5 * dt);
     this.menu += ((g.state === 'title' ? 1 : 0) - this.menu) * ms;
     const mm = this.menu * this.menu * (3 - 2 * this.menu);
@@ -514,21 +516,24 @@ class Renderer3D {
     const ahead = this.axisLat(w, p.z + TRACK3D.LOOK_AHEAD, Lref);
     this.lookX += (ahead * 0.8 - this.lookX) * (1 - Math.exp(-4 * dt));
     this.look.set(this.lookX + ((relX - 1.0) - this.lookX) * mm, 0.8 + 0.3 * mm, -20 * (1 - mm));
-    if (g.shake > 0) { this.cam.x += Math.sin(g.time * 90) * g.shake * 0.5; this.cam.y += Math.cos(g.time * 70) * g.shake * 0.3; }
+    const XRP = !!(this.xr && this.xr.presenting);                                       // VR (src3d/xr3d.js): no shake, no cutscene camera move, the pose goes to the rig
+    if (g.shake > 0 && !XRP) { this.cam.x += Math.sin(g.time * 90) * g.shake * 0.5; this.cam.y += Math.cos(g.time * 70) * g.shake * 0.3; }
     // the cutscene's camera: from the road side, beside the runner (run, board, doors), then following the train out (depart); it eases in and out of the chase camera
     this.sceneK += ((SC ? 1 : 0) - this.sceneK) * (1 - Math.exp(-(SC ? 2.2 : 5) * dt));
-    if (this.sceneK > 0.002) {
+    if (this.sceneK > 0.002 && !XRP) {
       const k = this.sceneK * this.sceneK * (3 - 2 * this.sceneK), dep = SC && SC.phase === 'depart', ts = SC ? SC.trainS * U.Z : 0, fz = dep ? -ts * 0.8 - 1 : -2.5;
       const tx = relX - 6.5, ty = 2.1 + lift, tz = dep ? 4.5 - ts * 0.5 : 4.5, lx = relX + 3.2, ly = 1.5 + lift, lz = fz;
       if (this.sceneK < 0.02 && SC) { this.scCam.copy(this.cam); this.scLook.copy(this.look); }
       const a = 1 - Math.exp(-5 * dt); this.scCam.x += (tx - this.scCam.x) * a; this.scCam.y += (ty - this.scCam.y) * a; this.scCam.z += (tz - this.scCam.z) * a; this.scLook.x += (lx - this.scLook.x) * a; this.scLook.y += (ly - this.scLook.y) * a; this.scLook.z += (lz - this.scLook.z) * a;
       this.cam.lerp(this.scCam, k); this.look.lerp(this.scLook, k);
     }
-    this.camera.position.copy(this.cam); this.camera.lookAt(this.look);
-    this.sky.position.copy(this.camera.position);
-    this.sunDisc.position.set(this.camera.position.x + this.sunOff.x, this.camera.position.y + this.sunOff.y, this.camera.position.z - 250);
-    this.sunDisc.lookAt(this.camera.position);
-    if (this.sunGlow.visible) { this.sunGlow.position.copy(this.sunDisc.position); this.sunGlow.position.z += 0.5; this.sunGlow.lookAt(this.camera.position); }
+    let eye = this.camera.position;
+    if (XRP) { this.xr.applyMain(this.cam, this.look, dt); eye = this.xr.eyeWorld(this._eye || (this._eye = new THREE.Vector3())); }
+    else { this.camera.position.copy(this.cam); this.camera.lookAt(this.look); }
+    this.sky.position.copy(eye);
+    this.sunDisc.position.set(eye.x + this.sunOff.x, eye.y + this.sunOff.y, eye.z - 250);
+    this.sunDisc.lookAt(eye);
+    if (this.sunGlow.visible) { this.sunGlow.position.copy(this.sunDisc.position); this.sunGlow.position.z += 0.5; this.sunGlow.lookAt(eye); }
 
     this.pickHint(g);
     this.renderer.render(this.scene, this.camera);

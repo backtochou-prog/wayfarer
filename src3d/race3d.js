@@ -8,6 +8,8 @@ const RaceArt = {
     return this._m;
   },
 };
+// the neon of the robot's back: its brightness at rest and when braking (above 1 lights brighter, additively), and the deceleration (m/s per second) that counts as braking
+const XRaceNeon = { base: 0.35, brake: 1.7, brakeDecel: 1.0 };
 class Race3D {
   constructor() {
     const sc = this.scene = new THREE.Scene(); sc.background = new THREE.Color('#04020a'); sc.fog = new THREE.Fog('#04020a', 90, 520);
@@ -36,6 +38,12 @@ class Race3D {
     { const w = 2.95, h = w / RACE_ASSETS.ar.carBack, m = new THREE.Mesh(this.plane(w, h), this.backMat); m.position.set(0, h / 2 + 0.06, 2.02); this.car.add(m); this.car.userData.pic = m;
       // the neon of the back LIT: the picture is drawn three times over itself (additive, so every lit line adds up) over a green and a magenta halo, and the whole thing flares on the beat
       for (const dz of [0.005, 0.01]) { const m2 = m.clone(); m2.position.z += dz; this.car.add(m2); }
+      // THE BRAKE LIGHTS: red glows across the lamp bar at the foot of the tail (a wide band and a lamp at each end), invisible until the car brakes (the brake pedal or a brake ring). (A red copy of
+      // the tail picture was tried first: the tail is blue and green, and red laid over it barely showed.)
+      this.brakeLightMat = halo('#ff1a2a'); this.brakeLightMat.opacity = 0;
+      { const bl = new THREE.Group(); const band = new THREE.Mesh(this.plane(w * 1.05, h * 0.32), this.brakeLightMat); band.position.set(0, 0.32, 2.05); bl.add(band);
+        for (const sx of [-1, 1]) { const lamp = new THREE.Mesh(this.plane(0.95, 0.75), this.brakeLightMat); lamp.position.set(sx * w * 0.32, 0.36, 2.06); bl.add(lamp); }
+        bl.visible = false; this.car.add(bl); this.car.userData.brakeLight = bl; this.carBrakeK = 0; }
       const hG = new THREE.Mesh(this.plane(w * 1.15, h * 0.7), this.backGlowG); hG.position.set(0, 0.42, 1.99); this.car.add(hG);
       const hM = new THREE.Mesh(this.plane(w * 1.1, h * 0.8), this.backGlowM); hM.position.set(0, h * 0.72, 1.985); this.car.add(hM);
       this.car.userData.halo = [hG, hM];
@@ -70,6 +78,31 @@ class Race3D {
         const g3 = new THREE.BufferGeometry(); g3.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g3.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g3.setIndex(idx); g3.computeBoundingSphere(); return g3; };
       for (const [g3] of [[cap(1, 0.9, 'dome')], [cap(-1, 1.0, 'cone')]]) { const g2 = new THREE.Group(); g2.add(new THREE.Mesh(g3, this.botMat));
         for (const k of [1, 2]) g2.add(new THREE.Mesh(g3, this.botGlowMat)); this.bot.add(g2); }
+      // THE TRIANGLE PLATE (the user, on the back: 'une plaque noire mate, un peu bombee, environ 4 cm'): a matte black plate over the triangle of the stern picture (its outline and its middle, where the
+      // pink was taken out), lying on the stern dome and bulging 4 cm at its centre, down to the dome at its edges. Placed with the cap's own projection: the triangle spans v 0.20 (its tip) to 0.49 (its top
+      // edge) of the picture's height and +-0.18 of the half width (u = 0.5 - |x| / 2aE). Lit by the race scene's lights (Lambert: matte), not glowing.
+      // THE NEON OF THE BACK, BRACK3 (the user's own drawing, named brack3 by them: pink light lines, the triangle, the two eyes, the bars above and below), projected onto the stern dome over the picture, drawn additively so its
+      // transparent and black parts let the picture through and its pink lights up. 2.9 m wide (a little wider than the car: the very tips of its side points stop at the edge of the dome), placed so its
+      // triangle is the plate's. Dimmer than the rest of the car's lights, and it LIGHTS UP WHEN THE ROBOT BRAKES (draw(): brakeK).
+      const NW = 1.15 * GAP, NH = NW / RACE_ASSETS.ar.brack3, NT = 0.314, NB2T = 0.679, NHALF = 0.0731;            /* in the picture: the triangle from 31.4 % to 67.9 % of the height, its top half width 7.31 % of the width */
+      const triTop = y0 + 0.495 * hE, nBot = triTop + NT * NH - NH;
+      { const g3 = cap(1, 0.9, 'dome'), P = g3.attributes.position, U = g3.attributes.uv, c = 0.9;
+        for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i), nx = x / (aE * aE), ny = (y - y0) / (hE * hE), nz = (z - endZ) / (c * c), nl = Math.hypot(nx, ny, nz) || 1;
+          P.setXYZ(i, x + nx / nl * 0.012, y + ny / nl * 0.012, z + nz / nl * 0.012); U.setXY(i, 0.5 + x / NW, (y - nBot) / NH); }
+        const t = L(RACE_ASSETS.brack3); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+        this.neonMat = new THREE.MeshBasicMaterial({ map: t, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false, color: new THREE.Color().setScalar(XRaceNeon.base) });
+        const nm = new THREE.Mesh(g3, this.neonMat); nm.name = 'backNeon'; nm.renderOrder = 6; this.bot.add(nm); this.bot.userData.neon = nm; this.brakeK = 0; }
+      { const N = 14, BUL = 0.04, LIFT = 0.006, c = 0.9, vTop = 0.495, vTip = (triTop - (NB2T - NT) * NH - y0) / hE, half = NHALF * NW + 0.01;          /* the plate is the neon's triangle */
+        const A = [-half, y0 + vTop * hE], B = [half, y0 + vTop * hE], Cc = [0, y0 + vTip * hE], pos = [], idx = [], row = [];
+        const surf = (x, y) => { const sy = Math.min(0.999, (y - y0) / hE), cph2 = 1 - sy * sy, r = Math.max(0, cph2 - (x / aE) * (x / aE)), z = endZ + c * Math.sqrt(r);
+          const nx = x / (aE * aE), ny = (y - y0) / (hE * hE), nz = (z - endZ) / (c * c), nl = Math.hypot(nx, ny, nz) || 1; return [x, y, z, nx / nl, ny / nl, nz / nl]; };
+        for (let i = 0; i <= N; i++) { row[i] = pos.length / 3; for (let j = 0; j <= N - i; j++) {                     /* barycentric grid over the triangle */
+          const a1 = i / N, b1 = j / N, c1 = 1 - a1 - b1, x = a1 * Cc[0] + b1 * B[0] + c1 * A[0], y = a1 * Cc[1] + b1 * B[1] + c1 * A[1];
+          const k = Math.max(0, Math.min(1, 27 * a1 * b1 * c1)), bulge = LIFT + BUL * Math.sqrt(k), S = surf(x, y);                       /* 27abc: 1 at the centre, 0 on the edges; the root rounds the dome */
+          pos.push(S[0] + S[3] * bulge, S[1] + S[4] * bulge, S[2] + S[5] * bulge); } }
+        for (let i = 0; i < N; i++) for (let j = 0; j < N - i; j++) { const p0 = row[i] + j, p1 = row[i] + j + 1, p2 = row[i + 1] + j; idx.push(p0, p2, p1); if (j < N - i - 1) idx.push(p1, p2, row[i + 1] + j + 1); }
+        const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); pg.setIndex(idx); pg.computeVertexNormals();
+        const plate = new THREE.Mesh(pg, new THREE.MeshLambertMaterial({ color: '#0c0c10', side: THREE.DoubleSide })); plate.name = 'trianglePlate'; this.bot.add(plate); this.bot.userData.plate = plate; }
       // THE CANOPY (the user: 'pare-brise fume et solide comme celui d'un vaisseau spatial, bombe, couvre le front entre le nez et les flancs et couvre tout le vide' and then 'adapter le bombe du pare-brise avec la
       // descente du nez'): a smoked, solid, domed windscreen over the whole open top of the body. It is no longer a symmetrical oval that stops at the nose: it runs from the TIP of the nose cone to the stern, and its
       // crown profile follows the body: from the tip it climbs along the slope of the nose (the cone's own top line), swells to the ridge of the roof over the middle, and comes back down to the stern; its width
@@ -276,7 +309,18 @@ class Race3D {
     Kit.materials().glow.color.setScalar(1 - 0.16 * (1 - pulse));                                                                                            // every neon light of the race (lines, posts, cars) pulses with the music
     this.car.position.set(p.x, 0.02 + air * 2.6 + 0.05 * pulse, -p.s); this.car.rotation.set(-air * 0.12 * (p.air / RACE.JUMP_T > 0.5 ? 1 : -1), -(p.lane * M - p.x) * 0.05, (p.lane * M - p.x) * 0.03); this.car.userData.pic.scale.set(1, 1 + 0.03 * pulse, 1); for (const h2 of this.car.userData.halo) h2.scale.setScalar(0.9 + 0.25 * pulse);
     const gap = R.bot.s - p.s;                                                                               // the robot is drawn where it really is (it never slows down when the player does); far ahead it is simply drawn bigger, so it stays easy to see
+    // the player's brake lights (the pedal or a ring)
+    { const dtc = this._ct === undefined ? 0 : t - this._ct; this._ct = t; const want = p.pedal === 'brake' || p.brakeT > 0 ? 1 : 0;
+      this.carBrakeK += (want - this.carBrakeK) * Math.min(1, dtc / (want > this.carBrakeK ? 0.06 : 0.25));
+      if (this.brakeLightMat) { this.brakeLightMat.opacity = this.carBrakeK; this.car.userData.brakeLight.visible = this.carBrakeK > 0.01; } }
+    // the neon of the back: dim, and bright while the robot brakes (its pace drops faster than 1 m/s per second)
+    { const dtn = this._nt === undefined ? 0 : t - this._nt; this._nt = t; const v = R.bot.speed, dec = dtn > 0 && this._nv !== undefined ? (this._nv - v) / dtn : 0; this._nv = v;
+      const want = dec > XRaceNeon.brakeDecel ? 1 : 0; this.brakeK += (want - this.brakeK) * Math.min(1, dtn / (want > this.brakeK ? 0.08 : 0.35));
+      if (this.neonMat) this.neonMat.color.setScalar(XRaceNeon.base + (XRaceNeon.brake - XRaceNeon.base) * this.brakeK); }
     const far = Math.max(0, gap - 30); this.bot.position.set(R.bot.x, 0.06 + 0.07 * Math.sin(t * 4) + 0.05 * pulse, -R.bot.s);           // the same height as the player's car, in the lane it is really in (it can be run into from behind) this.bot.userData.pic.rotation.z = Math.sin(t * 1.6) * 0.05 + 0.03 * pulse; this.bot.userData.halo.scale.setScalar(0.85 + 0.3 * pulse); this.bot.userData.pic.lookAt(this.camera.position.x, this.bot.position.y + 1.1, this.camera.position.z); this.bot.scale.setScalar(1 + Math.min(far, 140) / 130);
+    const X = g.r && g.r.xr && g.r.xr.presenting ? g.r.xr : null;                                          // VR (src3d/xr3d.js): the headset owns the camera; the chase pose goes to the race's rig (no FOV change, no pitch)
+    if (X) { const dtx = Math.min(0.05, Math.max(0, t - (this._xrT === undefined ? t : this._xrT))) || 1 / 72; this._xrT = t; X.applyRace(p.x * 0.55, -p.s, 0, dtx); renderer.render(this.scene, this.camera); return; }
+    this._xrT = undefined;
     const f = 62 + Math.min(14, p.speed - RACE.BASE) * 0.9 + (p.hitT > 0 ? -4 : 0); if (Math.abs(this.camera.fov - f) > 0.05) { this.camera.fov += (f - this.camera.fov) * 0.1; this.camera.updateProjectionMatrix(); }
     const cx = p.x * 0.55, cz = -p.s + 8.2; this.camPos.set(cx, 3.5 + air * 1.4, cz); this.camera.position.lerp(this.camPos, 0.5); this.camera.position.z = cz; this.camera.lookAt(p.x * 0.4, 1.3 + air * 0.8, -p.s - 12);
     renderer.render(this.scene, this.camera);

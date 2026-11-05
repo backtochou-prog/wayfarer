@@ -7,12 +7,13 @@ const RACE = {
   SPIRAL: [{ name: 'RED', add: 20 }, { name: 'PURPLE', add: 14 }, { name: 'GREEN', add: 9 }, { name: 'LIME', add: 5 }],      // the speed each colour adds (m/s) while it lasts
   SPIRAL_T: 3.2, BRAKE_MUL: 0.55, BRAKE_T: 2.0, HIT_MUL: 0.3, HIT_T: 0.9, JUMP_T: 1.1,
   LAST: 0.75,     /* where the run-in starts (the last quarter: more spirals, the strong colours, fewer traps, so the player can still take the robot) */
+  THROTTLE: 4, PEDAL_MUL: 0.5,   /* the PEDALS (the user: 'boutons accelerer, freiner'): accelerating while held adds THROTTLE m/s to the car's pace (4, not more: measured by tests/race_sim.js, at 7 a player who only holds the accelerator in one lane won half the races, at 4 about one in eight; the spirals stay the way to win), braking while held halves it */
   DROID_V: 12, DROID_TRIGGER: 50, RAMP_BEFORE: 30, BUMP_MUL: 0.6, BUMP_T: 0.9, BUMP_GAP: 4.4,          /* running into the back of the robot's car: it is an obstacle like any other, the player is slowed and held behind it */
 };
 class Race {
   constructor(seed) {
     this.seed = seed || 1; this.t = 0; this.done = false; this.result = null; this.fin = 0;          // result: 'win' | 'lose'
-    this.p = { s: 0, lane: -1, x: -RACE.LANE_M, speed: RACE.BASE * 0.6, boost: 0, boostT: 0, brakeT: 0, hitT: 0, air: 0, spirals: 0, rare: 0, hits: 0, rings: 0, jumps: 0, near: 0, bumps: 0 };
+    this.p = { s: 0, lane: -1, x: -RACE.LANE_M, speed: RACE.BASE * 0.6, boost: 0, boostT: 0, brakeT: 0, hitT: 0, air: 0, pedal: null, spirals: 0, rare: 0, hits: 0, rings: 0, jumps: 0, near: 0, bumps: 0 };
     this.bot = { s: 0, speed: RACE.BASE * 0.65, lane: 1, x: RACE.LANE_M, finishT: null };             // the two cars start SIDE BY SIDE on the line, one at each side of the track (the player on the left, the robot on the right: a lane of road between them)                                              
     this.items = []; this.events = []; this.build();
   }
@@ -47,9 +48,10 @@ class Race {
     if (this.done) { this.fin += dt; return; }
     const p = this.p, bot = this.bot; this.t += dt;
     if (input && input.lane !== undefined) p.lane = Math.max(-1, Math.min(1, input.lane));
+    p.pedal = input && input.brake ? 'brake' : input && input.accel ? 'accel' : null;                      // (braking wins when both are held)
     p.x += (p.lane * RACE.LANE_M - p.x) * Math.min(1, dt * 9);
     p.boostT = Math.max(0, p.boostT - dt); if (!p.boostT) p.boost = 0; p.brakeT = Math.max(0, p.brakeT - dt); p.hitT = Math.max(0, p.hitT - dt); p.air = Math.max(0, p.air - dt);
-    let target = RACE.BASE + p.boost; if (p.brakeT > 0) target *= RACE.BRAKE_MUL; if (p.hitT > 0) target *= RACE.HIT_MUL;
+    let target = RACE.BASE + p.boost + (p.pedal === 'accel' ? RACE.THROTTLE : 0); if (p.pedal === 'brake') target *= RACE.PEDAL_MUL; if (p.brakeT > 0) target *= RACE.BRAKE_MUL; if (p.hitT > 0) target *= RACE.HIT_MUL;
     p.speed += Math.max(-RACE.ACCEL * 2.2 * dt, Math.min(RACE.ACCEL * dt, target - p.speed));
     const s0 = p.s; p.s += p.speed * dt;
     bot.lane = Math.max(-1, Math.min(1, Math.round(Math.sin(this.t * 0.33 + Math.PI / 2) * 1.3)));                       // the robot drifts from lane to lane: the player has to go round it, not through it
