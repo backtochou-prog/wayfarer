@@ -3,11 +3,11 @@
 // DROIDS must be avoided (change lane) or jumped over from a RAMP; two RARE TOKENS lie on the track (the counter is kept between runs). Losing ends the race at once (the robot crossed first).
 // Units: metres and seconds along the track `s`; lanes -1, 0, 1 (LANE_M apart). Every number a test or the renderer needs is a field of the Race.
 const RACE = {
-  LEN: 2600, LANE_M: 2.4, BASE: 34, BOT: 47, ACCEL: 40,                         // BASE: the car's own pace (m/s); BOT: the robot's pace
-  SPIRAL: [{ name: 'RED', add: 20 }, { name: 'PURPLE', add: 14 }, { name: 'GREEN', add: 9 }, { name: 'LIME', add: 5 }],      // the speed each colour adds (m/s) while it lasts
+  LEN: 2600, LANE_M: 2.4, BASE: 43, BOT: 58, ACCEL: 40,                         // BASE: the car's own pace (m/s); BOT: the robot's pace
+  SPIRAL: [{ name: 'RED', add: 25 }, { name: 'PURPLE', add: 17 }, { name: 'GREEN', add: 11 }, { name: 'LIME', add: 6 }],      // the speed each colour adds (m/s) while it lasts
   SPIRAL_T: 3.2, BRAKE_MUL: 0.55, BRAKE_T: 2.0, HIT_MUL: 0.3, HIT_T: 0.9, JUMP_T: 1.1,
   LAST: 0.75,     /* where the run-in starts (the last quarter: more spirals, the strong colours, fewer traps, so the player can still take the robot) */
-  THROTTLE: 4, PEDAL_MUL: 0.5,   /* the PEDALS (the user: 'boutons accelerer, freiner'): accelerating while held adds THROTTLE m/s to the car's pace (4, not more: measured by tests/race_sim.js, at 7 a player who only holds the accelerator in one lane won half the races, at 4 about one in eight; the spirals stay the way to win), braking while held halves it */
+  THROTTLE: 5, PEDAL_MUL: 0.5,   /* the PEDALS (the user: 'boutons accelerer, freiner'): accelerating while held adds THROTTLE m/s to the car's pace (the user asked for both cars faster: 43 / 58 m/s, the spirals scaled with them; 5, not more: measured by tests/race_sim.js, a player who only holds the accelerator in one lane wins about one race in six, an attentive one 85 % without it and all with it; the spirals stay the way to win), braking while held halves it */
   DROID_V: 12, DROID_TRIGGER: 50, RAMP_BEFORE: 30, BUMP_MUL: 0.6, BUMP_T: 0.9, BUMP_GAP: 4.4,          /* running into the back of the robot's car: it is an obstacle like any other, the player is slowed and held behind it */
 };
 class Race {

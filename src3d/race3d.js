@@ -35,7 +35,19 @@ class Race3D {
     // it; only that one piece, at the user's request. The modelled car (src3d/car3d.js, whose back is built from the user's material picture) is kept for the renders in docs/race.
     // THE PLAYER'S CAR is GENERATED FROM THE USER'S PICTURE OF ITS BACK: the picture is the tail, hung as it is (never redrawn), and the body in front of it is modelled from what it shows (Car3D.fromBack).
     this.car = Car3D.buildFromBack();
-    { const w = 2.95, h = w / RACE_ASSETS.ar.carBack, m = new THREE.Mesh(this.plane(w, h), this.backMat); m.position.set(0, h / 2 + 0.06, 2.02); this.car.add(m); this.car.userData.pic = m;
+    // (the user, on the top edge of the back picture: 'courbe': its top quarter is BENT FORWARD on a 0.45 m radius, so the picture rolls over onto the roof instead of ending in a straight edge)
+    // (and then on its upper corners: its left and right edges fold forward too, strongly at the top and not at all below the belt, so the picture is a cushion wrapping the corner of the body)
+    const bentPic = (w, h) => { const g = new THREE.PlaneGeometry(w, h, 24, 24), P = g.attributes.position, cut = 0.72, R = 0.45, cx = 0.62, Rs = 0.42, sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+      for (let i = 0; i < P.count; i++) { let x = P.getX(i), y = P.getY(i), z = 0; const yy = (y + h / 2) / h;
+        const dx = Math.abs(x) - cx * w / 2, k = sm(0.38, 0.78, yy); if (dx > 0 && k > 0) { const th = Math.min(dx / Rs, Math.PI / 2) * k; x = Math.sign(x) * (cx * w / 2 + Rs * Math.sin(th) / Math.max(k, 1e-3) * k + dx * (1 - k) * 0); x = Math.sign(P.getX(i)) * (cx * w / 2 + (Rs * Math.sin(th) * k + dx * (1 - k))); z -= Rs * (1 - Math.cos(th)); }
+        const d = (y + h / 2) - cut * h; if (d > 0) { const th = Math.min(d / R, Math.PI / 2); y = -h / 2 + cut * h + R * Math.sin(th); z -= R * (1 - Math.cos(th)); }
+        P.setXYZ(i, x, y, z); }
+      // (the user: 'supprimer debris transparent': the grey side pieces of the picture, at the belt, stood out past the body once wrapped: the outer strip of the picture is left out there)
+      const U = g.attributes.uv, I = g.index.array, keep = [];
+      for (let f = 0; f < I.length; f += 3) { let u = 0, v = 0; for (let k = 0; k < 3; k++) { u += U.getX(I[f + k]) / 3; v += U.getY(I[f + k]) / 3; } const e = Math.abs(u - 0.5), vt = 1 - v;
+        if (e > 0.458 || (e > 0.39 && vt < 0.62)) continue;            /* (and the whole upper part of that strip, the same on both sides: 'symetrie logique') */ keep.push(I[f], I[f + 1], I[f + 2]); }
+      g.setIndex(keep); g.computeVertexNormals(); return g; };
+    { const w = 2.95, h = w / RACE_ASSETS.ar.carBack, m = new THREE.Mesh(bentPic(w, h), this.backMat); m.position.set(0, h / 2 + 0.06, 2.02); this.car.add(m); this.car.userData.pic = m;
       // the neon of the back LIT: the picture is drawn three times over itself (additive, so every lit line adds up) over a green and a magenta halo, and the whole thing flares on the beat
       for (const dz of [0.005, 0.01]) { const m2 = m.clone(); m2.position.z += dz; this.car.add(m2); }
       // THE BRAKE LIGHTS: red glows across the lamp bar at the foot of the tail (a wide band and a lamp at each end), invisible until the car brakes (the brake pedal or a brake ring). (A red copy of
@@ -47,6 +59,54 @@ class Race3D {
       const hG = new THREE.Mesh(this.plane(w * 1.15, h * 0.7), this.backGlowG); hG.position.set(0, 0.42, 1.99); this.car.add(hG);
       const hM = new THREE.Mesh(this.plane(w * 1.1, h * 0.8), this.backGlowM); hM.position.set(0, h * 0.72, 1.985); this.car.add(hM);
       this.car.userData.halo = [hG, hM];
+      // THE BACK LEANS FORWARD (the user drew the roof curving down onto it): the picture, its two copies, the brake lights and the halos turn together about the picture's foot by Car3D.TAIL_TILT, the
+      // top toward the front (the body is shaped to that slant: Car3D.shell); the window keeps a little of its upright look.
+      { const piv = new THREE.Group(); piv.position.set(0, 0.06, 2.02); piv.rotation.x = -Car3D.TAIL_TILT; piv.scale.x = Car3D.TAIL_STRETCH; piv.scale.y = Car3D.TAIL_SQUASH; this.car.add(piv);      /* (stretched a little in width: the user wanted the picture to cover the body's sides at the belt) */
+        for (const c of this.car.children.filter(c => c.material === this.backMat || c === this.car.userData.brakeLight || c === hG || c === hM)) { c.position.y -= 0.06; c.position.z -= 2.02; piv.add(c); }
+        // THE REAR PARTS (the user: 'faire apparaitre le coffre, le pare-chocs arriere, les baguettes, chacun a sa dimension logique, comme l'arriere d'une Porsche coupe', 'pas de coin'): real pieces on the
+        // tilted back, in the picture's frame (y from its foot, +z out of it): a full-width BUMPER 0.26 m tall standing 0.17 m out, with rounded ends (no corners) and a chrome strip on top; a black
+        // DIFFUSER with fins under it; the BOOT LID outlined by thin shut lines above the lamp bar (1.7 x 0.27 m) with a small chrome handle. Lit like the body, nothing glows.
+        { const rp = [], rpRed = [], BW = 2.3, body = '#1a2240', chrome = '#b9c3d6', black = '#05060a';
+          // the bumper WRAPS ROUND THE CORNERS (the user: 'adapter le pare-chocs avec la courbure du coin jusqu'aux roues'): seen from above it runs straight across the middle, turns on a 0.4 m
+          // radius at each corner and runs forward along the flanks toward the rear wheels; the chrome strip follows it
+          { const path = [], XS = 0.76, R = 0.3, XE = XS + R, ZF = -0.24;      /* (XE about the body's half width at the tail: the bumper hugs the flanks) */
+            for (let k = 0; k <= 4; k++) path.push([-XS + (2 * XS) * k / 4, 0.07]);
+            const arc = sx => { const pts = []; for (let k = 1; k <= 6; k++) { const a2 = (k / 6) * Math.PI / 2; pts.push([sx * (XS + R * Math.sin(a2)), 0.07 - R * (1 - Math.cos(a2))]); } pts.push([sx * XE, ZF]); return pts; };
+            const right = arc(1), left = arc(-1).reverse(), all = left.concat(path, right);
+            for (let k = 0; k < all.length - 1; k++) { const [x0, z0] = all[k], [x1, z1] = all[k + 1], len = Math.hypot(x1 - x0, z1 - z0); if (len < 1e-3) continue; const ry = Math.atan2(-(z1 - z0), x1 - x0);
+              rp.push(Kit.box(len + 0.03, 0.26, 0.22, (x0 + x1) / 2, 0.06, (z0 + z1) / 2, body, { ry }));                              // the bumper
+              rp.push(Kit.box(len + 0.03, 0.018, 0.235, (x0 + x1) / 2, 0.32, (z0 + z1) / 2, chrome, { ry }));                          // the chrome strip on it
+              // THE LAMP BAR wraps the same way (the user: 'meme chose que le pare-chocs'): a lit green band and a thin red line above the bumper, along the same path, round the corners to the sides
+              // (a little MORE bulged than the bumper, the user: pushed 0.13 m outward along the path, so the brake light and the neon stay visible from behind; in the corners it turns back in, about 24 degrees, and meets
+              // the bumper's end by the wheel: the user circled the corner piece that stood off on its own)
+              const nx = -(z1 - z0) / len, nz = (x1 - x0) / len, inC = Math.max(Math.abs(x0), Math.abs(x1)) > XS + 0.01 ? Math.min(1, (Math.abs((x0 + x1) / 2) - XS) / R * 0.5 + Math.max(0, -((z0 + z1) / 2) - 0.0) / 0.4) : 0, OUT = 0.13 * (1 - Math.min(1, inC)), mx = (x0 + x1) / 2 + nx * OUT, mz = (z0 + z1) / 2 + nz * OUT;
+              rp.push(Kit.box(len + 0.06, 0.045, 0.07, mx, 0.46, mz, '#2bff3a', { ry, glow: true }));
+              rpRed.push(Kit.box(len + 0.06, 0.018, 0.07, mx, 0.41, mz, '#ff2a3a', { ry, glow: true }));                                  // the red line: its own material, it lights up when braking
+              rp.push(Kit.box(len + 0.06, 0.12, 0.1, (x0 + x1) / 2 + nx * (OUT - 0.06), 0.4, (z0 + z1) / 2 + nz * (OUT - 0.06), body, { ry })); }   // the body under it, bulging out to carry it
+            for (const sx of [-1, 1]) rp.push(Kit.ico(0.13, sx * XE, 0.19, ZF, body, { detail: 2 })); }                                 // its rounded ends, by the wheels
+          rp.push(Kit.box(1.5, 0.1, 0.32, 0, -0.04, 0.1, black));                                                                       // the diffuser
+          for (let k = 0; k < 6; k++) rp.push(Kit.box(0.025, 0.1, 0.33, -0.6 + k * 0.24, -0.04, 0.1, '#14161f'));                        // its fins
+          const bx = 0.85, by0 = 0.71, by1 = 0.98, ln = (w2, h2, x, y) => rp.push(Kit.box(w2, h2, 0.02, x, y, 0.012, black));
+          ln(2 * bx, 0.016, 0, by0); ln(2 * bx, 0.016, 0, by1); for (const sx of [-1, 1]) ln(0.016, by1 - by0, sx * bx, by0);           // the boot lid's shut lines
+          rp.push(Kit.box(0.26, 0.035, 0.03, 0, by0 + 0.06, 0.02, chrome));                                                           // its handle
+          const rm = Kit.mesh(Kit.merge(rp)); rm.name = 'rearParts'; piv.add(rm); this.car.userData.rearParts = rm;
+          // THE RED LINE IS A BRAKE LIGHT (the user: 'lisere'): dark red at rest, full red when braking, with the brake lights (draw(): carBrakeK)
+          const rg = Kit.merge(rpRed).glow; this.brakeStripMat = new THREE.MeshBasicMaterial({ color: new THREE.Color('#ff2a3a').multiplyScalar(0.35), fog: false });
+          const rs = new THREE.Mesh(rg, this.brakeStripMat); rs.name = 'brakeStrip'; piv.add(rs); this.car.userData.brakeStrip = rs; }
+        this.car.userData.tail = piv; }
+      // THE SIDE WINDOWS WEAR THE BACK PICTURE'S GLASS (the user circled the blue window of the tail picture, then the cabin's side: copy it there): the same picture, its glass band (rows 13 - 40 % from
+      // the top, the left part of it), laid along each side of the cabin from the middle of the car to the slanted tail, mirrored on the right so it runs the same way; a little off the body.
+      { const S = Car3D.lastShell, U0 = 0.24, U1 = 0.5, V0 = 0.62, V1 = 0.85, pos = [], uv = [], idx = [];
+        if (S && S.side.length > 1) { const n = S.side.length;
+          for (const [sideKey, flip] of [['L', false], ['R', true]]) { const base = pos.length / 3;
+            S.side.forEach((sec, i) => { const f = i / (n - 1), u = flip ? U1 - (U1 - U0) * f : U0 + (U1 - U0) * f;
+              sec[sideKey].forEach((q, r) => { pos.push(q[0] + Math.sign(q[0]) * 0.012, q[1], q[2]); uv.push(u, V0 + (V1 - V0) * (r / 2)); }); });
+            for (let i = 0; i < n - 1; i++) for (let r = 0; r < 2; r++) { if (S.side[i + 1].t > (r === 0 ? 0.6 : 0.78)) continue;      /* (the window ends like a Porsche's: its rear edge slanted, further back at the top than at the belt; the body's dark pillar behind) */
+              const A = base + i * 3 + r, B = A + 3; if (flip) idx.push(A, A + 1, B, A + 1, B + 1, B); else idx.push(A, B, A + 1, A + 1, B, B + 1); } }
+          const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); gg.setIndex(idx); gg.computeVertexNormals();
+          const src = this.backMat.map, gt = src.clone(); gt.needsUpdate = true; const im = src.image; if (im && im.addEventListener) im.addEventListener('load', () => { gt.needsUpdate = true; });
+          this.sideGlassMat = new THREE.MeshBasicMaterial({ map: gt, side: THREE.DoubleSide, fog: false });
+          const sg = new THREE.Mesh(gg, this.sideGlassMat); sg.name = 'sideGlass'; this.car.add(sg); this.car.userData.sideGlass = sg; } }
       const gl = new THREE.Mesh(this.plane(w * 0.7, w * 0.9), this.carGlow); gl.rotation.x = -Math.PI / 2; gl.position.set(0, 0.015, 0.2); this.car.add(gl); }
     sc.add(this.car);
     // THE ROBOT'S CAR, in 3D from the user's own pictures: its head-on view at the back and at the front of the pod, and its SIDE view on both flanks (mirrored on the far one). Each picture is drawn once
@@ -312,6 +372,7 @@ class Race3D {
     // the player's brake lights (the pedal or a ring)
     { const dtc = this._ct === undefined ? 0 : t - this._ct; this._ct = t; const want = p.pedal === 'brake' || p.brakeT > 0 ? 1 : 0;
       this.carBrakeK += (want - this.carBrakeK) * Math.min(1, dtc / (want > this.carBrakeK ? 0.06 : 0.25));
+      if (this.brakeStripMat) this.brakeStripMat.color.setRGB(1, 0.16, 0.23).multiplyScalar(0.35 + 1.25 * this.carBrakeK);
       if (this.brakeLightMat) { this.brakeLightMat.opacity = this.carBrakeK; this.car.userData.brakeLight.visible = this.carBrakeK > 0.01; } }
     // the neon of the back: dim, and bright while the robot brakes (its pace drops faster than 1 m/s per second)
     { const dtn = this._nt === undefined ? 0 : t - this._nt; this._nt = t; const v = R.bot.speed, dec = dtn > 0 && this._nv !== undefined ? (this._nv - v) / dtn : 0; this._nv = v;

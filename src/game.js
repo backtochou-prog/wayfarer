@@ -50,7 +50,7 @@ class Game {
     const zone = () => TOUCH.find(c => (c.id !== 'scooter' || this.riding) && this.mouse.x >= c.x && this.mouse.x <= c.x + c.w && this.mouse.y >= c.y && this.mouse.y <= c.y + c.h);
     const overHint = () => { const h = this.scooterHint, m = this.mouse; return !!h && !this.riding && Math.abs(m.x - h.x) <= 14 + Math.min(36, h.rx * 1.4) + 24 && m.y >= h.y - 80 && m.y <= h.y + h.ry * 1.6 + 36; };      // the ring under a parked scooter and the scooter above it, with a very generous touch area (it passes at running speed)
     addEventListener('pointerdown', e => {
-      if (e.target !== cv && !(this.state === 'play' && e.pointerType === 'touch')) return;
+      if (e.target !== cv && !((this.state === 'play' || this.state === 'race') && e.pointerType === 'touch')) return;      // (the touch buttons stand partly outside the screen canvas: in the race too, or the accelerator's outer edge did nothing)
       at(e); this.mouse.down = true;
       if (e.pointerType === 'touch') this.touch = true;
       const c = (this.state === 'play' || this.state === 'race') && this.touch && zone();
