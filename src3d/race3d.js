@@ -108,6 +108,24 @@ class Race3D {
           this.sideGlassMat = new THREE.MeshBasicMaterial({ map: gt, side: THREE.DoubleSide, fog: false });
           const sg = new THREE.Mesh(gg, this.sideGlassMat); sg.name = 'sideGlass'; this.car.add(sg); this.car.userData.sideGlass = sg; } }
       const gl = new THREE.Mesh(this.plane(w * 0.7, w * 0.9), this.carGlow); gl.rotation.x = -Math.PI / 2; gl.position.set(0, 0.015, 0.2); this.car.add(gl); }
+    // THE CONCEPT CAR: the player's car is the user's concept sheet used as it is, its four views (rear, both flanks, top, front) standing as cut-out pictures around the car's
+    // box. The modeled car above is kept (this.carModel) and comes back with Race3D.CONCEPT = false.
+    if (typeof CONCEPT_CAR !== 'undefined' && Race3D.CONCEPT !== false) {
+      const C = CONCEPT_CAR, cm = u => new THREE.MeshBasicMaterial({ map: L(u), alphaTest: 0.4, side: THREE.DoubleSide }), G = new THREE.Group(), Lc = 4.4, Wc = 1.9, Hc = 1.28, z0 = 2.02 - Lc / 2;
+      const card = (u, w, h, x, y, z, ry, rx) => { const m = new THREE.Mesh(this.plane(w, h), cm(u)); m.position.set(x, y, z); m.rotation.set(rx || 0, ry || 0, 0, 'YXZ'); G.add(m); return m; };
+      const rear = card(C.rear, Wc, Hc, 0, Hc / 2 + 0.02, z0 + Lc / 2);
+      { const fg = new THREE.PlaneGeometry(Wc, Hc, 1, 24), P = fg.attributes.position, zt = t => z0 - Lc / 2 + t * Lc;      /* the front view folded along the car: grille and lamps upright at the nose, the windscreen leaning back up to the roof */
+        for (let i = 0; i < P.count; i++) { const h = P.getY(i) + Hc / 2, t = h < 0.77 ? 0.07 : h < 0.8 ? 0.07 + (h - 0.77) / 0.03 * 0.27 : 0.34 + (h - 0.8) / (Hc - 0.8) * 0.12; P.setXYZ(i, -P.getX(i), h + 0.02, zt(t)); }
+        G.add(new THREE.Mesh(fg, cm(C.front))); }
+      for (const sx of [-1, 1]) card(C.side, Lc, Lc / C.ar_side, sx * Wc * 0.47, Lc / C.ar_side / 2 + 0.02, z0, -Math.PI / 2);
+      { const tg = new THREE.PlaneGeometry(Wc, Lc, 1, 60), P = tg.attributes.position, prof = [[0, 0.3], [0.08, 0.64], [0.24, 0.78], [0.34, 0.82], [0.39, 1.04], [0.46, 1.22], [0.84, 1.25], [0.89, 1.09], [0.95, 0.82], [1, 0.52]];      /* the top view laid over the roof line of the side view (nose to tail) */
+        const hAt = t => { for (let i = 1; i < prof.length; i++) if (t <= prof[i][0]) { const [a, ha] = prof[i - 1], [b, hb] = prof[i]; return ha + (hb - ha) * (t - a) / (b - a); } return prof[prof.length - 1][1]; };
+        for (let i = 0; i < P.count; i++) { const t = 0.5 - P.getY(i) / Lc; P.setXYZ(i, P.getX(i), hAt(t) + 0.0, z0 - Lc / 2 + t * Lc); }
+        tg.computeVertexNormals(); G.add(new THREE.Mesh(tg, cm(C.top))); }
+      const bl = new THREE.Group(); for (const sx of [-1, 1]) { const lamp = new THREE.Mesh(this.plane(0.75, 0.4), this.brakeLightMat); lamp.position.set(sx * 0.62, 0.97, z0 + Lc / 2 + 0.03); bl.add(lamp); }
+      bl.visible = false; G.add(bl);
+      const gl = new THREE.Mesh(this.plane(Wc * 1.1, Lc * 1.05), this.carGlow); gl.rotation.x = -Math.PI / 2; gl.position.set(0, 0.015, z0); G.add(gl);
+      G.userData = { pic: rear, halo: [], brakeLight: bl, concept: true }; this.carModel = this.car; this.car = G; }
     sc.add(this.car);
     // THE ROBOT'S CAR, in 3D from the user's own pictures: its head-on view at the back and at the front of the pod, and its SIDE view on both flanks (mirrored on the far one). Each picture is drawn once
     // for the paint and twice more additively so its neon is lit, with a pink halo round the whole pod.
