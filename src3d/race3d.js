@@ -20,7 +20,10 @@ class Race3D {
     const halo = col => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'), gr = x.createRadialGradient(64, 64, 4, 64, 64, 62); gr.addColorStop(0, col + 'cc'); gr.addColorStop(0.45, col + '55'); gr.addColorStop(1, col + '00'); x.fillStyle = gr; x.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return mat(t, true); };
     this.droidMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.droid), transparent: true, side: THREE.DoubleSide, depthWrite: false });
     this.droidGlowMat = mat(L(RACE_ASSETS.droid), true);
-    this.spiralMat = RACE_ASSETS.spirals.map(u => mat(L(u), true)); this.haloMat = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'].map(halo); this.ringHalo = halo('#ff3fd0'); this.carGlow = halo('#4a2a70'); this.botGlow = halo('#1a6a80'); this.droidGlow = halo('#2bff6a'); this.botHalo = halo('#ff2a7a'); this.backGlowG = halo('#2bff3a'); this.backGlowM = halo('#2a4cff'); this.ringMat = mat(L(RACE_ASSETS.ring)); this.ringMatFlat = mat(L(RACE_ASSETS.ring), true); this.carMat = mat(L(RACE_ASSETS.carSide), true); this.backMat = mat(L(RACE_ASSETS.carBack), true); this.rearMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.rear), transparent: true, side: THREE.DoubleSide }); this.botMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botPod), alphaTest: 0.45, side: THREE.DoubleSide });      /* solid (alpha-tested, writes depth): a transparent surface that does not write depth is overpainted by any glass drawn after it, even a farther one */ this.botGlowMat = mat(L(RACE_ASSETS.botPod), true);
+    if (typeof ANDROID_WALK !== 'undefined') {      /* THE ANDROID (the user's video): its walk, a strip of frames played on the droid's place; one texture, so every android walks in step */
+      const at = this.androidTex = L(ANDROID_WALK.strip); at.repeat.set(1 / ANDROID_WALK.frames, 1);
+      this.droidMat = new THREE.MeshBasicMaterial({ map: at, alphaTest: 0.35, side: THREE.DoubleSide }); this.droidGlowMat = mat(at, true); this.droidGlowMat.opacity = 0.45; }
+    this.spiralMat = RACE_ASSETS.spirals.map(u => mat(L(u), true)); this.haloMat = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'].map(halo); this.ringHalo = halo('#ff3fd0'); this.carGlow = halo('#4a2a70'); this.botGlow = halo('#1a6a80'); this.droidGlow = halo('#2bff6a'); this.botHalo = halo('#ff2a7a'); this.backGlowG = halo('#2bff3a'); this.backGlowM = halo('#2a4cff'); this.ringMat = mat(L(RACE_ASSETS.ring)); this.ringMatFlat = mat(L(RACE_ASSETS.ring), true); this.carMat = mat(L(RACE_ASSETS.carSide), true); this.backMat = typeof CONCEPT_CAR !== 'undefined' ? new THREE.MeshBasicMaterial({ map: L(CONCEPT_CAR.rear), alphaTest: 0.4, side: THREE.DoubleSide }) : mat(L(RACE_ASSETS.carBack), true);      /* the back of the modeled car wears the rear view of the user's concept sheet */ this.rearMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.rear), transparent: true, side: THREE.DoubleSide }); this.botMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botPod), alphaTest: 0.45, side: THREE.DoubleSide });      /* solid (alpha-tested, writes depth): a transparent surface that does not write depth is overpainted by any glass drawn after it, even a farther one */ this.botGlowMat = mat(L(RACE_ASSETS.botPod), true);
     this.botWrapMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botSide), alphaTest: 0.45, side: THREE.DoubleSide });      /* solid (alpha-tested, writes depth): a transparent surface that does not write depth is overpainted by any glass drawn after it, even a farther one */ this.botWrapGlow = mat(L(RACE_ASSETS.botSide), true);
     this.botLowMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botFlankLow), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botLowGlow = mat(L(RACE_ASSETS.botFlankLow), true);
     this.botTopMat = new THREE.MeshBasicMaterial({ map: L(RACE_ASSETS.botFlankTop), transparent: true, side: THREE.DoubleSide, depthWrite: false }); this.botTopGlow = mat(L(RACE_ASSETS.botFlankTop), true); this.rampMat = mat(L(RACE_ASSETS.ramp), true); this.sphereMat = mat(L(RACE_ASSETS.sphere));
@@ -47,7 +50,7 @@ class Race3D {
       for (let f = 0; f < I.length; f += 3) { let u = 0, v = 0; for (let k = 0; k < 3; k++) { u += U.getX(I[f + k]) / 3; v += U.getY(I[f + k]) / 3; } const e = Math.abs(u - 0.5), vt = 1 - v;
         if (e > 0.458 || (e > 0.39 && vt < 0.62)) continue;            /* (and the whole upper part of that strip, the same on both sides: 'symetrie logique') */ keep.push(I[f], I[f + 1], I[f + 2]); }
       g.setIndex(keep); g.computeVertexNormals(); return g; };
-    { const w = 2.95, h = w / RACE_ASSETS.ar.carBack, m = new THREE.Mesh(bentPic(w, h), this.backMat); m.position.set(0, h / 2 + 0.06, 2.02); this.car.add(m); this.car.userData.pic = m;
+    { const w = typeof CONCEPT_CAR !== 'undefined' ? 2.4 : 2.95, h = w / (typeof CONCEPT_CAR !== 'undefined' ? CONCEPT_CAR.ar_rear : RACE_ASSETS.ar.carBack), m = new THREE.Mesh(bentPic(w, h), this.backMat); m.position.set(0, h / 2 + 0.06, 2.02); this.car.add(m); this.car.userData.pic = m;
       // the neon of the back LIT: the picture is drawn three times over itself (additive, so every lit line adds up) over a green and a magenta halo, and the whole thing flares on the beat
       for (const dz of [0.005, 0.01]) { const m2 = m.clone(); m2.position.z += dz; this.car.add(m2); }
       // THE BRAKE LIGHTS: red glows across the lamp bar at the foot of the tail (a wide band and a lamp at each end), invisible until the car brakes (the brake pedal or a brake ring). (A red copy of
@@ -104,13 +107,13 @@ class Race3D {
             for (let i = 0; i < n - 1; i++) for (let r = 0; r < 2; r++) { if (S.side[i + 1].t > (r === 0 ? 0.6 : 0.78)) continue;      /* (the window ends like a Porsche's: its rear edge slanted, further back at the top than at the belt; the body's dark pillar behind) */
               const A = base + i * 3 + r, B = A + 3; if (flip) idx.push(A, A + 1, B, A + 1, B + 1, B); else idx.push(A, B, A + 1, A + 1, B, B + 1); } }
           const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); gg.setIndex(idx); gg.computeVertexNormals();
-          const src = this.backMat.map, gt = src.clone(); gt.needsUpdate = true; const im = src.image; if (im && im.addEventListener) im.addEventListener('load', () => { gt.needsUpdate = true; });
+          const gt = L(RACE_ASSETS.carBack);      /* (the side windows keep the glass of the original back drawing: the concept's rear view has carbon there, not glass) */
           this.sideGlassMat = new THREE.MeshBasicMaterial({ map: gt, side: THREE.DoubleSide, fog: false });
           const sg = new THREE.Mesh(gg, this.sideGlassMat); sg.name = 'sideGlass'; this.car.add(sg); this.car.userData.sideGlass = sg; } }
       const gl = new THREE.Mesh(this.plane(w * 0.7, w * 0.9), this.carGlow); gl.rotation.x = -Math.PI / 2; gl.position.set(0, 0.015, 0.2); this.car.add(gl); }
     // THE CONCEPT CAR: the player's car is the user's concept sheet used as it is, its four views (rear, both flanks, top, front) standing as cut-out pictures around the car's
     // box. The modeled car above is kept (this.carModel) and comes back with Race3D.CONCEPT = false.
-    if (typeof CONCEPT_CAR !== 'undefined' && Race3D.CONCEPT !== false) {
+    if (typeof CONCEPT_CAR !== 'undefined' && Race3D.CONCEPT === true) {      /* (the user chose the modeled car, in volume, over the flat cards: they come back with Race3D.CONCEPT = true) */
       const C = CONCEPT_CAR, cm = u => new THREE.MeshBasicMaterial({ map: L(u), alphaTest: 0.4, side: THREE.DoubleSide }), G = new THREE.Group(), Lc = 4.4, Wc = 1.9, Hc = 1.28, z0 = 2.02 - Lc / 2;
       const card = (u, w, h, x, y, z, ry, rx) => { const m = new THREE.Mesh(this.plane(w, h), cm(u)); m.position.set(x, y, z); m.rotation.set(rx || 0, ry || 0, 0, 'YXZ'); G.add(m); return m; };
       const rear = card(C.rear, Wc, Hc, 0, Hc / 2 + 0.02, z0 + Lc / 2);
@@ -328,7 +331,7 @@ class Race3D {
   // a droid: a black glossy powerful body (huge shoulders), green glowing chest core, cyan fists, green shoes, a small yellow face light; faces +z (towards the car); legs and arms swing on pivots
   // THE DROID is the user's own picture (the black android with its green core and its cyan fists), standing on the road and facing the car, with an additive copy over it so its lights are lit and a green glow at its feet.
   buildDroid() {
-    const g = new THREE.Group(), h = 3.6, w = h * RACE_ASSETS.ar.droid;
+    const g = new THREE.Group(), h = 3.6, w = h * (typeof ANDROID_WALK !== 'undefined' ? ANDROID_WALK.ar : RACE_ASSETS.ar.droid);
     const m = new THREE.Mesh(this.plane(w, h), this.droidMat); m.position.y = h / 2; g.add(m);
     for (const dz of [0.01, 0.02]) { const lit = new THREE.Mesh(this.plane(w, h), this.droidGlowMat); lit.position.z = dz; m.add(lit); }        // the droid's neon LIT: the picture added over itself twice
     const back = new THREE.Mesh(this.plane(w * 2.0, h * 0.95), this.droidGlow); back.position.set(0, h * 0.52, -0.05); g.add(back);              // a green halo behind it
@@ -381,11 +384,12 @@ class Race3D {
       else if (it.type === 'rare') { m.position.set(x, 0.15 * Math.sin(t * 3 + i), z); m.rotation.y = t * 2.4; }
       else { m.position.set(x, 0, z); if (m.userData.pic) m.userData.pic.scale.setScalar(1 + 0.03 * Math.sin(t * 4 + i) + 0.07 * pulse); }
     });
+    if (this.androidTex) this.androidTex.offset.x = (Math.floor(t * ANDROID_WALK.fps) % ANDROID_WALK.frames) / ANDROID_WALK.frames;      // the android's walk
     // the cars
     this.crys[0].material.map.offset.y = -p.s * 0.004; this.crys[1].material.map.offset.y = -p.s * 0.0022; this.crys[0].material.opacity = 0.3 + 0.22 * pulse; this.crys[1].material.opacity = 0.16 + 0.16 * pulse;
     this.track.position.y = 0.04 * pulse; this.track.scale.set(1 + 0.004 * pulse, 1, 1);                                                                   // the whole track breathes on the kick
     Kit.materials().glow.color.setScalar(1 - 0.16 * (1 - pulse));                                                                                            // every neon light of the race (lines, posts, cars) pulses with the music
-    this.car.position.set(p.x, 0.02 + air * 2.6 + 0.05 * pulse, -p.s); this.car.rotation.set(-air * 0.12 * (p.air / RACE.JUMP_T > 0.5 ? 1 : -1), -(p.lane * M - p.x) * 0.05, (p.lane * M - p.x) * 0.03); this.car.userData.pic.scale.set(1, 1 + 0.03 * pulse, 1); for (const h2 of this.car.userData.halo) h2.scale.setScalar(0.9 + 0.25 * pulse);
+    this.car.position.set(p.x, 0.02 + air * 2.6 + 0.05 * pulse, -p.s); this.car.rotation.set(-air * 0.12 * (p.air / RACE.JUMP_T > 0.5 ? 1 : -1), -(p.lane * M - p.x) * 0.02, (p.lane * M - p.x) * 0.015)      /* (turns less in lane changes: the car is seen mostly from straight behind) */; this.car.userData.pic.scale.set(1, 1 + 0.03 * pulse, 1); for (const h2 of this.car.userData.halo) h2.scale.setScalar(0.9 + 0.25 * pulse);
     const gap = R.bot.s - p.s;                                                                               // the robot is drawn where it really is (it never slows down when the player does); far ahead it is simply drawn bigger, so it stays easy to see
     // the player's brake lights (the pedal or a ring)
     { const dtc = this._ct === undefined ? 0 : t - this._ct; this._ct = t; const want = p.pedal === 'brake' || p.brakeT > 0 ? 1 : 0;
