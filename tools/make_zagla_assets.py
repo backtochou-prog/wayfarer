@@ -22,14 +22,16 @@ if len(sys.argv) > 1:
     SRC = sys.argv[1]; SRCB = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, 'zagla_back.png')
 else:                                                                     # by default: the latest PAIR of pictures ("1 face, 2 dos": tools/zagla_front_3.png / zagla_back_3.png; ZAGLA_PAIR=glossy: the chrome-shaded pair before it), the back registered onto the front
     import subprocess, tempfile                                           # (tools/register_zagla_back.py: the two on one 2560 x 2560 canvas, the back warped until the outline of its body is the front's)
-    PAIR = os.environ.get('ZAGLA_PAIR', '3'); FILES = {'3': ('zagla_front_3.png', 'zagla_back_3.png', '1', '1', '1'), 'glossy': ('zagla_front_glossy.png', 'zagla_back_glossy.png', '0', '0', '0')}[PAIR]      # (the boots of the back: turned? the right one made from the left one? own silhouette?)
-    os.environ.setdefault('ZAGLA_TURN_BOOTS', FILES[2]); os.environ.setdefault('ZAGLA_MIRROR_BOOTS', FILES[3]); os.environ.setdefault('ZAGLA_OWN_BACK_LEGS', FILES[4])                   # (the glossy back's boots point IN and are turned; the heels of the latest back are right as drawn)
+    PAIR = os.environ.get('ZAGLA_PAIR', '4'); FILES = {'4': ('zagla_front_4.png', 'zagla_back_4.png', '0', '0', '1'),      # pair 4 (2026-11-08: chrome front + back with the backpack, checkerboard background keyed out)
+        '3': ('zagla_front_3.png', 'zagla_back_3.png', '1', '1', '1'), 'glossy': ('zagla_front_glossy.png', 'zagla_back_glossy.png', '0', '0', '0')}[PAIR]      # (the boots of the back: turned? the right one made from the left one? own silhouette?)
+    os.environ.setdefault('ZAGLA_TURN_BOOTS', FILES[2]); os.environ.setdefault('ZAGLA_MIRROR_BOOTS', FILES[3]); os.environ.setdefault('ZAGLA_OWN_BACK_LEGS', FILES[4])
+    if PAIR == '4': os.environ.setdefault('ZAGLA_ARMS', 'flat')      # (pair 4's arms are thin blades straight out to the sides: nothing to carry forward)                   # (the glossy back's boots point IN and are turned; the heels of the latest back are right as drawn)
     TMP = tempfile.mkdtemp(); SRC = os.path.join(TMP, 'front.png'); SRCB = os.path.join(TMP, 'back.png')
-    subprocess.run([sys.executable, os.path.join(HERE, 'register_zagla_back.py'), os.path.join(HERE, FILES[0]), os.path.join(HERE, FILES[1]), SRC, SRCB] + (['--identity'] if PAIR == '3' else []), check=True)
+    subprocess.run([sys.executable, os.path.join(HERE, 'register_zagla_back.py'), os.path.join(HERE, FILES[0]), os.path.join(HERE, FILES[1]), SRC, SRCB] + (['--identity'] if PAIR in ('3', '4') else []), check=True)
 import os
 EDITS = sys.argv[3] if len(sys.argv) > 3 else None
 NEWBACK = sys.argv[4] if len(sys.argv) > 4 else None
-H = 800; STEP = 4; M_PER_PX = 1.9 / H                                     # 1.9 m tall like the strawberry's cards; mesh grid step in texture pixels
+H = 800; STEP = int(os.environ.get("ZAGLA_STEP", "3")); M_PER_PX = 1.9 / H                                     # 1.9 m tall like the strawberry's cards; mesh grid step in texture pixels
 
 # ---- 1. the front picture: cut out (it has its own alpha), cropped to its silhouette, scaled to 800 px tall (premultiplied so the edge keeps no halo)
 im = Image.open(SRC).convert('RGBA'); a0 = np.array(im)[..., 3]
