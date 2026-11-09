@@ -6,7 +6,7 @@
 class Kart3D {
   constructor(race3d) {
     const R = KART.R, sc = this.scene = new THREE.Scene(); this.r3 = race3d;
-    sc.background = new THREE.Color('#1a1a2a'); sc.fog = new THREE.Fog('#2a2436', 120, 520);
+    sc.background = new THREE.Color('#05060f'); sc.fog = new THREE.Fog('#2a2436', 120, 520);
     sc.add(new THREE.HemisphereLight('#fff0d8', '#4a3a40', 1.9)); const d = new THREE.DirectionalLight('#ffe2b8', 1.1); d.position.set(30, 80, 20); sc.add(d);
     this.camera = new THREE.PerspectiveCamera(64, 16 / 9, 0.2, 1400);
     this.C = new THREE.Vector3(-R, 0, 0);
@@ -36,12 +36,15 @@ class Kart3D {
     { const tr = []; for (let k = 0; k < 160; k++) { const a = k * 2.399, r = 95 + Math.sqrt(k / 160) * (R - 115); tr.push(at(a, r, false)); } inst(P.treeRing(), tr); }       // the garden: trees all over
     // THE CENTRE (the user's picture, 2026-11-09: a purple glass sphere): a big card always turned to the camera, standing in the middle of the garden
     if (typeof KART_ART !== 'undefined' && KART_ART.centre) { const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.centre;
-      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, fog: false })); sp.scale.set(150, 150, 1); sp.position.set(-R, 68, 0); sc.add(sp); this.centre = sp; }
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, fog: false })); sp.scale.set(150, 150, 1); sp.position.set(-R, 40, 0);      /* Saturn: its equator in the plane of the ring of the ventilation, in the open top of the dome */ sc.add(sp); this.centre = sp; }
     // THE VENTILATION (the user's picture, 2026-11-09): laid flat on the top of the dome, a lid that makes the shopping centre a flying saucer; seen from below as the ceiling's centre
     if (typeof KART_ART !== 'undefined' && KART_ART.vent) { const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.vent;
-      const v = new THREE.Mesh(new THREE.PlaneGeometry(130, 130), new THREE.MeshBasicMaterial({ map: t, alphaTest: 0.4, side: THREE.DoubleSide, fog: false })); v.rotation.x = -Math.PI / 2; v.position.set(-R, 45.5, 0); sc.add(v); this.vent = v; }
+      const v = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshBasicMaterial({ map: t, alphaTest: 0.4, side: THREE.DoubleSide, fog: false })); v.rotation.x = -Math.PI / 2; v.position.set(-R, 40, 0);      /* SATURN'S RINGS (the user: 'le système d'aération comme les anneaux de Saturne, la sphère Saturne; le vide entre les anneaux transparent'): 300 m across, its hole (0.31 of it, 93 m) wider than the sphere (75 m), the gaps see the starry sky */ sc.add(v); this.vent = v; }
+    // THE NIGHT SKY over the open top: stars on a far half sphere
+    { const n = 2500, pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const u = Math.random() * 2 * Math.PI, w = 0.05 + Math.random() * 0.95, r = 1100; pos[i * 3] = -R + r * Math.sqrt(1 - w * w) * Math.cos(u); pos[i * 3 + 1] = r * w; pos[i * 3 + 2] = r * Math.sqrt(1 - w * w) * Math.sin(u); }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); sc.add(new THREE.Points(g, new THREE.PointsMaterial({ color: '#ffffff', size: 2.2, sizeAttenuation: false, fog: false }))); }
     // THE GLASS DOME: ribs from the outer wall to a ring at the top, and a pale glass shell
-    { const H = 46, RR = R + 64, shell = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 16, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#9fb8d8', transparent: true, opacity: 0.18, side: THREE.BackSide, depthWrite: false, fog: false }));
+    { const H = 46, RR = R + 64, shell = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 16, 0, Math.PI * 2, Math.asin(150 / (R + 64)), Math.PI / 2 - Math.asin(150 / (R + 64)))      /* open at the top where the rings lie */, new THREE.MeshBasicMaterial({ color: '#9fb8d8', transparent: true, opacity: 0.18, side: THREE.BackSide, depthWrite: false, fog: false }));
       shell.scale.set(RR, H, RR); shell.position.copy(this.C); sc.add(shell);
       if (typeof KART_ART !== 'undefined' && KART_ART.ceiling) {                                  // THE CEILING (the user's picture: plum panels with a pink neon line), all round the inside of the dome instead of the glass and ribs
         const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; t.repeat.set(36, 1); t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.ceiling;
