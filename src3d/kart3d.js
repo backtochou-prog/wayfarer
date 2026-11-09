@@ -24,8 +24,8 @@ class Kart3D {
     for (const r of [R - 1.2, R + 1.2]) ring(r - 0.06, r + 0.06, new THREE.MeshBasicMaterial({ color: '#0a0c0b' }), 0.02);          // the lane lines
     // THE BARRIERS: a low wall on each side with a warm light strip
     for (const [r, s] of [[R - 6.8, 1], [R + 6.8, -1]]) {
-      const w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.7, 720, 1, true), new THREE.MeshLambertMaterial({ color: '#3a2b22', side: THREE.DoubleSide })); w.position.set(-R, 0.35, 0); sc.add(w);
-      const l = new THREE.Mesh(new THREE.CylinderGeometry(r + s * 0.05, r + s * 0.05, 0.08, 720, 1, true), new THREE.MeshBasicMaterial({ color: '#ffd27a', side: THREE.DoubleSide })); l.position.set(-R, 0.62, 0); sc.add(l); }
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1.5, 720, 1, true), new THREE.MeshLambertMaterial({ color: '#3a2b22', side: THREE.DoubleSide })); w.position.set(-R, 0.75, 0); sc.add(w);
+      const l = new THREE.Mesh(new THREE.CylinderGeometry(r + s * 0.05, r + s * 0.05, 0.08, 720, 1, true), new THREE.MeshBasicMaterial({ color: '#ffd27a', side: THREE.DoubleSide })); l.position.set(-R, 1.46, 0); sc.add(l); }
     // THE SHOPS all round the outside (the café fronts and terraces of the Terrasse Gasperi, the road side toward the track), THE GARDEN inside (trees in benches, planters)
     const inst = (merged, mats) => { const m = Kit.materials(); for (const [geo, mat] of [[merged.lit, m.lit], [merged.glow, m.glow]]) { if (!geo) continue; const im = new THREE.InstancedMesh(geo, mat, mats.length); mats.forEach((M, i) => im.setMatrixAt(i, M)); sc.add(im); } };
     const at = (a, r, faceIn, y) => { const q = new THREE.Matrix4(), p = new THREE.Vector3(-R + r * Math.cos(a), y || 0, -r * Math.sin(a)); q.makeRotationY(a + (faceIn ? 0 : Math.PI)); q.setPosition(p); return q; };      // local -x toward the centre (faceIn) or away
@@ -105,18 +105,29 @@ class Kart3D {
     this.bot = kart('#c8243a', '#ffffff'); sc.add(this.car, this.bot);
     // THE ARROW BANDS (the user: 'bandes de flèches bleues, contour turquoise néon, animées vers l'avant, à droite du circuit, à chaque 40 m'): three chevrons flat on the floor near the right edge,
     // lit one after the other toward the front (a chase light), every 40 m round the ring
-    { const chev = k => { const sh = new THREE.Shape(); sh.moveTo(-0.7 * k, -0.35 * k); sh.lineTo(0, 0.45 * k); sh.lineTo(0.7 * k, -0.35 * k); sh.lineTo(0.7 * k, -0.75 * k); sh.lineTo(0, 0.05 * k); sh.lineTo(-0.7 * k, -0.75 * k); sh.closePath(); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); return g; };      // the tip forward (-z)
-      const fill = chev(1), rim = chev(1.22); rim.translate(0, -0.005, -0.02);
-      this.arrowMats = [0, 1, 2].map(() => ({ f: new THREE.MeshBasicMaterial({ color: '#1a4cff', fog: false }), e: new THREE.MeshBasicMaterial({ color: '#35f0ff', fog: false }) }));
-      for (let s0 = 20; s0 < KART.LAP; s0 += 40) for (let k = 0; k < 3; k++) { const h = new THREE.Group(), m = this.arrowMats[k], e = new THREE.Mesh(rim, m.e), f = new THREE.Mesh(fill, m.f); f.position.y = 0.01;
-        h.add(e, f); const s1 = s0 + k * 2.2; this.ringPos(s1, 4.4, 0.09, h.position); h.rotation.y = s1 / R; h.scale.setScalar(2.0); sc.add(h); } }
+    // THE ARROW BANDS on the BELT of the circuit (the user, 2nd round: 'horizontales, adaptées à la ceinture du contour'): three blue chevrons with a turquoise rim on the inner face of the outer wall,
+    // pointing forward, every 40 m, lit one after the other toward the front
+    { const chev = k => { const sh = new THREE.Shape(); sh.moveTo(0.4 * k, 0.7 * k); sh.lineTo(-0.4 * k, 0); sh.lineTo(0.4 * k, -0.7 * k); sh.lineTo(0.78 * k, -0.7 * k); sh.lineTo(-0.02 * k, 0); sh.lineTo(0.78 * k, 0.7 * k); sh.closePath(); const g = new THREE.ShapeGeometry(sh); g.rotateY(-Math.PI / 2); return g; };   // the tip forward (-z), facing the track
+      const fill = chev(1), rim = chev(1.2); rim.translate(0.01, 0, 0.03);
+      this.arrowMats = [0, 1, 2].map(() => ({ f: new THREE.MeshBasicMaterial({ color: '#1a4cff', fog: false, side: THREE.DoubleSide }), e: new THREE.MeshBasicMaterial({ color: '#35f0ff', fog: false, side: THREE.DoubleSide }) }));
+      this.chev = chev;
+      for (let s0 = 20; s0 < KART.LAP; s0 += 40) for (let k = 0; k < 3; k++) { const h = new THREE.Group(), m = this.arrowMats[k], e = new THREE.Mesh(rim, m.e), f = new THREE.Mesh(fill, m.f); f.position.x = -0.02;
+        h.add(e, f); const s1 = s0 + k * 3.2; this.ringPos(s1, 6.72, 0.72, h.position); h.rotation.y = s1 / R; h.scale.set(1, 0.85, 2.6);      /* (stretched along the track: seen from the kart the wall is at a grazing angle) */ sc.add(h); } }
     this.holders = null; this.bound = null; this.camPos = new THREE.Vector3(); this.v = new THREE.Vector3();
   }
   ringPos(s, x, y, out) { const a = s / KART.R, r = KART.R + x; return (out || new THREE.Vector3()).set(-KART.R + r * Math.cos(a), y, -r * Math.sin(a)); }
   bind(R) {                                                                                          // Race3D builds the item meshes; each goes into a holder that stands on the ring
     if (this.r3.bound !== R) this.r3.bind(R);
     if (this.holders) for (const h of this.holders) this.scene.remove(h);
-    this.holders = this.r3.meshes.map(m => { const h = new THREE.Group(); h.add(m); this.scene.add(h); return h; }); this.bound = R;
+    const COL = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'], smoke = new THREE.MeshBasicMaterial({ color: '#0c1014', transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false });
+    this.holders = this.r3.meshes.map((m, i) => { const it = R.items[i], h = new THREE.Group();
+      if (it.type === 'spiral') {                                                                    // THE SPEED TOKENS as big arrows lying on the track, pointing forward (the user: 'transforme-les en flèches horizontales sur la piste, bien visibles')
+        const sh = new THREE.Shape(); sh.moveTo(-0.9, -0.2); sh.lineTo(0, 1.0); sh.lineTo(0.9, -0.2); sh.lineTo(0.35, -0.2); sh.lineTo(0.35, -1.0); sh.lineTo(-0.35, -1.0); sh.lineTo(-0.35, -0.2); sh.closePath();
+        const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); const out = g.clone(); out.scale(1.25, 1, 1.18);
+        const a = new THREE.Mesh(out, new THREE.MeshBasicMaterial({ color: '#ffffff', fog: false })), b = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: COL[it.color], fog: false })); b.position.y = 0.02; a.scale.setScalar(1.3); b.scale.setScalar(1.3);
+        h.add(a, b); h.userData.flat = true;
+      } else { if (it.type === 'ramp') m.traverse(o => { if (o.isMesh) o.material = smoke; }); h.add(m); }      // the ramps in smoked black glass
+      this.scene.add(h); return h; }); this.bound = R;
   }
   draw(g, renderer) {
     const R = g.race; if (this.bound !== R) this.bind(R);
@@ -124,7 +135,7 @@ class Kart3D {
     this.r3.placeItems(R, t, pulse);
     if (this.arrowMats) this.arrowMats.forEach((m, k) => { const w = Math.max(0, Math.cos(t * 7 - k * 1.4)), b = 0.25 + 0.75 * w * w; m.f.color.setRGB(0.04 + 0.08 * b, 0.12 + 0.25 * b, 0.35 + 0.65 * b); m.e.color.setRGB(0.1 + 0.1 * b, 0.35 + 0.6 * b, 0.4 + 0.6 * b); });      // the chase light runs toward the front
     if (this.centreLit) { this.centreLit[0].material.opacity = 0.7 + 0.3 * pulse + 0.1 * Math.sin(t * 2.2); const k = 1 + 0.05 * pulse; this.centreLit[1].scale.set(230 * k, 230 * k, 1); this.centreLit[1].material.opacity = 0.75 + 0.25 * pulse; }
-    this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; this.ringPos(s, m.position.x, 0, h.position); h.rotation.y = s / KART.R; m.position.set(0, m.position.y, 0); });
+    this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; this.ringPos(s, m.position.x, h.userData.flat ? 0.1 : 0, h.position); h.rotation.y = s / KART.R; if (h.userData.flat) { h.scale.setScalar(1 + 0.12 * pulse); return; } m.position.set(0, m.position.y, 0); });
     const put = (o, s, x, y, yaw) => { this.ringPos(s, x, y, o.position); o.rotation.set(0, s / KART.R + (yaw || 0), 0); };
     put(this.car, p.s, p.x, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04); put(this.bot, R.bot.s, R.bot.x, 0.02);
     const f = 64 + Math.min(14, p.speed - RACE.BASE) * 0.9; if (Math.abs(this.camera.fov - f) > 0.05) { this.camera.fov += (f - this.camera.fov) * 0.1; this.camera.updateProjectionMatrix(); }

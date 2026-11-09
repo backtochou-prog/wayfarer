@@ -36,14 +36,14 @@ class Race {
         this.add({ type: 'ring', lane, s });
         this.add({ type: 'spiral', color: r(4) < 0.2 ? 0 : r(4) < 0.5 ? 1 : 2, lane: third, s: s + 2 });
       } else {                                                                                         // a droid in a lane: dodge it, or take the ramp that lies in front of it; a spiral waits after it in that lane
-        const droid = this.add({ type: 'droid', lane, s: s + 38, run: false, v: 0, hit: false });
-        if (r(5) < 0.7) this.add({ type: 'ramp', lane, s: droid.s - RACE.RAMP_BEFORE - 0 });
+        const droid = this.kart ? { s: s + 38 } : this.add({ type: 'droid', lane, s: s + 38, run: false, v: 0, hit: false });      // (the KART circuit has no droids, the user: 'enlève les droïdes, laisse les rampes')
+        if (this.kart || r(5) < 0.7) this.add({ type: 'ramp', lane, s: droid.s - RACE.RAMP_BEFORE - 0 });
         this.add({ type: 'spiral', color: r(6) < 0.3 ? 0 : 1, lane, s: droid.s + 14 });
         if (n % 5 === 4 && rare < 2) { this.add({ type: 'rare', lane: other, s: droid.s + 6 }); rare++; }
       }
       s += (late ? 44 : 52) + Math.floor(r(7) * 16); n++;
     }
-    while (rare < 2) { const q = this.items.filter(i => i.type === 'droid'); const d = q[rare * 3 + 1] || q[q.length - 1]; this.add({ type: 'rare', lane: d.lane === 1 ? -1 : d.lane + 1, s: d.s + 6 }); rare++; }
+    while (rare < 2) { const q = this.items.filter(i => i.type === (this.kart ? 'ramp' : 'droid')); const d = q[rare * 3 + 1] || q[q.length - 1]; this.add({ type: 'rare', lane: d.lane === 1 ? -1 : d.lane + 1, s: d.s + 6 }); rare++; }
     this.items.sort((a, b) => a.s - b.s);
   }
   // one step: input.lane (-1, 0, 1: the lane wanted, set by the key presses of the caller) -> the car changes lane smoothly; the airborne car cannot be hit
