@@ -18,6 +18,11 @@ class Race {
     this.seed = seed || 1; this.t = 0; this.done = false; this.result = null; this.fin = 0;          // result: 'win' | 'lose'
     this.p = { s: 0, lane: -1, x: -RACE.LANE_M, speed: RACE.BASE * 0.6, boost: 0, boostT: 0, brakeT: 0, hitT: 0, air: 0, pedal: null, spirals: 0, rare: 0, hits: 0, rings: 0, jumps: 0, near: 0, bumps: 0 };
     this.bot = { s: 0, speed: RACE.BASE * 0.65, lane: 1, x: RACE.LANE_M, finishT: null };             // the two cars start SIDE BY SIDE on the line, one at each side of the track (the player on the left, the robot on the right: a lane of road between them)                                              
+    if (this.kart) {                                                                                  // THE KART CIRCUIT races EIGHT robot karts (the user: '8 voitures robots qui font la course avec le joueur; il doit les doubler sans les toucher par derrière'):
+      this.bots = [];                                                                                 // they start spread out ahead of the player, the nearest the fastest, all a little slower than the player's own pace, each weaving through the lanes
+      for (let i = 0; i < 8; i++) { const lane = [1, 0, -1, 1, -1, 0, 1, -1][i]; this.bots.push({ s: 30 + i * 28, lane, x: lane * RACE.LANE_M, v: 42 - i * 1.1, speed: 30, finishT: null, i }); }
+      this.bot = this.bots[7];
+    }
     this.items = []; this.events = []; this.build();
   }
   rnd(n) { let h = (this.seed * 374761393 + n * 668265263) >>> 0; h = ((h ^ (h >>> 13)) * 1274126177) >>> 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -33,7 +38,7 @@ class Race {
         for (let k = 0, nS = late ? 5 : 3; k < nS; k++) this.add({ type: 'spiral', color: c, lane, s: s + k * 9 });
         if (late) for (let k = 0; k < 3; k++) this.add({ type: 'spiral', color: r(8) < 0.5 ? 1 : 2, lane: other, s: s + 4 + k * 9 });   // and a second line beside it: there is always a way to gain
       } else if (late ? kind < 0.86 : kind < 0.62) {                                                                        // a single brake ring in one lane (lying on the road), a spiral in the third (the colour of the spiral again by luck)
-        this.add({ type: 'ring', lane, s });
+        if (!this.kart) this.add({ type: 'ring', lane, s });                                        // (no brake rings on the kart circuit: the robot karts are the obstacles)
         this.add({ type: 'spiral', color: r(4) < 0.2 ? 0 : r(4) < 0.5 ? 1 : 2, lane: third, s: s + 2 });
       } else {                                                                                         // a droid in a lane: dodge it, or take the ramp that lies in front of it; a spiral waits after it in that lane
         const droid = this.kart ? { s: s + 38 } : this.add({ type: 'droid', lane, s: s + 38, run: false, v: 0, hit: false });      // (the KART circuit has no droids, the user: 'enlève les droïdes, laisse les rampes')
@@ -57,9 +62,11 @@ class Race {
     let target = RACE.BASE + p.boost + (p.pedal === 'accel' ? RACE.THROTTLE : 0); if (p.pedal === 'brake') target *= RACE.PEDAL_MUL; if (p.brakeT > 0) target *= RACE.BRAKE_MUL; if (p.hitT > 0) target *= RACE.HIT_MUL;
     p.speed += Math.max(-RACE.ACCEL * 2.2 * dt, Math.min(RACE.ACCEL * dt, target - p.speed));
     const s0 = p.s; p.s += p.speed * dt;
+    if (this.kart) for (const b of this.bots) { b.lane = Math.max(-1, Math.min(1, Math.round(Math.sin(this.t * 0.27 + b.i * 1.7) * 1.3))); b.x += (b.lane * RACE.LANE_M - b.x) * Math.min(1, dt * 1.4); b.speed += Math.min(14 * dt, b.v * (1 + 0.04 * Math.sin(this.t * 0.9 + b.i)) - b.speed); b.s += b.speed * dt; }
+    else {
     bot.lane = Math.max(-1, Math.min(1, Math.round(Math.sin(this.t * 0.33 + Math.PI / 2) * 1.3)));                       // the robot drifts from lane to lane: the player has to go round it, not through it
     bot.x += (bot.lane * RACE.LANE_M - bot.x) * Math.min(1, dt * 1.6);
-    bot.speed += Math.min(18 * dt, RACE.BOT * (1 + 0.04 * Math.sin(this.t * 0.9)) - bot.speed); bot.s += bot.speed * dt;                           // the robot's pace breathes a little
+    bot.speed += Math.min(18 * dt, RACE.BOT * (1 + 0.04 * Math.sin(this.t * 0.9)) - bot.speed); bot.s += bot.speed * dt; }                           // the robot's pace breathes a little
     for (const it of this.items) {
       if (it.type === 'droid') {
         if (!it.run && it.s - p.s < RACE.DROID_TRIGGER && !it.hit) { it.run = true; this.events.push({ e: 'droid', id: it.id }); }
@@ -82,13 +89,16 @@ class Race {
       else if (it.type === 'ramp' && p.air <= 0) { it.taken = true; p.air = RACE.JUMP_T; p.jumps++; this.events.push({ e: 'jump' }); }
       else if (it.type === 'rare') { it.taken = true; p.rare++; this.events.push({ e: 'rare' }); }
     }
-    if (!this.done && p.s > bot.s - RACE.BUMP_GAP && p.s < bot.s + 2 && Math.abs(p.x - bot.x) < 1.5) {        // the back of the robot's car: an obstacle. The player is slowed and cannot drive through it
+    for (const bot of (this.kart ? this.bots : [this.bot])) if (!this.done && p.s > bot.s - RACE.BUMP_GAP && p.s < bot.s + 2 && Math.abs(p.x - bot.x) < 1.5) {      // (the kart: the back of each robot kart)        // the back of the robot's car: an obstacle. The player is slowed and cannot drive through it
       p.s = bot.s - RACE.BUMP_GAP; p.speed = Math.min(p.speed * RACE.BUMP_MUL, bot.speed * 0.8); p.hitT = Math.max(p.hitT, RACE.BUMP_T); p.bumps = (p.bumps || 0) + 1; this.events.push({ e: 'bump' });
     }
-    if (bot.finishT === null && bot.s >= this.len) bot.finishT = this.t;
-    if (p.s >= this.len) { this.done = true; this.result = bot.finishT === null ? 'win' : 'lose'; this.events.push({ e: this.result }); }
-    else if (bot.finishT !== null) { this.done = true; this.result = 'lose'; this.events.push({ e: 'lose' }); }          // the robot crossed first: out at once
+    for (const b of (this.kart ? this.bots : [bot])) if (b.finishT === null && b.s >= this.len) b.finishT = this.t;
+    const first = this.kart ? this.bots.find(b => b.finishT !== null) : (bot.finishT !== null ? bot : null);
+    if (this.kart) this.bot = this.bots.reduce((a, b) => (b.s > a.s ? b : a));                           // (the HUD's robot: the leading kart)
+    if (p.s >= this.len) { this.done = true; this.result = first ? 'lose' : 'win'; this.events.push({ e: this.result }); }
+    else if (first) { this.done = true; this.result = 'lose'; this.events.push({ e: 'lose' }); }          // the robot crossed first: out at once
   }
+  place() { return this.kart ? 1 + this.bots.filter(b => b.s > this.p.s).length : (this.bot.s > this.p.s ? 2 : 1); }      // the player's place in the race (the kart: out of nine)
   gap() { return this.bot.s - this.p.s; }                                                              // metres the robot is ahead (negative: the player leads)
   progress() { return Math.min(1, this.p.s / this.len); }
 }

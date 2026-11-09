@@ -102,7 +102,8 @@ class Kart3D {
     } else this.car.add(Kit.mesh(Kit.merge(pk)));
     if (typeof RunnerZagla !== 'undefined' && typeof ZAGLA_ASSETS !== 'undefined') {                    // Zagla at the wheel: her body on the seat, her legs forward to the pedals
       const z = new RunnerZagla(), d = z.group, k = 0.62; d.scale.setScalar(k); d.position.set(0, 0.28 - 0.95 * k * 0, 0.42); z.pivot.position.y = -0.5; z.legs.forEach(l => { l.rotation.x = -1.45; }); this.driver = z; this.car.add(d); }
-    this.bot = kart('#c8243a', '#ffffff'); sc.add(this.car, this.bot);
+    this.bot = kart('#c8243a', '#ffffff'); sc.add(this.car, this.bot); this.bot.visible = false;
+    this.bots = ['#c8243a', '#ff8a2a', '#e8d020', '#2ad0ff', '#b040ff', '#ff3fa0', '#20e0a0', '#f0f0f0'].map((c, i) => { const k = kart(c, i % 2 ? '#101018' : '#ffffff'); sc.add(k); return k; });      // THE EIGHT ROBOT KARTS
     // THE ARROW BANDS (the user: 'bandes de flèches bleues, contour turquoise néon, animées vers l'avant, à droite du circuit, à chaque 40 m'): three chevrons flat on the floor near the right edge,
     // lit one after the other toward the front (a chase light), every 40 m round the ring
     // THE ARROW BANDS on the BELT of the circuit (the user, 2nd round: 'horizontales, adaptées à la ceinture du contour'): three blue chevrons with a turquoise rim on the inner face of the outer wall,
@@ -138,7 +139,7 @@ class Kart3D {
     if (this.centreLit) { this.centreLit[0].material.opacity = 0.7 + 0.3 * pulse + 0.1 * Math.sin(t * 2.2); const k = 1 + 0.05 * pulse; this.centreLit[1].scale.set(230 * k, 230 * k, 1); this.centreLit[1].material.opacity = 0.75 + 0.25 * pulse; }
     this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; this.ringPos(s, m.position.x, h.userData.flat ? 0.1 : 0, h.position); h.rotation.y = s / KART.R; if (h.userData.flat) { h.userData.chev.forEach((c, k) => { const w = Math.max(0, Math.cos(t * 7 - k * 1.4)), b = 0.45 + 0.55 * w * w + 0.2 * pulse; c.fm.color.copy(c.col).multiplyScalar(b); c.em.color.copy(c.rimC).multiplyScalar(0.5 + 0.5 * b); c.gm.opacity = 0.2 + 0.4 * w * w; }); return; } m.position.set(0, m.position.y, 0); });
     const put = (o, s, x, y, yaw) => { this.ringPos(s, x, y, o.position); o.rotation.set(0, s / KART.R + (yaw || 0), 0); };
-    put(this.car, p.s, p.x, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04); put(this.bot, R.bot.s, R.bot.x, 0.02);
+    put(this.car, p.s, p.x, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04); if (R.bots) R.bots.forEach((b, i) => put(this.bots[i], b.s, b.x, 0.02)); else { this.bot.visible = true; put(this.bot, R.bot.s, R.bot.x, 0.02); }
     const f = 64 + Math.min(14, p.speed - RACE.BASE) * 0.9; if (Math.abs(this.camera.fov - f) > 0.05) { this.camera.fov += (f - this.camera.fov) * 0.1; this.camera.updateProjectionMatrix(); }
     if (g.kartCam) {                                                                                   // THE SATURN VIEW (optional, V or a tap on the bars): outside the track, a little behind and above the kart, looking at it across the
       this.ringPos(p.s - 11, 15, 7 + air, this.camPos);                                                 // track toward the centre, so the sphere in its rings stands whole behind the kart

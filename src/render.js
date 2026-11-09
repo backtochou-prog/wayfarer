@@ -44,7 +44,8 @@ class Renderer {
     const bar = (frac, y, col) => { ctx.fillStyle = '#1a1030'; ctx.fillRect(x0, y, w, 5); ctx.fillStyle = col; ctx.fillRect(x0, y, Math.round(w * Math.max(0, Math.min(1, frac))), 5); ctx.fillStyle = '#fff'; ctx.fillRect(x0 + Math.round(w * Math.max(0, Math.min(1, frac))) - 1, y - 1, 2, 7); };
     bar(p.s / R.len, 6, '#35e6ff'); bar(R.bot.s / R.len, 16, '#ff2a4a');
     this.txt('YOU', x0 - 24, 5, '#35e6ff'); this.txt('BOT', x0 - 24, 15, '#ff2a4a');
-    this.ctr(gap > 0 ? 'ROBOT +' + Math.round(gap) + ' M' : 'YOU +' + Math.round(-gap) + ' M', 33, gap > 0 ? '#ff6a7a' : '#7affc8');
+    if (R.kart) { const pl = R.place(); this.ctr('PLACE ' + pl + '/9', 33, pl === 1 ? '#7affc8' : '#ffd24a'); }      // (the kart: the player's place among the nine karts)
+    else this.ctr(gap > 0 ? 'ROBOT +' + Math.round(gap) + ' M' : 'YOU +' + Math.round(-gap) + ' M', 33, gap > 0 ? '#ff6a7a' : '#7affc8');
     this.txt('RARE ' + g.rare, 6, 6, '#ffd24a');
     this.ctr(kmh + ' KM/H', 160, '#f2ead6');
     if (p.brakeT > 0) this.ctr('BRAKE', 146, '#ff4fd8'); else if (p.hitT > 0) this.ctr('HIT', 146, '#ff4a4a'); else if (p.boostT > 0) this.ctr('BOOST +' + Math.round(p.boost * 3.6), 146, ['#ff5a6a', '#d070ff', '#7aff40', '#d8ff30'][RACE.SPIRAL.findIndex(c => c.add === p.boost)] || '#fff');
