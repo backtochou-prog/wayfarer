@@ -121,11 +121,12 @@ class Kart3D {
     if (this.holders) for (const h of this.holders) this.scene.remove(h);
     const COL = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'], smoke = new THREE.MeshBasicMaterial({ color: '#0c1014', transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false });
     this.holders = this.r3.meshes.map((m, i) => { const it = R.items[i], h = new THREE.Group();
-      if (it.type === 'spiral') {                                                                    // THE SPEED TOKENS as big arrows lying on the track, pointing forward (the user: 'transforme-les en flèches horizontales sur la piste, bien visibles')
-        const sh = new THREE.Shape(); sh.moveTo(-0.9, -0.2); sh.lineTo(0, 1.0); sh.lineTo(0.9, -0.2); sh.lineTo(0.35, -0.2); sh.lineTo(0.35, -1.0); sh.lineTo(-0.35, -1.0); sh.lineTo(-0.35, -0.2); sh.closePath();
-        const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); const out = g.clone(); out.scale(1.25, 1, 1.18);
-        const a = new THREE.Mesh(out, new THREE.MeshBasicMaterial({ color: '#ffffff', fog: false })), b = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: COL[it.color], fog: false })); b.position.y = 0.02; a.scale.setScalar(1.3); b.scale.setScalar(1.3);
-        h.add(a, b); h.userData.flat = true;
+      if (it.type === 'spiral') {                                                                    // THE SPEED TOKENS shaped like the blue arrow bands (three chevrons with a rim, lit one after the other toward the front), in their own neon colours
+        const col = new THREE.Color(COL[it.color]), rimC = col.clone().lerp(new THREE.Color('#ffffff'), 0.45), mk = k => { const sh = new THREE.Shape(); sh.moveTo(-0.7 * k, -0.35 * k); sh.lineTo(0, 0.45 * k); sh.lineTo(0.7 * k, -0.35 * k); sh.lineTo(0.7 * k, -0.75 * k); sh.lineTo(0, 0.05 * k); sh.lineTo(-0.7 * k, -0.75 * k); sh.closePath(); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); return g; };
+        const fill = mk(1), rim = mk(1.22); rim.translate(0, -0.005, 0.02); h.userData.chev = [];
+        for (let k = 0; k < 3; k++) { const fm = new THREE.MeshBasicMaterial({ color: col, fog: false }), em = new THREE.MeshBasicMaterial({ color: rimC, fog: false }), gm = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+          const g3 = new THREE.Group(), glow = new THREE.Mesh(mk(1.6), gm); glow.position.y = -0.01; const f = new THREE.Mesh(fill, fm); f.position.y = 0.012; g3.add(glow, new THREE.Mesh(rim, em), f); g3.position.z = -k * 1.25; g3.scale.setScalar(1.6); h.add(g3); h.userData.chev.push({ fm, em, gm, col, rimC }); }
+        h.userData.flat = true;
       } else { if (it.type === 'ramp') m.traverse(o => { if (o.isMesh) o.material = smoke; }); h.add(m); }      // the ramps in smoked black glass
       this.scene.add(h); return h; }); this.bound = R;
   }
@@ -135,7 +136,7 @@ class Kart3D {
     this.r3.placeItems(R, t, pulse);
     if (this.arrowMats) this.arrowMats.forEach((m, k) => { const w = Math.max(0, Math.cos(t * 7 - k * 1.4)), b = 0.25 + 0.75 * w * w; m.f.color.setRGB(0.04 + 0.08 * b, 0.12 + 0.25 * b, 0.35 + 0.65 * b); m.e.color.setRGB(0.1 + 0.1 * b, 0.35 + 0.6 * b, 0.4 + 0.6 * b); });      // the chase light runs toward the front
     if (this.centreLit) { this.centreLit[0].material.opacity = 0.7 + 0.3 * pulse + 0.1 * Math.sin(t * 2.2); const k = 1 + 0.05 * pulse; this.centreLit[1].scale.set(230 * k, 230 * k, 1); this.centreLit[1].material.opacity = 0.75 + 0.25 * pulse; }
-    this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; this.ringPos(s, m.position.x, h.userData.flat ? 0.1 : 0, h.position); h.rotation.y = s / KART.R; if (h.userData.flat) { h.scale.setScalar(1 + 0.12 * pulse); return; } m.position.set(0, m.position.y, 0); });
+    this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; this.ringPos(s, m.position.x, h.userData.flat ? 0.1 : 0, h.position); h.rotation.y = s / KART.R; if (h.userData.flat) { h.userData.chev.forEach((c, k) => { const w = Math.max(0, Math.cos(t * 7 - k * 1.4)), b = 0.45 + 0.55 * w * w + 0.2 * pulse; c.fm.color.copy(c.col).multiplyScalar(b); c.em.color.copy(c.rimC).multiplyScalar(0.5 + 0.5 * b); c.gm.opacity = 0.2 + 0.4 * w * w; }); return; } m.position.set(0, m.position.y, 0); });
     const put = (o, s, x, y, yaw) => { this.ringPos(s, x, y, o.position); o.rotation.set(0, s / KART.R + (yaw || 0), 0); };
     put(this.car, p.s, p.x, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04); put(this.bot, R.bot.s, R.bot.x, 0.02);
     const f = 64 + Math.min(14, p.speed - RACE.BASE) * 0.9; if (Math.abs(this.camera.fov - f) > 0.05) { this.camera.fov += (f - this.camera.fov) * 0.1; this.camera.updateProjectionMatrix(); }
