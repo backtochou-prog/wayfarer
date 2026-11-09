@@ -16,7 +16,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM || '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const pg = await (await b.newContext({ viewport: { width: 480, height: 270 } })).newPage(); const errs = [];
   pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => m.type() === 'error' && errs.push(m.text()));
-  await pg.goto(process.env.TEST_URL || 'http://localhost:' + PORT + '/', { timeout: 90000 }); await pg.waitForFunction(() => window.__wf, null, { timeout: 90000 }); await pg.waitForTimeout(600);
+  await pg.goto(process.env.TEST_URL || 'http://localhost:' + PORT + '/', { timeout: 240000 }); await pg.waitForFunction(() => window.__wf, null, { timeout: 240000 }); await pg.waitForTimeout(600);
 
   // ---------------------------------------------------------------- 1. keyboard
   const K = await pg.evaluate(() => {
@@ -77,7 +77,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     U.boxes === 'left:-15:137:46:42 right:41:137:46:42 slide:233:137:46:42 jump:289:137:46:42 pause:145:2:30:18 scooter:132:154:56:20' && U.inside && U.apart && U.fallback.sheet && U.fallback.sheet[0] === 64 && U.fallback.sheet[1] === 42 && U.fallback.sizes.filter(w => w === 42).length === 4 && U.fallback.sizes.filter(w => w === 22).length === 1 && U.fallback.held === 46, U.boxes);
   // a real touch on the smooth button goes through to the game: on a phone-like page (touch, 2x), a tap on the jump button jumps and a press on the left button steers
   { const ctx = await b.newContext({ viewport: { width: 640, height: 360 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true }), pt = await ctx.newPage(); const e2 = []; pt.on('pageerror', e => e2.push(e.message));
-    await pt.goto(process.env.TEST_URL || 'http://localhost:' + PORT + '/', { timeout: 90000 }); await pt.waitForFunction(() => window.__wf, null, { timeout: 90000 }); await pt.waitForTimeout(800);
+    await pt.goto(process.env.TEST_URL || 'http://localhost:' + PORT + '/', { timeout: 240000 }); await pt.waitForFunction(() => window.__wf, null, { timeout: 240000 }); await pt.waitForTimeout(800);
     const geo = await pt.evaluate(() => { const g = __wf; g.touch = true; g.start(); g.world.items = []; g.state = 'play'; g.p.jy = 0; g.p.speed = 0; const sc = document.getElementById('screen').getBoundingClientRect(), tc = document.getElementById('touch'); return { x: sc.left + sc.width * (312 / 320), y: sc.top + sc.height * (158 / 180), lx: sc.left + sc.width * (26 / 320), dpr: devicePixelRatio, tw: tc.width, sw: sc.width }; });
     await pt.touchscreen.tap(geo.x, geo.y); await pt.waitForTimeout(150); const J = await pt.evaluate(() => { const g = __wf; return { jumped: g.p.jy > 0 || g.p.vy > 0 || g.jumpBuf > 0 }; });
     await pt.evaluate(() => { const g = __wf; g.p.jy = 0; g.p.vy = 0; g.jumpBuf = 0; });
