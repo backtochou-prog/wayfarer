@@ -54,7 +54,8 @@ class Game {
       at(e); this.mouse.down = true;
       if (e.pointerType === 'touch') this.touch = true;
       const c = (this.state === 'play' || this.state === 'race') && this.touch && zone();
-      if (!c && this.state === 'play' && overHint()) { this.mount(); return; }                // a tap or click on the ring gets on the scooter (the touch buttons keep priority)
+      if (!c && this.state === 'play' && overHint()) { this.mount(); return; }
+      if (!c && this.state === 'race' && this.race && this.race.kart && this.mouse.y < 32) { this.kartCam = (this.kartCam || 0) ? 0 : 1; return; }      // a tap on the top of the screen (the progress bars) switches the kart camera                // a tap or click on the ring gets on the scooter (the touch buttons keep priority)
       if (c) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} this.hold(e.pointerId, c.id, true); if (this.state === 'race') this.laneQ = (this.laneQ || 0) + (c.id === 'right' ? 1 : c.id === 'left' ? -1 : 0); }
     });
     addEventListener('pointermove', e => { // sliding a finger between left and right keeps steering
@@ -208,7 +209,8 @@ class Game {
     if (down && !e.repeat && this.state === 'race') { if (L) this.laneQ = (this.laneQ || 0) - 1; if (R) this.laneQ = (this.laneQ || 0) + 1; }                 // in the race a press changes lane (one lane per press)
     if (!down || e.repeat) return;
     if (c === 'KeyM' && this.sfx) { this.sfx.toggle(); return; }                      // M: sound on / off
-    if (c === 'KeyC' && this.state === 'title' && this.r.nextCharacter) { this.nextCharacter(); return; }   // C (menu): the other character
+    if (c === 'KeyC' && this.state === 'title' && this.r.nextCharacter) { this.nextCharacter(); return; }
+    if (down && !e.repeat && c === 'KeyV' && this.state === 'race' && this.race && this.race.kart) { this.kartCam = (this.kartCam || 0) ? 0 : 1; return; }      // V (karting): the other camera, the SATURN view (optional)   // C (menu): the other character
     const s = this.state;
     if (s === 'title' && (c === 'Enter' || c === 'Space')) this.start();
     else if (s === 'over' && this.overT > this.overDelay && (c === 'Enter' || c === 'Space' || c === 'KeyR')) this.start();

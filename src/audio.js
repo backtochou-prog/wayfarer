@@ -13,10 +13,10 @@
 // `g.sfx.tick(g, dt)` once per frame. Without a GameAudio (the 2D page) nothing changes.
 class GameAudio {
   constructor(opts = {}) {
-    this.src = opts.src || 'assets/music.mp3'; this.srcCoast = opts.srcCoast || 'assets/music_coast.mp3'; this.srcRace = opts.srcRace || 'assets/music_race.mp3';
+    this.src = opts.src || 'assets/music.mp3'; this.srcCoast = opts.srcCoast || 'assets/music_coast.mp3'; this.srcRace = opts.srcRace || 'assets/music_race.mp3'; this.srcKart = opts.srcKart || 'assets/music_kart.mp3';
     this.beats = opts.beats || (typeof MUSIC_BEATS !== 'undefined' ? MUSIC_BEATS : null);
     this.beatsCoast = opts.beatsCoast || (typeof MUSIC_BEATS_COAST !== 'undefined' ? MUSIC_BEATS_COAST : null); this.coastW = 0;
-    this.beatsRace = opts.beatsRace || (typeof MUSIC_BEATS_RACE !== 'undefined' ? MUSIC_BEATS_RACE : null); this.raceW = 0;      // raceW: 0..1, how much of the race zone's track is heard (it takes over the whole mix while a race runs)      // coastW: 0..1, how much of the coast track is heard
+    this.beatsRace = opts.beatsRace || (typeof MUSIC_BEATS_RACE !== 'undefined' ? MUSIC_BEATS_RACE : null); this.beatsRace0 = this.beatsRace; this.beatsKart = typeof MUSIC_BEATS_KART !== 'undefined' ? MUSIC_BEATS_KART : null; this.kartSrc = false; this.raceW = 0;      // raceW: 0..1, how much of the race zone's track is heard (it takes over the whole mix while a race runs)      // coastW: 0..1, how much of the coast track is heard
     this.counts = {};                       // how many times each effect was requested (also while muted / locked: tests and the HUD can read it)
     this.muted = false; try { this.muted = localStorage.getItem('wayfarer.sound') === '0'; } catch (e) {}
     this.ctx = null; this.master = null; this.unlocked = false; this.active = 0; this.nodesMade = 0;
@@ -149,6 +149,7 @@ class GameAudio {
       const wantR = s === 'race' ? 1 : 0, r = this.musicRace, rrate = 1 / (wantR > this.raceW ? 1.2 : 1.8);
       this.raceW = wantR > this.raceW ? Math.min(wantR, this.raceW + dt * rrate) : Math.max(wantR, this.raceW - dt * rrate);
       const rw = this.raceW * this.raceW * (3 - 2 * this.raceW);
+      if (r && wantR && r.paused) { const kart = !!(g.race && g.race.kart && this.beatsKart); if (kart !== this.kartSrc) { this.kartSrc = kart; try { r.src = kart ? this.srcKart : this.srcRace; } catch (e) {} this.beatsRace = kart ? this.beatsKart : this.beatsRace0; } }      // the KART CIRCUIT plays the user's 'Road Night 2' (assets/music_kart.mp3) on the race's player
       if (r) {
         if (this.raceW > 0.01 && r.paused && this.unlocked && !document.hidden && !this.raceBlocked) { if (!this.raceOn) { try { r.currentTime = 0; } catch (e) {} } this.raceOn = true; try { const p = r.play(); if (p && p.then) p.then(() => { this.raceBlocked = false; }, () => { this.raceBlocked = true; }); } catch (e) { this.raceBlocked = true; } }
         else if (this.raceW === 0 && !r.paused) { try { r.pause(); } catch (e) {} this.raceOn = false; }

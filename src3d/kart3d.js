@@ -120,8 +120,14 @@ class Kart3D {
     const put = (o, s, x, y, yaw) => { this.ringPos(s, x, y, o.position); o.rotation.set(0, s / KART.R + (yaw || 0), 0); };
     put(this.car, p.s, p.x, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04); put(this.bot, R.bot.s, R.bot.x, 0.02);
     const f = 64 + Math.min(14, p.speed - RACE.BASE) * 0.9; if (Math.abs(this.camera.fov - f) > 0.05) { this.camera.fov += (f - this.camera.fov) * 0.1; this.camera.updateProjectionMatrix(); }
+    if (g.kartCam) {                                                                                   // THE SATURN VIEW (optional, V or a tap on the bars): outside the track, a little behind and above the kart, looking at it across the
+      this.ringPos(p.s - 9, 11, 4.5 + air, this.camPos);                                                 // track toward the centre, so the sphere in its rings stands whole behind the kart
+      if (this.camera.position.distanceTo(this.camPos) > 6) this.camera.position.copy(this.camPos); else this.camera.position.lerp(this.camPos, 0.5);
+      this.camera.lookAt(this.ringPos(p.s + 2, -30, 11, this.v));
+    } else {
     this.ringPos(p.s - 4.6, p.x * 0.6, 2.1 + air, this.camPos); if (this.camera.position.distanceTo(this.camPos) > 6) this.camera.position.copy(this.camPos); else this.camera.position.lerp(this.camPos, 0.5);
     this.camera.lookAt(this.ringPos(p.s + 12, p.x * 0.4, 0.9 + air * 0.6, this.v));
+    }
     renderer.render(this.scene, this.camera);
   }
 }
