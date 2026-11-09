@@ -47,7 +47,34 @@ class Kart3D {
       Kit.ico(0.32, 0, 0.92, 0.3, helm), Kit.box(0.5, 0.12, 0.08, 0, 0.92, 0.0, '#101018'),
       ...[[-0.72, -0.75], [0.72, -0.75], [-0.75, 0.75], [0.75, 0.75]].map(([x, z]) => Kit.cyl(0.24, 0.24, 0.26, x, 0.11, z, '#0c0c10', { rz: Math.PI / 2, seg: 10 })),
       Kit.box(1.1, 0.06, 0.06, 0, 0.45, 1.25, '#ff2a3a', { glow: true }), Kit.box(0.9, 0.05, 0.05, 0, 0.36, -1.22, '#ffd27a', { glow: true })]))); return g; };
-    this.car = kart('#2a3cff', '#ff3fd0'); this.bot = kart('#c8243a', '#ffffff'); sc.add(this.car, this.bot);
+    // THE PLAYER'S KART: the user's concept sheet (2026-11-09: front / rear / side / top views): a carbon-blue nose cone and side pods with neon edges (pink on top, green below, blue on
+    // the nose sides, orange across the front and rear bumpers), a black bucket seat, a steering wheel, the engine behind the seat with violet and green lights, wide black tyres with a
+    // blue rim; Zagla at the wheel (the user's picture of her driving it), her own 3D body, seated (legs forward)
+    const CARB = '#1a2446', CARB2 = '#22305a', PINK = '#ff3fd0', BLUE = '#3a6bff', GREEN = '#2bff6a', ORANGE = '#ff8a2a', TYRE = '#0b0b10';
+    const pk = [
+      Kit.box(1.25, 0.08, 2.5, 0, 0.1, 0, '#101420'),                                                        // the chassis floor
+      Kit.box(0.55, 0.22, 1.1, 0, 0.16, -0.75, CARB, { rx: -0.18 }), Kit.box(0.42, 0.2, 0.7, 0, 0.42, -0.3, CARB2, { rx: -0.35 }),      // the nose cone rising to the wheel
+      Kit.box(1.35, 0.14, 0.32, 0, 0.12, -1.28, CARB),                                                      // the front bumper
+      Kit.box(0.5, 0.04, 0.05, 0, 0.2, -1.45, ORANGE, { glow: true }), Kit.box(0.45, 0.04, 0.05, -0.55, 0.14, -1.43, GREEN, { glow: true, ry: 0.25 }), Kit.box(0.45, 0.04, 0.05, 0.55, 0.14, -1.43, GREEN, { glow: true, ry: -0.25 }),
+      ...[-1, 1].flatMap(sx => [
+        Kit.box(0.04, 0.04, 1.05, sx * 0.29, 0.38, -0.72, PINK, { glow: true, rx: -0.18 }),                   // the nose's neon edges
+        Kit.box(0.04, 0.04, 0.5, sx * 0.6, 0.24, -1.2, BLUE, { glow: true, ry: sx * 0.5 }),
+        Kit.box(0.26, 0.3, 1.0, sx * 0.62, 0.12, 0.25, CARB),                                                 // the side pod
+        Kit.box(0.04, 0.035, 0.95, sx * 0.62, 0.43, 0.25, PINK, { glow: true }), Kit.box(0.05, 0.035, 0.95, sx * 0.76, 0.14, 0.25, GREEN, { glow: true }),
+        Kit.box(0.05, 0.035, 0.18, sx * 0.76, 0.3, 0.58, GREEN, { glow: true, rx: 0.5 }),
+        Kit.cyl(0.27, 0.27, 0.3, sx * 0.72, 0.27 - 0.15, -0.95, TYRE, { rz: Math.PI / 2, seg: 14 }), Kit.cyl(0.11, 0.11, 0.04, sx * 0.88, 0.27 - 0.02, -0.95, BLUE, { rz: Math.PI / 2, seg: 12, glow: true }),
+        Kit.cyl(0.3, 0.3, 0.38, sx * 0.76, 0.3 - 0.19, 0.95, TYRE, { rz: Math.PI / 2, seg: 14 }), Kit.cyl(0.12, 0.12, 0.04, sx * 0.96, 0.3 - 0.02, 0.95, BLUE, { rz: Math.PI / 2, seg: 12, glow: true }),
+      ]),
+      Kit.box(0.55, 0.12, 0.5, 0, 0.18, 0.35, '#0e0e14'), Kit.box(0.55, 0.62, 0.1, 0, 0.25, 0.62, '#0e0e14', { rx: 0.25 }),          // the bucket seat
+      Kit.cyl(0.03, 0.03, 0.45, 0, 0.42, -0.2, '#2a2a34', { rx: 0.9, seg: 5 }), Kit.cyl(0.17, 0.17, 0.035, 0, 0.72, -0.05, '#14141a', { rx: 0.9, seg: 12 }),     // the steering column and wheel
+      Kit.box(0.55, 0.38, 0.42, 0, 0.2, 0.95, '#5a5e6a'), Kit.box(0.5, 0.1, 0.36, 0, 0.58, 0.95, '#3a3e4a'),              // the engine
+      Kit.box(0.04, 0.3, 0.04, -0.12, 0.62, 0.95, '#b040ff', { glow: true }), Kit.box(0.04, 0.3, 0.04, 0.12, 0.62, 0.95, '#b040ff', { glow: true }), Kit.box(0.4, 0.04, 0.04, 0, 0.66, 1.12, GREEN, { glow: true }),
+      Kit.box(1.2, 0.06, 0.06, 0, 0.2, 1.32, ORANGE, { glow: true }), Kit.box(0.6, 0.05, 0.05, 0, 0.12, 1.33, GREEN, { glow: true }),      // the rear bumper, lit (and brake light below)
+    ];
+    this.car = new THREE.Group(); this.car.add(Kit.mesh(Kit.merge(pk)));
+    if (typeof RunnerZagla !== 'undefined' && typeof ZAGLA_ASSETS !== 'undefined') {                    // Zagla at the wheel: her body on the seat, her legs forward to the pedals
+      const z = new RunnerZagla(), d = z.group, k = 0.62; d.scale.setScalar(k); d.position.set(0, 0.28 - 0.95 * k * 0, 0.42); z.pivot.position.y = -0.5; z.legs.forEach(l => { l.rotation.x = -1.45; }); this.driver = z; this.car.add(d); }
+    this.bot = kart('#c8243a', '#ffffff'); sc.add(this.car, this.bot);
     this.holders = null; this.bound = null; this.camPos = new THREE.Vector3(); this.v = new THREE.Vector3();
   }
   ringPos(s, x, y, out) { const a = s / KART.R, r = KART.R + x; return (out || new THREE.Vector3()).set(-KART.R + r * Math.cos(a), y, -r * Math.sin(a)); }
@@ -64,7 +91,7 @@ class Kart3D {
     const put = (o, s, x, y, yaw) => { this.ringPos(s, x, y, o.position); o.rotation.set(0, s / KART.R + (yaw || 0), 0); };
     put(this.car, p.s, p.x, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04); put(this.bot, R.bot.s, R.bot.x, 0.02);
     const f = 64 + Math.min(14, p.speed - RACE.BASE) * 0.9; if (Math.abs(this.camera.fov - f) > 0.05) { this.camera.fov += (f - this.camera.fov) * 0.1; this.camera.updateProjectionMatrix(); }
-    this.ringPos(p.s - 6.5, p.x * 0.55, 2.8 + air, this.camPos); if (this.camera.position.distanceTo(this.camPos) > 6) this.camera.position.copy(this.camPos); else this.camera.position.lerp(this.camPos, 0.5);
+    this.ringPos(p.s - 4.6, p.x * 0.6, 2.1 + air, this.camPos); if (this.camera.position.distanceTo(this.camPos) > 6) this.camera.position.copy(this.camPos); else this.camera.position.lerp(this.camPos, 0.5);
     this.camera.lookAt(this.ringPos(p.s + 12, p.x * 0.4, 0.9 + air * 0.6, this.v));
     renderer.render(this.scene, this.camera);
   }
