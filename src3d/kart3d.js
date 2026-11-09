@@ -103,6 +103,13 @@ class Kart3D {
     if (typeof RunnerZagla !== 'undefined' && typeof ZAGLA_ASSETS !== 'undefined') {                    // Zagla at the wheel: her body on the seat, her legs forward to the pedals
       const z = new RunnerZagla(), d = z.group, k = 0.62; d.scale.setScalar(k); d.position.set(0, 0.28 - 0.95 * k * 0, 0.42); z.pivot.position.y = -0.5; z.legs.forEach(l => { l.rotation.x = -1.45; }); this.driver = z; this.car.add(d); }
     this.bot = kart('#c8243a', '#ffffff'); sc.add(this.car, this.bot);
+    // THE ARROW BANDS (the user: 'bandes de flèches bleues, contour turquoise néon, animées vers l'avant, à droite du circuit, à chaque 40 m'): three chevrons flat on the floor near the right edge,
+    // lit one after the other toward the front (a chase light), every 40 m round the ring
+    { const chev = k => { const sh = new THREE.Shape(); sh.moveTo(-0.7 * k, -0.35 * k); sh.lineTo(0, 0.45 * k); sh.lineTo(0.7 * k, -0.35 * k); sh.lineTo(0.7 * k, -0.75 * k); sh.lineTo(0, 0.05 * k); sh.lineTo(-0.7 * k, -0.75 * k); sh.closePath(); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); return g; };      // the tip forward (-z)
+      const fill = chev(1), rim = chev(1.22); rim.translate(0, -0.005, -0.02);
+      this.arrowMats = [0, 1, 2].map(() => ({ f: new THREE.MeshBasicMaterial({ color: '#1a4cff', fog: false }), e: new THREE.MeshBasicMaterial({ color: '#35f0ff', fog: false }) }));
+      for (let s0 = 20; s0 < KART.LAP; s0 += 40) for (let k = 0; k < 3; k++) { const h = new THREE.Group(), m = this.arrowMats[k], e = new THREE.Mesh(rim, m.e), f = new THREE.Mesh(fill, m.f); f.position.y = 0.01;
+        h.add(e, f); const s1 = s0 + k * 2.2; this.ringPos(s1, 4.4, 0.09, h.position); h.rotation.y = s1 / R; h.scale.setScalar(2.0); sc.add(h); } }
     this.holders = null; this.bound = null; this.camPos = new THREE.Vector3(); this.v = new THREE.Vector3();
   }
   ringPos(s, x, y, out) { const a = s / KART.R, r = KART.R + x; return (out || new THREE.Vector3()).set(-KART.R + r * Math.cos(a), y, -r * Math.sin(a)); }
@@ -115,6 +122,7 @@ class Kart3D {
     const R = g.race; if (this.bound !== R) this.bind(R);
     const bt = g.sfx ? g.sfx.beat() : null, pulse = bt ? bt.pulse * (0.45 + 0.55 * bt.energy) : 0, t = g.time, p = R.p, air = p.air > 0 ? Math.sin(Math.PI * (1 - p.air / RACE.JUMP_T)) : 0;
     this.r3.placeItems(R, t, pulse);
+    if (this.arrowMats) this.arrowMats.forEach((m, k) => { const w = Math.max(0, Math.cos(t * 7 - k * 1.4)), b = 0.25 + 0.75 * w * w; m.f.color.setRGB(0.04 + 0.08 * b, 0.12 + 0.25 * b, 0.35 + 0.65 * b); m.e.color.setRGB(0.1 + 0.1 * b, 0.35 + 0.6 * b, 0.4 + 0.6 * b); });      // the chase light runs toward the front
     if (this.centreLit) { this.centreLit[0].material.opacity = 0.7 + 0.3 * pulse + 0.1 * Math.sin(t * 2.2); const k = 1 + 0.05 * pulse; this.centreLit[1].scale.set(230 * k, 230 * k, 1); this.centreLit[1].material.opacity = 0.75 + 0.25 * pulse; }
     this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; this.ringPos(s, m.position.x, 0, h.position); h.rotation.y = s / KART.R; m.position.set(0, m.position.y, 0); });
     const put = (o, s, x, y, yaw) => { this.ringPos(s, x, y, o.position); o.rotation.set(0, s / KART.R + (yaw || 0), 0); };
@@ -128,6 +136,10 @@ class Kart3D {
     this.ringPos(p.s - 4.6, p.x * 0.6, 2.1 + air, this.camPos); if (this.camera.position.distanceTo(this.camPos) > 6) this.camera.position.copy(this.camPos); else this.camera.position.lerp(this.camPos, 0.5);
     this.camera.lookAt(this.ringPos(p.s + 12, p.x * 0.4, 0.9 + air * 0.6, this.v));
     }
+    const X = g.r && g.r.xr && g.r.xr.presenting ? g.r.xr : null;                                  // VR: the headset looks from a rig at the chase pose (behind the kart, heading along the ring); no pitch, no roll
+    if (X) { if (!this.rig) { this.rig = new THREE.Group(); this.scene.add(this.rig); } if (this.camera.parent !== this.rig) this.rig.add(this.camera);
+      this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.ringPos(p.s - 4.6, p.x * 0.6, 0.6, this.rig.position); this.rig.rotation.set(0, p.s / KART.R, 0); }
+    else if (this.rig && this.camera.parent === this.rig) { this.rig.remove(this.camera); this.scene.add(this.camera); }
     renderer.render(this.scene, this.camera);
   }
 }

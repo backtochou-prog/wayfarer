@@ -49,6 +49,19 @@ class Renderer {
     this.ctr(kmh + ' KM/H', 160, '#f2ead6');
     if (p.brakeT > 0) this.ctr('BRAKE', 146, '#ff4fd8'); else if (p.hitT > 0) this.ctr('HIT', 146, '#ff4a4a'); else if (p.boostT > 0) this.ctr('BOOST +' + Math.round(p.boost * 3.6), 146, ['#ff5a6a', '#d070ff', '#7aff40', '#d8ff30'][RACE.SPIRAL.findIndex(c => c.add === p.boost)] || '#fff');
     if (p.pedal && !(p.brakeT > 0 || p.hitT > 0 || p.boostT > 0)) this.ctr(p.pedal === 'brake' ? 'BRAKE' : 'ACCEL', 146, p.pedal === 'brake' ? '#ff8aa0' : '#7affc8');      // the pedals (held)
+    if (R.menu) {                                                                          // THE KART QUICK MENU: a see-through panel over the circuit
+      ctx.fillStyle = 'rgba(10,6,24,0.35)'; ctx.fillRect(84, 40, 152, 112); ctx.fillStyle = '#39ff14'; ctx.fillRect(84, 40, 152, 1); ctx.fillRect(84, 151, 152, 1);
+      this.ctr('KARTING', 46, '#39ff14');
+      const vrOk = !!(g.r && g.r.xr && g.r.xr.button);
+      for (const b of KMENU) {                                                             // see-through buttons with a neon edge (green; turquoise under the pointer; grey when VR is not available)
+        const m = g.mouse, hov = m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h, off = b.id === 'vr' && !vrOk, col = off ? '#5a5870' : hov ? '#35f0ff' : '#39ff14';
+        ctx.fillStyle = hov && !off ? 'rgba(6,30,34,0.6)' : 'rgba(6,8,10,0.5)'; ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.fillStyle = col; ctx.fillRect(b.x, b.y, b.w, 1); ctx.fillRect(b.x, b.y + b.h - 1, b.w, 1); ctx.fillRect(b.x, b.y, 1, b.h); ctx.fillRect(b.x + b.w - 1, b.y, 1, b.h);
+        this.txt(b.label, Math.round(b.x + (b.w - textW(b.label, 2)) / 2), b.y + 3, col, 2);
+      }
+      if (!(g.r && g.r.xr && g.r.xr.button)) this.ctr('VR: CASQUE REQUIS', 138, '#8a86a0');
+      return;
+    }
     const cy = R.kart ? 44 : 70, cs = R.kart ? 4 : 6;      // (the kart's camera is close: the countdown stands above the kart, not over it, in neon green)
     if (R.cd > 0) this.ctr(R.cd > 0.5 ? String(Math.ceil(R.cd - 0.5)) : 'GO', cy, R.kart ? '#2bff6a' : '#fff', cs);
     else if (R.t < 1.2) this.ctr('GO', cy, '#7affc8', cs);
