@@ -71,7 +71,16 @@ class Kart3D {
       Kit.box(0.04, 0.3, 0.04, -0.12, 0.62, 0.95, '#b040ff', { glow: true }), Kit.box(0.04, 0.3, 0.04, 0.12, 0.62, 0.95, '#b040ff', { glow: true }), Kit.box(0.4, 0.04, 0.04, 0, 0.66, 1.12, GREEN, { glow: true }),
       Kit.box(1.2, 0.06, 0.06, 0, 0.2, 1.32, ORANGE, { glow: true }), Kit.box(0.6, 0.05, 0.05, 0, 0.12, 1.33, GREEN, { glow: true }),      // the rear bumper, lit (and brake light below)
     ];
-    this.car = new THREE.Group(); this.car.add(Kit.mesh(Kit.merge(pk)));
+    this.car = new THREE.Group();
+    if (typeof KART_ART !== 'undefined') {                                                            // the user's sheet AS IT IS (2026-11-09: 'telle qu'elle, ne change rien dans les images'): its four views as cut-out cards round the kart
+      const A = KART_ART, L = 2.6, W = 1.37, tex = u => { const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; img.onload = () => { t.needsUpdate = true; }; img.src = u; return t; };
+      const mat = u => new THREE.MeshBasicMaterial({ map: tex(u), alphaTest: 0.4, side: THREE.DoubleSide });
+      const card = (u, w, h, x, y, z, ry, rx) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat(u)); m.position.set(x, y, z); m.rotation.set(rx || 0, ry || 0, 0, 'YXZ'); this.car.add(m); return m; };
+      const hr = W / A.ar_rear, hf = W / A.ar_front, hs = L / A.ar_side;
+      card(A.rear, W, hr, 0, hr / 2, L / 2); card(A.front, W, hf, 0, hf / 2, -L / 2, Math.PI);
+      for (const sx of [-1, 1]) card(A.side, L, hs, sx * W * 0.42, hs / 2, 0, -Math.PI / 2);
+      card(A.top, L * A.ar_top * 0 + W * 1.0, L, 0, 0.32, 0, 0, -Math.PI / 2);
+    } else this.car.add(Kit.mesh(Kit.merge(pk)));
     if (typeof RunnerZagla !== 'undefined' && typeof ZAGLA_ASSETS !== 'undefined') {                    // Zagla at the wheel: her body on the seat, her legs forward to the pedals
       const z = new RunnerZagla(), d = z.group, k = 0.62; d.scale.setScalar(k); d.position.set(0, 0.28 - 0.95 * k * 0, 0.42); z.pivot.position.y = -0.5; z.legs.forEach(l => { l.rotation.x = -1.45; }); this.driver = z; this.car.add(d); }
     this.bot = kart('#c8243a', '#ffffff'); sc.add(this.car, this.bot);
