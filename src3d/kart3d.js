@@ -12,14 +12,14 @@ class Kart3D {
     this.C = new THREE.Vector3(-R, 0, 0);
     const P = ENV3D.terrace.props, cvTex = (w, h, f, rep) => { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; f(cv.getContext('2d')); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; if (rep) t.repeat.set(rep[0], rep[1]); t.anisotropy = 4; return t; };
     // THE FLOOR: the track in big cream and terracotta tiles (no asphalt), the mall round it in pale stone, the garden in the middle
-    const tiles = cvTex(128, 128, x => { x.fillStyle = '#e8dcc4'; x.fillRect(0, 0, 128, 128); x.fillStyle = '#c98a6a'; x.fillRect(0, 0, 64, 64); x.fillRect(64, 64, 64, 64); x.strokeStyle = '#8a6a52'; x.lineWidth = 3; x.strokeRect(0, 0, 128, 128); x.beginPath(); x.moveTo(64, 0); x.lineTo(64, 128); x.moveTo(0, 64); x.lineTo(128, 64); x.stroke(); }, [Math.round(2 * Math.PI * R / 4), 3]);
+    const tiles = cvTex(128, 128, x => { x.fillStyle = '#07090a'; x.fillRect(0, 0, 128, 128); x.fillStyle = '#2bff6a'; x.fillRect(2, 2, 60, 60); x.fillRect(66, 66, 60, 60); x.fillStyle = '#9dffbf'; x.fillRect(2, 2, 60, 3); x.fillRect(66, 66, 60, 3); x.strokeStyle = '#000'; x.lineWidth = 4; x.strokeRect(0, 0, 128, 128);}, [Math.round(2 * Math.PI * R / 4), 3]);
     const ring = (r0, r1, mat, y, seg) => { const g = new THREE.RingGeometry(r0, r1, seg || 720, 1); const m = new THREE.Mesh(g, mat); m.rotation.x = -Math.PI / 2; m.position.set(-R, y || 0, 0); sc.add(m); return m; };
     { const g = new THREE.RingGeometry(R - 6.5, R + 6.5, 720, 1), uv = g.attributes.uv, pos = g.attributes.position;          // the track's uv: u along the ring, v across
       for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), a = Math.atan2(y, x), r = Math.hypot(x, y); uv.setXY(i, (a < 0 ? a + 2 * Math.PI : a) / (2 * Math.PI), (r - (R - 6.5)) / 13); }
-      const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tiles })); m.rotation.x = -Math.PI / 2; m.position.set(-R, 0.01, 0); sc.add(m); }
+      const m = new THREE.Mesh(g, new THREE.MeshPhongMaterial({ map: tiles, emissiveMap: tiles, emissive: 0xffffff, emissiveIntensity: 0.35, specular: 0x8899aa, shininess: 90 }));      /* neon-green and glossy black tiles (the user: 'carreau vert néon comme celui du droid, et noir un peu brillant') */ m.rotation.x = -Math.PI / 2; m.position.set(-R, 0.01, 0); sc.add(m); }
     ring(R + 6.5, R + 60, new THREE.MeshLambertMaterial({ color: '#d8d2c6' }), 0);                                              // the walk of the mall, pale stone
     ring(0, R - 6.5, new THREE.MeshLambertMaterial({ color: '#5a7a46' }), 0, 360);                                                   // the garden
-    for (const r of [R - 1.2, R + 1.2]) ring(r - 0.06, r + 0.06, new THREE.MeshBasicMaterial({ color: '#f6e6c0' }), 0.02);          // the lane lines
+    for (const r of [R - 1.2, R + 1.2]) ring(r - 0.06, r + 0.06, new THREE.MeshBasicMaterial({ color: '#0a0c0b' }), 0.02);          // the lane lines
     // THE BARRIERS: a low wall on each side with a warm light strip
     for (const [r, s] of [[R - 6.8, 1], [R + 6.8, -1]]) {
       const w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.7, 720, 1, true), new THREE.MeshLambertMaterial({ color: '#3a2b22', side: THREE.DoubleSide })); w.position.set(-R, 0.35, 0); sc.add(w);

@@ -42,15 +42,16 @@ class Renderer {
     const R = g.race, p = R.p, ctx = this.ctx, x0 = 80, w = 160, gap = R.gap(), kmh = Math.round(p.speed * 3.6);
     ctx.fillStyle = 'rgba(8,4,16,0.72)'; ctx.fillRect(x0 - 4, 3, w + 8, 27);
     const bar = (frac, y, col) => { ctx.fillStyle = '#1a1030'; ctx.fillRect(x0, y, w, 5); ctx.fillStyle = col; ctx.fillRect(x0, y, Math.round(w * Math.max(0, Math.min(1, frac))), 5); ctx.fillStyle = '#fff'; ctx.fillRect(x0 + Math.round(w * Math.max(0, Math.min(1, frac))) - 1, y - 1, 2, 7); };
-    bar(p.s / RACE.LEN, 6, '#35e6ff'); bar(R.bot.s / RACE.LEN, 16, '#ff2a4a');
+    bar(p.s / R.len, 6, '#35e6ff'); bar(R.bot.s / R.len, 16, '#ff2a4a');
     this.txt('YOU', x0 - 24, 5, '#35e6ff'); this.txt('BOT', x0 - 24, 15, '#ff2a4a');
     this.ctr(gap > 0 ? 'ROBOT +' + Math.round(gap) + ' M' : 'YOU +' + Math.round(-gap) + ' M', 33, gap > 0 ? '#ff6a7a' : '#7affc8');
     this.txt('RARE ' + g.rare, 6, 6, '#ffd24a');
     this.ctr(kmh + ' KM/H', 160, '#f2ead6');
     if (p.brakeT > 0) this.ctr('BRAKE', 146, '#ff4fd8'); else if (p.hitT > 0) this.ctr('HIT', 146, '#ff4a4a'); else if (p.boostT > 0) this.ctr('BOOST +' + Math.round(p.boost * 3.6), 146, ['#ff5a6a', '#d070ff', '#7aff40', '#d8ff30'][RACE.SPIRAL.findIndex(c => c.add === p.boost)] || '#fff');
     if (p.pedal && !(p.brakeT > 0 || p.hitT > 0 || p.boostT > 0)) this.ctr(p.pedal === 'brake' ? 'BRAKE' : 'ACCEL', 146, p.pedal === 'brake' ? '#ff8aa0' : '#7affc8');      // the pedals (held)
-    if (R.cd > 0) this.ctr(R.cd > 0.5 ? String(Math.ceil(R.cd - 0.5)) : 'GO', 70, '#fff', 6);
-    else if (R.t < 1.2) this.ctr('GO', 70, '#7affc8', 6);
+    const cy = R.kart ? 44 : 70, cs = R.kart ? 4 : 6;      // (the kart's camera is close: the countdown stands above the kart, not over it, in neon green)
+    if (R.cd > 0) this.ctr(R.cd > 0.5 ? String(Math.ceil(R.cd - 0.5)) : 'GO', cy, R.kart ? '#2bff6a' : '#fff', cs);
+    else if (R.t < 1.2) this.ctr('GO', cy, '#7affc8', cs);
     if (R.done) { const win = R.result === 'win'; ctx.fillStyle = 'rgba(8,4,16,0.6)'; ctx.fillRect(0, 62, VW, 54); this.ctr(win ? 'YOU WIN' : 'ROBOT WINS', 68, win ? '#7affc8' : '#ff6a7a', 4); this.ctr(win ? '+30 COINS' : 'BACK TO THE ROAD', 98, '#f2ead6'); this.ctr('THE SPHERE IS CLOSED UNTIL THE NEXT ZONE', 108, '#a090c0'); }
   }
 
