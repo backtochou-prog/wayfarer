@@ -10,8 +10,11 @@ const RACE = {
   THROTTLE: 5, PEDAL_MUL: 0.5,   /* the PEDALS (the user: 'boutons accelerer, freiner'): accelerating while held adds THROTTLE m/s to the car's pace (the user asked for both cars faster: 43 / 58 m/s, the spirals scaled with them; 5, not more: measured by tests/race_sim.js, a player who only holds the accelerator in one lane wins about one race in six, an attentive one 85 % without it and all with it; the spirals stay the way to win), braking while held halves it */
   DROID_V: 12, DROID_TRIGGER: 50, RAMP_BEFORE: 30, BUMP_MUL: 0.6, BUMP_T: 0.9, BUMP_GAP: 4.4,          /* running into the back of the robot's car: it is an obstacle like any other, the player is slowed and held behind it */
 };
+// THE KART CIRCUIT (the Galerie Gasperi, a ring inside a big shopping centre): the same rules over two laps of a ring of radius R (src3d/kart3d.js draws it)
+const KART = { R: 240, LAPS: 2 }; KART.LAP = 2 * Math.PI * KART.R; KART.LEN = Math.round(KART.LAP * KART.LAPS);
 class Race {
-  constructor(seed) {
+  constructor(seed, opts) {
+    this.len = (opts && opts.len) || RACE.LEN; this.kart = !!(opts && opts.kart);      // (the KART circuit of the Galerie Gasperi: laps of a ring, src3d/kart3d.js)
     this.seed = seed || 1; this.t = 0; this.done = false; this.result = null; this.fin = 0;          // result: 'win' | 'lose'
     this.p = { s: 0, lane: -1, x: -RACE.LANE_M, speed: RACE.BASE * 0.6, boost: 0, boostT: 0, brakeT: 0, hitT: 0, air: 0, pedal: null, spirals: 0, rare: 0, hits: 0, rings: 0, jumps: 0, near: 0, bumps: 0 };
     this.bot = { s: 0, speed: RACE.BASE * 0.65, lane: 1, x: RACE.LANE_M, finishT: null };             // the two cars start SIDE BY SIDE on the line, one at each side of the track (the player on the left, the robot on the right: a lane of road between them)                                              
@@ -22,9 +25,9 @@ class Race {
   // the layout: a set every ~55 m after a 110 m run-up. A set is a spiral line, a ring trap with a spiral beside it, or a droid (with a ramp before it in its lane, or in the open). Spirals are worth more where it is harder to be.
   build() {
     let s = 110, n = 0, rare = 0;
-    while (s < RACE.LEN - 90) {
+    while (s < this.len - 90) {
       const r = k => this.rnd(n * 17 + k), lane = Math.floor(r(1) * 3) - 1, kind = r(2), other = lane === 1 ? -1 : lane + 1, third = -lane - other;
-      const late = s > RACE.LEN * RACE.LAST;                                                        // the run-in of the race
+      const late = s > this.len * RACE.LAST;                                                        // the run-in of the race
       if (late ? kind < 0.72 : kind < 0.34) {                                                                               // a line of three spirals of one colour in one lane (the colour by luck, rarer the stronger)
         const c = late ? (r(3) < 0.55 ? 0 : 1) : r(3) < 0.12 ? 0 : r(3) < 0.32 ? 1 : r(3) < 0.62 ? 2 : 3;                 // in the run-in the strong colours (red, purple) and a longer line of them
         for (let k = 0, nS = late ? 5 : 3; k < nS; k++) this.add({ type: 'spiral', color: c, lane, s: s + k * 9 });
@@ -82,10 +85,10 @@ class Race {
     if (!this.done && p.s > bot.s - RACE.BUMP_GAP && p.s < bot.s + 2 && Math.abs(p.x - bot.x) < 1.5) {        // the back of the robot's car: an obstacle. The player is slowed and cannot drive through it
       p.s = bot.s - RACE.BUMP_GAP; p.speed = Math.min(p.speed * RACE.BUMP_MUL, bot.speed * 0.8); p.hitT = Math.max(p.hitT, RACE.BUMP_T); p.bumps = (p.bumps || 0) + 1; this.events.push({ e: 'bump' });
     }
-    if (bot.finishT === null && bot.s >= RACE.LEN) bot.finishT = this.t;
-    if (p.s >= RACE.LEN) { this.done = true; this.result = bot.finishT === null ? 'win' : 'lose'; this.events.push({ e: this.result }); }
+    if (bot.finishT === null && bot.s >= this.len) bot.finishT = this.t;
+    if (p.s >= this.len) { this.done = true; this.result = bot.finishT === null ? 'win' : 'lose'; this.events.push({ e: this.result }); }
     else if (bot.finishT !== null) { this.done = true; this.result = 'lose'; this.events.push({ e: 'lose' }); }          // the robot crossed first: out at once
   }
   gap() { return this.bot.s - this.p.s; }                                                              // metres the robot is ahead (negative: the player leads)
-  progress() { return Math.min(1, this.p.s / RACE.LEN); }
+  progress() { return Math.min(1, this.p.s / this.len); }
 }

@@ -195,6 +195,7 @@ function buildSprites() {
   SPR.signQuay = sign(r => { for (let i = 0; i < 8; i++) r(i % 2 ? '#f2e6e2' : '#c8483c', 9 + i * 2, 4, 2, 4); r(C.earth, 10, 8, 14, 1); r('#e8b830', 12, 11, 5, 5); r('#e8c870', 12, 11, 5, 1); r('#d9a838', 19, 12, 5, 4); r(C.earth, 9, 16, 16, 2); }, 'KAAS');       // a gingham awning over wheels of cheese
   SPR.signVic = sign(r => { r(C.amber, 9, 5, 16, 3); r('#d9a35e', 9, 8, 16, 9); r(C.ink, 12, 10, 3, 4); r(C.ink, 19, 10, 3, 4); r('#7a5230', 15, 12, 4, 5); }, 'VIC');
   SPR.signAlley = sign(r => { r('#d9a35e', 7, 4, 7, 14); r('#d9a35e', 20, 4, 7, 14); r(C.ink, 15, 6, 4, 12); r('#ffbd70', 16, 9, 2, 2); }, 'RUELLE');
+  SPR.signTerrace = sign(r => { r('#9c3f2a', 8, 4, 18, 3); for (let i = 0; i < 5; i++) r('#ffd27a', 9 + i * 4, 8, 1, 1); r('#d8c3a2', 11, 13, 12, 2); r('#3a2b22', 16, 15, 2, 3); r('#ffd27a', 16, 11, 2, 2); }, 'CAFE');
   SPR.signRuins = sign(r => { r(C.stoneL, 9, 6, 3, 11); r(C.stoneL, 22, 6, 3, 11); r(C.stone, 9, 4, 16, 3); r(C.stoneD, 12, 7, 10, 2); r(C.mossL, 9, 15, 3, 2); r(C.mossL, 22, 12, 3, 2); r(C.moss, 13, 8, 8, 1); }, 'RUINS');
   SPR.signNeon = sign(r => { r('#ff2fd0', 9, 5, 16, 2); r('#ff2fd0', 9, 14, 16, 2); r('#ff2fd0', 9, 7, 2, 7); r('#ff2fd0', 23, 7, 2, 7); r('#22e0e8', 13, 9, 8, 3); r('#22e0e8', 15, 8, 4, 5); }, 'NEON');
   // ---- market street furniture

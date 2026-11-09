@@ -78,7 +78,7 @@ class Renderer3D {
     const CAP = { lamp: 100, tree: 120, bench: 50, planter: 130, bush: 60, stall: 40, stallB: 40, pine: 110, pineTall: 90, oak: 90, birch: 70, fbush: 80, rock: 60, log: 40, fence: 60, gore: 4,
                   wall: 70, cafe: 40, bollard: 40, barrel: 40, boulder: 30, stump: 30, flowers: 40,                       // street furniture and roadside details
                   fountain: 6, clockTower: 6, statue: 6, cabin: 6, giantOak: 8, standingStones: 6, marketHall: 6, bigTent: 6,   // landmarks: at most one per stretch and side
-                  gateCity: 8, gateWood: 8, gateMarket: 8, gateNeon: 8,                                                    // entrance markers where the biome changes
+                  gateCity: 8, gateWood: 8, gateMarket: 8, gateNeon: 8, gateTerrace: 8, cafeFront: 40, terrace: 40, bigPlanter: 70, treeRing: 40, aBoard: 30,      /* (the Terrasse Gasperi) */                                                    // entrance markers where the biome changes
                   neonTowerA: 24, neonTowerB: 24, neonBlockA: 24, neonBlockB: 24, neonBlockC: 24, neonShopA: 24, neonShopB: 24, neonLampM: 60, neonLampC: 60,   // the neon quarter
                   stripM: 80, stripG: 80, stripR: 80, neonSignA: 40, neonSignB: 40, neonBollard: 40, neonRing: 6, neonSpire: 6, neonRedTower: 6, neonRedTowerB: 6, neonBillboard: 6,
                   neonBlockD: 24, neonBlockE: 24, neonShopC: 24, neonBlade: 80, neonBanner: 40, neonBucket: 80, neonBottle: 60, neonHalo: 6,      // props made of the user's materials
@@ -324,6 +324,7 @@ class Renderer3D {
     this.adapt();
     if (g.state === 'race' && g.race) {                                                              // the race zone: its own scene (src3d/race3d.js) on the same renderer, under the pixel HUD
       if (!this.race3d) this.race3d = new Race3D(); if (g.state !== 'pause') this.lastT = g.time;
+      if (g.race.kart && typeof Kart3D !== 'undefined') { if (!this.kart3d) this.kart3d = new Kart3D(this.race3d); this.kart3d.draw(g, this.renderer); } else
       this.race3d.draw(g, this.renderer); this.uiCtx.clearRect(0, 0, VW, VH); this.ui.drawUI(g); return;
     }
     const w = g.world, p = g.p, U = U3, dt = Math.min(0.05, this.lastT ? (g.time - this.lastT) : 0.016) || 0.016;

@@ -21,6 +21,12 @@ window.ENV3D = window.ENV3D || {};
                Kit.box(0.22, 0.22, 0.14, -0.38, 2.6, 0.2, '#ffd27a', { glow: true }), Kit.box(0.22, 0.22, 0.14, 0.38, 2.6, 0.2, '#ffd27a', { glow: true }));
         return Kit.merge(p);
       },
+      signTerrace: () => {                                                // a terracotta awning over a round table with a warm lamp, on a bottle-green board
+        const p = board('#e8a33d', '#1f3a2a');
+        p.push(Kit.box(1.6, 0.18, 0.12, 0, 2.95, 0.12, '#9c3f2a'), Kit.box(1.2, 0.08, 0.12, 0, 2.25, 0.14, '#d8c3a2'), Kit.box(0.08, 0.5, 0.12, 0, 1.75, 0.14, '#3a2b22'),
+               Kit.box(0.14, 0.14, 0.12, 0, 2.4, 0.16, '#ffd27a', { glow: true }), ...[-0.6, -0.2, 0.2, 0.6].map(x => Kit.box(0.1, 0.1, 0.12, x, 2.75, 0.16, '#ffd27a', { glow: true })));
+        return Kit.merge(p);
+      },
       signCoast: () => {                                                  // a sun over two waves on a teal board
         const p = board('#e8a33d', '#2b7a8c');
         p.push(Kit.cyl(0.4, 0.4, 0.1, 0, 2.55, 0.12, '#ffd27a', { rx: Math.PI / 2, seg: 10, glow: true }), Kit.box(2.0, 0.16, 0.1, 0, 2.28, 0.14, '#9fe0e8'), Kit.box(1.5, 0.14, 0.1, 0.1, 2.06, 0.14, '#e6fbff'), Kit.box(1.8, 0.14, 0.1, -0.1, 1.86, 0.14, '#9fe0e8'));

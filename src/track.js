@@ -214,6 +214,9 @@ const TRACK = {
                  patterns: ['twin', 'dodgeL', 'slideGate', 'zig', 'trailR', 'hurdle', 'risky', 'dodgeR', 'line'], extra: ['stagger', 'slideJump'], waymark: 'slide' },
     detourB:   { name: 'MARKET DETOUR', biome: 'market', curve: -0.9, first: 100, spacing: 210,
                  patterns: ['rowR', 'line', 'slideGate', 'trailL', 'crateJump', 'rowL', 'hurdle', 'trailR'], extra: ['crateBarrier', 'hopWeave'], waymark: 'jump' },
+    // TERRASSE GASPERI: a night street of café terraces (the user's photo of the Cafetería Nuevo Gasperi, reimagined), coins along the tables and a few easy hazards
+    terraceRun:  { kartGate: 0.45, name: 'TERRASSE GASPERI', biome: 'terrace', curve: 0.9, first: 80, spacing: 210,
+                   patterns: ['line', 'trailL', 'hurdle', 'rowR', 'slideGate', 'trailR', 'crateJump', 'line', 'dodgeL'], extra: ['gateTrail', 'hopWeave'], waymark: 'jump' },
     // ---- the three new destinations (fork branches; each has a variant B so the second visit is not a copy)
     // SUNSET COAST: a warm seaside road, a safe sprint: coin waves and straights, almost no hazard
     coastRun:   { name: 'SUNSET COAST',  biome: 'coast',  curve: -0.8, first: 80,  spacing: 210,
@@ -257,6 +260,7 @@ const TRACK = {
     // THE JUNCTIONS OF THE CIRCUIT. The coast and the neon quarter are zones of their own now (Neon > Beach > Saint-Gilles > Utrecht), so the pairs the junction of Saint-Gilles takes (picks.A) offer only the
     // detours that stay in its neighbourhood: forest, market, ruins. The pairs above that lead to the coast or the neon quarter (gate3, gate4, gate2, gate3B, gate4B) are no longer on the circuit.
     gate5: { zone: 440, branchLen: 1300, merge: 360, blend: 40, left: { route: 'ruinsRun', sign: 'signRuins' }, right: { route: 'detourB', sign: 'signMarket' } },
+    gate7: { zone: 440, branchLen: 5000, merge: 360, blend: 40, left: { route: 'terraceRun', sign: 'signTerrace' }, right: { route: 'detourB', sign: 'signMarket' } },      // the café terraces or the market
     gate6: { zone: 480, branchLen: 1500, merge: 380, blend: 40, left: { route: 'forestB', sign: 'signForest' }, right: { route: 'ruinsRunB', sign: 'signRuins' } },
   },
   // Every route choice is a fork with a signpost on each side. The two fork slots of a lap (A and B) pick one of three pairs each (see `picks`), so the destinations come in a different order
@@ -269,6 +273,6 @@ const TRACK = {
   pickSegs: { C: ['coastSunset', 'coastMidday', 'coastBlueHour', 'coastMorning'] },
   pickForks: { E: ['gateIslandSunset', 'gateIslandMidday', 'gateIslandBlue', 'gateIslandMorning'] },       // a `pick` slot of `pickForks` chooses a FORK by turns, like `pickSegs` a segment
   pickSalt: { E: 'C' },         // the island junction takes its light from the same turn as the coastal piece before it (the same seeded start)
-  picks: { A: ['gate', 'gate5', 'gate6'], B: ['gate2', 'gate3B', 'gate4B'] },       // the fork pairs a `pick` slot chooses from (the first lap, with seed 0, takes the first: forest / market); B is not on the circuit any more
+  picks: { A: ['gate', 'gate5', 'gate6', 'gate7'], B: ['gate2', 'gate3B', 'gate4B'] },       // the fork pairs a `pick` slot chooses from (the first lap, with seed 0, takes the first: forest / market); B is not on the circuit any more
   loopFrom: 1,
 };

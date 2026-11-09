@@ -1,0 +1,71 @@
+// KART3D: the KART CIRCUIT of the Galerie Gasperi (2026-11-09, the user: "qu'il soit enfermé du haut comme un centre commercial, un circuit rond 360° et grand, pas d'asphalte;
+// petite voiture de karting; très grand ~1,5 km"). A ring of radius KART.R (240 m: 1.5 km a lap, two laps) inside a huge round shopping centre: a tiled floor (no asphalt), a low
+// barrier on each side, the café fronts and terraces of the Terrasse Gasperi all round the outside, a garden of trees and planters in the middle, a glass dome over everything.
+// The RULES are the race zone's (src/race.js, with this.len = two laps); the items are Race3D's own meshes, placed by Race3D.placeItems on its straight track and then carried onto
+// the ring here: a point (x across, s along) of the straight track is ring(s, x) = centre + (R + x) (cos a, 0, -sin a), a = s / R (the karts turn LEFT round a centre at x = -R).
+class Kart3D {
+  constructor(race3d) {
+    const R = KART.R, sc = this.scene = new THREE.Scene(); this.r3 = race3d;
+    sc.background = new THREE.Color('#1a1a2a'); sc.fog = new THREE.Fog('#2a2436', 120, 520);
+    sc.add(new THREE.HemisphereLight('#fff0d8', '#4a3a40', 1.9)); const d = new THREE.DirectionalLight('#ffe2b8', 1.1); d.position.set(30, 80, 20); sc.add(d);
+    this.camera = new THREE.PerspectiveCamera(64, 16 / 9, 0.2, 1400);
+    this.C = new THREE.Vector3(-R, 0, 0);
+    const P = ENV3D.terrace.props, cvTex = (w, h, f, rep) => { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; f(cv.getContext('2d')); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; if (rep) t.repeat.set(rep[0], rep[1]); t.anisotropy = 4; return t; };
+    // THE FLOOR: the track in big cream and terracotta tiles (no asphalt), the mall round it in pale stone, the garden in the middle
+    const tiles = cvTex(128, 128, x => { x.fillStyle = '#e8dcc4'; x.fillRect(0, 0, 128, 128); x.fillStyle = '#c98a6a'; x.fillRect(0, 0, 64, 64); x.fillRect(64, 64, 64, 64); x.strokeStyle = '#8a6a52'; x.lineWidth = 3; x.strokeRect(0, 0, 128, 128); x.beginPath(); x.moveTo(64, 0); x.lineTo(64, 128); x.moveTo(0, 64); x.lineTo(128, 64); x.stroke(); }, [Math.round(2 * Math.PI * R / 4), 3]);
+    const ring = (r0, r1, mat, y, seg) => { const g = new THREE.RingGeometry(r0, r1, seg || 720, 1); const m = new THREE.Mesh(g, mat); m.rotation.x = -Math.PI / 2; m.position.set(-R, y || 0, 0); sc.add(m); return m; };
+    { const g = new THREE.RingGeometry(R - 6.5, R + 6.5, 720, 1), uv = g.attributes.uv, pos = g.attributes.position;          // the track's uv: u along the ring, v across
+      for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), a = Math.atan2(y, x), r = Math.hypot(x, y); uv.setXY(i, (a < 0 ? a + 2 * Math.PI : a) / (2 * Math.PI), (r - (R - 6.5)) / 13); }
+      const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tiles })); m.rotation.x = -Math.PI / 2; m.position.set(-R, 0.01, 0); sc.add(m); }
+    ring(R + 6.5, R + 60, new THREE.MeshLambertMaterial({ color: '#d8d2c6' }), 0);                                              // the walk of the mall, pale stone
+    ring(0, R - 6.5, new THREE.MeshLambertMaterial({ color: '#5a7a46' }), 0, 360);                                                   // the garden
+    for (const r of [R - 1.2, R + 1.2]) ring(r - 0.06, r + 0.06, new THREE.MeshBasicMaterial({ color: '#f6e6c0' }), 0.02);          // the lane lines
+    // THE BARRIERS: a low wall on each side with a warm light strip
+    for (const [r, s] of [[R - 6.8, 1], [R + 6.8, -1]]) {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.7, 720, 1, true), new THREE.MeshLambertMaterial({ color: '#3a2b22', side: THREE.DoubleSide })); w.position.set(-R, 0.35, 0); sc.add(w);
+      const l = new THREE.Mesh(new THREE.CylinderGeometry(r + s * 0.05, r + s * 0.05, 0.08, 720, 1, true), new THREE.MeshBasicMaterial({ color: '#ffd27a', side: THREE.DoubleSide })); l.position.set(-R, 0.62, 0); sc.add(l); }
+    // THE SHOPS all round the outside (the café fronts and terraces of the Terrasse Gasperi, the road side toward the track), THE GARDEN inside (trees in benches, planters)
+    const inst = (merged, mats) => { const m = Kit.materials(); for (const [geo, mat] of [[merged.lit, m.lit], [merged.glow, m.glow]]) { if (!geo) continue; const im = new THREE.InstancedMesh(geo, mat, mats.length); mats.forEach((M, i) => im.setMatrixAt(i, M)); sc.add(im); } };
+    const at = (a, r, faceIn, y) => { const q = new THREE.Matrix4(), p = new THREE.Vector3(-R + r * Math.cos(a), y || 0, -r * Math.sin(a)); q.makeRotationY(a + (faceIn ? 0 : Math.PI)); q.setPosition(p); return q; };      // local -x toward the centre (faceIn) or away
+    const N = 150, cafes = [], terr = [], plant = [], trees = [], plantIn = [];
+    for (let k = 0; k < N; k++) { const a = (k + 0.5) / N * 2 * Math.PI; (k % 3 === 2 ? plant : cafes).push(at(a, R + 21, true)); if (k % 3 !== 2) terr.push(at(a, R + 12, true)); else plant.push(at(a + 0.004, R + 9, true)); }
+    for (let k = 0; k < 110; k++) { const a = (k + 0.25) / 110 * 2 * Math.PI; (k % 2 ? plantIn : trees).push(at(a, R - 11, false)); }
+    inst(P.cafeFront(), cafes); inst(P.terrace(), terr); inst(P.bigPlanter(), plant); inst(P.treeRing(), trees); inst(P.bigPlanter(), plantIn);
+    { const tr = []; for (let k = 0; k < 160; k++) { const a = k * 2.399, r = 20 + Math.sqrt(k / 160) * (R - 40); tr.push(at(a, r, false)); } inst(P.treeRing(), tr); }       // the garden: trees all over
+    // THE GLASS DOME: ribs from the outer wall to a ring at the top, and a pale glass shell
+    { const H = 46, RR = R + 64, shell = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 16, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#9fb8d8', transparent: true, opacity: 0.18, side: THREE.BackSide, depthWrite: false, fog: false }));
+      shell.scale.set(RR, H, RR); shell.position.copy(this.C); sc.add(shell);
+      const ribs = []; for (let k = 0; k < 48; k++) { const a = k / 48 * 2 * Math.PI; for (let j = 0; j < 12; j++) { const u0 = j / 12, u1 = (j + 1) / 12, p0 = [Math.sin(u0 * Math.PI / 2) * RR, Math.cos(u0 * Math.PI / 2) * H], p1 = [Math.sin(u1 * Math.PI / 2) * RR, Math.cos(u1 * Math.PI / 2) * H];
+        const len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]); ribs.push(Kit.box(0.5, len, 0.5, 0, 0, 0, '#2a2a34', {})); const b = ribs[ribs.length - 1].geo;
+        const m = new THREE.Matrix4().makeRotationZ(Math.atan2(p1[1] - p0[1], p1[0] - p0[0]) - Math.PI / 2); m.premultiply(new THREE.Matrix4().makeTranslation((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2 - len / 2 * 0, 0)); m.premultiply(new THREE.Matrix4().makeRotationY(a)); m.premultiply(new THREE.Matrix4().makeTranslation(-R, 0, 0)); b.applyMatrix4(m); } }
+      sc.add(Kit.mesh(Kit.merge(ribs)));
+      const wall = new THREE.Mesh(new THREE.CylinderGeometry(RR, RR, 1.2, 180, 1, true), new THREE.MeshLambertMaterial({ color: '#3a2b22', side: THREE.DoubleSide })); wall.position.set(-R, 0.6, 0); sc.add(wall);
+      for (let k = 0; k < 3; k++) { const fr = new THREE.Mesh(new THREE.TorusGeometry(RR * Math.sin((0.35 + k * 0.2) * Math.PI / 2), 0.12, 4, 240), new THREE.MeshBasicMaterial({ color: '#ffd27a', fog: false })); fr.rotation.x = Math.PI / 2; fr.position.set(-R, Math.cos((0.35 + k * 0.2) * Math.PI / 2) * H - 0.3, 0); sc.add(fr); } }   // festoons round the dome
+    // THE KARTS: a small open kart (the player's blue and pink, the robot's red), a driver's helmet
+    const kart = (body, helm) => { const g = new THREE.Group(); g.add(Kit.mesh(Kit.merge([
+      Kit.box(1.3, 0.22, 2.2, 0, 0.12, 0, body), Kit.box(1.0, 0.3, 0.6, 0, 0.3, -0.9, body), Kit.box(0.9, 0.12, 0.4, 0, 0.55, 1.05, '#20202a'), Kit.box(0.5, 0.4, 0.5, 0, 0.34, 0.3, '#18181e'),
+      Kit.ico(0.32, 0, 0.92, 0.3, helm), Kit.box(0.5, 0.12, 0.08, 0, 0.92, 0.0, '#101018'),
+      ...[[-0.72, -0.75], [0.72, -0.75], [-0.75, 0.75], [0.75, 0.75]].map(([x, z]) => Kit.cyl(0.24, 0.24, 0.26, x, 0.11, z, '#0c0c10', { rz: Math.PI / 2, seg: 10 })),
+      Kit.box(1.1, 0.06, 0.06, 0, 0.45, 1.25, '#ff2a3a', { glow: true }), Kit.box(0.9, 0.05, 0.05, 0, 0.36, -1.22, '#ffd27a', { glow: true })]))); return g; };
+    this.car = kart('#2a3cff', '#ff3fd0'); this.bot = kart('#c8243a', '#ffffff'); sc.add(this.car, this.bot);
+    this.holders = null; this.bound = null; this.camPos = new THREE.Vector3(); this.v = new THREE.Vector3();
+  }
+  ringPos(s, x, y, out) { const a = s / KART.R, r = KART.R + x; return (out || new THREE.Vector3()).set(-KART.R + r * Math.cos(a), y, -r * Math.sin(a)); }
+  bind(R) {                                                                                          // Race3D builds the item meshes; each goes into a holder that stands on the ring
+    if (this.r3.bound !== R) this.r3.bind(R);
+    if (this.holders) for (const h of this.holders) this.scene.remove(h);
+    this.holders = this.r3.meshes.map(m => { const h = new THREE.Group(); h.add(m); this.scene.add(h); return h; }); this.bound = R;
+  }
+  draw(g, renderer) {
+    const R = g.race; if (this.bound !== R) this.bind(R);
+    const bt = g.sfx ? g.sfx.beat() : null, pulse = bt ? bt.pulse * (0.45 + 0.55 * bt.energy) : 0, t = g.time, p = R.p, air = p.air > 0 ? Math.sin(Math.PI * (1 - p.air / RACE.JUMP_T)) : 0;
+    this.r3.placeItems(R, t, pulse);
+    this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; this.ringPos(s, m.position.x, 0, h.position); h.rotation.y = s / KART.R; m.position.set(0, m.position.y, 0); });
+    const put = (o, s, x, y, yaw) => { this.ringPos(s, x, y, o.position); o.rotation.set(0, s / KART.R + (yaw || 0), 0); };
+    put(this.car, p.s, p.x, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04); put(this.bot, R.bot.s, R.bot.x, 0.02);
+    const f = 64 + Math.min(14, p.speed - RACE.BASE) * 0.9; if (Math.abs(this.camera.fov - f) > 0.05) { this.camera.fov += (f - this.camera.fov) * 0.1; this.camera.updateProjectionMatrix(); }
+    this.ringPos(p.s - 6.5, p.x * 0.55, 2.8 + air, this.camPos); if (this.camera.position.distanceTo(this.camPos) > 6) this.camera.position.copy(this.camPos); else this.camera.position.lerp(this.camPos, 0.5);
+    this.camera.lookAt(this.ringPos(p.s + 12, p.x * 0.4, 0.9 + air * 0.6, this.v));
+    renderer.render(this.scene, this.camera);
+  }
+}

@@ -371,11 +371,9 @@ class Race3D {
     });
     this.bound = race;
   }
-  // draw one frame of the race `R` into `renderer`
-  draw(g, renderer) {
-    const bt = g.sfx ? g.sfx.beat() : null, pulse = bt ? bt.pulse * (0.45 + 0.55 * bt.energy) : 0, kick = bt ? bt.kick : 0.5;              // THE RACE DANCES TO ITS TRACK (assets/music_race.mp3): the lights of the track, the spirals, the rings and the two cars move on the beat
-    const R = g.race; if (this.bound !== R) this.bind(R);
-    const p = R.p, M = RACE.LANE_M, t = g.time, air = p.air > 0 ? Math.sin(Math.PI * (1 - p.air / RACE.JUMP_T)) : 0;
+  // the items of the race at their place on the straight track (x across, y up, z = -s); Kart3D moves them onto its ring afterwards
+  placeItems(R, t, pulse) {
+    const p = R.p, M = RACE.LANE_M;
     R.items.forEach((it, i) => {
       const m = this.meshes[i], z = -it.s, x = it.lane * M, vis = !it.taken && !(it.type === 'droid' && it.hit) && it.s > p.s - 12 && it.s < p.s + 230; m.visible = vis; if (!vis) return;
       if (it.type === 'spiral') { m.position.set(x, 1.5 + 0.12 * Math.sin(t * 3 + i), z); m.rotation.z = t * 1.6 * (i % 2 ? 1 : -1); m.scale.setScalar(1 + 0.05 * Math.sin(t * 6 + i) + 0.22 * pulse); }                 // they flare on every kick
@@ -384,6 +382,13 @@ class Race3D {
       else if (it.type === 'rare') { m.position.set(x, 0.15 * Math.sin(t * 3 + i), z); m.rotation.y = t * 2.4; }
       else { m.position.set(x, 0, z); if (m.userData.pic) m.userData.pic.scale.setScalar(1 + 0.03 * Math.sin(t * 4 + i) + 0.07 * pulse); }
     });
+  }
+  // draw one frame of the race `R` into `renderer`
+  draw(g, renderer) {
+    const bt = g.sfx ? g.sfx.beat() : null, pulse = bt ? bt.pulse * (0.45 + 0.55 * bt.energy) : 0, kick = bt ? bt.kick : 0.5;              // THE RACE DANCES TO ITS TRACK (assets/music_race.mp3): the lights of the track, the spirals, the rings and the two cars move on the beat
+    const R = g.race; if (this.bound !== R) this.bind(R);
+    const p = R.p, M = RACE.LANE_M, t = g.time, air = p.air > 0 ? Math.sin(Math.PI * (1 - p.air / RACE.JUMP_T)) : 0;
+    this.placeItems(R, t, pulse);
     if (this.androidTex) this.androidTex.offset.x = (Math.floor(t * ANDROID_WALK.fps) % ANDROID_WALK.frames) / ANDROID_WALK.frames;      // the android's walk
     // the cars
     this.crys[0].material.map.offset.y = -p.s * 0.004; this.crys[1].material.map.offset.y = -p.s * 0.0022; this.crys[0].material.opacity = 0.3 + 0.22 * pulse; this.crys[1].material.opacity = 0.16 + 0.16 * pulse;

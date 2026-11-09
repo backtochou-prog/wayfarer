@@ -92,6 +92,8 @@ BIOMES.ruins = {
 };
 
 // the Gare du Midi (the end of Saint-Gilles): the same atmosphere as BIOMES.tram (`atmo`: the sky, fog and light do not dip back to the city's when the road enters the station)
+// the TERRASSE GASPERI detour (3D: src3d/env_terrace.js); the 2D game gets a warm night palette
+BIOMES.terrace = Object.assign({}, BIOMES.market, { name: 'TERRASSE', sky: ['#0e1428', '#2a2236', '#4a2a3a', '#6a3a40'], road: ['#5b5550', '#54504b'], layers: ['#2a1e2a', '#3a2430', '#1f3a2a'] });
 BIOMES.gare = Object.assign({}, BIOMES.tram, { name: 'GARE DU MIDI', atmo: 'tram', density: 0.2 });
 // UTRECHT (the canal zone, after the train): three stretches that share one atmosphere (the 3D build gives them their own look, ENV3D.utrecht*; the 2D game just gets the dusk palette so the shared track works)
 for (const id of ['utrecht', 'utrechtA', 'utrechtB', 'utrechtQuay']) BIOMES[id] = Object.assign({}, BIOMES.tram, { name: 'UTRECHT', atmo: 'utrecht', density: 0.2 });

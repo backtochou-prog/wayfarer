@@ -78,7 +78,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     return out;
   });
   const fk = Object.values(F.forks);
-  T('every fork type (' + fk.map(f => f.id).join(', ') + '): two roads from one, back to one; no jump in the road edge (max ' + Math.max(...fk.map(f => f.maxJump)) + ' per 0.5 m of running, the same for the original forks), the merge meets the road after it (seam <= 0.03), branches are their own biome', fk.length === 14 && fk.every(f => f.maxJump < 0.06 && f.badBands === 0 && f.seam < 0.03 && f.tl.length === 2 && f.tl[0] !== f.tl[1]), JSON.stringify(fk.map(f => [f.id, f.maxJump, f.badBands, f.seam, f.tl])));
+  T('every fork type (' + fk.map(f => f.id).join(', ') + '): two roads from one, back to one; no jump in the road edge (max ' + Math.max(...fk.map(f => f.maxJump)) + ' per 0.5 m of running, the same for the original forks), the merge meets the road after it (seam <= 0.03), branches are their own biome', fk.length === 15 && fk.every(f => f.maxJump < 0.06 && f.badBands === 0 && f.seam < 0.03 && f.tl.length === 2 && f.tl[0] !== f.tl[1]), JSON.stringify(fk.map(f => [f.id, f.maxJump, f.badBands, f.seam, f.tl])));
   T('every fork has signs with advance warning: two signposts per side 42 m and 14 m before the junction, each with a 3D sign and a 2D sprite; every branch has its coin trail through the junction and its own coins and hazards, all inside its own road',
     fk.every(f => f.signsOk && f.misplaced === 0 && f.coinTrail >= 10 && f.cnt.L.coin > 10 && f.cnt.R.coin > 10 && f.cnt.L.hz > 0 && f.cnt.R.hz >= 0), JSON.stringify(fk.map(f => [f.id, f.signs.length, f.misplaced, f.coinTrail, f.cnt.L, f.cnt.R])));
 
@@ -176,8 +176,8 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     g.world.track = TRACK; g.world.reset();                                       // (the forced one-fork tracks are only for these runs)
     return out;
   });
-  T('every fork type (the five that are no longer on the circuit, the four island junctions and the upper circuit of Utrecht too), both choices (28 runs), played through at the top speed by a hazard-avoiding bot: it survives past the merge, collects coins on the branch, takes the chosen route, nothing runs backwards, nothing is dropped from any pool (peak ' + Math.round(Pl.peak * 100) + ' %)',
-    Pl.runs.length === 28 && Pl.runs.every(x => x.alive && x.reached && x.coins > 5 && x.route === x.want && x.back === 0) && Pl.dropped === 0 && Pl.peak <= 0.85, JSON.stringify(Pl.runs.map(x => [x.id, x.want, x.alive, x.coins, x.routes])));
+  T('every fork type (the five that are no longer on the circuit, the four island junctions and the upper circuit of Utrecht too), both choices (30 runs), played through at the top speed by a hazard-avoiding bot: it survives past the merge, collects coins on the branch, takes the chosen route, nothing runs backwards, nothing is dropped from any pool (peak ' + Math.round(Pl.peak * 100) + ' %)',
+    Pl.runs.length === 30 && Pl.runs.every(x => x.alive && x.reached && x.coins > 5 && x.route === x.want && x.back === 0) && Pl.dropped === 0 && Pl.peak <= 0.85, JSON.stringify(Pl.runs.map(x => [x.id, x.want, x.alive, x.coins, x.routes])));
 
   // ---------------------------------------------------------------- 5b. a whole run through the new destinations (real play, camera and road checked every few frames)
   const Run = await pg.evaluate(() => {

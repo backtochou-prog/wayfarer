@@ -103,6 +103,10 @@ class World {
     }
     this.cursor[id] = n; this.lastPat[id] = last;
     if (X) { this.genExtras(id, seg, z0, end, tag, cx);
+      if (seg.kartGate !== undefined) {                                             // THE GALERIE GASPERI's door (the kart circuit): in the middle of its road, whatever the branch
+        const zg = z0 + (end - z0) * seg.kartGate; this.items = this.items.filter(it => !(it.tag === tag && it.kind !== 'prop' && Math.abs(it.z - zg) < 260));
+        this.items.push({ kind: 'raceGate', kart: true, z: zg, x: cx, h: 14, tag, seg: id, inst: 0 });
+      }
       if (seg.gate !== undefined && tag === 'main') {                                // THE RACE ZONE'S ENTRANCE (a sphere of glass with a rose in it): one in each zone, in the middle of the road, replacing what stands near it
         const zg = z0 + (end - z0) * seg.gate; this.items = this.items.filter(it => !(it.tag === tag && it.kind !== 'prop' && Math.abs(it.z - zg) < 260));
         this.items.push({ kind: 'raceGate', z: zg, x: cx, h: 14, tag, seg: id, inst: 0 });
