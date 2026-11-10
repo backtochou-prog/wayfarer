@@ -16,7 +16,7 @@ const KART = { R: 240, LAPS: 4, BANK: 1.6, GATE_W: 12, INNER: -16 };      /* INN
 // lanes close from the right (the middle one 80 m before the line), then every kart turns left through the gate (TURN: where the turn starts, over TURN_L m) onto the inner road.
 KART.GATE_S = 3 * KART.LAP; KART.FUNNEL = KART.GATE_S - 420; KART.FUNNEL2 = KART.GATE_S - 160;
 // THE DETOUR FENCE (the user's red line: one long diagonal from the right edge across the track to the left lane, in front of the gate): x across the track at s
-KART.fence = s => { if (s < KART.FUNNEL) return 6.0; const v = Math.max(0, Math.min(1, (s - KART.FUNNEL) / (KART.GATE_S - 40 - KART.FUNNEL))); return 6.0 - 7.2 * v; }; KART.TURN = KART.GATE_S - 14; KART.TURN_L = 50; KART.TD = 14; KART.DIVE_L = 110;      /* the gate leads UNDERGROUND (the user): the road dives TD m over DIVE_L m into the spiral tunnel */
+KART.fence = s => { if (s < KART.FUNNEL) return 6.3; const v = Math.max(0, Math.min(1, (s - KART.FUNNEL) / (KART.GATE_S - 40 - KART.FUNNEL))); return 6.3 - 7.5 * v; }; KART.TURN = KART.GATE_S - 14; KART.TURN_L = 50; KART.TD = 14; KART.DIVE_L = 110;      /* the gate leads UNDERGROUND (the user): the road dives TD m over DIVE_L m into the spiral tunnel */
 class Race {
   constructor(seed, opts) {
     this.len = (opts && opts.len) || RACE.LEN; this.kart = !!(opts && opts.kart);      // (the KART circuit of the Galerie Gasperi: laps of a ring, src3d/kart3d.js)

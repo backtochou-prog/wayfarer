@@ -148,7 +148,7 @@ class Kart3D {
       for (const side of [1, -1]) for (let s0 = 20; s0 < KART.LAP; s0 += 40) for (let k = 0; k < 3; k++) { if (side < 0 && Math.min((s0 + k * 3.2) % KART.LAP, KART.LAP - (s0 + k * 3.2) % KART.LAP) < KART.GATE_W) continue; const h = new THREE.Group(), m = this.arrowMats[k + (side < 0 ? 3 : 0)], e = new THREE.Mesh(rim, m.e), f = new THREE.Mesh(fill, m.f); f.position.x = -0.02;
         h.add(e, f); const s1 = s0 + k * 3.2; this.ringPos(s1, side * 6.72, 0.72, h.position); h.rotation.y = s1 / R; h.scale.set(side, 0.85, 2.6);      /* (stretched along the track: seen from the kart the wall is at a grazing angle) */ (side < 0 ? this.innerSide : sc).add(h); } }
     // THE FINISH LINE (s = 0): a chequered band across the track
-    { const cv = document.createElement('canvas'); cv.width = 208; cv.height = 24; const x = cv.getContext('2d'); for (let i = 0; i < 26; i++) for (let j = 0; j < 3; j++) { x.fillStyle = (i + j) % 2 ? '#111' : '#f4f4f4'; x.fillRect(i * 8, j * 8, 8, 8); }
+    if (false) { const cv = document.createElement('canvas'); cv.width = 208; cv.height = 24;      /* (the chequered band removed: the user) */ const x = cv.getContext('2d'); for (let i = 0; i < 26; i++) for (let j = 0; j < 3; j++) { x.fillStyle = (i + j) % 2 ? '#111' : '#f4f4f4'; x.fillRect(i * 8, j * 8, 8, 8); }
       const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; const m = new THREE.Mesh(new THREE.PlaneGeometry(13, 1.5), new THREE.MeshBasicMaterial({ map: t, fog: false })); m.rotation.x = -Math.PI / 2; m.position.set(0, 0.05, 0); sc.add(m); }
     // THE GATE beside the line, in the inner (left) wall (the user: 'une entrée permanente côté gauche qui mène à la route qui encercle le rond-point; elle ne s'ouvre que si on arrive PREMIER à la fin
     // du 3e tour'): two neon pillars, a beam, two doors of dark glass that slide apart when Race.gateOpen; behind it a short lane to an INNER RING ROAD round the garden
@@ -184,7 +184,7 @@ class Kart3D {
               fragmentShader: 'uniform sampler2D mapA; uniform sampler2D mapB; uniform vec2 rep; uniform float off; varying vec2 vUv; varying float vF;\n' +
                 'void main() { vec2 uv = vec2(vUv.x * rep.x + off, vUv.y * rep.y); vec4 a = texture2D(mapA, uv), b = texture2D(mapB, uv);\n' +
                 '  float front = 0.45 + 0.03 * sin(vUv.y * 6.2832 * 2.0 + vUv.x * 900.0);\n' +            // the wipe's front, twisted into a spiral round the tube
-                '  float k = smoothstep(front - 0.012, front + 0.012, vF); gl_FragColor = mix(a, b, k);\n#include <colorspace_fragment>\n}' });
+                '  float k = smoothstep(front - 0.012, front + 0.012, vF); gl_FragColor = mix(a, vec4(b.rgb * 0.62, b.a), k);\n#include <colorspace_fragment>\n}' });
             this.tunTex = { offset: { set x(v) { } } }; }
           { const tun = new THREE.Mesh(tg, tm); sc.add(tun); this.gateStuff.push(tun); }
           const fl = ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#120a10', specular: 0x886677, shininess: 70 }), -KART.TD + 0.02);       // the tunnel's floor
@@ -201,9 +201,9 @@ class Kart3D {
       const pts = [], sm2 = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
       for (let s1 = 2 * KART.LAP + 10; s1 <= KART.GATE_S - 4; s1 += 12) pts.push([s1, KART.fence(s1)]);
       const P = pts.map(([s1, x]) => this.ringPos(s1, x, 0));
-      pts.forEach(([s1, x], i) => { const pm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.6, 0.25), post); pm.position.copy(P[i]).setY(0.8); pm.userData.bx = x; B.add(pm);
-        const tip = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.3), i % 2 ? las2 : las); tip.position.copy(P[i]).setY(1.66); tip.userData.bx = x; B.add(tip);
-        if (i) for (const [hh, mm] of [[0.45, las], [0.95, las2], [1.4, las]]) { const a = P[i - 1], b = P[i], len = a.distanceTo(b), bar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, len), mm); bar.position.copy(a).add(b).multiplyScalar(0.5).setY(hh); bar.lookAt(b.x, hh, b.z); bar.userData.bx = (pts[i - 1][1] + x) / 2; B.add(bar); } });
+      pts.forEach(([s1, x], i) => { const pm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.6, 0.25), post); pm.position.copy(P[i]).setY(0.8); pm.userData.bx = x; pm.userData.bs = s1; B.add(pm);
+        const tip = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.3), i % 2 ? las2 : las); tip.position.copy(P[i]).setY(1.66); tip.userData.bx = x; tip.userData.bs = s1; B.add(tip);
+        if (i) for (const [hh, mm] of [[0.45, las], [0.95, las2], [1.4, las]]) { const a = P[i - 1], b = P[i], len = a.distanceTo(b), bar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, len), mm); bar.position.copy(a).add(b).multiplyScalar(0.5).setY(hh); bar.lookAt(b.x, hh, b.z); bar.userData.bx = (pts[i - 1][1] + x) / 2; bar.userData.bs = s1; B.add(bar); } });
       { const a = this.ringPos(KART.GATE_S + 6, -4.2, 0), b = this.ringPos(KART.GATE_S + 6, 6.6, 0), len = a.distanceTo(b);                                    // the barrier across the big ring
         for (const [hh, mm] of [[0.35, las2], [0.75, las], [1.15, las2], [1.55, las], [1.95, las2]]) { const bar = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, len), mm); bar.position.copy(a).add(b).multiplyScalar(0.5).setY(hh); bar.lookAt(b.x, hh, b.z); B.add(bar); }
         for (const q of [a, b]) { const pm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 2.2, 0.4), post); pm.position.copy(q).setY(1.1); B.add(pm); }
@@ -234,8 +234,10 @@ class Kart3D {
     this.r3.placeItems(R, t, pulse); if (this.tunU) this.tunU.off.value = -t * 0.35;      /* the spiral flows along the tunnel */ const OFF = R.off(p.s), PX = p.x + OFF;
     { const lap = Math.min(KART.LAPS - 1, Math.floor(p.s / KART.LAP)), into = p.s - lap * KART.LAP;      // the lap: the tiles' colour, and the banking of lap 2 (in over its first 120 m, out over the last 120 m)
       if (lap !== this.tileLap) this.paintTiles(lap, t);
-      { const show = p.s > KART.FUNNEL - 300 || R.intro > 0; if (show !== this._gateShown) { this._gateShown = show; this.gateStuff.forEach(o => { o.visible = show; }); this.gapFill.forEach(o => { o.visible = !show; }); } }
-      if (this.barriers) { if (this.barriers.visible) this.barriers.children.forEach(c => { if (c.userData.bx !== undefined) c.position.y = c.userData.y0 + this.bankY(c.userData.bx); }); this.barriers.visible = p.s > 2 * KART.LAP - 100 && p.s < KART.GATE_S + 200; this.laserMats.forEach((m, k) => { m.opacity = 0.45 + 0.5 * Math.abs(Math.sin(t * 6 + k * 1.6)); }); }
+      // THE RED WAVE BRINGS THEM (the user: no illogical pop): from lap 3 the fence posts appear as the equalizer wave of the red colour passes them, and the gate when the wave reaches it
+      const lap3 = p.s >= 2 * KART.LAP - 1, wf = !lap3 ? -1 : p.s >= 3 * KART.LAP - 1 || this.tileU.uFront.value > 1e8 ? 1e9 : (t - this.tileT0) * 230;      // (from lap 4 on, everything stays)
+      { const show = (lap3 && wf >= KART.LAP - 20) || R.intro > 0; if (show !== this._gateShown) { this._gateShown = show; this.gateStuff.forEach(o => { o.visible = show; }); this.gapFill.forEach(o => { o.visible = !show; }); } }
+      if (this.barriers) { if (this.barriers.visible) this.barriers.children.forEach(c => { if (c.userData.bx !== undefined) c.position.y = c.userData.y0 + this.bankY(c.userData.bx); }); this.barriers.visible = lap3 && p.s < KART.GATE_S + 200; if (this.barriers.visible && wf < 1e8) this.barriers.children.forEach(c => { if (c.userData.bs !== undefined) c.visible = c.userData.bs - 2 * KART.LAP < wf; else c.visible = wf >= KART.LAP - 20; }); else if (this.barriers.visible && !this._barAll) this.barriers.children.forEach(c => { c.visible = true; }); this._barAll = this.barriers.visible && wf >= 1e8; this.laserMats.forEach((m, k) => { m.opacity = 0.45 + 0.5 * Math.abs(Math.sin(t * 6 + k * 1.6)); }); }
       { const U = this.tileU; if (U.uFront.value < 1e8) { U.uFront.value = (t - this.tileT0) * 230; if (U.uFront.value > KART.LAP + 80) U.uFront.value = 1e9; }
         const Bq = bt || { beat: t * 2.262, energy: 0.6 }, bq = Math.floor(Bq.beat * 2), en = Math.max(0.2, Math.min(1, Bq.energy));
         for (let c = 0; c < 6; c++) { const hsh = Math.abs(Math.sin((bq * 7 + c * 13) * 12.9898) * 43758.5453) % 1; U.uBar.value[c] = 2 * Math.floor(hsh * en * 22); } }      // the equalizer: six bars, a new height every eighth note, in whole 2 m rows
