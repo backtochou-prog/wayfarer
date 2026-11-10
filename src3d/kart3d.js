@@ -185,16 +185,16 @@ class Kart3D {
               fragmentShader: 'uniform sampler2D mapA; uniform sampler2D mapB; uniform sampler2D mapC; uniform vec2 rep; uniform float off; varying vec2 vUv; varying float vF;\n' +
                 'void main() { vec2 uv = vec2(vUv.x * rep.x + off, vUv.y * rep.y); vec4 a = texture2D(mapA, uv), b = texture2D(mapB, uv), c3 = texture2D(mapC, vec2(vUv.x * rep.x * 1.6 + off * 0.6, vUv.y * 2.0));\n' +
                 '  float front = 0.45 + 0.03 * sin(vUv.y * 6.2832 * 2.0 + vUv.x * 900.0);\n' +            // the wipe's front, twisted into a spiral round the tube
-                '  float k = smoothstep(front - 0.012, front + 0.012, vF); vec4 col = mix(a, vec4(b.rgb * 0.62, b.a), k);\n' +
-                '  float front2 = 0.74 + 0.03 * sin(vUv.y * 6.2832 * 2.0 - vUv.x * 900.0); float k2 = smoothstep(front2 - 0.012, front2 + 0.012, vF); gl_FragColor = mix(col, vec4(c3.rgb * 1.6, 1.0), k2);\n#include <colorspace_fragment>\n}' });
+                '  float k = smoothstep(front - 0.03, front + 0.03, vF); vec4 col = mix(a, vec4(b.rgb * 0.62, b.a), k);\n' +
+                '  float front2 = 0.74 + 0.03 * sin(vUv.y * 6.2832 * 2.0 - vUv.x * 900.0); float k2 = smoothstep(front2 - 0.03, front2 + 0.03, vF); gl_FragColor = mix(col, vec4(c3.rgb * 1.6, 1.0), k2); gl_FragColor.rgb *= 0.8;\n#include <colorspace_fragment>\n}' });
             this.tunTex = { offset: { set x(v) { } } }; }
           { const tun = new THREE.Mesh(tg, tm); sc.add(tun); this.gateStuff.push(tun); }
           const fl = ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#120a10', specular: 0x886677, shininess: 70 }), -KART.TD + 0.02);       // the tunnel's floor
           // the tunnel's road in the style of the LASER FENCES (the user): neon lines along the floor (cyan at the edges, pink between the lanes) and two low laser bars along each side, blinking
           const lzC = new THREE.MeshBasicMaterial({ color: '#35f0ff', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), lzP = new THREE.MeshBasicMaterial({ color: '#ff3fd0', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
           this.tunLaser = [lzC, lzP];
-          for (const [r, m] of [[R - 19.7, lzC], [R - 17.2, lzP], [R - 14.8, lzP], [R - 12.3, lzC]]) ring(r - 0.07, r + 0.07, m, -KART.TD + 0.04);
-          for (const r of [R - 19.9, R - 12.1]) for (const [hh, m] of [[0.35, lzP], [0.75, lzC]]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.05, 720, 1, true), m); c.position.set(-R, -KART.TD + hh, 0); sc.add(c); } }
+          for (const [r, m] of [[R - 19.7, lzC], [R - 17.2, lzP], [R - 14.8, lzP], [R - 12.3, lzC]]) ring(r - 0.03, r + 0.03, m, -KART.TD + 0.04);
+          for (const r of [R - 19.9, R - 12.1]) for (const [hh, m] of [[0.35, lzP], [0.75, lzC]]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.022, 720, 1, true), m); c.position.set(-R, -KART.TD + hh, 0); sc.add(c); } }
         for (const L of [lp, rp]) { const lg = new THREE.BufferGeometry().setFromPoints(L), ln = new THREE.Line(lg, new THREE.LineBasicMaterial({ color: '#ff3fd0', fog: false })); sc.add(ln); this.gateStuff.push(ln); } }
       ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#0b0d10', emissive: '#1a0830', specular: 0x8899aa, shininess: 80, side: THREE.DoubleSide }), 0.02);                          // the inner ring road
       for (const r of [R - 20, R - 12]) ring(r - 0.1, r + 0.1, new THREE.MeshBasicMaterial({ color: '#ff3fd0', fog: false }), 0.03); }
@@ -265,7 +265,7 @@ class Kart3D {
     if (this.vent) this.vent.rotation.z += dtk * (0.02 + 0.22 * en);
     const step = Math.floor(B.beat * 2), sub = B.beat * 2 - step;
     this.arrowStep = { step, sub };
-    if (this.tunLaser) this.tunLaser.forEach((m, k) => { m.opacity = 0.45 + 0.5 * Math.abs(Math.sin(t * 6 + k * 1.6)); });
+    if (this.tunLaser) this.tunLaser.forEach((m, k) => { m.opacity = 0.25 + 0.3 * Math.abs(Math.sin(t * 6 + k * 1.6)); });      // (fine and light)
     if (this.arrowMats) this.arrowMats.forEach((m, k) => { const lit = step % 3 === k % 3, b = lit ? 0.55 + 0.45 * (1 - sub) : 0.22; m.f.color.copy(m.fc).multiplyScalar(0.3 + 0.7 * b); m.e.color.copy(m.ec).multiplyScalar(0.4 + 0.6 * b); });
     if (this.centreLit) { this.centreLit[0].material.opacity = 0.7 + 0.3 * pulse + 0.1 * Math.sin(t * 2.2); const k = 1 + 0.05 * pulse; this.centreLit[1].scale.set(230 * k, 230 * k, 1); this.centreLit[1].material.opacity = 0.75 + 0.25 * pulse; }
     this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; const mx = m.position.x + R.off(s); this.ringPos(s, mx, (h.userData.flat ? 0.1 : 0) + this.bankY(mx) + R.dep(s), h.position); h.rotation.y = s / KART.R; if (h.userData.flat) { h.scale.setScalar(s > KART.GATE_S ? 0.55 : 1);      /* (smaller in the tunnel, the user) */ h.userData.chev.forEach((c, k) => { const st = this.arrowStep || { step: 0, sub: 0 }, w = st.step % 3 === k ? 1 - st.sub : 0, b = 0.45 + 0.55 * w + 0.2 * pulse; c.fm.color.copy(c.col).multiplyScalar(b); c.em.color.copy(c.rimC).multiplyScalar(0.5 + 0.5 * b); c.gm.opacity = 0.2 + 0.4 * w * w; }); return; } m.position.set(0, m.position.y, 0); });
