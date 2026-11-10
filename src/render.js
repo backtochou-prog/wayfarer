@@ -44,6 +44,7 @@ class Renderer {
     const bar = (frac, y, col) => { ctx.fillStyle = '#1a1030'; ctx.fillRect(x0, y, w, 5); ctx.fillStyle = col; ctx.fillRect(x0, y, Math.round(w * Math.max(0, Math.min(1, frac))), 5); ctx.fillStyle = '#fff'; ctx.fillRect(x0 + Math.round(w * Math.max(0, Math.min(1, frac))) - 1, y - 1, 2, 7); };
     bar(p.s / R.len, 6, '#35e6ff'); bar(R.bot.s / R.len, 16, '#ff2a4a');
     this.txt('YOU', x0 - 24, 5, '#35e6ff'); this.txt('BOT', x0 - 24, 15, '#ff2a4a');
+    if (R.kart && R.keepLeft(p.s) && p.lane > -1 && Math.floor(g.time * 3) % 2 === 0) { ctx.fillStyle = 'rgba(5,10,8,0.7)'; ctx.fillRect(40, 116, 240, 20); this.ctr('<<  SERREZ A GAUCHE  <<', 120, '#39ff14', 2); }      // (the detour: blinking until the kart is in the left lane)
     if (R.kart) { const pl = R.place(), lap = Math.min(KART.LAPS, 1 + Math.floor(p.s / KART.LAP)); this.ctr('TOUR ' + lap + '/' + KART.LAPS + '   PLACE ' + pl + '/9', 33, pl === 1 ? '#7affc8' : '#ffd24a'); }      // (the kart: the player's place among the nine karts)
     else this.ctr(gap > 0 ? 'ROBOT +' + Math.round(gap) + ' M' : 'YOU +' + Math.round(-gap) + ' M', 33, gap > 0 ? '#ff6a7a' : '#7affc8');
     this.txt('RARE ' + g.rare, 6, 6, '#ffd24a');

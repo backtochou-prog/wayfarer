@@ -67,6 +67,8 @@ class Race {
     const p = this.p, bot = this.bot; this.t += dt;
     if (input && input.lane !== undefined) p.lane = Math.max(-1, Math.min(1, input.lane));
     p.lane = Math.min(p.lane, this.maxLane(p.s));
+    if (this.kart && p.s > KART.FUNNEL - 20 && p.s < KART.GATE_S && p.x + 1.15 > KART.fence(p.s)) {        // BRUSHING THE FENCE (pushed by it instead of moving left in time): the kart slows and sparks
+      p.speed *= Math.pow(0.55, dt); p.scrape = (p.scrape || 0) + dt; if (!this._scr) this.events.push({ e: 'scrape' }); this._scr = true; } else this._scr = false;
     p.pedal = input && input.brake ? 'brake' : input && input.accel ? 'accel' : null;                      // (braking wins when both are held)
     p.x += (p.lane * RACE.LANE_M - p.x) * Math.min(1, dt * 9);
     p.boostT = Math.max(0, p.boostT - dt); if (!p.boostT) p.boost = 0; p.brakeT = Math.max(0, p.brakeT - dt); p.hitT = Math.max(0, p.hitT - dt); p.air = Math.max(0, p.air - dt);
@@ -115,6 +117,7 @@ class Race {
   place() { return this.kart ? 1 + this.bots.filter(b => b.s > this.p.s).length : (this.bot.s > this.p.s ? 2 : 1); }      // the player's place in the race (the kart: out of nine)
   off(s) { if (!this.kart) return 0; const v = Math.max(0, Math.min(1, (s - KART.TURN) / KART.TURN_L)); return KART.INNER * v * v * (3 - 2 * v); }      // the kart: lateral shift onto the inner road
   dep(s) { if (!this.kart || s < KART.GATE_S) return 0; const v = Math.max(0, Math.min(1, (s - KART.GATE_S - 4) / KART.DIVE_L)); return -KART.TD * v * v * (3 - 2 * v); }      // lap 4 goes UNDERGROUND (the spiral tunnel)
+  keepLeft(s) { return !!this.kart && s > KART.FUNNEL - 250 && s < KART.GATE_S; }      // the zone of the KEEP LEFT indicators
   maxLane(s) { if (!this.kart || s < KART.FUNNEL || s > KART.GATE_S + 60) return 1; return Math.max(-1, Math.min(1, Math.floor((KART.fence(s) - 1.2) / RACE.LANE_M + 1e-6))); }      // a lane stays open while the fence is right of it       // the barriers close the lanes from the right
   gap() { return this.bot.s - this.p.s; }                                                              // metres the robot is ahead (negative: the player leads)
   progress() { return Math.min(1, this.p.s / this.len); }
