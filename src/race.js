@@ -11,7 +11,7 @@ const RACE = {
   DROID_V: 12, DROID_TRIGGER: 50, RAMP_BEFORE: 30, BUMP_MUL: 0.6, BUMP_T: 0.9, BUMP_GAP: 4.4,          /* running into the back of the robot's car: it is an obstacle like any other, the player is slowed and held behind it */
 };
 // THE KART CIRCUIT (the Galerie Gasperi, a ring inside a big shopping centre): the same rules over two laps of a ring of radius R (src3d/kart3d.js draws it)
-const KART = { R: 240, LAPS: 4, BANK: 1.6 };      /* (4 laps: the user added two; BANK: how far the inner edge goes down in lap 2, metres) */ KART.LAP = 2 * Math.PI * KART.R; KART.LEN = Math.round(KART.LAP * KART.LAPS);
+const KART = { R: 240, LAPS: 4, BANK: 1.6, GATE_W: 8 };      /* (4 laps: the user added two; BANK: how far the inner edge goes down in lap 2, metres) */ KART.LAP = 2 * Math.PI * KART.R; KART.LEN = Math.round(KART.LAP * KART.LAPS);
 class Race {
   constructor(seed, opts) {
     this.len = (opts && opts.len) || RACE.LEN; this.kart = !!(opts && opts.kart);      // (the KART circuit of the Galerie Gasperi: laps of a ring, src3d/kart3d.js)
@@ -92,6 +92,7 @@ class Race {
     for (const bot of (this.kart ? this.bots : [this.bot])) if (!this.done && p.s > bot.s - RACE.BUMP_GAP && p.s < bot.s + 2 && Math.abs(p.x - bot.x) < 1.5) {      // (the kart: the back of each robot kart)        // the back of the robot's car: an obstacle. The player is slowed and cannot drive through it
       p.s = bot.s - RACE.BUMP_GAP; p.speed = Math.min(p.speed * RACE.BUMP_MUL, bot.speed * 0.8); p.hitT = Math.max(p.hitT, RACE.BUMP_T); p.bumps = (p.bumps || 0) + 1; this.events.push({ e: 'bump' });
     }
+    if (this.kart && !this.gateOpen && s0 < 3 * KART.LAP && p.s >= 3 * KART.LAP && this.place() === 1) { this.gateOpen = true; this.events.push({ e: 'gate' }); }      // THE GATE opens for the leader at the end of lap 3
     for (const b of (this.kart ? this.bots : [bot])) if (b.finishT === null && b.s >= this.len) b.finishT = this.t;
     const first = this.kart ? this.bots.find(b => b.finishT !== null) : (bot.finishT !== null ? bot : null);
     if (this.kart) this.bot = this.bots.reduce((a, b) => (b.s > a.s ? b : a));                           // (the HUD's robot: the leading kart)

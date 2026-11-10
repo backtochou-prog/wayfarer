@@ -27,7 +27,7 @@ class Kart3D {
       if (typeof KART_ART !== 'undefined' && KART_ART.garden) { const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.garden; gm = new THREE.MeshBasicMaterial({ map: t }); }
       ring(0, R - 6.5, gm, 0, 360); }                                                   // the garden
     for (const r of [R - 1.2, R + 1.2]) this.banked.push(ring(r - 0.06, r + 0.06, new THREE.MeshBasicMaterial({ color: '#0a0c0b' }), 0.02));          // the lane lines
-    this.under = ring(R - 7, R + 7, new THREE.MeshBasicMaterial({ color: '#000' }), -KART.BANK - 0.4); this.paintTiles(0);                         // the glowing floor under the see-through tiles
+    this.under = ring(R - 7, R + 7, new THREE.MeshBasicMaterial({ color: '#000' }), -2 * KART.BANK - 0.6); this.paintTiles(0);                         // the glowing floor under the see-through tiles
     for (const m of this.banked) { const P = m.geometry.attributes.position; m.userData.r = Float32Array.from({ length: P.count }, (_, i) => Math.hypot(P.getX(i), P.getY(i))); }
     this.bank = 0; this.setBank = b => { if (Math.abs(b - this.bank) < 1e-3) return; this.bank = b;                                              // THE BANKING (lap 2: the left, inner side of the track goes down)
       for (const m of this.banked) { const P = m.geometry.attributes.position, r = m.userData.r; for (let i = 0; i < P.count; i++) P.setZ(i, this.bankY(r[i] - R)); P.needsUpdate = true; m.geometry.computeBoundingSphere(); }
@@ -35,16 +35,16 @@ class Kart3D {
     // THE BARRIERS: a low wall on each side with a warm light strip
     this.innerSide = new THREE.Group(); sc.add(this.innerSide);
     for (const [r, s] of [[R - 6.8, 1], [R + 6.8, -1]]) { const par = s > 0 ? this.innerSide : sc;
-      const w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1.5, 720, 1, true), new THREE.MeshLambertMaterial({ color: '#3a2b22', side: THREE.DoubleSide })); w.position.set(-R, 0.75, 0); par.add(w);
-      const l = new THREE.Mesh(new THREE.CylinderGeometry(r + s * 0.05, r + s * 0.05, 0.08, 720, 1, true), new THREE.MeshBasicMaterial({ color: '#ffd27a', side: THREE.DoubleSide })); l.position.set(-R, 1.46, 0); par.add(l); }
+      const gap = s > 0 ? KART.GATE_W / r : 0, w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1.5, 720, 1, true, Math.PI / 2 + gap / 2, 2 * Math.PI - gap), new THREE.MeshLambertMaterial({ color: '#3a2b22', side: THREE.DoubleSide })); w.position.set(-R, 0.75, 0); par.add(w);
+      const l = new THREE.Mesh(new THREE.CylinderGeometry(r + s * 0.05, r + s * 0.05, 0.08, 720, 1, true, Math.PI / 2 + gap / 2, 2 * Math.PI - gap), new THREE.MeshBasicMaterial({ color: '#ffd27a', side: THREE.DoubleSide })); l.position.set(-R, 1.46, 0); par.add(l); }
     // THE SHOPS all round the outside (the café fronts and terraces of the Terrasse Gasperi, the road side toward the track), THE GARDEN inside (trees in benches, planters)
     const inst = (merged, mats) => { const m = Kit.materials(); for (const [geo, mat] of [[merged.lit, m.lit], [merged.glow, m.glow]]) { if (!geo) continue; const im = new THREE.InstancedMesh(geo, mat, mats.length); mats.forEach((M, i) => im.setMatrixAt(i, M)); sc.add(im); } };
     const at = (a, r, faceIn, y) => { const q = new THREE.Matrix4(), p = new THREE.Vector3(-R + r * Math.cos(a), y || 0, -r * Math.sin(a)); q.makeRotationY(a + (faceIn ? 0 : Math.PI)); q.setPosition(p); return q; };      // local -x toward the centre (faceIn) or away
     const N = 150, cafes = [], terr = [], plant = [], trees = [], plantIn = [];
     for (let k = 0; k < N; k++) { const a = (k + 0.5) / N * 2 * Math.PI; (k % 3 === 2 ? plant : cafes).push(at(a, R + 21, true)); if (k % 3 !== 2) terr.push(at(a, R + 12, true)); else plant.push(at(a + 0.004, R + 9, true)); }
-    for (let k = 0; k < 110; k++) { const a = (k + 0.25) / 110 * 2 * Math.PI; (k % 2 ? plantIn : trees).push(at(a, R - 11, false)); }
+    for (let k = 0; k < 110; k++) { const a = (k + 0.25) / 110 * 2 * Math.PI; (k % 2 ? plantIn : trees).push(at(a, R - 30, false)); }
     inst(P.cafeFront(), cafes); inst(P.terrace(), terr); inst(P.bigPlanter(), plant); inst(P.treeRing(), trees); inst(P.bigPlanter(), plantIn);
-    { const tr = []; for (let k = 0; k < 160; k++) { const a = k * 2.399, r = 95 + Math.sqrt(k / 160) * (R - 115); tr.push(at(a, r, false)); } inst(P.treeRing(), tr); }       // the garden: trees all over
+    { const tr = []; for (let k = 0; k < 160; k++) { const a = k * 2.399, r = 95 + Math.sqrt(k / 160) * (R - 135); tr.push(at(a, r, false)); } inst(P.treeRing(), tr); }       // the garden: trees all over
     // THE CENTRE (the user's picture, 2026-11-09: a purple glass sphere): a big card always turned to the camera, standing in the middle of the garden
     if (typeof KART_ART !== 'undefined' && KART_ART.centre) { const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.centre;
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, fog: false })); sp.scale.set(150, 150, 1); sp.position.set(-R, 40, 0);      /* Saturn: its equator in the plane of the ring of the ventilation, in the open top of the dome */ sc.add(sp); this.centre = sp;
@@ -136,6 +136,20 @@ class Kart3D {
       this.chev = chev;
       for (const side of [1, -1]) for (let s0 = 20; s0 < KART.LAP; s0 += 40) for (let k = 0; k < 3; k++) { const h = new THREE.Group(), m = this.arrowMats[k + (side < 0 ? 3 : 0)], e = new THREE.Mesh(rim, m.e), f = new THREE.Mesh(fill, m.f); f.position.x = -0.02;
         h.add(e, f); const s1 = s0 + k * 3.2; this.ringPos(s1, side * 6.72, 0.72, h.position); h.rotation.y = s1 / R; h.scale.set(side, 0.85, 2.6);      /* (stretched along the track: seen from the kart the wall is at a grazing angle) */ (side < 0 ? this.innerSide : sc).add(h); } }
+    // THE FINISH LINE (s = 0): a chequered band across the track
+    { const cv = document.createElement('canvas'); cv.width = 208; cv.height = 24; const x = cv.getContext('2d'); for (let i = 0; i < 26; i++) for (let j = 0; j < 3; j++) { x.fillStyle = (i + j) % 2 ? '#111' : '#f4f4f4'; x.fillRect(i * 8, j * 8, 8, 8); }
+      const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; const m = new THREE.Mesh(new THREE.PlaneGeometry(13, 1.5), new THREE.MeshBasicMaterial({ map: t, fog: false })); m.rotation.x = -Math.PI / 2; m.position.set(0, 0.05, 0); sc.add(m); }
+    // THE GATE beside the line, in the inner (left) wall (the user: 'une entrée permanente côté gauche qui mène à la route qui encercle le rond-point; elle ne s'ouvre que si on arrive PREMIER à la fin
+    // du 3e tour'): two neon pillars, a beam, two doors of dark glass that slide apart when Race.gateOpen; behind it a short lane to an INNER RING ROAD round the garden
+    { const G = new THREE.Group(), W = KART.GATE_W, pil = new THREE.MeshBasicMaterial({ color: '#b040ff', fog: false }), neon = new THREE.MeshBasicMaterial({ color: '#ff3fd0', fog: false });
+      for (const z of [-W / 2 - 0.3, W / 2 + 0.3]) { const pm = new THREE.Mesh(new THREE.BoxGeometry(0.6, 3.6, 0.6), pil); pm.position.set(0, 1.8, z); G.add(pm); }
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, W + 1.2), pil); beam.position.y = 3.6; G.add(beam); const nb = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.12, W + 1.2), neon); nb.position.y = 3.35; G.add(nb);
+      const dm = new THREE.MeshPhongMaterial({ color: '#0a0f14', transparent: true, opacity: 0.85, specular: 0x8899aa, shininess: 80 }), dl = new THREE.MeshBasicMaterial({ color: '#39ff14', fog: false });
+      this.doors = [-1, 1].map(sd => { const d = new THREE.Group(), pane = new THREE.Mesh(new THREE.BoxGeometry(0.15, 3.0, W / 2), dm), line = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, W / 2 - 0.3), dl), line2 = line.clone(); pane.position.y = 1.5; line.position.y = 2.6; line2.position.y = 0.6; d.add(pane, line, line2); d.userData.z0 = sd * W / 4; d.position.z = d.userData.z0; G.add(d); return d; });
+      G.position.set(-6.8, 0, 0); this.innerSide.add(G); this.gateK = 0;
+      const lane = new THREE.Mesh(new THREE.PlaneGeometry(10, W), new THREE.MeshBasicMaterial({ color: '#0b0d10', fog: false })); lane.rotation.x = -Math.PI / 2; lane.position.set(-12, 0.02, 0); sc.add(lane);
+      ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#0b0d10', emissive: '#1a0830', specular: 0x8899aa, shininess: 80 }), 0.02);                          // the inner ring road
+      for (const r of [R - 20, R - 12]) ring(r - 0.1, r + 0.1, new THREE.MeshBasicMaterial({ color: '#ff3fd0', fog: false }), 0.03); }
     this.holders = null; this.bound = null; this.camPos = new THREE.Vector3(); this.v = new THREE.Vector3();
   }
   bankY(x) { return -KART.BANK * this.bank * Math.max(0, Math.min(1, (6.5 - x) / 13)); }      // the height of the banked track at x across (x < 0: the inner, left side)
@@ -160,7 +174,9 @@ class Kart3D {
     this.r3.placeItems(R, t, pulse);
     { const lap = Math.min(KART.LAPS - 1, Math.floor(p.s / KART.LAP)), into = p.s - lap * KART.LAP;      // the lap: the tiles' colour, and the banking of lap 2 (in over its first 120 m, out over the last 120 m)
       if (lap !== this.tileLap) this.paintTiles(lap);
-      this.setBank(lap === 1 ? Math.min(1, into / 120, (KART.LAP - into) / 120) : 0); }
+      const L2 = KART.LAP, sm = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
+      this.setBank(lap === 1 ? Math.min(sm(into / 120) * (1 + sm((into - (L2 - 520)) / 260)), 2 * sm((L2 - into) / 90)) : 0);      /* (lap 2: in over 120 m; then deeper, twice as low, over the last 520 m; back up to flat over the last 90 m, at the line) */
+      this.gateK += ((R.gateOpen ? 1 : 0) - this.gateK) * 0.03; if (this.doors) this.doors.forEach(d => { d.position.z = d.userData.z0 * (1 + 1.9 * this.gateK); }); }
     // THE CIRCUIT DANCES TO 'ROAD NIGHT 2' (135.7 BPM, src3d/music_beats_kart.js): the tiles flash on every kick (harder on the bar's downbeat), the arrows step one chevron per eighth note
     // toward the front, the ceiling brightens with the loudness (dim in the breakdowns), Saturn's rings turn faster when the track is full
     const dtk = this._kt === undefined ? 0 : Math.min(0.1, Math.max(0, t - this._kt)); this._kt = t;
