@@ -15,19 +15,28 @@ class Kart3D {
     // the tiles change with the lap (the user: lap 1 neon green, lap 2 transparent neon ORANGE, lap 3 transparent neon RED): the coloured squares are see-through onto a glowing under-floor
     const tcv = document.createElement('canvas'); tcv.width = tcv.height = 128; const tiles = new THREE.CanvasTexture(tcv); tiles.colorSpace = THREE.SRGBColorSpace; tiles.wrapS = tiles.wrapT = THREE.RepeatWrapping; tiles.repeat.set(Math.round(2 * Math.PI * R / 4), 3); tiles.anisotropy = 4;
     this.LAPCOL = [['#39ff14', '#b8ff9a', 1], ['#ff7a10', '#ffc080', 0.62], ['#ff1830', '#ff9aa4', 0.62], ['#39ff14', '#b8ff9a', 1]];
-    this.paintTiles = lap => { const [c, hi, al] = this.LAPCOL[Math.min(lap, this.LAPCOL.length - 1)], x = tcv.getContext('2d'); x.clearRect(0, 0, 128, 128); x.fillStyle = '#07090a'; x.fillRect(0, 0, 128, 128);
-      x.clearRect(2, 2, 60, 60); x.clearRect(66, 66, 60, 60); x.globalAlpha = al; x.fillStyle = c; x.fillRect(2, 2, 60, 60); x.fillRect(66, 66, 60, 60); x.fillStyle = hi; x.fillRect(2, 2, 60, 3); x.fillRect(66, 66, 60, 3); x.globalAlpha = 1;
-      x.strokeStyle = '#000'; x.lineWidth = 4; x.strokeRect(0, 0, 128, 128); tiles.needsUpdate = true; if (this.under) this.under.material.color.set(c).multiplyScalar(0.35); this.tileLap = lap; };
+    // the tile texture is a MASK (grey squares, white top edge, black between): the colour comes from the shader below, so a lap change can sweep across the track
+    { const x = tcv.getContext('2d'); x.fillStyle = '#07090a'; x.fillRect(0, 0, 128, 128); x.fillStyle = '#cccccc'; x.fillRect(2, 2, 60, 60); x.fillRect(66, 66, 60, 60); x.fillStyle = '#ffffff'; x.fillRect(2, 2, 60, 3); x.fillRect(66, 66, 60, 3); x.strokeStyle = '#000'; x.lineWidth = 4; x.strokeRect(0, 0, 128, 128); tiles.needsUpdate = true; }
+    // THE COLOUR CHANGE AS AN EQUALIZER (the user: 'le passage comme un égaliseur, ligne par ligne'): at each lap line the new colour runs ahead along the track from the line, one 2 m row of tiles
+    // at a time, with a jagged front: each of the six columns of squares across the track is a bar whose length follows the music (src3d/music_beats_kart.js), like the bars of an equalizer
+    this.tileU = { uOld: { value: new THREE.Color(this.LAPCOL[0][0]) }, uNew: { value: new THREE.Color(this.LAPCOL[0][0]) }, uAOld: { value: 1 }, uANew: { value: 1 }, uFront: { value: 1e9 }, uLapLen: { value: KART.LAP }, uRep: { value: tiles.repeat }, uBar: { value: [0, 0, 0, 0, 0, 0] } };
+    this.tileLap = 0; this.tileT0 = 0;
+    this.paintTiles = (lap, t) => { const c = this.LAPCOL[Math.min(lap, this.LAPCOL.length - 1)], U = this.tileU; U.uOld.value.copy(U.uNew.value); U.uAOld.value = U.uANew.value; U.uNew.value.set(c[0]); U.uANew.value = c[2]; U.uFront.value = 0; this.tileT0 = t; this.tileLap = lap;
+      if (this.under) this.under.material.color.set(c[0]).multiplyScalar(0.35); };
     const ring = (r0, r1, mat, y, seg) => { const g = new THREE.RingGeometry(r0, r1, seg || 720, 1); const m = new THREE.Mesh(g, mat); m.rotation.x = -Math.PI / 2; m.position.set(-R, y || 0, 0); sc.add(m); return m; };
     { const g = new THREE.RingGeometry(R - 6.5, R + 6.5, 720, 1), uv = g.attributes.uv, pos = g.attributes.position;          // the track's uv: u along the ring, v across
       for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), a = Math.atan2(y, x), r = Math.hypot(x, y); uv.setXY(i, (a < 0 ? a + 2 * Math.PI : a) / (2 * Math.PI), (r - (R - 6.5)) / 13); }
-      const m = new THREE.Mesh(g, new THREE.MeshPhongMaterial({ map: tiles, emissiveMap: tiles, emissive: 0xffffff, emissiveIntensity: 0.35, specular: 0x8899aa, shininess: 90, transparent: true })); this.floorMat = m.material; this.banked = [m];      /* neon-green and glossy black tiles (the user: 'carreau vert néon comme celui du droid, et noir un peu brillant') */ m.rotation.x = -Math.PI / 2; m.position.set(-R, 0.01, 0); sc.add(m); }
+      const m = new THREE.Mesh(g, new THREE.MeshPhongMaterial({ map: tiles, emissiveMap: tiles, emissive: 0xffffff, emissiveIntensity: 0.35, specular: 0x8899aa, shininess: 90, transparent: true })); this.floorMat = m.material; this.banked = [m];
+      m.material.onBeforeCompile = sh => { Object.assign(sh.uniforms, this.tileU);
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uOld; uniform vec3 uNew; uniform float uAOld; uniform float uANew; uniform float uFront; uniform float uLapLen; uniform vec2 uRep; uniform float uBar[6];')
+          .replace('#include <map_fragment>', '#include <map_fragment>\nfloat sq = step(0.3, sampledDiffuseColor.r); float uu = vMapUv.x / uRep.x, vv = vMapUv.y / uRep.y; float rowS = floor(fract(uu) * uLapLen / 2.0) * 2.0; int jc = int(clamp(floor(fract(vv) * 6.0), 0.0, 5.0));\nfloat isNew = step(rowS + uBar[jc], uFront); vec3 tcol = mix(uOld, uNew, isNew) * sampledDiffuseColor.r * 1.2; diffuseColor.rgb = mix(diffuseColor.rgb, tcol, sq); diffuseColor.a = mix(1.0, mix(uAOld, uANew, isNew), sq);')
+          .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance = mix(totalEmissiveRadiance, totalEmissiveRadiance * mix(uOld, uNew, isNew) * 1.2, sq);'); };      /* neon-green and glossy black tiles (the user: 'carreau vert néon comme celui du droid, et noir un peu brillant') */ m.rotation.x = -Math.PI / 2; m.position.set(-R, 0.01, 0); sc.add(m); }
     ring(R + 6.5, R + 60, new THREE.MeshLambertMaterial({ color: '#d8d2c6' }), 0);                                              // the walk of the mall, pale stone
     { let gm = new THREE.MeshLambertMaterial({ color: '#5a7a46' });                                       // the garden: the user's spiral picture over the whole disc, out to the track's inner edge (was a lawn)
       if (typeof KART_ART !== 'undefined' && KART_ART.garden) { const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.garden; gm = new THREE.MeshBasicMaterial({ map: t }); }
       ring(0, R - 6.5, gm, 0, 360); }                                                   // the garden
     for (const r of [R - 1.2, R + 1.2]) this.banked.push(ring(r - 0.06, r + 0.06, new THREE.MeshBasicMaterial({ color: '#0a0c0b' }), 0.02));          // the lane lines
-    this.under = ring(R - 7, R + 7, new THREE.MeshBasicMaterial({ color: '#000' }), -2 * KART.BANK - 0.6); this.paintTiles(0);                         // the glowing floor under the see-through tiles
+    this.under = ring(R - 7, R + 7, new THREE.MeshBasicMaterial({ color: '#000' }), -2 * KART.BANK - 0.6); this.under.material.color.set(this.LAPCOL[0][0]).multiplyScalar(0.35);                         // the glowing floor under the see-through tiles
     for (const m of this.banked) { const P = m.geometry.attributes.position; m.userData.r = Float32Array.from({ length: P.count }, (_, i) => Math.hypot(P.getX(i), P.getY(i))); }
     this.bank = 0; this.setBank = b => { if (Math.abs(b - this.bank) < 1e-3) return; this.bank = b;                                              // THE BANKING (lap 2: the left, inner side of the track goes down)
       for (const m of this.banked) { const P = m.geometry.attributes.position, r = m.userData.r; for (let i = 0; i < P.count; i++) P.setZ(i, this.bankY(r[i] - R)); P.needsUpdate = true; m.geometry.computeBoundingSphere(); }
@@ -173,7 +182,10 @@ class Kart3D {
     const bt = g.sfx ? g.sfx.beat() : null, pulse = bt ? bt.pulse * (0.45 + 0.55 * bt.energy) : 0, t = g.time, p = R.p, air = p.air > 0 ? Math.sin(Math.PI * (1 - p.air / RACE.JUMP_T)) : 0;
     this.r3.placeItems(R, t, pulse);
     { const lap = Math.min(KART.LAPS - 1, Math.floor(p.s / KART.LAP)), into = p.s - lap * KART.LAP;      // the lap: the tiles' colour, and the banking of lap 2 (in over its first 120 m, out over the last 120 m)
-      if (lap !== this.tileLap) this.paintTiles(lap);
+      if (lap !== this.tileLap) this.paintTiles(lap, t);
+      { const U = this.tileU; if (U.uFront.value < 1e8) { U.uFront.value = (t - this.tileT0) * 230; if (U.uFront.value > KART.LAP + 80) U.uFront.value = 1e9; }
+        const Bq = bt || { beat: t * 2.262, energy: 0.6 }, bq = Math.floor(Bq.beat * 2), en = Math.max(0.2, Math.min(1, Bq.energy));
+        for (let c = 0; c < 6; c++) { const hsh = Math.abs(Math.sin((bq * 7 + c * 13) * 12.9898) * 43758.5453) % 1; U.uBar.value[c] = 2 * Math.floor(hsh * en * 22); } }      // the equalizer: six bars, a new height every eighth note, in whole 2 m rows
       const L2 = KART.LAP, sm = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
       this.setBank(lap === 1 ? Math.min(sm(into / 120) * (1 + sm((into - (L2 - 520)) / 260)), 2 * sm((L2 - into) / 90)) : 0);      /* (lap 2: in over 120 m; then deeper, twice as low, over the last 520 m; back up to flat over the last 90 m, at the line) */
       this.gateK += ((R.gateOpen ? 1 : 0) - this.gateK) * 0.03; if (this.doors) this.doors.forEach(d => { d.position.z = d.userData.z0 * (1 + 1.9 * this.gateK); }); }
