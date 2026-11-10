@@ -76,18 +76,18 @@ class Renderer {
   drawComm(g, on) {
     const ctx = this.ctx, t = g.time; this.commK = Math.max(0, Math.min(1, (this.commK || 0) + (on ? 1 : -1) * (this._commT === undefined ? 0 : Math.max(0, t - this._commT)) * 4)); this._commT = t;
     const k = this.commK; if (k <= 0.01) return;
-    const W = 200, H = 34, x0 = (VW - W) / 2, cy = 90, h = Math.max(2, Math.round(H * k)), y0 = Math.round(cy - h / 2), fl = 0.9 + 0.1 * Math.sin(t * 37) * Math.sin(t * 11);
+    const W = 150, H = 26, x0 = (VW - W) / 2, cy = 88, h = Math.max(2, Math.round(H * k)), y0 = Math.round(cy - h / 2), fl = 0.9 + 0.1 * Math.sin(t * 37) * Math.sin(t * 11);
     ctx.save(); ctx.globalAlpha = fl;
     ctx.fillStyle = 'rgba(20,120,170,0.30)'; ctx.fillRect(x0, y0, W, h);                                    // the glass: blue, a little turquoise, see-through
     ctx.fillStyle = 'rgba(60,230,255,0.10)'; for (let y = y0 + ((t * 20) | 0) % 3; y < y0 + h; y += 3) ctx.fillRect(x0 + 1, y, W - 2, 1);      // scanlines, drifting
     ctx.fillStyle = 'rgba(140,250,255,0.18)'; ctx.fillRect(x0 + 1, y0 + 1, W - 2, 1);                      // a glint along the top
-    const o = '#ff9a2a', c = 9;                                                                          // the orange frame: thin edges and heavier corner brackets
+    const o = '#ff9a2a', c = 7;                                                                          // the orange frame: thin edges and heavier corner brackets
     ctx.fillStyle = 'rgba(255,154,42,0.55)'; ctx.fillRect(x0, y0, W, 1); ctx.fillRect(x0, y0 + h - 1, W, 1); ctx.fillRect(x0, y0, 1, h); ctx.fillRect(x0 + W - 1, y0, 1, h);
     ctx.fillStyle = o; for (const [bx, by, sx, sy] of [[x0, y0, 1, 1], [x0 + W, y0, -1, 1], [x0, y0 + h, 1, -1], [x0 + W, y0 + h, -1, -1]]) { ctx.fillRect(sx > 0 ? bx - 1 : bx - c + 1, sy > 0 ? by - 1 : by - 2, c, 2); ctx.fillRect(sx > 0 ? bx - 1 : bx - 1, sy > 0 ? by - 1 : by - c + 1, 2, Math.min(c, h + 2)); }
     if (k > 0.85) {
       ctx.globalAlpha = fl * (k - 0.85) / 0.15;
-      this.txt('COMM // NAV', x0 + 6, y0 + 4, o); if (Math.floor(t * 2) % 2) { ctx.fillStyle = o; ctx.fillRect(x0 + W - 10, y0 + 4, 4, 4); }      // the live light
-      const msg = '<< SERREZ A GAUCHE'; this.txt(msg, Math.round(x0 + (W - textW(msg, 2)) / 2), y0 + 15, '#bff8ff', 2, '#0a3a4a');
+      this.txt('COMM // NAV', x0 + 5, y0 + 3, o); if (Math.floor(t * 2) % 2) { ctx.fillStyle = o; ctx.fillRect(x0 + W - 8, y0 + 3, 3, 3); }      // the live light
+      const msg = '<< SERREZ A GAUCHE'; this.txt(msg, Math.round(x0 + (W - textW(msg, 1)) / 2), y0 + 14, '#bff8ff', 1, '#0a3a4a');
     }
     ctx.restore();
   }
