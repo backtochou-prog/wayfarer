@@ -54,7 +54,10 @@ class Race {
       s += (late ? 44 : 52) + Math.floor(r(7) * 16); n++;
     }
     while (rare < 2) { const q = this.items.filter(i => i.type === (this.kart ? 'ramp' : 'droid')); const d = q[rare * 3 + 1] || q[q.length - 1]; this.add({ type: 'rare', lane: d.lane === 1 ? -1 : d.lane + 1, s: d.s + 6 }); rare++; }
-    if (this.kart) this.items = this.items.filter(it => it.s < KART.FUNNEL - 30 || it.s > KART.GATE_S + 90);      // (nothing on the road where the barriers funnel the karts into the gate)
+    if (this.kart) this.items = this.items.filter(it => it.s < KART.FUNNEL - 30 || it.s > KART.GATE_S + 90);
+    if (this.kart) {                                                                                  // IN THE TUNNEL (lap 4) the speed arrows run only along the two sides (the user: none in the middle), in tidy
+      let side = 1, last = -1e9;                                                                     // lines: each line of arrows on one side, the next line on the other side
+      for (const it of this.items) if (it.type === 'spiral' && it.s > KART.GATE_S) { if (it.s - last > 20) side = -side; it.lane = side; last = it.s; } }      // (nothing on the road where the barriers funnel the karts into the gate)
     this.items.sort((a, b) => a.s - b.s);
   }
   // one step: input.lane (-1, 0, 1: the lane wanted, set by the key presses of the caller) -> the car changes lane smoothly; the airborne car cannot be hit
