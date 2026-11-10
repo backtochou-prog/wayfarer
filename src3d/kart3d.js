@@ -16,7 +16,7 @@ class Kart3D {
     const ring = (r0, r1, mat, y, seg) => { const g = new THREE.RingGeometry(r0, r1, seg || 720, 1); const m = new THREE.Mesh(g, mat); m.rotation.x = -Math.PI / 2; m.position.set(-R, y || 0, 0); sc.add(m); return m; };
     { const g = new THREE.RingGeometry(R - 6.5, R + 6.5, 720, 1), uv = g.attributes.uv, pos = g.attributes.position;          // the track's uv: u along the ring, v across
       for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), a = Math.atan2(y, x), r = Math.hypot(x, y); uv.setXY(i, (a < 0 ? a + 2 * Math.PI : a) / (2 * Math.PI), (r - (R - 6.5)) / 13); }
-      const m = new THREE.Mesh(g, new THREE.MeshPhongMaterial({ map: tiles, emissiveMap: tiles, emissive: 0xffffff, emissiveIntensity: 0.35, specular: 0x8899aa, shininess: 90 }));      /* neon-green and glossy black tiles (the user: 'carreau vert néon comme celui du droid, et noir un peu brillant') */ m.rotation.x = -Math.PI / 2; m.position.set(-R, 0.01, 0); sc.add(m); }
+      const m = new THREE.Mesh(g, new THREE.MeshPhongMaterial({ map: tiles, emissiveMap: tiles, emissive: 0xffffff, emissiveIntensity: 0.35, specular: 0x8899aa, shininess: 90 })); this.floorMat = m.material;      /* neon-green and glossy black tiles (the user: 'carreau vert néon comme celui du droid, et noir un peu brillant') */ m.rotation.x = -Math.PI / 2; m.position.set(-R, 0.01, 0); sc.add(m); }
     ring(R + 6.5, R + 60, new THREE.MeshLambertMaterial({ color: '#d8d2c6' }), 0);                                              // the walk of the mall, pale stone
     { let gm = new THREE.MeshLambertMaterial({ color: '#5a7a46' });                                       // the garden: the user's spiral picture over the whole disc, out to the track's inner edge (was a lawn)
       if (typeof KART_ART !== 'undefined' && KART_ART.garden) { const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.garden; gm = new THREE.MeshBasicMaterial({ map: t }); }
@@ -62,7 +62,7 @@ class Kart3D {
               for (let xx = 0; xx < W2; xx++) { const o = (y * W2 + xx) * 4, lum = 0.3 * d[o] + 0.59 * d[o + 1] + 0.11 * d[o + 2], under = Math.max(0, Math.min(1, (150 - lum) / 40)), w2 = wgt * under;      // (light bar: the line goes under it)
                 for (let c = 0; c < 3; c++) d[o + c] = d[o + c] * (1 - w2) + pk[c] * w2; } } }
           x.putImageData(D, 0, 0); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; t.repeat.set(36, 1); t.anisotropy = 8; smat.map = t; smat.color.set('#ffffff'); smat.needsUpdate = true; }; img.src = KART_ART.ceiling;
-        shell.material = smat; this.noRibs = true; }
+        shell.material = smat; this.ceilMat = smat; this.noRibs = true; }
       const ribs = []; for (let k = 0; k < 48; k++) { const a = k / 48 * 2 * Math.PI; for (let j = 0; j < 12; j++) { const u0 = j / 12, u1 = (j + 1) / 12, p0 = [Math.sin(u0 * Math.PI / 2) * RR, Math.cos(u0 * Math.PI / 2) * H], p1 = [Math.sin(u1 * Math.PI / 2) * RR, Math.cos(u1 * Math.PI / 2) * H];
         const len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]); ribs.push(Kit.box(0.5, len, 0.5, 0, 0, 0, '#2a2a34', {})); const b = ribs[ribs.length - 1].geo;
         const m = new THREE.Matrix4().makeRotationZ(Math.atan2(p1[1] - p0[1], p1[0] - p0[0]) - Math.PI / 2); m.premultiply(new THREE.Matrix4().makeTranslation((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2 - len / 2 * 0, 0)); m.premultiply(new THREE.Matrix4().makeRotationY(a)); m.premultiply(new THREE.Matrix4().makeTranslation(-R, 0, 0)); b.applyMatrix4(m); } }
@@ -146,9 +146,18 @@ class Kart3D {
     const R = g.race; if (this.bound !== R) this.bind(R);
     const bt = g.sfx ? g.sfx.beat() : null, pulse = bt ? bt.pulse * (0.45 + 0.55 * bt.energy) : 0, t = g.time, p = R.p, air = p.air > 0 ? Math.sin(Math.PI * (1 - p.air / RACE.JUMP_T)) : 0;
     this.r3.placeItems(R, t, pulse);
-    if (this.arrowMats) this.arrowMats.forEach((m, k) => { const w = Math.max(0, Math.cos(t * 7 - (k % 3) * 1.4)), b = 0.25 + 0.75 * w * w; m.f.color.copy(m.fc).multiplyScalar(0.3 + 0.7 * b); m.e.color.copy(m.ec).multiplyScalar(0.4 + 0.6 * b); });      // the chase light runs toward the front
+    // THE CIRCUIT DANCES TO 'ROAD NIGHT 2' (135.7 BPM, src3d/music_beats_kart.js): the tiles flash on every kick (harder on the bar's downbeat), the arrows step one chevron per eighth note
+    // toward the front, the ceiling brightens with the loudness (dim in the breakdowns), Saturn's rings turn faster when the track is full
+    const dtk = this._kt === undefined ? 0 : Math.min(0.1, Math.max(0, t - this._kt)); this._kt = t;
+    const B = bt || { beat: t * 2.262, pulse: 0, energy: 0.6, kick: 0.5 }, en = Math.max(0, Math.min(1, B.energy)), kk = Math.max(0, Math.min(1, B.kick)), down = Math.floor(B.beat) % 4 === 0 ? 1.5 : 1;
+    if (this.floorMat) this.floorMat.emissiveIntensity = 0.16 + 0.14 * en + 0.5 * B.pulse * kk * down;
+    if (this.ceilMat && this.ceilMat.map) this.ceilMat.color.setScalar(0.62 + 0.3 * en + 0.12 * B.pulse);
+    if (this.vent) this.vent.rotation.z += dtk * (0.02 + 0.22 * en);
+    const step = Math.floor(B.beat * 2), sub = B.beat * 2 - step;
+    this.arrowStep = { step, sub };
+    if (this.arrowMats) this.arrowMats.forEach((m, k) => { const lit = step % 3 === k % 3, b = lit ? 0.55 + 0.45 * (1 - sub) : 0.22; m.f.color.copy(m.fc).multiplyScalar(0.3 + 0.7 * b); m.e.color.copy(m.ec).multiplyScalar(0.4 + 0.6 * b); });
     if (this.centreLit) { this.centreLit[0].material.opacity = 0.7 + 0.3 * pulse + 0.1 * Math.sin(t * 2.2); const k = 1 + 0.05 * pulse; this.centreLit[1].scale.set(230 * k, 230 * k, 1); this.centreLit[1].material.opacity = 0.75 + 0.25 * pulse; }
-    this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; this.ringPos(s, m.position.x, h.userData.flat ? 0.1 : 0, h.position); h.rotation.y = s / KART.R; if (h.userData.flat) { h.userData.chev.forEach((c, k) => { const w = Math.max(0, Math.cos(t * 7 - k * 1.4)), b = 0.45 + 0.55 * w * w + 0.2 * pulse; c.fm.color.copy(c.col).multiplyScalar(b); c.em.color.copy(c.rimC).multiplyScalar(0.5 + 0.5 * b); c.gm.opacity = 0.2 + 0.4 * w * w; }); return; } m.position.set(0, m.position.y, 0); });
+    this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; this.ringPos(s, m.position.x, h.userData.flat ? 0.1 : 0, h.position); h.rotation.y = s / KART.R; if (h.userData.flat) { h.userData.chev.forEach((c, k) => { const st = this.arrowStep || { step: 0, sub: 0 }, w = st.step % 3 === k ? 1 - st.sub : 0, b = 0.45 + 0.55 * w + 0.2 * pulse; c.fm.color.copy(c.col).multiplyScalar(b); c.em.color.copy(c.rimC).multiplyScalar(0.5 + 0.5 * b); c.gm.opacity = 0.2 + 0.4 * w * w; }); return; } m.position.set(0, m.position.y, 0); });
     const put = (o, s, x, y, yaw) => { this.ringPos(s, x, y, o.position); o.rotation.set(0, s / KART.R + (yaw || 0), 0); };
     put(this.car, p.s, p.x, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04); if (R.bots) R.bots.forEach((b, i) => put(this.bots[i], b.s, b.x, 0.02)); else { this.bot.visible = true; put(this.bot, R.bot.s, R.bot.x, 0.02); }
     const f = 64 + Math.min(14, p.speed - RACE.BASE) * 0.9; if (Math.abs(this.camera.fov - f) > 0.05) { this.camera.fov += (f - this.camera.fov) * 0.1; this.camera.updateProjectionMatrix(); }
