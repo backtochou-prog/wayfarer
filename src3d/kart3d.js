@@ -234,7 +234,7 @@ class Kart3D {
     this.r3.placeItems(R, t, pulse); if (this.tunU) this.tunU.off.value = -t * 0.35;      /* the spiral flows along the tunnel */ const OFF = R.off(p.s), PX = p.x + OFF;
     { const lap = Math.min(KART.LAPS - 1, Math.floor(p.s / KART.LAP)), into = p.s - lap * KART.LAP;      // the lap: the tiles' colour, and the banking of lap 2 (in over its first 120 m, out over the last 120 m)
       if (lap !== this.tileLap) this.paintTiles(lap, t);
-      { const show = p.s > KART.FUNNEL - 300; if (show !== this._gateShown) { this._gateShown = show; this.gateStuff.forEach(o => { o.visible = show; }); this.gapFill.forEach(o => { o.visible = !show; }); } }
+      { const show = p.s > KART.FUNNEL - 300 || R.intro > 0; if (show !== this._gateShown) { this._gateShown = show; this.gateStuff.forEach(o => { o.visible = show; }); this.gapFill.forEach(o => { o.visible = !show; }); } }
       if (this.barriers) { if (this.barriers.visible) this.barriers.children.forEach(c => { if (c.userData.bx !== undefined) c.position.y = c.userData.y0 + this.bankY(c.userData.bx); }); this.barriers.visible = p.s > 2 * KART.LAP - 100 && p.s < KART.GATE_S + 200; this.laserMats.forEach((m, k) => { m.opacity = 0.45 + 0.5 * Math.abs(Math.sin(t * 6 + k * 1.6)); }); }
       { const U = this.tileU; if (U.uFront.value < 1e8) { U.uFront.value = (t - this.tileT0) * 230; if (U.uFront.value > KART.LAP + 80) U.uFront.value = 1e9; }
         const Bq = bt || { beat: t * 2.262, energy: 0.6 }, bq = Math.floor(Bq.beat * 2), en = Math.max(0.2, Math.min(1, Bq.energy));
@@ -257,7 +257,13 @@ class Kart3D {
     const put = (o, s, x, y, yaw) => { this.ringPos(s, x, y + this.bankY(x) + R.dep(s), o.position); o.rotation.z = 0; o.rotation.set(0, s / KART.R + (yaw || 0), 0); };
     put(this.car, p.s, PX, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04 - 0.6 * (R.off(p.s + 3) - R.off(p.s - 3)) / 6); if (R.bots) R.bots.forEach((b, i) => put(this.bots[i], b.s, b.x + R.off(b.s), 0.02, -0.6 * (R.off(b.s + 3) - R.off(b.s - 3)) / 6)); else { this.bot.visible = true; put(this.bot, R.bot.s, R.bot.x, 0.02); }
     const f = 64 + Math.min(14, p.speed - RACE.BASE) * 0.9; if (Math.abs(this.camera.fov - f) > 0.05) { this.camera.fov += (f - this.camera.fov) * 0.1; this.camera.updateProjectionMatrix(); }
-    if (g.kartCam) {                                                                                   // THE SATURN VIEW (optional, V or a tap on the bars): outside the track, a little behind and above the kart, looking at it across the
+    if (R.intro > 0) {                                                                                 // THE FLYOVER before the start (the user): high over the shops looking at the sphere in its rings, round the
+      const u = 1 - R.intro / 7, e = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); }, a = e(u / 0.8);     // roundabout to the gate beside the line, then down behind the kart
+      const cs = p.s - 330 * (1 - a) - 4.6 * a, cx = 34 * (1 - a) + PX * 0.6 * a, cy = 34 * (1 - e(u / 0.85)) + 2.1 * e(u / 0.85);      /* (it ends exactly on the chase camera's pose) */
+      this.ringPos(cs, cx, cy, this.camPos); this.camera.position.copy(this.camPos);
+      const lk = new THREE.Vector3(-KART.R, 40, 0), gt = new THREE.Vector3(-8, 2, 0), ch = this.ringPos(p.s + 12, PX * 0.4, 0.9, this.v);
+      if (u < 0.45) this.camera.lookAt(lk); else if (u < 0.8) this.camera.lookAt(lk.lerp(gt, e((u - 0.45) / 0.3))); else this.camera.lookAt(gt.lerp(ch, e((u - 0.8) / 0.2)));
+    } else if (g.kartCam) {                                                                                   // THE SATURN VIEW (optional, V or a tap on the bars): outside the track, a little behind and above the kart, looking at it across the
       this.ringPos(p.s - 10, (p.x * 0.6 + OFF) + 2.4, 3.0 + air, this.camPos); this.camPos.y += this.bankY(PX) + R.dep(p.s);      /* (the user: the same view, only moved back 3 m, not turned) */                                                 // track toward the centre, so the sphere in its rings stands whole behind the kart
       if (this.camera.position.distanceTo(this.camPos) > 6) this.camera.position.copy(this.camPos); else this.camera.position.lerp(this.camPos, 0.5);
       this.camera.lookAt(this.ringPos(p.s + 9, (p.x * 0.5 + OFF) - 7, 1.6, this.v).setY(this.v.y + this.bankY(PX) + R.dep(p.s + 10)));

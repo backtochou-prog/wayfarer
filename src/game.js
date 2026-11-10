@@ -57,6 +57,7 @@ class Game {
       if (e.pointerType === 'touch') this.touch = true;
       const c = (this.state === 'play' || this.state === 'race') && this.touch && zone();
       if (!c && this.state === 'play' && overHint()) { this.mount(); return; }
+      if (this.state === 'race' && this.race && this.race.intro > 0) { this.race.intro = 0; return; }
       if (this.state === 'race' && this.race && this.race.menu) { const b = KMENU.find(q => this.mouse.x >= q.x && this.mouse.x <= q.x + q.w && this.mouse.y >= q.y && this.mouse.y <= q.y + q.h); if (b) this.kartChoose(b.id); return; }
       if (!c && this.state === 'race' && this.race && this.race.kart && this.mouse.y < 32) { this.kartCam = (this.kartCam || 0) ? 0 : 1; return; }      // a tap on the top of the screen (the progress bars) switches the kart camera                // a tap or click on the ring gets on the scooter (the touch buttons keep priority)
       if (c) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} this.hold(e.pointerId, c.id, true); if (this.state === 'race') this.laneQ = (this.laneQ || 0) + (c.id === 'right' ? 1 : c.id === 'left' ? -1 : 0); }
@@ -213,6 +214,7 @@ class Game {
     if (!down || e.repeat) return;
     if (c === 'KeyM' && this.sfx) { this.sfx.toggle(); return; }                      // M: sound on / off
     if (c === 'KeyC' && this.state === 'title' && this.r.nextCharacter) { this.nextCharacter(); return; }
+    if (down && !e.repeat && this.state === 'race' && this.race && this.race.intro > 0) { this.race.intro = 0; return; }
     if (down && !e.repeat && this.state === 'race' && this.race && this.race.menu) { const k = { Digit1: 'chase', Numpad1: 'chase', Enter: 'chase', Space: 'chase', Digit2: 'saturn', Numpad2: 'saturn', Digit3: 'vr', Numpad3: 'vr' }[c]; if (k) this.kartChoose(k); return; }
     if (down && !e.repeat && c === 'KeyV' && this.state === 'race' && this.race && this.race.kart) { this.kartCam = (this.kartCam || 0) ? 0 : 1; return; }      // V (karting): the other camera, the SATURN view (optional)   // C (menu): the other character
     const s = this.state;
@@ -376,7 +378,7 @@ class Game {
   }
   raceStep(dt) {
     const R = this.race; if (!R) { this.state = 'play'; return; }
-    if (R.menu) return;                                                                 // (the kart's quick menu is open: nothing moves until a choice)
+    if (R.menu) return; if (R.intro > 0) { R.intro -= dt; return; }                                                                 // (the kart's quick menu is open: nothing moves until a choice)
     if (R.cd > 0) { R.cd -= dt; return; }
     const lane = R.p.lane + Math.max(-1, Math.min(1, this.laneQ || 0)); this.laneQ = 0;
     R.step(Math.min(dt, 0.05), { lane, accel: this.pedal('jump'), brake: this.pedal('slide') });
@@ -390,7 +392,7 @@ class Game {
     const R = this.race; if (!R || !R.menu) return;
     if (id === 'vr') { const X = this.r.xr; if (!(X && X.button)) return; try { X.enter(); } catch (e) {} this.kartCam = 0; }
     else this.kartCam = id === 'saturn' ? 1 : 0;
-    R.menu = false; this.emit('start');
+    R.menu = false; R.intro = R.kart ? 7 : 0; this.emit('start');      // (the kart: a 7 s flyover first - the sphere, the roundabout, the gate - any key or tap skips it)
   }
   endRace() {
     const R = this.race; if (R && R.result === 'win') this.coins += 30;
