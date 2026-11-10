@@ -168,9 +168,24 @@ class Kart3D {
         const road = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: '#0b0d10', side: THREE.DoubleSide, fog: false })); road.position.z = 0; sc.add(road); this.gateStuff.push(road);
         // THE SPIRAL TUNNEL (the user's picture): a tube from the mouth past the gate, down the dive and all round lap 4 under the inner ring road, its inside wearing the spiral, turning
         { const path = this.tunPath.filter(v => v.y < 1.2).concat(Array.from({ length: 360 }, (_, i) => this.ringPos(KART.GATE_S + KART.TURN_L + 80 + i / 359 * (KART.LAP - KART.TURN_L - 70), -16, -KART.TD + 2)));
-          const curve = new THREE.CatmullRomCurve3(path), tg = new THREE.TubeGeometry(curve, 900, 6.2, 24, false);
+          // the tunnel TIGHTENS (the user: 'serre le tunnel graduellement, finir en tunnel serré'): radius 6.2 m down to 4.2 m over the second half, and its colours turn from the original red and peach
+          // into the PINK version (the user's choice, n° 7) through a spiral-shaped wipe in the middle (each point of the wall changes when the wipe's front, twisted round the tube, passes it)
+          const SEG = 900, RAD = 24, curve = new THREE.CatmullRomCurve3(path), tg = new THREE.TubeGeometry(curve, SEG, 6.2, RAD, false), P = tg.attributes.position, fade = new Float32Array(P.count), sm = (a, b, v) => { v = Math.max(0, Math.min(1, (v - a) / (b - a))); return v * v * (3 - 2 * v); };
+          for (let i2 = 0; i2 <= SEG; i2++) { const u = i2 / SEG, c = curve.getPointAt(u), k = 1 - (2 / 6.2) * sm(0.3, 0.85, u);
+            for (let j2 = 0; j2 <= RAD; j2++) { const n = i2 * (RAD + 1) + j2; P.setXYZ(n, c.x + (P.getX(n) - c.x) * k, c.y + (P.getY(n) - c.y) * k, c.z + (P.getZ(n) - c.z) * k); fade[n] = u; } }
+          tg.setAttribute('fade', new THREE.BufferAttribute(fade, 1)); tg.computeBoundingSphere();
           let tm = new THREE.MeshBasicMaterial({ color: '#c02020', side: THREE.BackSide, fog: false });
-          if (typeof KART_ART !== 'undefined' && KART_ART.tunnel) { const img = new Image(), tt = new THREE.Texture(img); tt.colorSpace = THREE.SRGBColorSpace; tt.wrapS = tt.wrapT = THREE.RepeatWrapping; tt.repeat.set(Math.round(curve.getLength() / 14), 1); tt.anisotropy = 8; img.onload = () => { tt.needsUpdate = true; }; img.src = KART_ART.tunnel; tm = new THREE.MeshBasicMaterial({ map: tt, side: THREE.BackSide, fog: false }); this.tunTex = tt; }
+          if (typeof KART_ART !== 'undefined' && KART_ART.tunnel) { const img = new Image(), tA = new THREE.Texture(img), cv2 = document.createElement('canvas'), rep = new THREE.Vector2(Math.round(curve.getLength() / 14), 1);
+            const prep = tt => { tt.colorSpace = THREE.SRGBColorSpace; tt.wrapS = tt.wrapT = THREE.RepeatWrapping; tt.anisotropy = 8; return tt; }; prep(tA);
+            img.onload = () => { tA.needsUpdate = true; cv2.width = img.width; cv2.height = img.height; const x = cv2.getContext('2d'); x.filter = 'hue-rotate(320deg)'; x.drawImage(img, 0, 0); this.tunU.mapB.value = prep(new THREE.CanvasTexture(cv2)); };      /* (the pink texture made once the picture is in: a canvas texture made empty keeps its 0 x 0 size) */ img.src = KART_ART.tunnel;
+            this.tunU = { mapA: { value: tA }, mapB: { value: tA }, rep: { value: rep }, off: { value: 0 } };
+            tm = new THREE.ShaderMaterial({ uniforms: this.tunU, side: THREE.BackSide,
+              vertexShader: 'attribute float fade; varying vec2 vUv; varying float vF; void main() { vUv = uv; vF = fade; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+              fragmentShader: 'uniform sampler2D mapA; uniform sampler2D mapB; uniform vec2 rep; uniform float off; varying vec2 vUv; varying float vF;\n' +
+                'void main() { vec2 uv = vec2(vUv.x * rep.x + off, vUv.y * rep.y); vec4 a = texture2D(mapA, uv), b = texture2D(mapB, uv);\n' +
+                '  float front = 0.45 + 0.03 * sin(vUv.y * 6.2832 * 2.0 + vUv.x * 900.0);\n' +            // the wipe's front, twisted into a spiral round the tube
+                '  float k = smoothstep(front - 0.012, front + 0.012, vF); gl_FragColor = mix(a, b, k);\n#include <colorspace_fragment>\n}' });
+            this.tunTex = { offset: { set x(v) { } } }; }
           { const tun = new THREE.Mesh(tg, tm); sc.add(tun); this.gateStuff.push(tun); }
           const fl = ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#120a10', specular: 0x886677, shininess: 70 }), -KART.TD + 0.02);       // the tunnel's floor
           for (const r of [R - 19.6, R - 12.4]) ring(r - 0.08, r + 0.08, new THREE.MeshBasicMaterial({ color: '#ffd27a', fog: false }), -KART.TD + 0.04); }
@@ -216,7 +231,7 @@ class Kart3D {
   draw(g, renderer) {
     const R = g.race; if (this.bound !== R) this.bind(R);
     const bt = g.sfx ? g.sfx.beat() : null, pulse = bt ? bt.pulse * (0.45 + 0.55 * bt.energy) : 0, t = g.time, p = R.p, air = p.air > 0 ? Math.sin(Math.PI * (1 - p.air / RACE.JUMP_T)) : 0;
-    this.r3.placeItems(R, t, pulse); if (this.tunTex) this.tunTex.offset.x = -t * 0.35;      /* the spiral flows along the tunnel */ const OFF = R.off(p.s), PX = p.x + OFF;
+    this.r3.placeItems(R, t, pulse); if (this.tunU) this.tunU.off.value = -t * 0.35;      /* the spiral flows along the tunnel */ const OFF = R.off(p.s), PX = p.x + OFF;
     { const lap = Math.min(KART.LAPS - 1, Math.floor(p.s / KART.LAP)), into = p.s - lap * KART.LAP;      // the lap: the tiles' colour, and the banking of lap 2 (in over its first 120 m, out over the last 120 m)
       if (lap !== this.tileLap) this.paintTiles(lap, t);
       { const show = p.s > KART.FUNNEL - 300; if (show !== this._gateShown) { this._gateShown = show; this.gateStuff.forEach(o => { o.visible = show; }); this.gapFill.forEach(o => { o.visible = !show; }); } }
