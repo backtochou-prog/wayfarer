@@ -159,6 +159,22 @@ class Kart3D {
       const lane = new THREE.Mesh(new THREE.PlaneGeometry(10, W), new THREE.MeshBasicMaterial({ color: '#0b0d10', fog: false })); lane.rotation.x = -Math.PI / 2; lane.position.set(-12, 0.02, 0); sc.add(lane);
       ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#0b0d10', emissive: '#1a0830', specular: 0x8899aa, shininess: 80 }), 0.02);                          // the inner ring road
       for (const r of [R - 20, R - 12]) ring(r - 0.1, r + 0.1, new THREE.MeshBasicMaterial({ color: '#ff3fd0', fog: false }), 0.03); }
+    // THE NEON BARRIERS at the end of lap 3 (shown while the player is in lap 3 and through the gate): a diagonal of laser posts closing the lanes from the right toward the gate,
+    // and a barrier across the big ring just past the line (no fourth lap on it); arrows on them point left, into the gate
+    { const B = this.barriers = new THREE.Group(), post = new THREE.MeshBasicMaterial({ color: '#20242c', fog: false }), las = new THREE.MeshBasicMaterial({ color: '#35f0ff', transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), las2 = new THREE.MeshBasicMaterial({ color: '#ff3fd0', transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+      this.laserMats = [las, las2];
+      const pts = []; for (let i = 0; i <= 14; i++) { const u = i / 14, s1 = KART.FUNNEL + u * (KART.GATE_S - 70 - KART.FUNNEL); pts.push([s1, 6.4 - u * 7.6]); }      // the diagonal: from the right edge to the middle of the left lane's right side
+      for (let i = 0; i <= 8; i++) pts.push([KART.GATE_S - 70 + i * 9, -1.2]);                                                                                   // then along, keeping the left lane
+      const P = pts.map(([s1, x]) => this.ringPos(s1, x, 0));
+      pts.forEach(([s1, x], i) => { const pm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.6, 0.25), post); pm.position.copy(P[i]).setY(0.8); B.add(pm);
+        const tip = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.3), i % 2 ? las2 : las); tip.position.copy(P[i]).setY(1.66); B.add(tip);
+        if (i) for (const [hh, mm] of [[0.45, las], [0.95, las2], [1.4, las]]) { const a = P[i - 1], b = P[i], len = a.distanceTo(b), bar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, len), mm); bar.position.copy(a).add(b).multiplyScalar(0.5).setY(hh); bar.lookAt(b.x, hh, b.z); B.add(bar); } });
+      { const a = this.ringPos(KART.GATE_S + 6, -4.2, 0), b = this.ringPos(KART.GATE_S + 6, 6.6, 0), len = a.distanceTo(b);                                    // the barrier across the big ring
+        for (const [hh, mm] of [[0.35, las2], [0.75, las], [1.15, las2], [1.55, las], [1.95, las2]]) { const bar = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, len), mm); bar.position.copy(a).add(b).multiplyScalar(0.5).setY(hh); bar.lookAt(b.x, hh, b.z); B.add(bar); }
+        for (const q of [a, b]) { const pm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 2.2, 0.4), post); pm.position.copy(q).setY(1.1); B.add(pm); }
+        const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(1.2, 0.7); sh.lineTo(1.2, 0.35); sh.lineTo(2.6, 0.35); sh.lineTo(2.6, -0.35); sh.lineTo(1.2, -0.35); sh.lineTo(1.2, -0.7); sh.closePath();
+        const ar = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshBasicMaterial({ color: '#39ff14', side: THREE.DoubleSide, fog: false })); ar.position.copy(a).add(b).multiplyScalar(0.5).setY(2.9); ar.lookAt(this.ringPos(KART.GATE_S - 30, 1, 2.9)); ar.scale.setScalar(1.4); B.add(ar); this.gateArrow = ar; }
+      B.visible = false; sc.add(B); }
     this.holders = null; this.bound = null; this.camPos = new THREE.Vector3(); this.v = new THREE.Vector3();
   }
   bankY(x) { return -KART.BANK * this.bank * Math.max(0, Math.min(1, (6.5 - x) / 13)); }      // the height of the banked track at x across (x < 0: the inner, left side)
@@ -180,14 +196,15 @@ class Kart3D {
   draw(g, renderer) {
     const R = g.race; if (this.bound !== R) this.bind(R);
     const bt = g.sfx ? g.sfx.beat() : null, pulse = bt ? bt.pulse * (0.45 + 0.55 * bt.energy) : 0, t = g.time, p = R.p, air = p.air > 0 ? Math.sin(Math.PI * (1 - p.air / RACE.JUMP_T)) : 0;
-    this.r3.placeItems(R, t, pulse);
+    this.r3.placeItems(R, t, pulse); const OFF = R.off(p.s), PX = p.x + OFF;
     { const lap = Math.min(KART.LAPS - 1, Math.floor(p.s / KART.LAP)), into = p.s - lap * KART.LAP;      // the lap: the tiles' colour, and the banking of lap 2 (in over its first 120 m, out over the last 120 m)
       if (lap !== this.tileLap) this.paintTiles(lap, t);
+      if (this.barriers) { this.barriers.visible = p.s > KART.FUNNEL - 400 && p.s < KART.GATE_S + 200; this.laserMats.forEach((m, k) => { m.opacity = 0.45 + 0.5 * Math.abs(Math.sin(t * 6 + k * 1.6)); }); }
       { const U = this.tileU; if (U.uFront.value < 1e8) { U.uFront.value = (t - this.tileT0) * 230; if (U.uFront.value > KART.LAP + 80) U.uFront.value = 1e9; }
         const Bq = bt || { beat: t * 2.262, energy: 0.6 }, bq = Math.floor(Bq.beat * 2), en = Math.max(0.2, Math.min(1, Bq.energy));
         for (let c = 0; c < 6; c++) { const hsh = Math.abs(Math.sin((bq * 7 + c * 13) * 12.9898) * 43758.5453) % 1; U.uBar.value[c] = 2 * Math.floor(hsh * en * 22); } }      // the equalizer: six bars, a new height every eighth note, in whole 2 m rows
       const L2 = KART.LAP, sm = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
-      this.setBank(lap === 1 ? Math.min(sm(into / 120) * (1 + sm((into - (L2 - 520)) / 260)), 2 * sm((L2 - into) / 90)) : 0);      /* (lap 2: in over 120 m; then deeper, twice as low, over the last 520 m; back up to flat over the last 90 m, at the line) */
+      this.setBank(lap === 1 || lap === 2 ? Math.min(sm(into / 120) * (1 + sm((into - (L2 - 520)) / 260)), 2 * sm((L2 - into) / 90)) : 0);      /* (lap 2: in over 120 m; then deeper, twice as low, over the last 520 m; back up to flat over the last 90 m, at the line) */
       this.gateK += ((R.gateOpen ? 1 : 0) - this.gateK) * 0.03; if (this.doors) this.doors.forEach(d => { d.position.z = d.userData.z0 * (1 + 1.9 * this.gateK); }); }
     // THE CIRCUIT DANCES TO 'ROAD NIGHT 2' (135.7 BPM, src3d/music_beats_kart.js): the tiles flash on every kick (harder on the bar's downbeat), the arrows step one chevron per eighth note
     // toward the front, the ceiling brightens with the loudness (dim in the breakdowns), Saturn's rings turn faster when the track is full
@@ -200,21 +217,21 @@ class Kart3D {
     this.arrowStep = { step, sub };
     if (this.arrowMats) this.arrowMats.forEach((m, k) => { const lit = step % 3 === k % 3, b = lit ? 0.55 + 0.45 * (1 - sub) : 0.22; m.f.color.copy(m.fc).multiplyScalar(0.3 + 0.7 * b); m.e.color.copy(m.ec).multiplyScalar(0.4 + 0.6 * b); });
     if (this.centreLit) { this.centreLit[0].material.opacity = 0.7 + 0.3 * pulse + 0.1 * Math.sin(t * 2.2); const k = 1 + 0.05 * pulse; this.centreLit[1].scale.set(230 * k, 230 * k, 1); this.centreLit[1].material.opacity = 0.75 + 0.25 * pulse; }
-    this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; this.ringPos(s, m.position.x, (h.userData.flat ? 0.1 : 0) + this.bankY(m.position.x), h.position); h.rotation.y = s / KART.R; if (h.userData.flat) { h.userData.chev.forEach((c, k) => { const st = this.arrowStep || { step: 0, sub: 0 }, w = st.step % 3 === k ? 1 - st.sub : 0, b = 0.45 + 0.55 * w + 0.2 * pulse; c.fm.color.copy(c.col).multiplyScalar(b); c.em.color.copy(c.rimC).multiplyScalar(0.5 + 0.5 * b); c.gm.opacity = 0.2 + 0.4 * w * w; }); return; } m.position.set(0, m.position.y, 0); });
+    this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; const mx = m.position.x + R.off(s); this.ringPos(s, mx, (h.userData.flat ? 0.1 : 0) + this.bankY(mx), h.position); h.rotation.y = s / KART.R; if (h.userData.flat) { h.userData.chev.forEach((c, k) => { const st = this.arrowStep || { step: 0, sub: 0 }, w = st.step % 3 === k ? 1 - st.sub : 0, b = 0.45 + 0.55 * w + 0.2 * pulse; c.fm.color.copy(c.col).multiplyScalar(b); c.em.color.copy(c.rimC).multiplyScalar(0.5 + 0.5 * b); c.gm.opacity = 0.2 + 0.4 * w * w; }); return; } m.position.set(0, m.position.y, 0); });
     const put = (o, s, x, y, yaw) => { this.ringPos(s, x, y + this.bankY(x), o.position); o.rotation.z = 0; o.rotation.set(0, s / KART.R + (yaw || 0), 0); };
-    put(this.car, p.s, p.x, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04); if (R.bots) R.bots.forEach((b, i) => put(this.bots[i], b.s, b.x, 0.02)); else { this.bot.visible = true; put(this.bot, R.bot.s, R.bot.x, 0.02); }
+    put(this.car, p.s, PX, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04 - 0.6 * (R.off(p.s + 3) - R.off(p.s - 3)) / 6); if (R.bots) R.bots.forEach((b, i) => put(this.bots[i], b.s, b.x + R.off(b.s), 0.02, -0.6 * (R.off(b.s + 3) - R.off(b.s - 3)) / 6)); else { this.bot.visible = true; put(this.bot, R.bot.s, R.bot.x, 0.02); }
     const f = 64 + Math.min(14, p.speed - RACE.BASE) * 0.9; if (Math.abs(this.camera.fov - f) > 0.05) { this.camera.fov += (f - this.camera.fov) * 0.1; this.camera.updateProjectionMatrix(); }
     if (g.kartCam) {                                                                                   // THE SATURN VIEW (optional, V or a tap on the bars): outside the track, a little behind and above the kart, looking at it across the
-      this.ringPos(p.s - 10, p.x * 0.6 + 2.4, 3.0 + air, this.camPos); this.camPos.y += this.bankY(p.x);      /* (the user: the same view, only moved back 3 m, not turned) */                                                 // track toward the centre, so the sphere in its rings stands whole behind the kart
+      this.ringPos(p.s - 10, (p.x * 0.6 + OFF) + 2.4, 3.0 + air, this.camPos); this.camPos.y += this.bankY(PX);      /* (the user: the same view, only moved back 3 m, not turned) */                                                 // track toward the centre, so the sphere in its rings stands whole behind the kart
       if (this.camera.position.distanceTo(this.camPos) > 6) this.camera.position.copy(this.camPos); else this.camera.position.lerp(this.camPos, 0.5);
-      this.camera.lookAt(this.ringPos(p.s + 9, p.x * 0.5 - 7, 1.6, this.v).setY(this.v.y + this.bankY(p.x)));
+      this.camera.lookAt(this.ringPos(p.s + 9, (p.x * 0.5 + OFF) - 7, 1.6, this.v).setY(this.v.y + this.bankY(PX)));
     } else {
-    this.ringPos(p.s - 4.6, p.x * 0.6, 2.1 + air, this.camPos); this.camPos.y += this.bankY(p.x); if (this.camera.position.distanceTo(this.camPos) > 6) this.camera.position.copy(this.camPos); else this.camera.position.lerp(this.camPos, 0.5);
-    this.camera.lookAt(this.ringPos(p.s + 12, p.x * 0.4, 0.9 + air * 0.6, this.v).setY(this.v.y + this.bankY(p.x)));
+    this.ringPos(p.s - 4.6, (p.x * 0.6 + OFF), 2.1 + air, this.camPos); this.camPos.y += this.bankY(PX); if (this.camera.position.distanceTo(this.camPos) > 6) this.camera.position.copy(this.camPos); else this.camera.position.lerp(this.camPos, 0.5);
+    this.camera.lookAt(this.ringPos(p.s + 12, (p.x * 0.4 + OFF), 0.9 + air * 0.6, this.v).setY(this.v.y + this.bankY(PX)));
     }
     const X = g.r && g.r.xr && g.r.xr.presenting ? g.r.xr : null;                                  // VR: the headset looks from a rig at the chase pose (behind the kart, heading along the ring); no pitch, no roll
     if (X) { if (!this.rig) { this.rig = new THREE.Group(); this.scene.add(this.rig); } if (this.camera.parent !== this.rig) this.rig.add(this.camera);
-      this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.ringPos(p.s - 4.6, p.x * 0.6, 0.6, this.rig.position); this.rig.rotation.set(0, p.s / KART.R, 0); }
+      this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.ringPos(p.s - 4.6, (p.x * 0.6 + OFF), 0.6, this.rig.position); this.rig.rotation.set(0, p.s / KART.R, 0); }
     else if (this.rig && this.camera.parent === this.rig) { this.rig.remove(this.camera); this.scene.add(this.camera); }
     renderer.render(this.scene, this.camera);
   }
