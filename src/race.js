@@ -11,10 +11,10 @@ const RACE = {
   DROID_V: 12, DROID_TRIGGER: 50, RAMP_BEFORE: 30, BUMP_MUL: 0.6, BUMP_T: 0.9, BUMP_GAP: 4.4,          /* running into the back of the robot's car: it is an obstacle like any other, the player is slowed and held behind it */
 };
 // THE KART CIRCUIT (the Galerie Gasperi, a ring inside a big shopping centre): the same rules over two laps of a ring of radius R (src3d/kart3d.js draws it)
-const KART = { R: 240, LAPS: 4, BANK: 1.6, GATE_W: 8, INNER: -16 };      /* INNER: the inner ring road's centre, metres across from the track's (lap 4 is run on it) */      /* (4 laps: the user added two; BANK: how far the inner edge goes down in lap 2, metres) */ KART.LAP = 2 * Math.PI * KART.R; KART.LEN = Math.round(KART.LAP * KART.LAPS);
+const KART = { R: 240, LAPS: 4, BANK: 1.6, GATE_W: 12, INNER: -16 };      /* INNER: the inner ring road's centre, metres across from the track's (lap 4 is run on it) */      /* (4 laps: the user added two; BANK: how far the inner edge goes down in lap 2, metres) */ KART.LAP = 2 * Math.PI * KART.R; KART.LEN = Math.round(KART.LAP * KART.LAPS);
 // THE GATE AT THE END OF LAP 3 (the user: neon electronic barriers guide the karts through the gate and forbid another lap on the big ring; lap 4 is run on the inner ring road): from FUNNEL the
 // lanes close from the right (the middle one 80 m before the line), then every kart turns left through the gate (TURN: where the turn starts, over TURN_L m) onto the inner road.
-KART.GATE_S = 3 * KART.LAP; KART.FUNNEL = KART.GATE_S - 160; KART.TURN = KART.GATE_S - 14; KART.TURN_L = 50;
+KART.GATE_S = 3 * KART.LAP; KART.FUNNEL = KART.GATE_S - 420; KART.FUNNEL2 = KART.GATE_S - 160; KART.TURN = KART.GATE_S - 14; KART.TURN_L = 50; KART.TD = 9; KART.DIVE_L = 80;      /* the gate leads UNDERGROUND (the user): the road dives TD m over DIVE_L m into the spiral tunnel */
 class Race {
   constructor(seed, opts) {
     this.len = (opts && opts.len) || RACE.LEN; this.kart = !!(opts && opts.kart);      // (the KART circuit of the Galerie Gasperi: laps of a ring, src3d/kart3d.js)
@@ -108,7 +108,8 @@ class Race {
   }
   place() { return this.kart ? 1 + this.bots.filter(b => b.s > this.p.s).length : (this.bot.s > this.p.s ? 2 : 1); }      // the player's place in the race (the kart: out of nine)
   off(s) { if (!this.kart) return 0; const v = Math.max(0, Math.min(1, (s - KART.TURN) / KART.TURN_L)); return KART.INNER * v * v * (3 - 2 * v); }      // the kart: lateral shift onto the inner road
-  maxLane(s) { if (!this.kart || s < KART.FUNNEL || s > KART.GATE_S + 60) return 1; return s < KART.GATE_S - 80 ? 0 : -1; }       // the barriers close the lanes from the right
+  dep(s) { if (!this.kart || s < KART.GATE_S) return 0; const v = Math.max(0, Math.min(1, (s - KART.GATE_S - 4) / KART.DIVE_L)); return -KART.TD * v * v * (3 - 2 * v); }      // lap 4 goes UNDERGROUND (the spiral tunnel)
+  maxLane(s) { if (!this.kart || s < KART.FUNNEL || s > KART.GATE_S + 60) return 1; return s < KART.FUNNEL2 ? 0 : -1; }       // the barriers close the lanes from the right
   gap() { return this.bot.s - this.p.s; }                                                              // metres the robot is ahead (negative: the player leads)
   progress() { return Math.min(1, this.p.s / this.len); }
 }
