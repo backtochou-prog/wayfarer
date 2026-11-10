@@ -178,17 +178,23 @@ class Kart3D {
           if (typeof KART_ART !== 'undefined' && KART_ART.tunnel) { const img = new Image(), tA = new THREE.Texture(img), cv2 = document.createElement('canvas'), rep = new THREE.Vector2(Math.round(curve.getLength() / 14), 1);
             const prep = tt => { tt.colorSpace = THREE.SRGBColorSpace; tt.wrapS = tt.wrapT = THREE.RepeatWrapping; tt.anisotropy = 8; return tt; }; prep(tA);
             img.onload = () => { tA.needsUpdate = true; cv2.width = img.width; cv2.height = img.height; const x = cv2.getContext('2d'); x.filter = 'hue-rotate(320deg)'; x.drawImage(img, 0, 0); this.tunU.mapB.value = prep(new THREE.CanvasTexture(cv2)); };      /* (the pink texture made once the picture is in: a canvas texture made empty keeps its 0 x 0 size) */ img.src = KART_ART.tunnel;
-            this.tunU = { mapA: { value: tA }, mapB: { value: tA }, rep: { value: rep }, off: { value: 0 } };
+            if (KART_ART.tunnel3) { const i3 = new Image(), t3 = prep(new THREE.Texture(i3)); i3.onload = () => { t3.needsUpdate = true; this.tunU.mapC.value = t3; }; i3.src = KART_ART.tunnel3; }      // THE THIRD SPIRAL (black with red spirals, the user): the last part of the tunnel
+            this.tunU = { mapC: { value: tA }, mapA: { value: tA }, mapB: { value: tA }, rep: { value: rep }, off: { value: 0 } };
             tm = new THREE.ShaderMaterial({ uniforms: this.tunU, side: THREE.BackSide,
               vertexShader: 'attribute float fade; varying vec2 vUv; varying float vF; void main() { vUv = uv; vF = fade; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-              fragmentShader: 'uniform sampler2D mapA; uniform sampler2D mapB; uniform vec2 rep; uniform float off; varying vec2 vUv; varying float vF;\n' +
-                'void main() { vec2 uv = vec2(vUv.x * rep.x + off, vUv.y * rep.y); vec4 a = texture2D(mapA, uv), b = texture2D(mapB, uv);\n' +
+              fragmentShader: 'uniform sampler2D mapA; uniform sampler2D mapB; uniform sampler2D mapC; uniform vec2 rep; uniform float off; varying vec2 vUv; varying float vF;\n' +
+                'void main() { vec2 uv = vec2(vUv.x * rep.x + off, vUv.y * rep.y); vec4 a = texture2D(mapA, uv), b = texture2D(mapB, uv), c3 = texture2D(mapC, vec2(vUv.x * rep.x * 1.6 + off * 0.6, vUv.y * 2.0));\n' +
                 '  float front = 0.45 + 0.03 * sin(vUv.y * 6.2832 * 2.0 + vUv.x * 900.0);\n' +            // the wipe's front, twisted into a spiral round the tube
-                '  float k = smoothstep(front - 0.012, front + 0.012, vF); gl_FragColor = mix(a, vec4(b.rgb * 0.62, b.a), k);\n#include <colorspace_fragment>\n}' });
+                '  float k = smoothstep(front - 0.012, front + 0.012, vF); vec4 col = mix(a, vec4(b.rgb * 0.62, b.a), k);\n' +
+                '  float front2 = 0.74 + 0.03 * sin(vUv.y * 6.2832 * 2.0 - vUv.x * 900.0); float k2 = smoothstep(front2 - 0.012, front2 + 0.012, vF); gl_FragColor = mix(col, vec4(c3.rgb * 1.6, 1.0), k2);\n#include <colorspace_fragment>\n}' });
             this.tunTex = { offset: { set x(v) { } } }; }
           { const tun = new THREE.Mesh(tg, tm); sc.add(tun); this.gateStuff.push(tun); }
           const fl = ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#120a10', specular: 0x886677, shininess: 70 }), -KART.TD + 0.02);       // the tunnel's floor
-          for (const r of [R - 19.6, R - 12.4]) ring(r - 0.08, r + 0.08, new THREE.MeshBasicMaterial({ color: '#ffd27a', fog: false }), -KART.TD + 0.04); }
+          // the tunnel's road in the style of the LASER FENCES (the user): neon lines along the floor (cyan at the edges, pink between the lanes) and two low laser bars along each side, blinking
+          const lzC = new THREE.MeshBasicMaterial({ color: '#35f0ff', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), lzP = new THREE.MeshBasicMaterial({ color: '#ff3fd0', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+          this.tunLaser = [lzC, lzP];
+          for (const [r, m] of [[R - 19.7, lzC], [R - 17.2, lzP], [R - 14.8, lzP], [R - 12.3, lzC]]) ring(r - 0.07, r + 0.07, m, -KART.TD + 0.04);
+          for (const r of [R - 19.9, R - 12.1]) for (const [hh, m] of [[0.35, lzP], [0.75, lzC]]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.05, 720, 1, true), m); c.position.set(-R, -KART.TD + hh, 0); sc.add(c); } }
         for (const L of [lp, rp]) { const lg = new THREE.BufferGeometry().setFromPoints(L), ln = new THREE.Line(lg, new THREE.LineBasicMaterial({ color: '#ff3fd0', fog: false })); sc.add(ln); this.gateStuff.push(ln); } }
       ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#0b0d10', emissive: '#1a0830', specular: 0x8899aa, shininess: 80, side: THREE.DoubleSide }), 0.02);                          // the inner ring road
       for (const r of [R - 20, R - 12]) ring(r - 0.1, r + 0.1, new THREE.MeshBasicMaterial({ color: '#ff3fd0', fog: false }), 0.03); }
@@ -217,7 +223,7 @@ class Kart3D {
   bind(R) {                                                                                          // Race3D builds the item meshes; each goes into a holder that stands on the ring
     if (this.r3.bound !== R) this.r3.bind(R);
     if (this.holders) for (const h of this.holders) this.scene.remove(h);
-    const COL = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'], smoke = new THREE.MeshBasicMaterial({ color: '#0c1014', transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false });
+    const COL = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'], smoke = new THREE.MeshBasicMaterial({ color: '#0c1014', transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false });
     this.holders = this.r3.meshes.map((m, i) => { const it = R.items[i], h = new THREE.Group();
       if (it.type === 'spiral') {                                                                    // THE SPEED TOKENS shaped like the blue arrow bands (three chevrons with a rim, lit one after the other toward the front), in their own neon colours
         const col = new THREE.Color(COL[it.color]), rimC = col.clone().lerp(new THREE.Color('#ffffff'), 0.45), mk = k => { const sh = new THREE.Shape(); sh.moveTo(-0.7 * k, -0.35 * k); sh.lineTo(0, 0.45 * k); sh.lineTo(0.7 * k, -0.35 * k); sh.lineTo(0.7 * k, -0.75 * k); sh.lineTo(0, 0.05 * k); sh.lineTo(-0.7 * k, -0.75 * k); sh.closePath(); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); return g; };
@@ -225,7 +231,13 @@ class Kart3D {
         for (let k = 0; k < 3; k++) { const fm = new THREE.MeshBasicMaterial({ color: col, fog: false }), em = new THREE.MeshBasicMaterial({ color: rimC, fog: false }), gm = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
           const g3 = new THREE.Group(), glow = new THREE.Mesh(mk(1.6), gm); glow.position.y = -0.01; const f = new THREE.Mesh(fill, fm); f.position.y = 0.012; g3.add(glow, new THREE.Mesh(rim, em), f); g3.position.z = -k * 1.25; g3.scale.setScalar(1.6); h.add(g3); h.userData.chev.push({ fm, em, gm, col, rimC }); }
         h.userData.flat = true;
-      } else { if (it.type === 'ramp') m.traverse(o => { if (o.isMesh) o.material = smoke; }); h.add(m); }      // the ramps in smoked black glass
+      } else if (it.type === 'ramp') {                                                               // THE RAMPS re-made for the kart circuit (the user: they had lost their look): the race's ramp picture under a smoked
+        const M = RACE.LANE_M, W = M * 1.1, L = 11, A = 0.34, H = L * Math.sin(A), D = L * Math.cos(A), z0 = 1.2, zc = z0 - D / 2, rg = new THREE.Group();      // black glass, its red and blue neon sides, no white band
+        const pic = new THREE.Mesh(new THREE.PlaneGeometry(W, L), this.r3.rampMat), glass = new THREE.Mesh(new THREE.PlaneGeometry(W, L), smoke); pic.rotation.x = glass.rotation.x = -Math.PI / 2 + A; pic.position.set(0, H / 2 + 0.05, zc); glass.position.set(0, H / 2 + 0.09, zc);
+        const pk = []; for (const s2 of [-1, 1]) pk.push(Kit.box(0.09, 0.09, L, s2 * W / 2, H / 2, zc, s2 < 0 ? '#ff2020' : '#2832ff', { glow: true, rx: A }));
+        pk.push(Kit.box(W + 0.1, 0.09, 0.09, 0, H, z0 - D, '#39ff14', { glow: true }), ...Array.from({ length: 9 }, (_, k) => Kit.box(W / 9 + 0.02, 0.07, 0.2, -W / 2 + (k + 0.5) * W / 9, 0.02, z0, '#ff3fb0', { glow: true })));
+        rg.add(pic, glass, Kit.mesh(Kit.merge(pk))); h.add(rg); m.visible = false; h.userData.ramp = true;
+      } else h.add(m);
       this.scene.add(h); return h; }); this.bound = R;
   }
   draw(g, renderer) {
@@ -253,6 +265,7 @@ class Kart3D {
     if (this.vent) this.vent.rotation.z += dtk * (0.02 + 0.22 * en);
     const step = Math.floor(B.beat * 2), sub = B.beat * 2 - step;
     this.arrowStep = { step, sub };
+    if (this.tunLaser) this.tunLaser.forEach((m, k) => { m.opacity = 0.45 + 0.5 * Math.abs(Math.sin(t * 6 + k * 1.6)); });
     if (this.arrowMats) this.arrowMats.forEach((m, k) => { const lit = step % 3 === k % 3, b = lit ? 0.55 + 0.45 * (1 - sub) : 0.22; m.f.color.copy(m.fc).multiplyScalar(0.3 + 0.7 * b); m.e.color.copy(m.ec).multiplyScalar(0.4 + 0.6 * b); });
     if (this.centreLit) { this.centreLit[0].material.opacity = 0.7 + 0.3 * pulse + 0.1 * Math.sin(t * 2.2); const k = 1 + 0.05 * pulse; this.centreLit[1].scale.set(230 * k, 230 * k, 1); this.centreLit[1].material.opacity = 0.75 + 0.25 * pulse; }
     this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; const mx = m.position.x + R.off(s); this.ringPos(s, mx, (h.userData.flat ? 0.1 : 0) + this.bankY(mx) + R.dep(s), h.position); h.rotation.y = s / KART.R; if (h.userData.flat) { h.scale.setScalar(s > KART.GATE_S ? 0.55 : 1);      /* (smaller in the tunnel, the user) */ h.userData.chev.forEach((c, k) => { const st = this.arrowStep || { step: 0, sub: 0 }, w = st.step % 3 === k ? 1 - st.sub : 0, b = 0.45 + 0.55 * w + 0.2 * pulse; c.fm.color.copy(c.col).multiplyScalar(b); c.em.color.copy(c.rimC).multiplyScalar(0.5 + 0.5 * b); c.gm.opacity = 0.2 + 0.4 * w * w; }); return; } m.position.set(0, m.position.y, 0); });

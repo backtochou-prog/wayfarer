@@ -57,6 +57,7 @@ class Race {
     if (this.kart) this.items = this.items.filter(it => it.s < KART.FUNNEL - 30 || it.s > KART.GATE_S + 90);
     if (this.kart) {                                                                                  // IN THE TUNNEL (lap 4) the speed arrows run only along the two sides (the user: none in the middle), in tidy
       let side = 1, last = -1e9;                                                                     // lines: each line of arrows on one side, the next line on the other side
+      { let kept = false; this.items = this.items.filter(it => { if (it.type !== 'ramp' || it.s <= KART.GATE_S) return true; if (kept) return false; kept = true; return true; }); }      // one ramp only in the tunnel
       for (const it of this.items) if (it.type === 'spiral' && it.s > KART.GATE_S) { if (it.s - last > 20) side = -side; it.lane = side; last = it.s; } }      // (nothing on the road where the barriers funnel the karts into the gate)
     this.items.sort((a, b) => a.s - b.s);
   }
