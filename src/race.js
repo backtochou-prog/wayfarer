@@ -11,7 +11,7 @@ const RACE = {
   DROID_V: 12, DROID_TRIGGER: 50, RAMP_BEFORE: 30, BUMP_MUL: 0.6, BUMP_T: 0.9, BUMP_GAP: 4.4,          /* running into the back of the robot's car: it is an obstacle like any other, the player is slowed and held behind it */
 };
 // THE KART CIRCUIT (the Galerie Gasperi, a ring inside a big shopping centre): the same rules over two laps of a ring of radius R (src3d/kart3d.js draws it)
-const KART = { R: 240, LAPS: 2 }; KART.LAP = 2 * Math.PI * KART.R; KART.LEN = Math.round(KART.LAP * KART.LAPS);
+const KART = { R: 240, LAPS: 4, BANK: 1.6 };      /* (4 laps: the user added two; BANK: how far the inner edge goes down in lap 2, metres) */ KART.LAP = 2 * Math.PI * KART.R; KART.LEN = Math.round(KART.LAP * KART.LAPS);
 class Race {
   constructor(seed, opts) {
     this.len = (opts && opts.len) || RACE.LEN; this.kart = !!(opts && opts.kart);      // (the KART circuit of the Galerie Gasperi: laps of a ring, src3d/kart3d.js)
@@ -20,7 +20,7 @@ class Race {
     this.bot = { s: 0, speed: RACE.BASE * 0.65, lane: 1, x: RACE.LANE_M, finishT: null };             // the two cars start SIDE BY SIDE on the line, one at each side of the track (the player on the left, the robot on the right: a lane of road between them)                                              
     if (this.kart) {                                                                                  // THE KART CIRCUIT races EIGHT robot karts (the user: '8 voitures robots qui font la course avec le joueur; il doit les doubler sans les toucher par derrière'):
       this.bots = [];                                                                                 // they start spread out ahead of the player, the nearest the fastest, all a little slower than the player's own pace, each weaving through the lanes
-      for (let i = 0; i < 8; i++) { const lane = [1, 0, -1, 1, -1, 0, 1, -1][i]; this.bots.push({ s: 30 + i * 28, lane, x: lane * RACE.LANE_M, v: 42 - i * 1.1, speed: 30, finishT: null, i }); }
+      for (let i = 0; i < 8; i++) { const lane = [1, 0, -1, 1, -1, 0, 1, -1][i]; this.bots.push({ s: 30 + i * 28, lane, x: lane * RACE.LANE_M, v: 46 - i * 0.45, speed: 30, finishT: null, i }); }
       this.bot = this.bots[7];
     }
     this.items = []; this.events = []; this.build();
