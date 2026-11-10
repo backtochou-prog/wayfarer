@@ -44,7 +44,7 @@ class Renderer {
     const bar = (frac, y, col) => { ctx.fillStyle = '#1a1030'; ctx.fillRect(x0, y, w, 5); ctx.fillStyle = col; ctx.fillRect(x0, y, Math.round(w * Math.max(0, Math.min(1, frac))), 5); ctx.fillStyle = '#fff'; ctx.fillRect(x0 + Math.round(w * Math.max(0, Math.min(1, frac))) - 1, y - 1, 2, 7); };
     bar(p.s / R.len, 6, '#35e6ff'); bar(R.bot.s / R.len, 16, '#ff2a4a');
     this.txt('YOU', x0 - 24, 5, '#35e6ff'); this.txt('BOT', x0 - 24, 15, '#ff2a4a');
-    if (R.kart && R.keepLeft(p.s) && p.lane > -1 && Math.floor(g.time * 3) % 2 === 0) { ctx.fillStyle = 'rgba(5,10,8,0.7)'; ctx.fillRect(40, 116, 240, 20); this.ctr('<<  SERREZ A GAUCHE  <<', 120, '#39ff14', 2); }      // (the detour: blinking until the kart is in the left lane)
+    if (R.kart) this.drawComm(g, R.keepLeft(p.s) && p.lane > -1);      // the detour's notification, as a holographic comm panel      // (the detour: blinking until the kart is in the left lane)
     if (R.kart) { const pl = R.place(), lap = Math.min(KART.LAPS, 1 + Math.floor(p.s / KART.LAP)); this.ctr('TOUR ' + lap + '/' + KART.LAPS + '   PLACE ' + pl + '/9', 33, pl === 1 ? '#7affc8' : '#ffd24a'); }      // (the kart: the player's place among the nine karts)
     else this.ctr(gap > 0 ? 'ROBOT +' + Math.round(gap) + ' M' : 'YOU +' + Math.round(-gap) + ' M', 33, gap > 0 ? '#ff6a7a' : '#7affc8');
     this.txt('RARE ' + g.rare, 6, 6, '#ffd24a');
@@ -69,6 +69,27 @@ class Renderer {
     if (R.cd > 0) this.ctr(R.cd > 0.5 ? String(Math.ceil(R.cd - 0.5)) : 'GO', cy, R.kart ? '#2bff6a' : '#fff', cs);
     else if (R.t < 1.2) this.ctr('GO', cy, '#7affc8', cs);
     if (R.done) { const win = R.result === 'win'; ctx.fillStyle = 'rgba(8,4,16,0.6)'; ctx.fillRect(0, 62, VW, 54); this.ctr(win ? 'YOU WIN' : 'ROBOT WINS', 68, win ? '#7affc8' : '#ff6a7a', 4); this.ctr(win ? '+30 COINS' : 'BACK TO THE ROAD', 98, '#f2ead6'); this.ctr('THE SPHERE IS CLOSED UNTIL THE NEXT ZONE', 108, '#a090c0'); }
+  }
+
+  // THE COMM PANEL (the user: a pop-up like a virtual communication on a sophisticated spaceship: an orange frame, inside a see-through blue glass a little turquoise): it pops open
+  // (grows from a line in 0.25 s), hums (scanlines, a faint flicker), and folds away when the kart is in the left lane
+  drawComm(g, on) {
+    const ctx = this.ctx, t = g.time; this.commK = Math.max(0, Math.min(1, (this.commK || 0) + (on ? 1 : -1) * (this._commT === undefined ? 0 : Math.max(0, t - this._commT)) * 4)); this._commT = t;
+    const k = this.commK; if (k <= 0.01) return;
+    const W = 200, H = 34, x0 = (VW - W) / 2, cy = 90, h = Math.max(2, Math.round(H * k)), y0 = Math.round(cy - h / 2), fl = 0.9 + 0.1 * Math.sin(t * 37) * Math.sin(t * 11);
+    ctx.save(); ctx.globalAlpha = fl;
+    ctx.fillStyle = 'rgba(20,120,170,0.30)'; ctx.fillRect(x0, y0, W, h);                                    // the glass: blue, a little turquoise, see-through
+    ctx.fillStyle = 'rgba(60,230,255,0.10)'; for (let y = y0 + ((t * 20) | 0) % 3; y < y0 + h; y += 3) ctx.fillRect(x0 + 1, y, W - 2, 1);      // scanlines, drifting
+    ctx.fillStyle = 'rgba(140,250,255,0.18)'; ctx.fillRect(x0 + 1, y0 + 1, W - 2, 1);                      // a glint along the top
+    const o = '#ff9a2a', c = 9;                                                                          // the orange frame: thin edges and heavier corner brackets
+    ctx.fillStyle = 'rgba(255,154,42,0.55)'; ctx.fillRect(x0, y0, W, 1); ctx.fillRect(x0, y0 + h - 1, W, 1); ctx.fillRect(x0, y0, 1, h); ctx.fillRect(x0 + W - 1, y0, 1, h);
+    ctx.fillStyle = o; for (const [bx, by, sx, sy] of [[x0, y0, 1, 1], [x0 + W, y0, -1, 1], [x0, y0 + h, 1, -1], [x0 + W, y0 + h, -1, -1]]) { ctx.fillRect(sx > 0 ? bx - 1 : bx - c + 1, sy > 0 ? by - 1 : by - 2, c, 2); ctx.fillRect(sx > 0 ? bx - 1 : bx - 1, sy > 0 ? by - 1 : by - c + 1, 2, Math.min(c, h + 2)); }
+    if (k > 0.85) {
+      ctx.globalAlpha = fl * (k - 0.85) / 0.15;
+      this.txt('COMM // NAV', x0 + 6, y0 + 4, o); if (Math.floor(t * 2) % 2) { ctx.fillStyle = o; ctx.fillRect(x0 + W - 10, y0 + 4, 4, 4); }      // the live light
+      const msg = '<< SERREZ A GAUCHE'; this.txt(msg, Math.round(x0 + (W - textW(msg, 2)) / 2), y0 + 15, '#bff8ff', 2, '#0a3a4a');
+    }
+    ctx.restore();
   }
 
   // HUD, touch controls and screens; also used on its own as the overlay of the 3D front end
