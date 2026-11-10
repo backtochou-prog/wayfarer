@@ -120,10 +120,11 @@ class Kart3D {
     // pointing forward, every 40 m, lit one after the other toward the front
     { const chev = k => { const sh = new THREE.Shape(); sh.moveTo(0.4 * k, 0.7 * k); sh.lineTo(-0.4 * k, 0); sh.lineTo(0.4 * k, -0.7 * k); sh.lineTo(0.78 * k, -0.7 * k); sh.lineTo(-0.02 * k, 0); sh.lineTo(0.78 * k, 0.7 * k); sh.closePath(); const g = new THREE.ShapeGeometry(sh); g.rotateY(-Math.PI / 2); return g; };   // the tip forward (-z), facing the track
       const fill = chev(1), rim = chev(1.2); rim.translate(0.01, 0, 0.03);
-      this.arrowMats = [0, 1, 2].map(() => ({ f: new THREE.MeshBasicMaterial({ color: '#1a4cff', fog: false, side: THREE.DoubleSide }), e: new THREE.MeshBasicMaterial({ color: '#35f0ff', fog: false, side: THREE.DoubleSide }) }));
+      const pair = (fc, ec) => [0, 1, 2].map(() => ({ fc: new THREE.Color(fc), ec: new THREE.Color(ec), f: new THREE.MeshBasicMaterial({ color: fc, fog: false, side: THREE.DoubleSide }), e: new THREE.MeshBasicMaterial({ color: ec, fog: false, side: THREE.DoubleSide }) }));
+      this.arrowMats = pair('#1a4cff', '#35f0ff').concat(pair('#ff1a2a', '#ff8a1a'));      // blue with a turquoise rim on the outer wall; RED with an ORANGE rim on the inner wall, facing them (the user)
       this.chev = chev;
-      for (let s0 = 20; s0 < KART.LAP; s0 += 40) for (let k = 0; k < 3; k++) { const h = new THREE.Group(), m = this.arrowMats[k], e = new THREE.Mesh(rim, m.e), f = new THREE.Mesh(fill, m.f); f.position.x = -0.02;
-        h.add(e, f); const s1 = s0 + k * 3.2; this.ringPos(s1, 6.72, 0.72, h.position); h.rotation.y = s1 / R; h.scale.set(1, 0.85, 2.6);      /* (stretched along the track: seen from the kart the wall is at a grazing angle) */ sc.add(h); } }
+      for (const side of [1, -1]) for (let s0 = 20; s0 < KART.LAP; s0 += 40) for (let k = 0; k < 3; k++) { const h = new THREE.Group(), m = this.arrowMats[k + (side < 0 ? 3 : 0)], e = new THREE.Mesh(rim, m.e), f = new THREE.Mesh(fill, m.f); f.position.x = -0.02;
+        h.add(e, f); const s1 = s0 + k * 3.2; this.ringPos(s1, side * 6.72, 0.72, h.position); h.rotation.y = s1 / R; h.scale.set(side, 0.85, 2.6);      /* (stretched along the track: seen from the kart the wall is at a grazing angle) */ sc.add(h); } }
     this.holders = null; this.bound = null; this.camPos = new THREE.Vector3(); this.v = new THREE.Vector3();
   }
   ringPos(s, x, y, out) { const a = s / KART.R, r = KART.R + x; return (out || new THREE.Vector3()).set(-KART.R + r * Math.cos(a), y, -r * Math.sin(a)); }
@@ -145,16 +146,16 @@ class Kart3D {
     const R = g.race; if (this.bound !== R) this.bind(R);
     const bt = g.sfx ? g.sfx.beat() : null, pulse = bt ? bt.pulse * (0.45 + 0.55 * bt.energy) : 0, t = g.time, p = R.p, air = p.air > 0 ? Math.sin(Math.PI * (1 - p.air / RACE.JUMP_T)) : 0;
     this.r3.placeItems(R, t, pulse);
-    if (this.arrowMats) this.arrowMats.forEach((m, k) => { const w = Math.max(0, Math.cos(t * 7 - k * 1.4)), b = 0.25 + 0.75 * w * w; m.f.color.setRGB(0.04 + 0.08 * b, 0.12 + 0.25 * b, 0.35 + 0.65 * b); m.e.color.setRGB(0.1 + 0.1 * b, 0.35 + 0.6 * b, 0.4 + 0.6 * b); });      // the chase light runs toward the front
+    if (this.arrowMats) this.arrowMats.forEach((m, k) => { const w = Math.max(0, Math.cos(t * 7 - (k % 3) * 1.4)), b = 0.25 + 0.75 * w * w; m.f.color.copy(m.fc).multiplyScalar(0.3 + 0.7 * b); m.e.color.copy(m.ec).multiplyScalar(0.4 + 0.6 * b); });      // the chase light runs toward the front
     if (this.centreLit) { this.centreLit[0].material.opacity = 0.7 + 0.3 * pulse + 0.1 * Math.sin(t * 2.2); const k = 1 + 0.05 * pulse; this.centreLit[1].scale.set(230 * k, 230 * k, 1); this.centreLit[1].material.opacity = 0.75 + 0.25 * pulse; }
     this.r3.meshes.forEach((m, i) => { const h = this.holders[i]; h.visible = m.visible; if (!m.visible) return; const s = -m.position.z; this.ringPos(s, m.position.x, h.userData.flat ? 0.1 : 0, h.position); h.rotation.y = s / KART.R; if (h.userData.flat) { h.userData.chev.forEach((c, k) => { const w = Math.max(0, Math.cos(t * 7 - k * 1.4)), b = 0.45 + 0.55 * w * w + 0.2 * pulse; c.fm.color.copy(c.col).multiplyScalar(b); c.em.color.copy(c.rimC).multiplyScalar(0.5 + 0.5 * b); c.gm.opacity = 0.2 + 0.4 * w * w; }); return; } m.position.set(0, m.position.y, 0); });
     const put = (o, s, x, y, yaw) => { this.ringPos(s, x, y, o.position); o.rotation.set(0, s / KART.R + (yaw || 0), 0); };
     put(this.car, p.s, p.x, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04); if (R.bots) R.bots.forEach((b, i) => put(this.bots[i], b.s, b.x, 0.02)); else { this.bot.visible = true; put(this.bot, R.bot.s, R.bot.x, 0.02); }
     const f = 64 + Math.min(14, p.speed - RACE.BASE) * 0.9; if (Math.abs(this.camera.fov - f) > 0.05) { this.camera.fov += (f - this.camera.fov) * 0.1; this.camera.updateProjectionMatrix(); }
     if (g.kartCam) {                                                                                   // THE SATURN VIEW (optional, V or a tap on the bars): outside the track, a little behind and above the kart, looking at it across the
-      this.ringPos(p.s - 7, p.x * 0.6 + 2.4, 3.0 + air, this.camPos);                                                 // track toward the centre, so the sphere in its rings stands whole behind the kart
+      this.ringPos(p.s - 10, p.x * 0.6 + 2.4, 3.0 + air, this.camPos);      /* (the user: the same view, only moved back 3 m, not turned) */                                                 // track toward the centre, so the sphere in its rings stands whole behind the kart
       if (this.camera.position.distanceTo(this.camPos) > 6) this.camera.position.copy(this.camPos); else this.camera.position.lerp(this.camPos, 0.5);
-      this.camera.lookAt(this.ringPos(p.s + 12, p.x * 0.5 - 7, 1.6, this.v));
+      this.camera.lookAt(this.ringPos(p.s + 9, p.x * 0.5 - 7, 1.6, this.v));
     } else {
     this.ringPos(p.s - 4.6, p.x * 0.6, 2.1 + air, this.camPos); if (this.camera.position.distanceTo(this.camPos) > 6) this.camera.position.copy(this.camPos); else this.camera.position.lerp(this.camPos, 0.5);
     this.camera.lookAt(this.ringPos(p.s + 12, p.x * 0.4, 0.9 + air * 0.6, this.v));
