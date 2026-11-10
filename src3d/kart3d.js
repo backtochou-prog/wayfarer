@@ -22,7 +22,7 @@ class Kart3D {
     this.tileU = { uOld: { value: new THREE.Color(this.LAPCOL[0][0]) }, uNew: { value: new THREE.Color(this.LAPCOL[0][0]) }, uAOld: { value: 1 }, uANew: { value: 1 }, uFront: { value: 1e9 }, uLapLen: { value: KART.LAP }, uRep: { value: tiles.repeat }, uBar: { value: [0, 0, 0, 0, 0, 0] } };
     this.tileLap = 0; this.tileT0 = 0;
     this.paintTiles = (lap, t) => { const c = this.LAPCOL[Math.min(lap, this.LAPCOL.length - 1)], U = this.tileU; U.uOld.value.copy(U.uNew.value); U.uAOld.value = U.uANew.value; U.uNew.value.set(c[0]); U.uANew.value = c[2]; U.uFront.value = 0; this.tileT0 = t; this.tileLap = lap;
-      if (this.under) this.under.material.color.set(c[0]).multiplyScalar(0.35); };
+      };
     const ring = (r0, r1, mat, y, seg) => { const g = new THREE.RingGeometry(r0, r1, seg || 720, 1); const m = new THREE.Mesh(g, mat); m.rotation.x = -Math.PI / 2; m.position.set(-R, y || 0, 0); sc.add(m); return m; };
     { const g = new THREE.RingGeometry(R - 6.5, R + 6.5, 720, 1), uv = g.attributes.uv, pos = g.attributes.position;          // the track's uv: u along the ring, v across
       for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), a = Math.atan2(y, x), r = Math.hypot(x, y); uv.setXY(i, (a < 0 ? a + 2 * Math.PI : a) / (2 * Math.PI), (r - (R - 6.5)) / 13); }
@@ -36,7 +36,12 @@ class Kart3D {
       if (typeof KART_ART !== 'undefined' && KART_ART.garden) { const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.garden; gm = new THREE.MeshBasicMaterial({ map: t }); }
       gm.side = THREE.DoubleSide; ring(0, R - 6.5, gm, 0, 360); }      // (both sides: seen from the banked track, below its level, the garden must still hide the tunnel underneath)                                                   // the garden
     for (const r of [R - 1.2, R + 1.2]) this.banked.push(ring(r - 0.06, r + 0.06, new THREE.MeshBasicMaterial({ color: '#0a0c0b' }), 0.02));          // the lane lines
-    this.under = ring(R - 7, R + 7, new THREE.MeshBasicMaterial({ color: '#000' }), -2 * KART.BANK - 0.6); this.under.material.color.set(this.LAPCOL[0][0]).multiplyScalar(0.35);                         // the glowing floor under the see-through tiles
+    this.under = ring(R - 7, R + 7, new THREE.MeshBasicMaterial({ color: '#000' }), -2 * KART.BANK - 0.6); this.under.material.color.set('#ffffff');
+    // the under-floor glow follows the SAME equalizer wave as the tiles (it showed through the see-through orange tiles and turned red at once at the start of lap 3: the user)
+    this.under.material.onBeforeCompile = sh => { Object.assign(sh.uniforms, this.tileU, { uR: { value: R } });
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;').replace('#include <project_vertex>', '#include <project_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp; uniform vec3 uOld; uniform vec3 uNew; uniform float uFront; uniform float uLapLen; uniform float uBar[6]; uniform float uR;')
+        .replace('#include <color_fragment>', '#include <color_fragment>\nfloat ang = atan(-vWp.z, vWp.x + uR); if (ang < 0.0) ang += 6.2831853; float rr = length(vec2(vWp.x + uR, vWp.z)); int jc = int(clamp(floor((rr - (uR - 6.5)) / 13.0 * 6.0), 0.0, 5.0));\nfloat rowS = floor(ang * uR / 2.0) * 2.0; float isNew = step(rowS + uBar[jc], uFront); diffuseColor.rgb *= mix(uOld, uNew, isNew) * 0.35;'); };                         // the glowing floor under the see-through tiles
     for (const m of this.banked) { const P = m.geometry.attributes.position; m.userData.r = Float32Array.from({ length: P.count }, (_, i) => Math.hypot(P.getX(i), P.getY(i))); }
     this.bank = 0; this.setBank = b => { if (Math.abs(b - this.bank) < 1e-3) return; this.bank = b;                                              // THE BANKING (lap 2: the left, inner side of the track goes down)
       for (const m of this.banked) { const P = m.geometry.attributes.position, r = m.userData.r; for (let i = 0; i < P.count; i++) P.setZ(i, this.bankY(r[i] - R)); P.needsUpdate = true; m.geometry.computeBoundingSphere(); }
