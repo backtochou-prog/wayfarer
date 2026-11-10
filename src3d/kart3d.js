@@ -155,7 +155,7 @@ class Kart3D {
       const beam = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, W + 1.2), pil); beam.position.y = 3.6; G.add(beam); const nb = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.12, W + 1.2), neon); nb.position.y = 3.35; G.add(nb);
       const dm = new THREE.MeshPhongMaterial({ color: '#0a0f14', transparent: true, opacity: 0.85, specular: 0x8899aa, shininess: 80 }), dl = new THREE.MeshBasicMaterial({ color: '#39ff14', fog: false });
       this.doors = [-1, 1].map(sd => { const d = new THREE.Group(), pane = new THREE.Mesh(new THREE.BoxGeometry(0.15, 3.0, W / 2), dm), line = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, W / 2 - 0.3), dl), line2 = line.clone(); pane.position.y = 1.5; line.position.y = 2.6; line2.position.y = 0.6; d.add(pane, line, line2); d.userData.z0 = sd * W / 4; d.position.z = d.userData.z0; G.add(d); return d; });
-      G.position.set(-6.8, 0, 0); this.innerSide.add(G); this.gateK = 0;
+      G.position.set(-6.8, 0, -1.5); G.rotation.y = -0.7; this.innerSide.add(G); this.gateK = 0;      /* (turned 40 degrees: the gate faces the karts coming down the detour lane, the user) */
       // THE ENTRANCE ROAD (the user: clear room in the roundabout for the entrance road and its lines, without touching the rest of the decor): an 8 m strip with pink edge lines that follows the
       // karts' path (the left lane, shifted by Race.off) from the track, through the gate, onto the inner ring road; the garden's trees and planters keep out of it (they stand at R - 30 and further in)
       { const off = q => { const v = Math.max(0, Math.min(1, (q - KART.TURN) / KART.TURN_L)); return KART.INNER * v * v * (3 - 2 * v); }, N2 = 40, pos = [], idx = [], lp = [], rp = [];
