@@ -34,7 +34,7 @@ class Kart3D {
     ring(R + 6.5, R + 60, new THREE.MeshLambertMaterial({ color: '#d8d2c6' }), 0);                                              // the walk of the mall, pale stone
     { let gm = new THREE.MeshLambertMaterial({ color: '#5a7a46' });                                       // the garden: the user's spiral picture over the whole disc, out to the track's inner edge (was a lawn)
       if (typeof KART_ART !== 'undefined' && KART_ART.garden) { const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.garden; gm = new THREE.MeshBasicMaterial({ map: t }); }
-      ring(0, R - 6.5, gm, 0, 360); }                                                   // the garden
+      gm.side = THREE.DoubleSide; ring(0, R - 6.5, gm, 0, 360); }      // (both sides: seen from the banked track, below its level, the garden must still hide the tunnel underneath)                                                   // the garden
     for (const r of [R - 1.2, R + 1.2]) this.banked.push(ring(r - 0.06, r + 0.06, new THREE.MeshBasicMaterial({ color: '#0a0c0b' }), 0.02));          // the lane lines
     this.under = ring(R - 7, R + 7, new THREE.MeshBasicMaterial({ color: '#000' }), -2 * KART.BANK - 0.6); this.under.material.color.set(this.LAPCOL[0][0]).multiplyScalar(0.35);                         // the glowing floor under the see-through tiles
     for (const m of this.banked) { const P = m.geometry.attributes.position; m.userData.r = Float32Array.from({ length: P.count }, (_, i) => Math.hypot(P.getX(i), P.getY(i))); }
@@ -43,6 +43,8 @@ class Kart3D {
       if (this.innerSide) this.innerSide.position.y = -KART.BANK * b; };
     // THE BARRIERS: a low wall on each side with a warm light strip
     this.innerSide = new THREE.Group(); sc.add(this.innerSide);
+    { const r = R - 7.0, gap = KART.GATE_W / r, sk = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 4.2, 720, 1, true, Math.PI / 2 + gap / 2, 2 * Math.PI - gap), new THREE.MeshBasicMaterial({ color: '#160f12', side: THREE.DoubleSide }));      // the inner bank's skirt: a fixed wall under the
+      sk.position.set(-R, -2.1, 0); sc.add(sk); }                                                                                                                       // garden's edge, so the lowered track never looks under the garden (the tunnel)
     for (const [r, s] of [[R - 6.8, 1], [R + 6.8, -1]]) { const par = s > 0 ? this.innerSide : sc;
       const gap = s > 0 ? KART.GATE_W / r : 0, w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1.5, 720, 1, true, Math.PI / 2 + gap / 2, 2 * Math.PI - gap), new THREE.MeshLambertMaterial({ color: '#3a2b22', side: THREE.DoubleSide })); w.position.set(-R, 0.75, 0); par.add(w);
       const l = new THREE.Mesh(new THREE.CylinderGeometry(r + s * 0.05, r + s * 0.05, 0.08, 720, 1, true, Math.PI / 2 + gap / 2, 2 * Math.PI - gap), new THREE.MeshBasicMaterial({ color: '#ffd27a', side: THREE.DoubleSide })); l.position.set(-R, 1.46, 0); par.add(l); }
@@ -173,7 +175,7 @@ class Kart3D {
           const fl = ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#120a10', specular: 0x886677, shininess: 70 }), -KART.TD + 0.02);       // the tunnel's floor
           for (const r of [R - 19.6, R - 12.4]) ring(r - 0.08, r + 0.08, new THREE.MeshBasicMaterial({ color: '#ffd27a', fog: false }), -KART.TD + 0.04); }
         for (const L of [lp, rp]) { const lg = new THREE.BufferGeometry().setFromPoints(L), ln = new THREE.Line(lg, new THREE.LineBasicMaterial({ color: '#ff3fd0', fog: false })); sc.add(ln); } }
-      ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#0b0d10', emissive: '#1a0830', specular: 0x8899aa, shininess: 80 }), 0.02);                          // the inner ring road
+      ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#0b0d10', emissive: '#1a0830', specular: 0x8899aa, shininess: 80, side: THREE.DoubleSide }), 0.02);                          // the inner ring road
       for (const r of [R - 20, R - 12]) ring(r - 0.1, r + 0.1, new THREE.MeshBasicMaterial({ color: '#ff3fd0', fog: false }), 0.03); }
     // THE NEON BARRIERS at the end of lap 3 (shown while the player is in lap 3 and through the gate): a diagonal of laser posts closing the lanes from the right toward the gate,
     // and a barrier across the big ring just past the line (no fourth lap on it); arrows on them point left, into the gate
@@ -182,7 +184,7 @@ class Kart3D {
       // a DETOUR all along lap 3, like the cones that lead a motorway onto its exit: a laser fence on the right shoulder from the start of lap 3, then across the right lane (FUNNEL), then across the middle
       // lane (FUNNEL2), keeping only the left lane to the gate
       const pts = [], sm2 = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
-      for (let s1 = 2 * KART.LAP + 10; s1 <= KART.GATE_S - 4; s1 += 12) pts.push([s1, 6.0 - 4.8 * sm2((s1 - KART.FUNNEL) / 120) - 2.4 * sm2((s1 - KART.FUNNEL2) / 80)]);
+      for (let s1 = 2 * KART.LAP + 10; s1 <= KART.GATE_S - 4; s1 += 12) pts.push([s1, KART.fence(s1)]);
       const P = pts.map(([s1, x]) => this.ringPos(s1, x, 0));
       pts.forEach(([s1, x], i) => { const pm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.6, 0.25), post); pm.position.copy(P[i]).setY(0.8); pm.userData.bx = x; B.add(pm);
         const tip = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.3), i % 2 ? las2 : las); tip.position.copy(P[i]).setY(1.66); tip.userData.bx = x; B.add(tip);
