@@ -40,10 +40,10 @@ class Renderer {
   // the race zone's HUD: two progress bars (the player in turquoise, the robot in red), the gap, the speed, the boost or brake, the rare tokens, the countdown and the result
   drawRaceHud(g) {
     const R = g.race, p = R.p, ctx = this.ctx, x0 = 80, w = 160, gap = R.gap(), kmh = Math.round(p.speed * 3.6);
-    ctx.fillStyle = 'rgba(8,4,16,0.72)'; ctx.fillRect(x0 - 4, 3, w + 8, 27);
-    const bar = (frac, y, col) => { ctx.fillStyle = '#1a1030'; ctx.fillRect(x0, y, w, 5); ctx.fillStyle = col; ctx.fillRect(x0, y, Math.round(w * Math.max(0, Math.min(1, frac))), 5); ctx.fillStyle = '#fff'; ctx.fillRect(x0 + Math.round(w * Math.max(0, Math.min(1, frac))) - 1, y - 1, 2, 7); };
-    bar(p.s / R.len, 6, '#35e6ff'); bar(R.bot.s / R.len, 16, '#ff2a4a');
-    this.txt('YOU', x0 - 24, 5, '#35e6ff'); this.txt('BOT', x0 - 24, 15, '#ff2a4a');
+    if (R.kart) this.holo(x0 - 30, 2, w + 36, 29, g.time, 5); else { ctx.fillStyle = 'rgba(8,4,16,0.72)'; ctx.fillRect(x0 - 4, 3, w + 8, 27); }      // (the kart: the gauges in the holographic panel)
+    const bar = (frac, y, col) => { ctx.fillStyle = R.kart ? 'rgba(4,30,44,0.55)' : '#1a1030'; ctx.fillRect(x0, y, w, 5); ctx.fillStyle = col; ctx.fillRect(x0, y, Math.round(w * Math.max(0, Math.min(1, frac))), 5); ctx.fillStyle = '#fff'; ctx.fillRect(x0 + Math.round(w * Math.max(0, Math.min(1, frac))) - 1, y - 1, 2, 7); };
+    bar(p.s / R.len, 6, '#35e6ff'); bar(R.bot.s / R.len, 16, R.kart ? '#ff9a2a' : '#ff2a4a');
+    this.txt('YOU', x0 - 24, 5, '#35e6ff'); this.txt('BOT', x0 - 24, 15, R.kart ? '#ff9a2a' : '#ff2a4a');
     if (R.kart) this.drawComm(g, R.keepLeft(p.s) && p.lane > -1);      // the detour's notification, as a holographic comm panel      // (the detour: blinking until the kart is in the left lane)
     if (R.kart) { const pl = R.place(), lap = Math.min(KART.LAPS, 1 + Math.floor(p.s / KART.LAP)); this.ctr('TOUR ' + lap + '/' + KART.LAPS + '   PLACE ' + pl + '/9', 33, pl === 1 ? '#7affc8' : '#ffd24a'); }      // (the kart: the player's place among the nine karts)
     else this.ctr(gap > 0 ? 'ROBOT +' + Math.round(gap) + ' M' : 'YOU +' + Math.round(-gap) + ' M', 33, gap > 0 ? '#ff6a7a' : '#7affc8');
@@ -52,14 +52,13 @@ class Renderer {
     if (p.brakeT > 0) this.ctr('BRAKE', 146, '#ff4fd8'); else if (p.hitT > 0) this.ctr('HIT', 146, '#ff4a4a'); else if (p.boostT > 0) this.ctr('BOOST +' + Math.round(p.boost * 3.6), 146, ['#ff5a6a', '#d070ff', '#7aff40', '#d8ff30'][RACE.SPIRAL.findIndex(c => c.add === p.boost)] || '#fff');
     if (p.pedal && !(p.brakeT > 0 || p.hitT > 0 || p.boostT > 0)) this.ctr(p.pedal === 'brake' ? 'BRAKE' : 'ACCEL', 146, p.pedal === 'brake' ? '#ff8aa0' : '#7affc8');      // the pedals (held)
     if (R.menu) {                                                                          // THE KART QUICK MENU: a see-through panel over the circuit
-      ctx.fillStyle = 'rgba(10,6,24,0.35)'; ctx.fillRect(84, 40, 152, 112); ctx.fillStyle = '#39ff14'; ctx.fillRect(84, 40, 152, 1); ctx.fillRect(84, 151, 152, 1);
-      this.ctr('KARTING', 46, '#39ff14');
+      this.holo(84, 40, 152, 112, g.time, 9); this.txt('KARTING // NAV', 90, 44, '#ff9a2a'); if (Math.floor(g.time * 2) % 2) { ctx.fillStyle = '#ff9a2a'; ctx.fillRect(226, 44, 4, 4); }
       const vrOk = !!(g.r && g.r.xr && g.r.xr.button);
       for (const b of KMENU) {                                                             // see-through buttons with a neon edge (green; turquoise under the pointer; grey when VR is not available)
-        const m = g.mouse, hov = m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h, off = b.id === 'vr' && !vrOk, col = off ? '#5a5870' : hov ? '#35f0ff' : '#39ff14';
-        ctx.fillStyle = hov && !off ? 'rgba(6,30,34,0.6)' : 'rgba(6,8,10,0.5)'; ctx.fillRect(b.x, b.y, b.w, b.h);
-        ctx.fillStyle = col; ctx.fillRect(b.x, b.y, b.w, 1); ctx.fillRect(b.x, b.y + b.h - 1, b.w, 1); ctx.fillRect(b.x, b.y, 1, b.h); ctx.fillRect(b.x + b.w - 1, b.y, 1, b.h);
-        this.txt(b.label, Math.round(b.x + (b.w - textW(b.label, 2)) / 2), b.y + 3, col, 2);
+        const m = g.mouse, hov = m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h, off = b.id === 'vr' && !vrOk, col = off ? '#6a7890' : hov ? '#ffffff' : '#bff8ff';
+        ctx.fillStyle = hov && !off ? 'rgba(60,230,255,0.28)' : 'rgba(10,60,90,0.35)'; ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.fillStyle = off ? '#4a5060' : hov ? '#ffd27a' : '#ff9a2a'; ctx.fillRect(b.x, b.y, b.w, 1); ctx.fillRect(b.x, b.y + b.h - 1, b.w, 1); ctx.fillRect(b.x, b.y, 2, b.h); ctx.fillRect(b.x + b.w - 2, b.y, 2, b.h);
+        this.txt(b.label, Math.round(b.x + (b.w - textW(b.label, 2)) / 2), b.y + 3, col, 2, '#0a3a4a');
       }
       if (!(g.r && g.r.xr && g.r.xr.button)) this.ctr('VR: CASQUE REQUIS', 138, '#8a86a0');
       return;
@@ -73,17 +72,21 @@ class Renderer {
 
   // THE COMM PANEL (the user: a pop-up like a virtual communication on a sophisticated spaceship: an orange frame, inside a see-through blue glass a little turquoise): it pops open
   // (grows from a line in 0.25 s), hums (scanlines, a faint flicker), and folds away when the kart is in the left lane
+  // the holographic panel of the kart circuit: blue-turquoise see-through glass, drifting scanlines, a glint, an orange frame with corner brackets
+  holo(x0, y0, W, h, t, c) {
+    const ctx = this.ctx; c = c || 7;
+    ctx.fillStyle = 'rgba(20,120,170,0.30)'; ctx.fillRect(x0, y0, W, h);
+    ctx.fillStyle = 'rgba(60,230,255,0.10)'; for (let y = y0 + ((t * 20) | 0) % 3; y < y0 + h; y += 3) ctx.fillRect(x0 + 1, y, W - 2, 1);
+    ctx.fillStyle = 'rgba(140,250,255,0.18)'; ctx.fillRect(x0 + 1, y0 + 1, W - 2, 1);
+    ctx.fillStyle = 'rgba(255,154,42,0.55)'; ctx.fillRect(x0, y0, W, 1); ctx.fillRect(x0, y0 + h - 1, W, 1); ctx.fillRect(x0, y0, 1, h); ctx.fillRect(x0 + W - 1, y0, 1, h);
+    ctx.fillStyle = '#ff9a2a'; for (const [bx, by, sx, sy] of [[x0, y0, 1, 1], [x0 + W, y0, -1, 1], [x0, y0 + h, 1, -1], [x0 + W, y0 + h, -1, -1]]) { ctx.fillRect(sx > 0 ? bx - 1 : bx - c + 1, sy > 0 ? by - 1 : by - 2, c, 2); ctx.fillRect(sx > 0 ? bx - 1 : bx - 1, sy > 0 ? by - 1 : by - c + 1, 2, Math.min(c, h + 2)); }
+  }
   drawComm(g, on) {
     const ctx = this.ctx, t = g.time; this.commK = Math.max(0, Math.min(1, (this.commK || 0) + (on ? 1 : -1) * (this._commT === undefined ? 0 : Math.max(0, t - this._commT)) * 4)); this._commT = t;
     const k = this.commK; if (k <= 0.01) return;
     const W = 150, H = 26, x0 = (VW - W) / 2, cy = 88, h = Math.max(2, Math.round(H * k)), y0 = Math.round(cy - h / 2), fl = 0.9 + 0.1 * Math.sin(t * 37) * Math.sin(t * 11);
     ctx.save(); ctx.globalAlpha = fl;
-    ctx.fillStyle = 'rgba(20,120,170,0.30)'; ctx.fillRect(x0, y0, W, h);                                    // the glass: blue, a little turquoise, see-through
-    ctx.fillStyle = 'rgba(60,230,255,0.10)'; for (let y = y0 + ((t * 20) | 0) % 3; y < y0 + h; y += 3) ctx.fillRect(x0 + 1, y, W - 2, 1);      // scanlines, drifting
-    ctx.fillStyle = 'rgba(140,250,255,0.18)'; ctx.fillRect(x0 + 1, y0 + 1, W - 2, 1);                      // a glint along the top
-    const o = '#ff9a2a', c = 7;                                                                          // the orange frame: thin edges and heavier corner brackets
-    ctx.fillStyle = 'rgba(255,154,42,0.55)'; ctx.fillRect(x0, y0, W, 1); ctx.fillRect(x0, y0 + h - 1, W, 1); ctx.fillRect(x0, y0, 1, h); ctx.fillRect(x0 + W - 1, y0, 1, h);
-    ctx.fillStyle = o; for (const [bx, by, sx, sy] of [[x0, y0, 1, 1], [x0 + W, y0, -1, 1], [x0, y0 + h, 1, -1], [x0 + W, y0 + h, -1, -1]]) { ctx.fillRect(sx > 0 ? bx - 1 : bx - c + 1, sy > 0 ? by - 1 : by - 2, c, 2); ctx.fillRect(sx > 0 ? bx - 1 : bx - 1, sy > 0 ? by - 1 : by - c + 1, 2, Math.min(c, h + 2)); }
+    this.holo(x0, y0, W, h, t, 7); const o = '#ff9a2a';                                                                          // the orange frame: thin edges and heavier corner brackets
     if (k > 0.85) {
       ctx.globalAlpha = fl * (k - 0.85) / 0.15;
       this.txt('COMM // NAV', x0 + 5, y0 + 3, o); if (Math.floor(t * 2) % 2) { ctx.fillStyle = o; ctx.fillRect(x0 + W - 8, y0 + 3, 3, 3); }      // the live light

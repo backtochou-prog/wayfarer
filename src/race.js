@@ -67,15 +67,16 @@ class Race {
     const p = this.p, bot = this.bot; this.t += dt;
     if (input && input.lane !== undefined) p.lane = Math.max(-1, Math.min(1, input.lane));
     p.lane = Math.min(p.lane, this.maxLane(p.s));
-    if (this.kart && p.s > KART.FUNNEL - 20 && p.s < KART.GATE_S && p.x + 1.15 > KART.fence(p.s)) {        // BRUSHING THE FENCE (pushed by it instead of moving left in time): the kart slows and sparks
+    if (this.kart && p.s > KART.FUNNEL - 20 && p.s < KART.GATE_S && p.x + 0.9 > KART.fence(p.s)) {        // BRUSHING THE FENCE (pushed by it instead of moving left in time): the kart slows and sparks
       p.speed *= Math.pow(0.55, dt); p.scrape = (p.scrape || 0) + dt; if (!this._scr) this.events.push({ e: 'scrape' }); this._scr = true; } else this._scr = false;
     p.pedal = input && input.brake ? 'brake' : input && input.accel ? 'accel' : null;                      // (braking wins when both are held)
     p.x += (p.lane * RACE.LANE_M - p.x) * Math.min(1, dt * 9);
     p.boostT = Math.max(0, p.boostT - dt); if (!p.boostT) p.boost = 0; p.brakeT = Math.max(0, p.brakeT - dt); p.hitT = Math.max(0, p.hitT - dt); p.air = Math.max(0, p.air - dt);
     let target = RACE.BASE + p.boost + (p.pedal === 'accel' ? RACE.THROTTLE : 0); if (p.pedal === 'brake') target *= RACE.PEDAL_MUL; if (p.brakeT > 0) target *= RACE.BRAKE_MUL; if (p.hitT > 0) target *= RACE.HIT_MUL;
-    p.speed += Math.max(-RACE.ACCEL * 2.2 * dt, Math.min(RACE.ACCEL * dt, target - p.speed));
+    const coast = this.kart && p.pedal !== 'brake' && !(p.brakeT > 0) && !(p.hitT > 0);      /* the kart: when a boost runs out the speed eases down (it felt like braking by itself: the user) */
+    p.speed += Math.max(-RACE.ACCEL * (coast ? 0.3 : 2.2) * dt, Math.min(RACE.ACCEL * dt, target - p.speed));
     const s0 = p.s; p.s += p.speed * dt;
-    if (this.kart) for (const b of this.bots) { b.lane = Math.max(-1, Math.min(this.maxLane(b.s), Math.round(Math.sin(this.t * 0.27 + b.i * 1.7) * 1.3))); b.x += (b.lane * RACE.LANE_M - b.x) * Math.min(1, dt * 1.4); b.speed += Math.min(14 * dt, b.v * (1 + 0.04 * Math.sin(this.t * 0.9 + b.i)) - b.speed); b.s += b.speed * dt; }
+    if (this.kart) for (const b of this.bots) { { const want = Math.max(-1, Math.min(this.maxLane(b.s), Math.round(Math.sin(this.t * 0.27 + b.i * 1.7) * 1.3))); if (want === b.lane || want > this.maxLane(b.s) || !(p.lane === want && Math.abs(p.s - b.s) < 10)) b.lane = Math.min(want, this.maxLane(b.s)); }      /* (a robot does not cut into the player's lane right beside or in front of the player) */ b.x += (b.lane * RACE.LANE_M - b.x) * Math.min(1, dt * 1.4); b.speed += Math.min(14 * dt, b.v * (1 + 0.04 * Math.sin(this.t * 0.9 + b.i)) - b.speed); b.s += b.speed * dt; }
     else {
     bot.lane = Math.max(-1, Math.min(1, Math.round(Math.sin(this.t * 0.33 + Math.PI / 2) * 1.3)));                       // the robot drifts from lane to lane: the player has to go round it, not through it
     bot.x += (bot.lane * RACE.LANE_M - bot.x) * Math.min(1, dt * 1.6);
@@ -102,7 +103,7 @@ class Race {
       else if (it.type === 'ramp' && p.air <= 0) { it.taken = true; p.air = RACE.JUMP_T; p.jumps++; this.events.push({ e: 'jump' }); }
       else if (it.type === 'rare') { it.taken = true; p.rare++; this.events.push({ e: 'rare' }); }
     }
-    for (const bot of (this.kart ? this.bots : [this.bot])) if (!this.done && p.s > bot.s - RACE.BUMP_GAP && p.s < bot.s + 2 && Math.abs(p.x + this.off(p.s) - bot.x - this.off(bot.s)) < 1.5) {      // (the kart: the back of each robot kart)        // the back of the robot's car: an obstacle. The player is slowed and cannot drive through it
+    for (const bot of (this.kart ? this.bots : [this.bot])) if (!this.done && p.s > bot.s - RACE.BUMP_GAP && p.s < bot.s + 2 && Math.abs(p.x + this.off(p.s) - bot.x - this.off(bot.s)) < 1.5 && (!this.kart || (s0 < bot.s - RACE.BUMP_GAP + 0.6 && !(p.s > KART.FUNNEL - 60 && p.s < KART.GATE_S + 140)))) {      // (the kart: only when the player really runs into its back - a robot cutting in alongside is not a bump - and none in the merge to the gate, where every kart is squeezed into one lane)      // (the kart: the back of each robot kart)        // the back of the robot's car: an obstacle. The player is slowed and cannot drive through it
       p.s = bot.s - RACE.BUMP_GAP; p.speed = Math.min(p.speed * RACE.BUMP_MUL, bot.speed * 0.8); p.hitT = Math.max(p.hitT, RACE.BUMP_T); p.bumps = (p.bumps || 0) + 1; this.events.push({ e: 'bump' });
     }
     if (this.kart && !this.gateOpen && !this.done) {                                                    // THE GATE: it opens for the first kart to reach it; if that is a robot, the player is out at once
@@ -118,7 +119,7 @@ class Race {
   off(s) { if (!this.kart) return 0; const v = Math.max(0, Math.min(1, (s - KART.TURN) / KART.TURN_L)); return KART.INNER * v * v * (3 - 2 * v); }      // the kart: lateral shift onto the inner road
   dep(s) { if (!this.kart || s < KART.GATE_S) return 0; const v = Math.max(0, Math.min(1, (s - KART.GATE_S - 4) / KART.DIVE_L)); return -KART.TD * v * v * (3 - 2 * v); }      // lap 4 goes UNDERGROUND (the spiral tunnel)
   keepLeft(s) { return !!this.kart && s > KART.FUNNEL - 250 && s < KART.GATE_S; }      // the zone of the KEEP LEFT indicators
-  maxLane(s) { if (!this.kart || s < KART.FUNNEL || s > KART.GATE_S + 60) return 1; return Math.max(-1, Math.min(1, Math.floor((KART.fence(s) - 1.2) / RACE.LANE_M + 1e-6))); }      // a lane stays open while the fence is right of it       // the barriers close the lanes from the right
+  maxLane(s) { if (!this.kart || s < KART.FUNNEL || s > KART.GATE_S + 60) return 1; return Math.max(-1, Math.min(1, Math.floor((KART.fence(s) - 1.6) / RACE.LANE_M + 1e-6))); }      // a lane stays open while the fence is right of it       // the barriers close the lanes from the right
   gap() { return this.bot.s - this.p.s; }                                                              // metres the robot is ahead (negative: the player leads)
   progress() { return Math.min(1, this.p.s / this.len); }
 }
