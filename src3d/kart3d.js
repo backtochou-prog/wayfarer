@@ -205,9 +205,17 @@ class Kart3D {
           this.tunLaser = [lzC, lzP];
           if (typeof KART_ART !== 'undefined' && KART_ART.pano) {      /* THE DEEP BACKGROUND (the user's two pictures joined into ONE panorama, nothing repeated: the control room - left, middle - then the right side): a single curved screen on the outer side of the glass stretch, its height keeping the pictures' proportions, over a dark floor */
             const img = new Image(), pt = new THREE.Texture(img); pt.colorSpace = THREE.SRGBColorSpace; pt.anisotropy = 8; pt.wrapS = THREE.RepeatWrapping; pt.repeat.x = -1; pt.offset.x = 1;      /* (seen from inside the circle: unmirrored) */ img.onload = () => { pt.needsUpdate = true; }; img.src = KART_ART.pano;
-            const BY = -KART.TD - 100, HS = 112, RS = R + 12, L = HS * KART_ART.ar_pano, th = L / RS, ac = (KART.GATE_S + 0.8 * KART.LAP) / R, bowl = new THREE.Group();
-            const fl2 = new THREE.Mesh(new THREE.CircleGeometry(R + 12, 180), new THREE.MeshBasicMaterial({ color: '#06040c', fog: false })); fl2.rotation.x = -Math.PI / 2; fl2.position.y = BY; bowl.add(fl2);
-            const scr = new THREE.Mesh(new THREE.CylinderGeometry(RS, RS, HS, 160, 1, true, ac + Math.PI / 2 - th / 2, th), new THREE.MeshBasicMaterial({ map: pt, side: THREE.BackSide, fog: false })); scr.position.y = BY + HS / 2; bowl.add(scr); this.pano = scr;
+            const RS = R + 12, L = 400, HS = L / KART_ART.ar_pano, BY = -2 - HS, th = L / RS, ac = (KART.GATE_S + 0.8 * KART.LAP) / R, bowl = new THREE.Group();
+            const fl2 = new THREE.Mesh(new THREE.CircleGeometry(R + 12, 180), new THREE.MeshBasicMaterial({ color: '#06040c', fog: false })); fl2.rotation.x = -Math.PI / 2; fl2.position.y = BY - 95; bowl.add(fl2);
+            const scr = new THREE.Mesh(new THREE.CylinderGeometry(RS, RS, HS, 160, 1, true, ac + Math.PI / 2 - th / 2, th), new THREE.MeshBasicMaterial({ map: pt, side: THREE.BackSide, transparent: true, alphaTest: 0.25, fog: false })); scr.position.y = BY + HS / 2;      /* (the user's arch, 400 m round the tunnel, its see-through parts kept) */ bowl.add(scr); this.pano = scr;
+            if (KART_ART.panoFloor) {      /* THE FLOOR of the panorama (the user's picture, its control room at the bottom centre): it goes on from the arch's foot and curves down and in, ROUND, to a bottom right under the tunnel (a quarter ellipse, 28 m across, 90 m down) */
+              const i2 = new Image(), ft = new THREE.Texture(i2); ft.colorSpace = THREE.SRGBColorSpace; ft.anisotropy = 8; i2.onload = () => { ft.needsUpdate = true; }; i2.src = KART_ART.panoFloor;
+              const NS = 160, NP = 24, Rt = R - 16, a = RS - Rt, bb = 90, yj = BY, th0 = ac + Math.PI / 2 - th / 2, pos = [], uv = [], idx = [];
+              for (let j = 0; j <= NP; j++) { const f = j / NP * Math.PI / 2, r = Rt + a * Math.cos(f), y = yj - bb * Math.sin(f);
+                for (let k = 0; k <= NS; k++) { const q = th0 + k / NS * th; pos.push(r * Math.sin(q), y, r * Math.cos(q)); uv.push(1 - k / NS, 1 - j / NP); } }
+              for (let j = 0; j < NP; j++) for (let k = 0; k < NS; k++) { const A = j * (NS + 1) + k, B = A + NS + 1; idx.push(A, B, A + 1, A + 1, B, B + 1); }
+              const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); fg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); fg.setIndex(idx);
+              bowl.add(new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ map: ft, side: THREE.DoubleSide, transparent: true, alphaTest: 0.25, fog: false }))); }
             bowl.position.set(-R, 0, 0); sc.add(bowl); this.gateStuff.push(bowl); this.bowl = bowl; }
           for (const [r, m] of [[R - 19.7, lzC], [R - 17.2, lzP], [R - 14.8, lzP], [R - 12.3, lzC]]) ring(r - 0.03, r + 0.03, m, -KART.TD + 0.04);
           for (const r of [R - 19.9, R - 12.1]) for (const [hh, m] of [[0.35, lzP], [0.75, lzC]]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.022, 720, 1, true), m); c.position.set(-R, -KART.TD + hh, 0); sc.add(c); } }
