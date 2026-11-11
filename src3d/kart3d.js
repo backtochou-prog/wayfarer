@@ -305,6 +305,32 @@ class Kart3D {
     // the dark lower side walls (curving in at the foot), with two neon lines along them
     for (const sx of [-1, 1]) { const wl = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, L, 16, 1, true, sx > 0 ? 0 : Math.PI, Math.PI / 2), M.wall); wl.rotation.x = Math.PI / 2; wl.position.set(sx * (W / 2 - 9), 9, 0); g.add(wl);
       for (const [yy, m] of [[3.5, M.neon], [7.5, M.cyan]]) { const ln = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, L), m); ln.position.set(sx * (W / 2 - 9 + 9 * Math.cos(Math.asin(Math.min(1, (yy) / 9))) - 0.3), yy, 0); g.add(ln); } }
+    // STEP 2: the REACTOR at the far end of the walkway (a stepped base ringed with neon, a core of orange light with its halo and a beam, a portal of concentric neon rings behind it),
+    // the CONSOLES along both sides (curved desks with lit edges, holographic screens standing on them), and everything pulsing on the music (in draw: this.hallFx)
+    const add = (geo, mat, x, y, z, rx, ry) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); if (rx) m.rotation.x = rx; if (ry) m.rotation.y = ry; g.add(m); return m; };
+    const glow = c => new THREE.MeshBasicMaterial({ color: c }), dark = new THREE.MeshBasicMaterial({ color: '#10101a' }), fx = { rings: [], screens: [], edges: [] };
+    const zR = -L / 2 + 16;
+    add(new THREE.CylinderGeometry(12, 13, 1.5, 48), dark, 0, 0.75, zR); add(new THREE.CylinderGeometry(9, 10, 1.5, 48), dark, 0, 2.25, zR); add(new THREE.CylinderGeometry(6, 7, 2, 40), dark, 0, 4, zR);
+    for (const [r, y, c] of [[12.6, 1.5, '#35f0ff'], [11.6, 1.2, '#ff3fd0'], [9.6, 3, '#ffb020'], [8.6, 2.8, '#39ff14'], [6.6, 5, '#ff3fd0']]) { const m = add(new THREE.TorusGeometry(r, 0.35, 8, 64), glow(c), 0, y, zR, Math.PI / 2); fx.rings.push({ m, c: new THREE.Color(c) }); }
+    const core = add(new THREE.SphereGeometry(5, 32, 20), new THREE.MeshBasicMaterial({ color: '#ffb84a' }), 0, 12, zR);
+    const hcv = document.createElement('canvas'); hcv.width = hcv.height = 256; { const x = hcv.getContext('2d'), gr = x.createRadialGradient(128, 128, 10, 128, 128, 128); gr.addColorStop(0, 'rgba(255,230,160,1)'); gr.addColorStop(0.25, 'rgba(255,150,40,0.7)'); gr.addColorStop(0.6, 'rgba(200,60,255,0.25)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = gr; x.fillRect(0, 0, 256, 256); }
+    const ht = new THREE.CanvasTexture(hcv); ht.colorSpace = THREE.SRGBColorSpace; const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: ht, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); halo.position.set(0, 12, zR); halo.scale.setScalar(26); g.add(halo);
+    const beam = add(new THREE.CylinderGeometry(0.8, 2.2, 14, 16, 1, true), new THREE.MeshBasicMaterial({ color: '#ffcf70', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }), 0, 6, zR);
+    for (const [r, c, t] of [[11, '#35f0ff', 0.5], [13.5, '#ff3fd0', 0.35], [16, '#b040ff', 0.6], [18.5, '#35f0ff', 0.3]]) { const m = add(new THREE.TorusGeometry(r, t, 8, 72, Math.PI), glow(c), 0, 0, -L / 2 + 3); fx.rings.push({ m, c: new THREE.Color(c) }); }      // the portal behind it
+    fx.core = core; fx.halo = halo; fx.beam = beam;
+    // the consoles: curved desks on both sides of the walkway, each with two or three holographic screens
+    const scrTex = k => { const cv = document.createElement('canvas'); cv.width = 128; cv.height = 96; const x = cv.getContext('2d'); x.fillStyle = 'rgba(10,60,90,0.55)'; x.fillRect(0, 0, 128, 96); x.strokeStyle = '#35f0ff'; x.lineWidth = 2; x.strokeRect(2, 2, 124, 92);
+      const cols = ['#35f0ff', '#ff3fd0', '#ffb020', '#39ff14']; for (let i = 0; i < 9; i++) { x.fillStyle = cols[(i + k) % 4]; x.fillRect(8, 10 + i * 9, 20 + ((i * 37 + k * 13) % 80), 3); }
+      x.strokeStyle = cols[k % 4]; x.beginPath(); for (let i = 0; i <= 40; i++) x.lineTo(70 + i * 1.3, 60 + 20 * Math.sin(i * 0.5 + k)); x.stroke(); x.beginPath(); x.arc(98, 28, 14, 0, Math.PI * 2); x.stroke();
+      const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; };
+    let k = 0;
+    for (const sx of [-1, 1]) for (const z of [-26, -8, 10, 28]) {
+      const dz = z + (sx > 0 ? 4 : 0), xd = sx * 16;
+      const desk = add(new THREE.CylinderGeometry(9, 9, 3, 24, 1, false, sx > 0 ? Math.PI : 0, Math.PI * 0.7), dark, xd + sx * 6, 1.5, dz); desk.scale.z = 0.5;
+      const edge = add(new THREE.TorusGeometry(9, 0.2, 6, 24, Math.PI * 0.7), glow('#b040ff'), xd + sx * 6, 3.05, dz, Math.PI / 2); edge.rotation.z = sx > 0 ? Math.PI : 0; edge.scale.y = 0.5; fx.edges.push(edge);
+      for (let j = 0; j < 3; j++) { const sm = new THREE.MeshBasicMaterial({ map: scrTex(k++), transparent: true, opacity: 0.85, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false });
+        const sp = add(new THREE.PlaneGeometry(5, 3.8), sm, xd + sx * (2 + j * 2.5), 5.5 + (j % 2) * 0.8, dz - 2.5 + j * 2.5, -0.15, sx > 0 ? -Math.PI / 2 + 0.5 : Math.PI / 2 - 0.5); fx.screens.push(sm); } }
+    this.hallFx = fx;
     this.ringPos(sC, -16, Y0, g.position); g.rotation.y = sC / KART.R; sc.add(g); this.gateStuff.push(g); this.hall = g;
   }
   ringPos(s, x, y, out) { const a = s / KART.R, r = KART.R + x; return (out || new THREE.Vector3()).set(-KART.R + r * Math.cos(a), y, -r * Math.sin(a)); }
@@ -350,6 +376,9 @@ class Kart3D {
     const B = bt || { beat: t * 2.262, pulse: 0, energy: 0.6, kick: 0.5 }, en = Math.max(0, Math.min(1, B.energy)), kk = Math.max(0, Math.min(1, B.kick)), down = Math.floor(B.beat) % 4 === 0 ? 1.5 : 1;
     if (this.floorMat) this.floorMat.emissiveIntensity = 0.16 + 0.14 * en + 0.5 * B.pulse * kk * down;
     if (this.ceilMat && this.ceilMat.map) this.ceilMat.color.setScalar(0.62 + 0.3 * en + 0.12 * B.pulse);
+    if (this.hallFx) { const F = this.hallFx, pp = B.pulse; F.core.scale.setScalar(1 + 0.08 * pp); F.halo.scale.setScalar(26 * (1 + 0.25 * pp + 0.1 * en)); F.beam.material.opacity = 0.3 + 0.4 * pp;
+      F.rings.forEach((r, i) => r.m.material.color.copy(r.c).multiplyScalar(0.5 + 0.5 * (Math.floor(B.beat) % F.rings.length === i ? 1 : pp * 0.6)));
+      F.screens.forEach((m, i) => { m.opacity = 0.55 + 0.3 * Math.abs(Math.sin(t * 3 + i * 1.7)) + 0.15 * pp; }); F.edges.forEach(e => e.material.color.setRGB(0.45 + 0.4 * pp, 0.2, 0.9)); }      // the hall breathes with the music
     if (this.machines) for (const m of this.machines) { const u = m.userData; m.rotation.z += dtk * u.spin; for (const q of u.inner) q.rotation.x += dtk * u.spin * 2.2; const b = 0.55 + 0.45 * B.pulse + 0.3 * en; u.glow.color.copy(u.col).multiplyScalar(b); u.core.material.color.copy(u.col).multiplyScalar(0.6 + 0.6 * B.pulse); u.halo.scale.setScalar(u.r2 * (1.5 + 0.5 * B.pulse)); }      // the engine room turns and pulses on the beat
     if (this.vent) this.vent.rotation.z += dtk * (0.02 + 0.22 * en);
     const step = Math.floor(B.beat * 2), sub = B.beat * 2 - step;
