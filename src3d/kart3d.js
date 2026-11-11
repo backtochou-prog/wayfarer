@@ -242,7 +242,7 @@ class Kart3D {
               if (KART_ART.pano2) {      /* THE SECOND CURVED WALL (the user's two pictures welded into one, 350 m long), right after the stars and machines, in the dark part of the circle */
                 const i3 = new Image(), t3 = new THREE.Texture(i3); t3.colorSpace = THREE.SRGBColorSpace; t3.anisotropy = 8; t3.wrapS = THREE.RepeatWrapping; t3.repeat.x = -1; t3.offset.x = 1; i3.onload = () => { t3.needsUpdate = true; }; i3.src = KART_ART.pano2;
                 const L2 = 350, H2 = L2 / KART_ART.ar_pano2, th2 = L2 / RS, ac2 = (sB + 10 + L2 / 2 * R / RS) / R;
-                const w2 = new THREE.Mesh(new THREE.CylinderGeometry(RS, RS, H2, 160, 1, true, ac2 + Math.PI / 2 - th2 / 2, th2), new THREE.MeshBasicMaterial({ map: t3, side: THREE.BackSide, fog: false })); w2.position.set(-R, -2 - H2 / 2, 0); G.add(w2); }
+                const w2 = new THREE.Mesh(new THREE.CylinderGeometry(RS, RS, H2, 160, 1, true, ac2 + Math.PI / 2 - th2 / 2, th2), new THREE.MeshBasicMaterial({ map: t3, side: THREE.BackSide, fog: false })); w2.position.set(-R, -2 - H2 / 2, 0); w2.visible = false; G.add(w2); }      /* (replaced by the right-hand view, the user: 1D is what one sees on the right through the glass) */
               sc.add(G); this.gateStuff.push(G); } }
           for (const [r, m] of [[R - 19.7, lzC], [R - 17.2, lzP], [R - 14.8, lzP], [R - 12.3, lzC]]) ring(r - 0.03, r + 0.03, m, -KART.TD + 0.04);
           for (const r of [R - 19.9, R - 12.1]) for (const [hh, m] of [[0.35, lzP], [0.75, lzC]]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.022, 720, 1, true), m); c.position.set(-R, -KART.TD + hh, 0); sc.add(c); } }
@@ -336,6 +336,11 @@ class Kart3D {
         const sp = add(new THREE.PlaneGeometry(5, 3.8), sm, xd + sx * (2 + j * 2.5), 5.5 + (j % 2) * 0.8, dz - 2.5 + j * 2.5, -0.15, sx > 0 ? -Math.PI / 2 + 0.5 : Math.PI / 2 - 0.5); fx.screens.push(sm); } }
     this.hallFx = fx;
     this.ringPos(sC, -16, Y0, g.position); g.rotation.y = sC / KART.R; sc.add(g); this.gateStuff.push(g); this.hall = g;
+    // WELDED TO THE HALL (the user: the two pictures go on from the hall): right after its forward end, its two sides go on as the user's pictures - 1D on the right, 2D on the left - curved walls
+    // of the hall's own height (floor to vault), each picture once, unstretched, the hall's last rib framing them
+    const R = KART.R, sE = sC + L / 2, Lw = H, mk = (key, r, front) => { if (typeof KART_ART === 'undefined' || !KART_ART[key]) return; const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.wrapS = THREE.RepeatWrapping; if (!front) { t.repeat.x = -1; t.offset.x = 1; } img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART[key];
+      const th = Lw / r, ac = (sE + Lw / 2) / R, w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, H, 48, 1, true, ac + Math.PI / 2 - th / 2, th), new THREE.MeshBasicMaterial({ map: t, side: front ? THREE.FrontSide : THREE.BackSide, fog: false })); w.position.set(-R, Y0 + H / 2, 0); sc.add(w); this.gateStuff.push(w); return w; };
+    this.wallR = mk('rightView', R - 16 + W / 2, false); this.wallL = mk('leftView', R - 16 - W / 2, true);
   }
   ringPos(s, x, y, out) { const a = s / KART.R, r = KART.R + x; return (out || new THREE.Vector3()).set(-KART.R + r * Math.cos(a), y, -r * Math.sin(a)); }
   bind(R) {                                                                                          // Race3D builds the item meshes; each goes into a holder that stands on the ring
@@ -412,6 +417,8 @@ class Kart3D {
     if (X) { if (!this.rig) { this.rig = new THREE.Group(); this.scene.add(this.rig); } if (this.camera.parent !== this.rig) this.rig.add(this.camera);
       this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.ringPos(p.s - 4.6, (p.x * 0.6 + OFF), 0.6, this.rig.position); this.rig.rotation.set(0, p.s / KART.R, 0); }
     else if (this.rig && this.camera.parent === this.rig) { this.rig.remove(this.camera); this.scene.add(this.camera); }
+    // THE RIGHT-HAND VIEW (the user's 1D picture: 'what one sees on the right through the transparent tunnel'): a far backdrop that travels with the kart on its right side while it is in the glass
+    // tunnel (lap 4 from its glass stretch, and lap 5), so the painting is seen as painted, through the glass, behind everything else
     renderer.render(this.scene, this.camera);
   }
 }
