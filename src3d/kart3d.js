@@ -239,6 +239,10 @@ class Kart3D {
                 m.add(ringA, ringB, ringC, ringD, core, halo); const side = k % 2 ? 1 : -1;
                 m.position.copy(this.ringPos(sA + (k + 0.5) / 6 * (sB - sA), side > 0 ? 40 + 20 * rnd(k + 700) : -75 - 25 * rnd(k + 700), -28 - 30 * rnd(k + 800)));
                 m.rotation.set(rnd(k + 900) * 3, rnd(k + 950) * 3, 0); m.userData = { spin: 0.15 + 0.25 * rnd(k + 990), inner: [ringC, ringD], glow, col: new THREE.Color(col), core, halo, r2 }; G.add(m); this.machines.push(m); }
+              if (KART_ART.pano2) {      /* THE SECOND CURVED WALL (the user's two pictures welded into one, 350 m long), right after the stars and machines, in the dark part of the circle */
+                const i3 = new Image(), t3 = new THREE.Texture(i3); t3.colorSpace = THREE.SRGBColorSpace; t3.anisotropy = 8; t3.wrapS = THREE.RepeatWrapping; t3.repeat.x = -1; t3.offset.x = 1; i3.onload = () => { t3.needsUpdate = true; }; i3.src = KART_ART.pano2;
+                const L2 = 350, H2 = L2 / KART_ART.ar_pano2, th2 = L2 / RS, ac2 = (sB + 10 + L2 / 2 * R / RS) / R;
+                const w2 = new THREE.Mesh(new THREE.CylinderGeometry(RS, RS, H2, 160, 1, true, ac2 + Math.PI / 2 - th2 / 2, th2), new THREE.MeshBasicMaterial({ map: t3, side: THREE.BackSide, fog: false })); w2.position.set(-R, -2 - H2 / 2, 0); G.add(w2); }
               sc.add(G); this.gateStuff.push(G); } }
           for (const [r, m] of [[R - 19.7, lzC], [R - 17.2, lzP], [R - 14.8, lzP], [R - 12.3, lzC]]) ring(r - 0.03, r + 0.03, m, -KART.TD + 0.04);
           for (const r of [R - 19.9, R - 12.1]) for (const [hh, m] of [[0.35, lzP], [0.75, lzC]]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.022, 720, 1, true), m); c.position.set(-R, -KART.TD + hh, 0); sc.add(c); } }
