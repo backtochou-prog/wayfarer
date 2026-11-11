@@ -341,6 +341,13 @@ class Kart3D {
     const R = KART.R, sE = sC + L / 2, Lw = H, mk = (key, r, front) => { if (typeof KART_ART === 'undefined' || !KART_ART[key]) return; const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.wrapS = THREE.RepeatWrapping; if (!front) { t.repeat.x = -1; t.offset.x = 1; } img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART[key];
       const th = Lw / r, ac = (sE + Lw / 2) / R, w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, H, 48, 1, true, ac + Math.PI / 2 - th / 2, th), new THREE.MeshBasicMaterial({ map: t, side: front ? THREE.FrontSide : THREE.BackSide, fog: false })); w.position.set(-R, Y0 + H / 2, 0); sc.add(w); this.gateStuff.push(w); return w; };
     this.wallR = mk('rightView', R - 16 + W / 2, false); this.wallL = mk('leftView', R - 16 - W / 2, true);
+    if (typeof KART_ART !== 'undefined' && KART_ART.weldFloor) {      /* THE FLOOR between them (the user's picture, once): across the full width of the hall, its length from the picture's own proportions, its top toward the front */
+      const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.weldFloor;
+      const Lf = W / KART_ART.ar_weldFloor, NS = 40, pos = [], uv = [], idx = [];
+      for (let k = 0; k <= NS; k++) for (let j = 0; j <= 1; j++) { const s1 = sE + k / NS * Lf, x = -16 + (j ? 1 : -1) * W / 2, q = this.ringPos(s1, x, Y0 + 0.05); pos.push(q.x, q.y, q.z); uv.push(j, k / NS); }
+      for (let k = 0; k < NS; k++) { const a1 = k * 2; idx.push(a1, a1 + 2, a1 + 1, a1 + 1, a1 + 2, a1 + 3); }
+      const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); fg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); fg.setIndex(idx);
+      const fm = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, transparent: true, alphaTest: 0.2, fog: false })); sc.add(fm); this.gateStuff.push(fm); this.weldFloor = fm; }
   }
   ringPos(s, x, y, out) { const a = s / KART.R, r = KART.R + x; return (out || new THREE.Vector3()).set(-KART.R + r * Math.cos(a), y, -r * Math.sin(a)); }
   bind(R) {                                                                                          // Race3D builds the item meshes; each goes into a holder that stands on the ring
