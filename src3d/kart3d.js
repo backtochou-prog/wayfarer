@@ -4,6 +4,7 @@
 // The RULES are the race zone's (src/race.js, with this.len = two laps); the items are Race3D's own meshes, placed by Race3D.placeItems on its straight track and then carried onto
 // the ring here: a point (x across, s along) of the straight track is ring(s, x) = centre + (R + x) (cos a, 0, -sin a), a = s / R (the karts turn LEFT round a centre at x = -R).
 class Kart3D {
+  static get HALL() { return true; }      // the 3D ship hall instead of the painted arch and floor
   constructor(race3d) {
     const R = KART.R, sc = this.scene = new THREE.Scene(); this.r3 = race3d;
     sc.background = new THREE.Color('#05060f'); sc.fog = new THREE.Fog('#2a2436', 120, 520);
@@ -207,7 +208,7 @@ class Kart3D {
             const img = new Image(), pt = new THREE.Texture(img); pt.colorSpace = THREE.SRGBColorSpace; pt.anisotropy = 8; pt.wrapS = THREE.RepeatWrapping; pt.repeat.x = -1; pt.offset.x = 1;      /* (seen from inside the circle: unmirrored) */ img.onload = () => { pt.needsUpdate = true; }; img.src = KART_ART.pano;
             const RS = R + 12, L = 400, HS = L / KART_ART.ar_pano, BY = -2 - HS, th = L / RS, ac = (KART.GATE_S + 0.8 * KART.LAP) / R, bowl = new THREE.Group();
             const fl2 = new THREE.Mesh(new THREE.CircleGeometry(R + 12, 180), new THREE.MeshBasicMaterial({ color: '#06040c', fog: false })); fl2.rotation.x = -Math.PI / 2; fl2.position.y = BY - 95; bowl.add(fl2);
-            const scr = new THREE.Mesh(new THREE.CylinderGeometry(RS, RS, HS, 160, 1, true, ac + Math.PI / 2 - th / 2, th), new THREE.MeshBasicMaterial({ map: pt, side: THREE.BackSide, transparent: true, alphaTest: 0.25, fog: false })); scr.position.y = BY + HS / 2;      /* (the user's arch, 400 m round the tunnel, its see-through parts kept) */ bowl.add(scr); this.pano = scr;
+            const scr = new THREE.Mesh(new THREE.CylinderGeometry(RS, RS, HS, 160, 1, true, ac + Math.PI / 2 - th / 2, th), new THREE.MeshBasicMaterial({ map: pt, side: THREE.BackSide, transparent: true, alphaTest: 0.25, fog: false })); scr.position.y = BY + HS / 2;      /* (the user's arch, 400 m round the tunnel, its see-through parts kept) */ scr.visible = !Kart3D.HALL; bowl.add(scr); this.pano = scr;      /* (replaced by the 3D ship hall, Kart3D.HALL) */
             if (KART_ART.panoFloor) {      /* THE FLOOR of the panorama (the user's picture, its control room at the bottom centre): it goes on from the arch's foot and curves down and in, ROUND, to a bottom right under the tunnel (a quarter ellipse, 28 m across, 90 m down) */
               const i2 = new Image(), ft = new THREE.Texture(i2); ft.colorSpace = THREE.SRGBColorSpace; ft.anisotropy = 8; i2.onload = () => { ft.needsUpdate = true; }; i2.src = KART_ART.panoFloor;
               const NS = 160, NP = 24, Rt = R - 16, a = RS - Rt, bb = 90, yj = BY, th0 = ac + Math.PI / 2 - th / 2, pos = [], uv = [], idx = [];
@@ -215,7 +216,7 @@ class Kart3D {
                 for (let k = 0; k <= NS; k++) { const q = th0 + k / NS * th; pos.push(r * Math.sin(q), y, r * Math.cos(q)); uv.push(1 - k / NS, 1 - j / NP); } }
               for (let j = 0; j < NP; j++) for (let k = 0; k < NS; k++) { const A = j * (NS + 1) + k, B = A + NS + 1; idx.push(A, B, A + 1, A + 1, B, B + 1); }
               const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); fg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); fg.setIndex(idx);
-              bowl.add(new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ map: ft, side: THREE.DoubleSide, transparent: true, alphaTest: 0.25, fog: false }))); }
+              if (!Kart3D.HALL) bowl.add(new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ map: ft, side: THREE.DoubleSide, transparent: true, alphaTest: 0.25, fog: false }))); }
             bowl.position.set(-R, 0, 0); sc.add(bowl); this.gateStuff.push(bowl); this.bowl = bowl;
             // THE STARS AND THE ENGINE ROOM (the user's choice, 1 + 2, over 70 degrees only, right after the arch; the rest of the circle stays dark for the user's own pictures): a deep field of
             // stars and a violet nebula, and big 3D machines of the ship - rings and reactors - floating and turning in the void, their lights pulsing on the music
@@ -227,6 +228,7 @@ class Kart3D {
               const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x = cv.getContext('2d'); for (const [cx, cy, r2, col] of [[128, 128, 120, 'rgba(150,60,255,0.45)'], [90, 150, 80, 'rgba(60,200,255,0.30)'], [170, 100, 70, 'rgba(255,60,200,0.30)']]) { const gr = x.createRadialGradient(cx, cy, 0, cx, cy, r2); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = gr; x.fillRect(0, 0, 256, 256); }
               const nt = new THREE.CanvasTexture(cv); nt.colorSpace = THREE.SRGBColorSpace;
               for (let k = 0; k < 4; k++) { const sp2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: nt, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); sp2.position.copy(this.ringPos(sA + (k + 0.5) / 4 * (sB - sA), -40 + 30 * rnd(k + 300), -70 - 50 * rnd(k + 400))); sp2.scale.setScalar(140 + 60 * rnd(k + 500)); G.add(sp2); }
+              if (Kart3D.HALL) this.buildHall(sc);
               this.machines = []; const MC = ['#35f0ff', '#b040ff', '#ff3fd0', '#39ff14'];
               for (let k = 0; k < 6; k++) { const m = new THREE.Group(), col = MC[k % 4], r2 = 22 + 18 * rnd(k + 600), glow = new THREE.MeshBasicMaterial({ color: col, fog: false }), dark = new THREE.MeshBasicMaterial({ color: '#3a4462', fog: false });
                 const ringA = new THREE.Mesh(new THREE.TorusGeometry(r2, 0.9, 10, 64), dark), ringB = new THREE.Mesh(new THREE.TorusGeometry(r2 * 0.98, 0.25, 6, 64), glow), ringC = new THREE.Mesh(new THREE.TorusGeometry(r2 * 0.62, 0.6, 8, 48), dark), ringD = new THREE.Mesh(new THREE.TorusGeometry(r2 * 0.6, 0.18, 6, 48), glow);
@@ -278,6 +280,33 @@ class Kart3D {
     this.holders = null; this.bound = null; this.camPos = new THREE.Vector3(); this.v = new THREE.Vector3();
   }
   bankY(x) { return -KART.BANK * this.bank * Math.max(0, Math.min(1, (6.5 - x) / 13)); }      // the height of the banked track at x across (x < 0: the inner, left side)
+  // THE SHIP HALL (the user's painting of a curved part of a spaceship, rebuilt in 3D at the size of a football field - step 1, the structure): 110 m long, 70 m wide, 35 m high, the glass tunnel
+  // running right through it along its length. A floor of pink mesh with a blue walkway down the middle, a vault of hexagon glass panels between heavy black curved ribs with violet neon edges,
+  // dark curved side walls with neon lines; the far end and the near end are open arches the tunnel passes through. Textures are drawn in the painting's colours (none of the user's pictures tiled).
+  buildHall(sc) {
+    const L = 110, W = 70, H = 35, Y0 = -KART.TD - 23, sC = KART.GATE_S + 0.8 * KART.LAP, g = new THREE.Group();
+    const tex = (w, h, f, rx, ry) => { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; f(cv.getContext('2d'), w, h); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.anisotropy = 8; return t; };
+    const mesh = tex(64, 64, (x, w, h) => { x.fillStyle = '#12040c'; x.fillRect(0, 0, w, h); x.fillStyle = '#e0206a'; for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) { x.save(); x.translate(i * 16 + (j % 2) * 8 + 4, j * 16 + 8); x.rotate(-0.5); x.fillRect(-6, -1.6, 12, 3.2); x.restore(); } }, W / 3, L / 3);
+    const walk = tex(64, 64, (x, w, h) => { x.fillStyle = '#0a1a3a'; x.fillRect(0, 0, w, h); x.fillStyle = '#2a6aff'; for (let j = 0; j < 8; j++) for (let i = 0; i < 8; i++) x.fillRect(i * 8 + 2, j * 8 + 3, 5, 2); }, 2, L / 4);
+    const hex = tex(256, 222, (x, w, h) => { x.fillStyle = '#0a3a8a'; x.fillRect(0, 0, w, h); const r = 32, dx = r * 1.5, dy = r * Math.sqrt(3);
+      for (let i = -1; i < 7; i++) for (let j = -1; j < 5; j++) { const cx = i * dx, cy = j * dy + (i % 2 ? dy / 2 : 0); x.beginPath(); for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; x.lineTo(cx + (r - 2) * Math.cos(a), cy + (r - 2) * Math.sin(a)); } x.closePath();
+        const l = 45 + 20 * Math.abs(Math.sin(i * 3.1 + j * 1.7)); x.fillStyle = 'hsl(' + (198 + 14 * Math.sin(i + j * 2)) + ',95%,' + l + '%)'; x.fill(); } }, 6, 3);
+    const M = { floor: new THREE.MeshBasicMaterial({ map: mesh }), walk: new THREE.MeshBasicMaterial({ map: walk }), hex: new THREE.MeshBasicMaterial({ map: hex, side: THREE.DoubleSide }),
+      rib: new THREE.MeshBasicMaterial({ color: '#0c0c14' }), neon: new THREE.MeshBasicMaterial({ color: '#b040ff' }), cyan: new THREE.MeshBasicMaterial({ color: '#35f0ff' }), wall: new THREE.MeshBasicMaterial({ color: '#07070d', side: THREE.DoubleSide }) };
+    const fl = new THREE.Mesh(new THREE.PlaneGeometry(W, L), M.floor); fl.rotation.x = -Math.PI / 2; g.add(fl);
+    const wk = new THREE.Mesh(new THREE.PlaneGeometry(8, L), M.walk); wk.rotation.x = -Math.PI / 2; wk.position.y = 0.05; g.add(wk);
+    for (const sx of [-1, 1]) { const e = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, L), M.cyan); e.position.set(sx * 4.2, 0.15, 0); g.add(e); }
+    // the vault: a half cylinder of hexagon glass (radius W/2, long axis along the hall), squashed to H, and the ribs every 11 m
+    const vault = new THREE.Mesh(new THREE.CylinderGeometry(W / 2, W / 2, L, 48, 1, true, Math.PI / 2, Math.PI), M.hex); vault.rotation.x = Math.PI / 2; vault.scale.set(1, 1, H / (W / 2)); g.add(vault);
+    for (let k = 0; k <= 10; k++) { const z = -L / 2 + k * L / 10, heavy = k % 5 === 0;
+      const rib = new THREE.Mesh(new THREE.TorusGeometry(W / 2 - 0.5, heavy ? 1.6 : 0.8, 8, 48, Math.PI), M.rib); rib.scale.y = H / (W / 2); rib.position.z = z; g.add(rib);
+      const ne = new THREE.Mesh(new THREE.TorusGeometry(W / 2 - (heavy ? 2.3 : 1.4), 0.18, 6, 48, Math.PI), M.neon); ne.scale.y = H / (W / 2); ne.position.z = z; g.add(ne); }
+    for (const a of [0.55, 1.1, 1.6, 2.04, 2.59]) { const sp = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, L), M.rib), r = W / 2 - 0.6; sp.position.set(r * Math.cos(a), r * Math.sin(a) * H / (W / 2), 0); g.add(sp); }      // the long beams between the glass panels
+    // the dark lower side walls (curving in at the foot), with two neon lines along them
+    for (const sx of [-1, 1]) { const wl = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, L, 16, 1, true, sx > 0 ? 0 : Math.PI, Math.PI / 2), M.wall); wl.rotation.x = Math.PI / 2; wl.position.set(sx * (W / 2 - 9), 9, 0); g.add(wl);
+      for (const [yy, m] of [[3.5, M.neon], [7.5, M.cyan]]) { const ln = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, L), m); ln.position.set(sx * (W / 2 - 9 + 9 * Math.cos(Math.asin(Math.min(1, (yy) / 9))) - 0.3), yy, 0); g.add(ln); } }
+    this.ringPos(sC, -16, Y0, g.position); g.rotation.y = sC / KART.R; sc.add(g); this.gateStuff.push(g); this.hall = g;
+  }
   ringPos(s, x, y, out) { const a = s / KART.R, r = KART.R + x; return (out || new THREE.Vector3()).set(-KART.R + r * Math.cos(a), y, -r * Math.sin(a)); }
   bind(R) {                                                                                          // Race3D builds the item meshes; each goes into a holder that stands on the ring
     if (this.r3.bound !== R) this.r3.bind(R);
