@@ -363,10 +363,10 @@ class Kart3D {
       for (let k = 0; k <= NS; k++) { const s1 = sE + k / NS * KART.LAP; for (const y of [yb2, yt]) { const q = this.ringPos(s1, xb, y); pos.push(q.x, q.y, q.z); } lp.push(this.ringPos(s1, xb - 0.05, (yb2 + yt) / 2)); }
       for (let k = 0; k < NS; k++) { const a1 = k * 2; idx.push(a1, a1 + 2, a1 + 1, a1 + 1, a1 + 2, a1 + 3); }
       const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gg.setIndex(idx);
-      const gl = new THREE.Mesh(gg, new THREE.MeshPhongMaterial({ color: '#05060a', specular: 0x7788aa, shininess: 110, transparent: true, opacity: 0.9, side: THREE.DoubleSide })); sc.add(gl); this.gateStuff.push(gl);
-      const lz = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lp, true), 600, 0.09, 6, true), new THREE.MeshBasicMaterial({ color: '#ff1a2a', fog: false }));
+      const gl = new THREE.Mesh(gg, new THREE.MeshPhongMaterial({ color: '#010103', specular: 0xaabbdd, shininess: 160, reflectivity: 1, transparent: true, opacity: 0.96, side: THREE.DoubleSide })      /* (darker, still glass: a bright sharp glint) */); sc.add(gl); this.gateStuff.push(gl);
+      this.glassMesh = gl; const lz = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lp, true), 600, 0.09, 6, true), new THREE.MeshBasicMaterial({ color: '#ff1a2a', fog: false }));
       const lg = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lp, true), 600, 0.35, 6, true), new THREE.MeshBasicMaterial({ color: '#ff1a2a', transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
-      sc.add(lz, lg); this.gateStuff.push(lz, lg);
+      sc.add(lz, lg); this.gateStuff.push(lz, lg); this.laser = [lz, lg];
       const ce = new THREE.Mesh(new THREE.RingGeometry(R + xb, R + 66, 360, 1), new THREE.MeshBasicMaterial({ color: '#05060a', side: THREE.BackSide, fog: false })); ce.rotation.x = -Math.PI / 2; ce.position.set(-R, -0.45, 0); ce.visible = false; sc.add(ce); this.glassCeil = ce; }      /* (the ceiling above the glass: the underside of the track and the shops' walk, seen only from underground - the garden and Saturn stay open) */ this.wallL = null;      /* (D2 removed, the user) */
     if (typeof KART_ART !== 'undefined' && KART_ART.weldFloor) {      /* THE FLOOR between them (the user's picture, once): across the full width of the hall, its length from the picture's own proportions, its top toward the front */
       const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.weldFloor;
