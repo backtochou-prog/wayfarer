@@ -281,7 +281,6 @@ class Kart3D {
         for (let s1 = KART.FUNNEL - 230; s1 < KART.GATE_S - 30; s1 += 40) for (const lane of [0, 1]) { if (KART.fence(s1 + 40) < lane * RACE.LANE_M - 1.2) continue; const m = new THREE.Mesh(ag, am), q = this.ringPos(s1, lane * RACE.LANE_M, 0.06);
           m.position.copy(q); m.rotation.y = s1 / R + 0.45; m.scale.setScalar(1.3); m.userData.bs = s1; m.userData.bx = lane * RACE.LANE_M; B.add(m); } }
       B.visible = false; sc.add(B); B.children.forEach(c => { c.userData.y0 = c.position.y; }); }
-    { const ce = new THREE.Mesh(new THREE.CircleGeometry(R + 64, 180), new THREE.MeshBasicMaterial({ color: '#05040a', side: THREE.BackSide, fog: false })); ce.rotation.x = -Math.PI / 2; ce.position.set(-R, -0.6, 0); ce.visible = false; sc.add(ce); this.underCeil = ce; }      /* THE CEILING seen from the tunnel: no more void above D1 (the user) */
     this.holders = null; this.bound = null; this.camPos = new THREE.Vector3(); this.v = new THREE.Vector3();
   }
   bankY(x) { return -KART.BANK * this.bank * Math.max(0, Math.min(1, (6.5 - x) / 13)); }      // the height of the banked track at x across (x < 0: the inner, left side)
@@ -348,18 +347,10 @@ class Kart3D {
       // (the continuations, the user: their pictures come down to line up with D1, and their lower part curves in like D1's floor - a flat strip and a quarter circle up - a piece of floor to be completed later)
       const prof = q => { let d = q * tot; if (d <= fl) return [x0 - Rb - fl + d, yb - Rb]; d -= fl; if (d <= bc) { const b = d / Rb; return [x0 - Rb + Rb * Math.sin(b), yb - Rb + Rb - Rb * Math.cos(b)]; } d -= bc;
         if (d <= up) return [x0, yb + d]; const a2 = (d - up) / Ra; return [x0 - Ra + Ra * Math.cos(a2), yv + Ra * Math.sin(a2)]; };
-      for (let k = 0; k <= NS; k++) for (let j = 0; j <= NJ; j++) { const [x, y] = prof(j / NJ), q = this.ringPos(sE + 3 + (k0 + k / NS) * Ld, x, y);      /* (starts 3 m on, behind the hall's last arch: its roof no longer sticks out in front of it, the user) */ pos.push(q.x, q.y, q.z); uv.push(1 - k / NS, j / NJ); }
+      for (let k = 0; k <= NS; k++) for (let j = 0; j <= NJ; j++) { const [x, y] = prof(j / NJ), q = this.ringPos(sE + (k0 + k / NS) * Ld, x, y); pos.push(q.x, q.y, q.z); uv.push(1 - k / NS, j / NJ); }
       for (let k = 0; k < NS; k++) for (let j = 0; j < NJ; j++) { const a1 = k * (NJ + 1) + j, b1 = a1 + NJ + 1; idx.push(a1, b1, a1 + 1, a1 + 1, b1, b1 + 1); }
       const dg = new THREE.BufferGeometry(); dg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); dg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); dg.setIndex(idx);
-      const dm = new THREE.Mesh(dg, new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, fog: false })); sc.add(dm); this.gateStuff.push(dm); if (!k0) this.wallR = dm; }
-    if (typeof KART_ART !== 'undefined' && KART_ART.d1glass) {      /* THE GLASS GOES ON (the user's next piece of D1's glass, pivoted left): from the top of D1's curve it rises and bends out to the foot of the roundabout's belt, under the track - no gap, no shops seen */
-      const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.d1glass;
-      const Ld = 120, NS = 80, NJ = 24, A0 = [-13, -10], Z3 = 3, A1 = [7.2, -0.4], C = [-13, -0.4], pos = [], uv = [], idx = [];
-      const prof = q => { const a = q * Math.PI / 2; return [C[0] + (A1[0] - C[0]) * Math.sin(a), C[1] + (A0[1] - C[1]) * Math.cos(a)]; };      // a quarter ellipse: up from D1's top, then out under the track
-      for (let k = 0; k <= NS; k++) for (let j = 0; j <= NJ; j++) { const [x, y] = prof(j / NJ), q = this.ringPos(sE + Z3 + k / NS * Ld, x, y); pos.push(q.x, q.y, q.z); uv.push(1 - k / NS, j / NJ); }
-      for (let k = 0; k < NS; k++) for (let j = 0; j < NJ; j++) { const a1 = k * (NJ + 1) + j, b1 = a1 + NJ + 1; idx.push(a1, b1, a1 + 1, a1 + 1, b1, b1 + 1); }
-      const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); gg.setIndex(idx);
-      const gm = new THREE.Mesh(gg, new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, fog: false })); sc.add(gm); this.gateStuff.push(gm); this.d1glass = gm; } this.wallL = null;      /* (D2 removed, the user) */
+      const dm = new THREE.Mesh(dg, new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, fog: false })); sc.add(dm); this.gateStuff.push(dm); if (!k0) this.wallR = dm; } this.wallL = null;      /* (D2 removed, the user) */
     if (typeof KART_ART !== 'undefined' && KART_ART.weldFloor) {      /* THE FLOOR between them (the user's picture, once): across the full width of the hall, its length from the picture's own proportions, its top toward the front */
       const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.weldFloor;
       const Lf = 120, NS = 80, NJ = 24, Yb = -58, Yf = -68, xR = -3, Rc = Yb - Yf, xL = -16 - W / 2, flat = (xR - Rc) - xL, arc = Math.PI / 2 * Rc, tot = flat + arc, pos = [], uv = [], idx = [];      /* (stretched forward to 120 m, the user; and across, its right side curves up, a quarter circle, into the foot of D1) */
@@ -393,7 +384,7 @@ class Kart3D {
   draw(g, renderer) {
     const R = g.race; if (this.bound !== R) this.bind(R);
     const bt = g.sfx ? g.sfx.beat() : null, pulse = bt ? bt.pulse * (0.45 + 0.55 * bt.energy) : 0, t = g.time, p = R.p, air = p.air > 0 ? Math.sin(Math.PI * (1 - p.air / RACE.JUMP_T)) : 0;
-    this.r3.placeItems(R, t, pulse); { const last = p.s >= (KART.LAPS - 1) * KART.LAP - 40; if (this.tunU) this.tunU.uGlassAll.value = last ? 1 : 0; if (this.tunClose) this.tunClose.visible = last; if (this.underCeil) this.underCeil.visible = p.s > KART.GATE_S + 150; if (this.entRoad && this._gateShown) this.entRoad.visible = !last; }      /* the last lap: the whole tunnel is clear glass, a complete circle */ if (this.tunU) this.tunU.off.value = -t * 0.35;      /* the spiral flows along the tunnel */ const OFF = R.off(p.s), PX = p.x + OFF;
+    this.r3.placeItems(R, t, pulse); { const last = p.s >= (KART.LAPS - 1) * KART.LAP - 40; if (this.tunU) this.tunU.uGlassAll.value = last ? 1 : 0; if (this.tunClose) this.tunClose.visible = last; if (this.entRoad && this._gateShown) this.entRoad.visible = !last; }      /* the last lap: the whole tunnel is clear glass, a complete circle */ if (this.tunU) this.tunU.off.value = -t * 0.35;      /* the spiral flows along the tunnel */ const OFF = R.off(p.s), PX = p.x + OFF;
     { const lap = Math.min(KART.LAPS - 1, Math.floor(p.s / KART.LAP)), into = p.s - lap * KART.LAP;      // the lap: the tiles' colour, and the banking of lap 2 (in over its first 120 m, out over the last 120 m)
       if (lap !== this.tileLap) this.paintTiles(lap, t);
       // THE RED WAVE BRINGS THEM (the user: no illogical pop): from lap 3 the fence posts appear as the equalizer wave of the red colour passes them, and the gate when the wave reaches it
