@@ -25,7 +25,12 @@ class Race {
     this.bot = { s: 0, speed: RACE.BASE * 0.65, lane: 1, x: RACE.LANE_M, finishT: null };             // the two cars start SIDE BY SIDE on the line, one at each side of the track (the player on the left, the robot on the right: a lane of road between them)                                              
     if (this.kart) {                                                                                  // THE KART CIRCUIT races EIGHT robot karts (the user: '8 voitures robots qui font la course avec le joueur; il doit les doubler sans les toucher par derrière'):
       this.bots = [];                                                                                 // they start spread out ahead of the player, the nearest the fastest, all a little slower than the player's own pace, each weaving through the lanes
-      for (let i = 0; i < 8; i++) { const lane = [1, 0, -1, 1, -1, 0, 1, -1][i]; this.bots.push({ s: 30 + i * 28, lane, x: lane * RACE.LANE_M, v: 46 - i * 0.45, speed: 30, finishT: null, i }); }
+      // FOURTEEN robot karts (the user: more cars, varied distances and driving styles): spread out irregularly ahead, each with a STYLE -
+      //   steady: keeps its lane a long time, an even pace;   weaver: changes lane often and quickly;   surger: bursts of speed then eases;   cruiser: slower, hugs the right;   racer: fast, swerves late
+      const ST = { steady: { lf: 0.12, lx: 1.0, sw: 0.02, sf: 0.5 }, weaver: { lf: 0.55, lx: 2.6, sw: 0.03, sf: 0.9 }, surger: { lf: 0.25, lx: 1.4, sw: 0.12, sf: 0.35 }, cruiser: { lf: 0.1, lx: 0.8, sw: 0.02, sf: 0.4, bias: 0.7 }, racer: { lf: 0.35, lx: 2.0, sw: 0.05, sf: 0.7 } };
+      const ORDER = ['racer', 'weaver', 'steady', 'surger', 'cruiser', 'weaver', 'racer', 'steady', 'surger', 'cruiser', 'weaver', 'steady', 'surger', 'racer'];
+      let s1 = 22; for (let i = 0; i < 14; i++) { const st = ORDER[i], q = this.rnd(900 + i), lane = [1, 0, -1][Math.floor(this.rnd(950 + i) * 3)], v = (st === 'racer' ? 47.8 : st === 'cruiser' ? 43.8 : 46.3) - i * 0.18 + q * 0.6;
+        this.bots.push({ s: s1, lane, x: lane * RACE.LANE_M, v, speed: 30, finishT: null, i, style: st, P: ST[st], ph: this.rnd(970 + i) * 6.28 }); s1 += 14 + Math.floor(this.rnd(990 + i) * 46); }
       this.bot = this.bots[7];
     }
     this.items = []; this.events = []; this.build();
@@ -76,7 +81,7 @@ class Race {
     const coast = this.kart && p.pedal !== 'brake' && !(p.brakeT > 0) && !(p.hitT > 0);      /* the kart: when a boost runs out the speed eases down (it felt like braking by itself: the user) */
     p.speed += Math.max(-RACE.ACCEL * (coast ? 0.3 : 2.2) * dt, Math.min(RACE.ACCEL * dt, target - p.speed));
     const s0 = p.s; p.s += p.speed * dt;
-    if (this.kart) for (const b of this.bots) { { const want = Math.max(-1, Math.min(this.maxLane(b.s), Math.round(Math.sin(this.t * 0.27 + b.i * 1.7) * 1.3))); if (want === b.lane || want > this.maxLane(b.s) || !(p.lane === want && Math.abs(p.s - b.s) < 10)) b.lane = Math.min(want, this.maxLane(b.s)); }      /* (a robot does not cut into the player's lane right beside or in front of the player) */ b.x += (b.lane * RACE.LANE_M - b.x) * Math.min(1, dt * 1.4); b.speed += Math.min(14 * dt, b.v * (1 + 0.04 * Math.sin(this.t * 0.9 + b.i)) - b.speed); b.s += b.speed * dt; }
+    if (this.kart) for (const b of this.bots) { { const P = b.P, want = Math.max(-1, Math.min(this.maxLane(b.s), Math.round(Math.sin(this.t * P.lf + b.ph) * 1.3 + (P.bias || 0)))); if (want === b.lane || want > this.maxLane(b.s) || !(p.lane === want && Math.abs(p.s - b.s) < 10)) b.lane = Math.min(want, this.maxLane(b.s)); }      /* (a robot does not cut into the player's lane right beside or in front of the player) */ b.x += (b.lane * RACE.LANE_M - b.x) * Math.min(1, dt * 1.4 * b.P.lx); b.speed += Math.min(14 * dt, b.v * (1 + b.P.sw * Math.sin(this.t * b.P.sf + b.ph)) - b.speed); b.s += b.speed * dt; }
     else {
     bot.lane = Math.max(-1, Math.min(1, Math.round(Math.sin(this.t * 0.33 + Math.PI / 2) * 1.3)));                       // the robot drifts from lane to lane: the player has to go round it, not through it
     bot.x += (bot.lane * RACE.LANE_M - bot.x) * Math.min(1, dt * 1.6);
