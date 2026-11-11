@@ -15,7 +15,7 @@ class Portal {
   constructor(g) { this.g = g; this.reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches; this.reset(); }
   reset() { this.list = []; this.seen = new Set(); this.k = 0; this.flash = 0; this.count = 0; this.act = null; this.pose = { mode: 'none', e: 0 }; }
 
-  static fam(biome) { return /^coast/.test(biome) ? 'coast' : /^utrecht/.test(biome) ? 'utrecht' : /^vic/.test(biome) ? 'vic' : /^(city|tram|gare|forest|market|ruins)$/.test(biome) ? 'saintgilles' : biome; }
+  static fam(biome) { return /^coast/.test(biome) ? 'coast' : /^utrecht/.test(biome) ? 'utrecht' : /^vic/.test(biome) ? 'vic' : /^(city|tram|gare|forest|market|ruins|terrace)$/.test(biome) ? 'saintgilles' : biome; }
 
   // the passages between the pieces the world has built so far (it builds ahead and forgets behind, so each pair of neighbours is looked at once, when it first appears)
   scan(w) {
