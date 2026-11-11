@@ -229,7 +229,7 @@ class Kart3D {
               const nt = new THREE.CanvasTexture(cv); nt.colorSpace = THREE.SRGBColorSpace;
               for (let k = 0; k < 4; k++) { const sp2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: nt, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); sp2.position.copy(this.ringPos(sA + (k + 0.5) / 4 * (sB - sA), -40 + 30 * rnd(k + 300), -70 - 50 * rnd(k + 400))); sp2.scale.setScalar(140 + 60 * rnd(k + 500)); G.add(sp2); }
               if (Kart3D.HALL) this.buildHall(sc);
-              this.machines = []; const MC = ['#35f0ff', '#b040ff', '#ff3fd0', '#39ff14'];
+              this.machines = []; if (false) { const MC = ['#35f0ff', '#b040ff', '#ff3fd0', '#39ff14'];
               for (let k = 0; k < 6; k++) { const m = new THREE.Group(), col = MC[k % 4], r2 = 22 + 18 * rnd(k + 600), glow = new THREE.MeshBasicMaterial({ color: col, fog: false }), dark = new THREE.MeshBasicMaterial({ color: '#3a4462', fog: false });
                 const ringA = new THREE.Mesh(new THREE.TorusGeometry(r2, 0.9, 10, 64), dark), ringB = new THREE.Mesh(new THREE.TorusGeometry(r2 * 0.98, 0.25, 6, 64), glow), ringC = new THREE.Mesh(new THREE.TorusGeometry(r2 * 0.62, 0.6, 8, 48), dark), ringD = new THREE.Mesh(new THREE.TorusGeometry(r2 * 0.6, 0.18, 6, 48), glow);
                 ringC.rotation.y = Math.PI / 2; ringD.rotation.y = Math.PI / 2;
@@ -238,7 +238,7 @@ class Kart3D {
                 ringA.scale.z = ringA.scale.x = ringA.scale.y = 1; [ringA, ringB].forEach(q => { q.geometry.dispose(); }); ringA.geometry = new THREE.TorusGeometry(r2, 1.8, 12, 72); ringB.geometry = new THREE.TorusGeometry(r2 * 0.98, 1.1, 8, 72); ringC.geometry = new THREE.TorusGeometry(r2 * 0.62, 1.2, 10, 56); ringD.geometry = new THREE.TorusGeometry(r2 * 0.6, 0.8, 8, 56);
                 m.add(ringA, ringB, ringC, ringD, core, halo); const side = k % 2 ? 1 : -1;
                 m.position.copy(this.ringPos(sA + (k + 0.5) / 6 * (sB - sA), side > 0 ? 40 + 20 * rnd(k + 700) : -75 - 25 * rnd(k + 700), -28 - 30 * rnd(k + 800)));
-                m.rotation.set(rnd(k + 900) * 3, rnd(k + 950) * 3, 0); m.userData = { spin: 0.15 + 0.25 * rnd(k + 990), inner: [ringC, ringD], glow, col: new THREE.Color(col), core, halo, r2 }; G.add(m); this.machines.push(m); }
+                m.rotation.set(rnd(k + 900) * 3, rnd(k + 950) * 3, 0); m.userData = { spin: 0.15 + 0.25 * rnd(k + 990), inner: [ringC, ringD], glow, col: new THREE.Color(col), core, halo, r2 }; G.add(m); this.machines.push(m); } }      /* (the machines removed, the user) */
               if (KART_ART.pano2) {      /* THE SECOND CURVED WALL (the user's two pictures welded into one, 350 m long), right after the stars and machines, in the dark part of the circle */
                 const i3 = new Image(), t3 = new THREE.Texture(i3); t3.colorSpace = THREE.SRGBColorSpace; t3.anisotropy = 8; t3.wrapS = THREE.RepeatWrapping; t3.repeat.x = -1; t3.offset.x = 1; i3.onload = () => { t3.needsUpdate = true; }; i3.src = KART_ART.pano2;
                 const L2 = 350, H2 = L2 / KART_ART.ar_pano2, th2 = L2 / RS, ac2 = (sB + 10 + L2 / 2 * R / RS) / R;
@@ -343,8 +343,8 @@ class Kart3D {
     this.wallR = mk('rightView', R - 16 + W / 2, false); this.wallL = mk('leftView', R - 16 - W / 2, true);
     if (typeof KART_ART !== 'undefined' && KART_ART.weldFloor) {      /* THE FLOOR between them (the user's picture, once): across the full width of the hall, its length from the picture's own proportions, its top toward the front */
       const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.weldFloor;
-      const Lf = W / KART_ART.ar_weldFloor, NS = 40, pos = [], uv = [], idx = [];
-      for (let k = 0; k <= NS; k++) for (let j = 0; j <= 1; j++) { const s1 = sE + k / NS * Lf, x = -16 + (j ? 1 : -1) * W / 2, q = this.ringPos(s1, x, Y0 + 0.05); pos.push(q.x, q.y, q.z); uv.push(j, k / NS); }
+      const Lf = W * KART_ART.ar_weldFloor,      /* (turned a quarter turn, the user: the picture's height across the hall, its width along the track) */ NS = 40, pos = [], uv = [], idx = [];
+      for (let k = 0; k <= NS; k++) for (let j = 0; j <= 1; j++) { const s1 = sE + k / NS * Lf, x = -16 + (j ? 1 : -1) * W / 2, q = this.ringPos(s1, x, Y0 + 0.05); pos.push(q.x, q.y, q.z); uv.push(k / NS, 1 - j); }
       for (let k = 0; k < NS; k++) { const a1 = k * 2; idx.push(a1, a1 + 2, a1 + 1, a1 + 1, a1 + 2, a1 + 3); }
       const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); fg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); fg.setIndex(idx);
       const fm = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, transparent: true, alphaTest: 0.2, fog: false })); sc.add(fm); this.gateStuff.push(fm); this.weldFloor = fm; }
