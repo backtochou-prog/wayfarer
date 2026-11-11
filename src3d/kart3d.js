@@ -343,9 +343,10 @@ class Kart3D {
     this.wallR = mk('rightView', R - 16 + 13, false); this.wallL = mk('leftView', R - 16 - 13, true);
     if (typeof KART_ART !== 'undefined' && KART_ART.weldFloor) {      /* THE FLOOR between them (the user's picture, once): across the full width of the hall, its length from the picture's own proportions, its top toward the front */
       const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.weldFloor;
-      const Lf = W * KART_ART.ar_weldFloor,      /* (turned a quarter turn, the user: the picture's height across the hall, its width along the track) */ NS = 40, pos = [], uv = [], idx = [];
-      for (let k = 0; k <= NS; k++) for (let j = 0; j <= 1; j++) { const s1 = sE + k / NS * Lf, x = -16 + (j ? 1 : -1) * W / 2, q = this.ringPos(s1, x, Y0 + 0.05); pos.push(q.x, q.y, q.z); uv.push(k / NS, 1 - j); }
-      for (let k = 0; k < NS; k++) { const a1 = k * 2; idx.push(a1, a1 + 2, a1 + 1, a1 + 1, a1 + 2, a1 + 3); }
+      const Lf = 120, NS = 80, NJ = 24, Yb = -52, Yf = -62, xR = -3, Rc = Yb - Yf, xL = -16 - W / 2, flat = (xR - Rc) - xL, arc = Math.PI / 2 * Rc, tot = flat + arc, pos = [], uv = [], idx = [];      /* (stretched forward to 120 m, the user; and across, its right side curves up, a quarter circle, into the foot of D1) */
+      const prof = t => { const d = t * tot; if (d <= flat) return [xL + d, Yf]; const a = (d - flat) / Rc; return [xR - Rc + Rc * Math.sin(a), Yf + Rc - Rc * Math.cos(a)]; };
+      for (let k = 0; k <= NS; k++) for (let j = 0; j <= NJ; j++) { const [x, y] = prof(j / NJ), q = this.ringPos(sE + k / NS * Lf, x, y); pos.push(q.x, q.y, q.z); uv.push(k / NS, 1 - j / NJ); }
+      for (let k = 0; k < NS; k++) for (let j = 0; j < NJ; j++) { const a1 = k * (NJ + 1) + j, b1 = a1 + NJ + 1; idx.push(a1, b1, a1 + 1, a1 + 1, b1, b1 + 1); }
       const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); fg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); fg.setIndex(idx);
       const fm = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, transparent: true, alphaTest: 0.2, fog: false })); sc.add(fm); this.gateStuff.push(fm); this.weldFloor = fm; }
   }
