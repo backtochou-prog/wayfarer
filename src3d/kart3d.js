@@ -216,7 +216,28 @@ class Kart3D {
               for (let j = 0; j < NP; j++) for (let k = 0; k < NS; k++) { const A = j * (NS + 1) + k, B = A + NS + 1; idx.push(A, B, A + 1, A + 1, B, B + 1); }
               const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); fg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); fg.setIndex(idx);
               bowl.add(new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ map: ft, side: THREE.DoubleSide, transparent: true, alphaTest: 0.25, fog: false }))); }
-            bowl.position.set(-R, 0, 0); sc.add(bowl); this.gateStuff.push(bowl); this.bowl = bowl; }
+            bowl.position.set(-R, 0, 0); sc.add(bowl); this.gateStuff.push(bowl); this.bowl = bowl;
+            // THE STARS AND THE ENGINE ROOM (the user's choice, 1 + 2, over 70 degrees only, right after the arch; the rest of the circle stays dark for the user's own pictures): a deep field of
+            // stars and a violet nebula, and big 3D machines of the ship - rings and reactors - floating and turning in the void, their lights pulsing on the music
+            { const sA = KART.GATE_S + 0.8 * KART.LAP + (th / 2) * R + 6, sB = sA + (70 * Math.PI / 180) * R, G = new THREE.Group(), rnd = k => { const v = Math.sin(k * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+              const n = 1600, sp = new Float32Array(n * 3), sc2 = new Float32Array(n * 3);
+              for (let k = 0; k < n; k++) { let xx = -110 + rnd(k + 9e3) * 125, yy = -6 - rnd(k + 2e4) * 190; if (Math.abs(xx + 16) < 14 && yy > -34) yy -= 40; const q = this.ringPos(sA + rnd(k) * (sB - sA), xx, yy);      /* (none right round the tunnel) */ sp.set([q.x, q.y, q.z], k * 3); const c = new THREE.Color().setHSL(0.55 + rnd(k + 5e4) * 0.25, 0.6, 0.6 + rnd(k + 7e4) * 0.4); sc2.set([c.r, c.g, c.b], k * 3); }
+              const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3)); sg.setAttribute('color', new THREE.BufferAttribute(sc2, 3));
+              G.add(new THREE.Points(sg, new THREE.PointsMaterial({ size: 2.5, vertexColors: true, sizeAttenuation: false, fog: false })));
+              const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x = cv.getContext('2d'); for (const [cx, cy, r2, col] of [[128, 128, 120, 'rgba(150,60,255,0.45)'], [90, 150, 80, 'rgba(60,200,255,0.30)'], [170, 100, 70, 'rgba(255,60,200,0.30)']]) { const gr = x.createRadialGradient(cx, cy, 0, cx, cy, r2); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = gr; x.fillRect(0, 0, 256, 256); }
+              const nt = new THREE.CanvasTexture(cv); nt.colorSpace = THREE.SRGBColorSpace;
+              for (let k = 0; k < 4; k++) { const sp2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: nt, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); sp2.position.copy(this.ringPos(sA + (k + 0.5) / 4 * (sB - sA), -40 + 30 * rnd(k + 300), -70 - 50 * rnd(k + 400))); sp2.scale.setScalar(140 + 60 * rnd(k + 500)); G.add(sp2); }
+              this.machines = []; const MC = ['#35f0ff', '#b040ff', '#ff3fd0', '#39ff14'];
+              for (let k = 0; k < 6; k++) { const m = new THREE.Group(), col = MC[k % 4], r2 = 22 + 18 * rnd(k + 600), glow = new THREE.MeshBasicMaterial({ color: col, fog: false }), dark = new THREE.MeshBasicMaterial({ color: '#3a4462', fog: false });
+                const ringA = new THREE.Mesh(new THREE.TorusGeometry(r2, 0.9, 10, 64), dark), ringB = new THREE.Mesh(new THREE.TorusGeometry(r2 * 0.98, 0.25, 6, 64), glow), ringC = new THREE.Mesh(new THREE.TorusGeometry(r2 * 0.62, 0.6, 8, 48), dark), ringD = new THREE.Mesh(new THREE.TorusGeometry(r2 * 0.6, 0.18, 6, 48), glow);
+                ringC.rotation.y = Math.PI / 2; ringD.rotation.y = Math.PI / 2;
+                const core = new THREE.Mesh(new THREE.SphereGeometry(r2 * 0.22, 20, 14), new THREE.MeshBasicMaterial({ color: col, fog: false })), halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: nt, color: col, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); halo.scale.setScalar(r2 * 1.6);
+                for (let j = 0; j < 4; j++) { const sp3 = new THREE.Mesh(new THREE.BoxGeometry(0.5, r2 * 1.9, 0.5), dark); sp3.rotation.z = j * Math.PI / 4; m.add(sp3); }
+                ringA.scale.z = ringA.scale.x = ringA.scale.y = 1; [ringA, ringB].forEach(q => { q.geometry.dispose(); }); ringA.geometry = new THREE.TorusGeometry(r2, 1.8, 12, 72); ringB.geometry = new THREE.TorusGeometry(r2 * 0.98, 1.1, 8, 72); ringC.geometry = new THREE.TorusGeometry(r2 * 0.62, 1.2, 10, 56); ringD.geometry = new THREE.TorusGeometry(r2 * 0.6, 0.8, 8, 56);
+                m.add(ringA, ringB, ringC, ringD, core, halo); const side = k % 2 ? 1 : -1;
+                m.position.copy(this.ringPos(sA + (k + 0.5) / 6 * (sB - sA), side > 0 ? 40 + 20 * rnd(k + 700) : -75 - 25 * rnd(k + 700), -28 - 30 * rnd(k + 800)));
+                m.rotation.set(rnd(k + 900) * 3, rnd(k + 950) * 3, 0); m.userData = { spin: 0.15 + 0.25 * rnd(k + 990), inner: [ringC, ringD], glow, col: new THREE.Color(col), core, halo, r2 }; G.add(m); this.machines.push(m); }
+              sc.add(G); this.gateStuff.push(G); } }
           for (const [r, m] of [[R - 19.7, lzC], [R - 17.2, lzP], [R - 14.8, lzP], [R - 12.3, lzC]]) ring(r - 0.03, r + 0.03, m, -KART.TD + 0.04);
           for (const r of [R - 19.9, R - 12.1]) for (const [hh, m] of [[0.35, lzP], [0.75, lzC]]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.022, 720, 1, true), m); c.position.set(-R, -KART.TD + hh, 0); sc.add(c); } }
         for (const L of [lp, rp]) { const lg = new THREE.BufferGeometry().setFromPoints(L), ln = new THREE.Line(lg, new THREE.LineBasicMaterial({ color: '#ff3fd0', fog: false })); sc.add(ln); this.gateStuff.push(ln); } }
@@ -300,6 +321,7 @@ class Kart3D {
     const B = bt || { beat: t * 2.262, pulse: 0, energy: 0.6, kick: 0.5 }, en = Math.max(0, Math.min(1, B.energy)), kk = Math.max(0, Math.min(1, B.kick)), down = Math.floor(B.beat) % 4 === 0 ? 1.5 : 1;
     if (this.floorMat) this.floorMat.emissiveIntensity = 0.16 + 0.14 * en + 0.5 * B.pulse * kk * down;
     if (this.ceilMat && this.ceilMat.map) this.ceilMat.color.setScalar(0.62 + 0.3 * en + 0.12 * B.pulse);
+    if (this.machines) for (const m of this.machines) { const u = m.userData; m.rotation.z += dtk * u.spin; for (const q of u.inner) q.rotation.x += dtk * u.spin * 2.2; const b = 0.55 + 0.45 * B.pulse + 0.3 * en; u.glow.color.copy(u.col).multiplyScalar(b); u.core.material.color.copy(u.col).multiplyScalar(0.6 + 0.6 * B.pulse); u.halo.scale.setScalar(u.r2 * (1.5 + 0.5 * B.pulse)); }      // the engine room turns and pulses on the beat
     if (this.vent) this.vent.rotation.z += dtk * (0.02 + 0.22 * en);
     const step = Math.floor(B.beat * 2), sub = B.beat * 2 - step;
     this.arrowStep = { step, sub };
