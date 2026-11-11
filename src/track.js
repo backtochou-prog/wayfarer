@@ -215,7 +215,7 @@ const TRACK = {
     detourB:   { name: 'MARKET DETOUR', biome: 'market', curve: -0.9, first: 100, spacing: 210,
                  patterns: ['rowR', 'line', 'slideGate', 'trailL', 'crateJump', 'rowL', 'hurdle', 'trailR'], extra: ['crateBarrier', 'hopWeave'], waymark: 'jump' },
     // TERRASSE GASPERI: a night street of café terraces (the user's photo of the Cafetería Nuevo Gasperi, reimagined), coins along the tables and a few easy hazards
-    terraceRun:  { kartGate: 0.45, name: 'TERRASSE GASPERI', biome: 'terrace', curve: 0.9, first: 80, spacing: 210,
+    terraceRun:  { kartGate: 0.75, name: 'TERRASSE GASPERI', biome: 'terrace', curve: 0.9, first: 80, spacing: 210,
                    patterns: ['line', 'trailL', 'hurdle', 'rowR', 'slideGate', 'trailR', 'crateJump', 'line', 'dodgeL'], extra: ['gateTrail', 'hopWeave'], waymark: 'jump' },
     // ---- the three new destinations (fork branches; each has a variant B so the second visit is not a copy)
     // SUNSET COAST: a warm seaside road, a safe sprint: coin waves and straights, almost no hazard
