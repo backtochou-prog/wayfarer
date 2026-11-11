@@ -40,8 +40,8 @@ class Renderer {
   // the race zone's HUD: two progress bars (the player in turquoise, the robot in red), the gap, the speed, the boost or brake, the rare tokens, the countdown and the result
   drawRaceHud(g) {
     const R = g.race, p = R.p, ctx = this.ctx, x0 = 80, w = 160, gap = R.gap(), kmh = Math.round(p.speed * 3.6);
-    if (R.kart) this.holo(x0 - 30, 2, w + 36, 29, g.time, 5); else { ctx.fillStyle = 'rgba(8,4,16,0.72)'; ctx.fillRect(x0 - 4, 3, w + 8, 27); }      // (the kart: the gauges in the holographic panel)
-    const bar = (frac, y, col) => { ctx.fillStyle = R.kart ? 'rgba(4,30,44,0.55)' : '#1a1030'; ctx.fillRect(x0, y, w, 5); ctx.fillStyle = col; ctx.fillRect(x0, y, Math.round(w * Math.max(0, Math.min(1, frac))), 5); ctx.fillStyle = '#fff'; ctx.fillRect(x0 + Math.round(w * Math.max(0, Math.min(1, frac))) - 1, y - 1, 2, 7); };
+    if (R.kart) this.holo(x0 - 30, 3, w + 36, 25, g.time, 4, true); else { ctx.fillStyle = 'rgba(8,4,16,0.72)'; ctx.fillRect(x0 - 4, 3, w + 8, 27); }      // (the kart: the gauges in the holographic panel)
+    const bh = R.kart ? 2 : 5, bar = (frac, y, col) => { y += R.kart ? 1 : 0; ctx.fillStyle = R.kart ? 'rgba(4,30,44,0.3)' : '#1a1030'; ctx.fillRect(x0, y, w, bh); ctx.fillStyle = col; ctx.fillRect(x0, y, Math.round(w * Math.max(0, Math.min(1, frac))), bh); ctx.fillStyle = '#fff'; ctx.fillRect(x0 + Math.round(w * Math.max(0, Math.min(1, frac))) - 1, y - 1, R.kart ? 1 : 2, bh + 2); };
     bar(p.s / R.len, 6, '#35e6ff'); bar(R.bot.s / R.len, 16, R.kart ? '#ff9a2a' : '#ff2a4a');
     this.txt('YOU', x0 - 24, 5, '#35e6ff'); this.txt('BOT', x0 - 24, 15, R.kart ? '#ff9a2a' : '#ff2a4a');
     if (R.kart) this.drawComm(g, R.keepLeft(p.s) && p.lane > -1);      // the detour's notification, as a holographic comm panel      // (the detour: blinking until the kart is in the left lane)
@@ -73,13 +73,13 @@ class Renderer {
   // THE COMM PANEL (the user: a pop-up like a virtual communication on a sophisticated spaceship: an orange frame, inside a see-through blue glass a little turquoise): it pops open
   // (grows from a line in 0.25 s), hums (scanlines, a faint flicker), and folds away when the kart is in the left lane
   // the holographic panel of the kart circuit: blue-turquoise see-through glass, drifting scanlines, a glint, an orange frame with corner brackets
-  holo(x0, y0, W, h, t, c) {
-    const ctx = this.ctx; c = c || 7;
-    ctx.fillStyle = 'rgba(20,120,170,0.30)'; ctx.fillRect(x0, y0, W, h);
-    ctx.fillStyle = 'rgba(60,230,255,0.10)'; for (let y = y0 + ((t * 20) | 0) % 3; y < y0 + h; y += 3) ctx.fillRect(x0 + 1, y, W - 2, 1);
+  holo(x0, y0, W, h, t, c, lite) {
+    const ctx = this.ctx; c = c || 7; const q = lite ? 0.45 : 1, bw = lite ? 1 : 2;      // (lite: more see-through, thinner brackets)
+    ctx.fillStyle = 'rgba(20,120,170,' + (0.30 * q) + ')'; ctx.fillRect(x0, y0, W, h);
+    ctx.fillStyle = 'rgba(60,230,255,' + (0.10 * q) + ')'; for (let y = y0 + ((t * 20) | 0) % 3; y < y0 + h; y += 3) ctx.fillRect(x0 + 1, y, W - 2, 1);
     ctx.fillStyle = 'rgba(140,250,255,0.18)'; ctx.fillRect(x0 + 1, y0 + 1, W - 2, 1);
-    ctx.fillStyle = 'rgba(255,154,42,0.55)'; ctx.fillRect(x0, y0, W, 1); ctx.fillRect(x0, y0 + h - 1, W, 1); ctx.fillRect(x0, y0, 1, h); ctx.fillRect(x0 + W - 1, y0, 1, h);
-    ctx.fillStyle = '#ff9a2a'; for (const [bx, by, sx, sy] of [[x0, y0, 1, 1], [x0 + W, y0, -1, 1], [x0, y0 + h, 1, -1], [x0 + W, y0 + h, -1, -1]]) { ctx.fillRect(sx > 0 ? bx - 1 : bx - c + 1, sy > 0 ? by - 1 : by - 2, c, 2); ctx.fillRect(sx > 0 ? bx - 1 : bx - 1, sy > 0 ? by - 1 : by - c + 1, 2, Math.min(c, h + 2)); }
+    ctx.fillStyle = 'rgba(255,154,42,' + (0.55 * q) + ')'; ctx.fillRect(x0, y0, W, 1); ctx.fillRect(x0, y0 + h - 1, W, 1); ctx.fillRect(x0, y0, 1, h); ctx.fillRect(x0 + W - 1, y0, 1, h);
+    ctx.fillStyle = '#ff9a2a'; for (const [bx, by, sx, sy] of [[x0, y0, 1, 1], [x0 + W, y0, -1, 1], [x0, y0 + h, 1, -1], [x0 + W, y0 + h, -1, -1]]) { ctx.fillRect(sx > 0 ? bx - 1 : bx - c + 1, sy > 0 ? by - 1 : by - bw, c, bw); ctx.fillRect(sx > 0 ? bx - 1 : bx - bw + 1, sy > 0 ? by - 1 : by - c + 1, bw, Math.min(c, h + 2)); }
   }
   drawComm(g, on) {
     const ctx = this.ctx, t = g.time; this.commK = Math.max(0, Math.min(1, (this.commK || 0) + (on ? 1 : -1) * (this._commT === undefined ? 0 : Math.max(0, t - this._commT)) * 4)); this._commT = t;
