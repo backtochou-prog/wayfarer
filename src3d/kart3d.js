@@ -194,7 +194,7 @@ class Kart3D {
                 '  float front2 = 0.74 + 0.03 * sin(vUv.y * 6.2832 * 2.0 - vUv.x * 900.0); float k2 = smoothstep(front2 - 0.03, front2 + 0.03, vF); gl_FragColor = mix(col, vec4(c3.rgb * 1.6, 1.0), k2); gl_FragColor.rgb *= 0.8;\n#include <colorspace_fragment>\n}' });
             this.tunTex = { offset: { set x(v) { } } }; }
           { const tun = new THREE.Mesh(tg, tm); sc.add(tun); this.gateStuff.push(tun); }
-          const fl = ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#120a10', specular: 0x886677, shininess: 70 }), -KART.TD + 0.02);       // the tunnel's floor
+          const fl = ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#0a0610', specular: 0x9988aa, shininess: 90, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide }), -KART.TD + 0.02); fl.renderOrder = 2;       // the tunnel's floor: DARK GLASS (the user): the rest of the tunnel shows through it
           // the tunnel's road in the style of the LASER FENCES (the user): neon lines along the floor (cyan at the edges, pink between the lanes) and two low laser bars along each side, blinking
           const lzC = new THREE.MeshBasicMaterial({ color: '#35f0ff', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), lzP = new THREE.MeshBasicMaterial({ color: '#ff3fd0', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
           this.tunLaser = [lzC, lzP];
