@@ -385,6 +385,19 @@ class Kart3D {
           const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
         this.floorsBetween = [];
         for (const [yy, rc, col] of [[Y4 + 42, 256, '#35f0ff'], [Y4 + 28, 192, '#b040ff'], [Y4 + 14, 128, '#ff3fd0']]) {
+          if (rc === 256 && typeof KART_ART !== 'undefined' && KART_ART.hexBand2) {      /* THE 3rd BASEMENT (the user: 'un sol avec ton matériau en hexagones, vide au centre pour voir en dessous'): a WIDE floor of the user's red, black and steel hexagons - six bands of 24 m side by side (the same scale as the rings below, each mirrored from the last so the seams meet), from 300 m in to 156 m from the centre, a 2 m slab with a neon edge round the outside and round the opening - and the whole middle left OPEN, to see down to the floors below */
+            const img = new Image(), hx = new THREE.Texture(img); hx.colorSpace = THREE.SRGBColorSpace; hx.anisotropy = 8; hx.wrapS = THREE.MirroredRepeatWrapping; img.onload = () => { hx.needsUpdate = true; }; img.src = KART_ART.hexBand2;
+            const hm = new THREE.MeshBasicMaterial({ map: hx, side: THREE.DoubleSide, fog: false }), dk = new THREE.MeshBasicMaterial({ color: '#0a0b0e', side: THREE.DoubleSide, fog: false }), g = new THREE.Group(), NS = 360, Wb = 24, rIn = 156, nb = 6, th = 2, tx = weave();
+            for (let bi = 0; bi < nb; bi++) { const ra = rIn + bi * Wb, rb = ra + Wb, nR = 2 * Math.max(1, Math.round(2 * Math.PI * (ra + rb) / 2 / (2 * Wb * KART_ART.ar_hexBand2))), pos = [], uv = [], idx = [];
+              for (let k = 0; k <= NS; k++) for (let j = 0; j <= 1; j++) { const a = k / NS * Math.PI * 2, r = j ? rb : ra; pos.push(r * Math.cos(a), yy, -r * Math.sin(a)); uv.push(k / NS * nR, bi % 2 ? 1 - j : j); }
+              for (let k = 0; k < NS; k++) { const a1 = k * 2; idx.push(a1, a1 + 2, a1 + 1, a1 + 1, a1 + 2, a1 + 3); }
+              const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); bg.setIndex(idx); g.add(new THREE.Mesh(bg, hm)); }
+            const rOut = rIn + nb * Wb; tx.repeat.set(Math.round(2 * Math.PI * rOut / 4), 1);
+            const bot = new THREE.Mesh(new THREE.RingGeometry(rIn, rOut, 200, 1), dk); bot.rotation.x = -Math.PI / 2; bot.position.y = yy - th; g.add(bot);
+            const cm = new THREE.MeshBasicMaterial({ map: tx, side: THREE.DoubleSide, fog: false }); for (const rr of [rIn, rOut]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, th, 200, 1, true), cm); w.position.y = yy - th / 2; g.add(w); }
+            const nm = new THREE.MeshBasicMaterial({ color: col, fog: false }), halo = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+            for (const rr of [rIn, rOut]) { const l = new THREE.Mesh(new THREE.TorusGeometry(rr, 0.25, 6, 200), nm), h2 = new THREE.Mesh(new THREE.TorusGeometry(rr, 0.9, 6, 200), halo); l.rotation.x = h2.rotation.x = Math.PI / 2; l.position.y = h2.position.y = yy + 0.1; g.add(l, h2); }
+            g.position.set(-R, 0, 0); sc.add(g); this.gateStuff.push(g); this.floorsBetween.push({ g, halo, nm }); continue; }
           const r0 = rc - 12, r1 = rc + 12, th = 2, tx = weave(); tx.repeat.set(Math.round(2 * Math.PI * rc / 4), 6); const mat = new THREE.MeshBasicMaterial({ map: tx, side: THREE.DoubleSide, fog: false }), g = new THREE.Group();
           const top = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 200, 1), mat); top.rotation.x = -Math.PI / 2; top.position.y = yy;
           const bot = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 200, 1), new THREE.MeshBasicMaterial({ color: '#0a0b0e', side: THREE.DoubleSide, fog: false })); bot.rotation.x = -Math.PI / 2; bot.position.y = yy - th;
