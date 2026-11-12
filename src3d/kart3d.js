@@ -1,4 +1,4 @@
-// KART3D: the KART CIRCUIT of the Galerie Gasperi (2026-11-09, the user: "qu'il soit enfermé du haut comme un centre commercial, un circuit rond 360° et grand, pas d'asphalte;
+// KART3D: the KART CIRCUIT of the Calagtic (2026-11-09, the user: "qu'il soit enfermé du haut comme un centre commercial, un circuit rond 360° et grand, pas d'asphalte;
 // petite voiture de karting; très grand ~1,5 km"). A ring of radius KART.R (240 m: 1.5 km a lap, two laps) inside a huge round shopping centre: a tiled floor (no asphalt), a low
 // barrier on each side, the café fronts and terraces of the Terrasse Gasperi all round the outside, a garden of trees and planters in the middle, a glass dome over everything.
 // The RULES are the race zone's (src/race.js, with this.len = two laps); the items are Race3D's own meshes, placed by Race3D.placeItems on its straight track and then carried onto

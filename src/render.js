@@ -52,7 +52,7 @@ class Renderer {
     if (p.brakeT > 0) this.ctr('BRAKE', 146, '#ff4fd8'); else if (p.hitT > 0) this.ctr('HIT', 146, '#ff4a4a'); else if (p.boostT > 0) this.ctr('BOOST +' + Math.round(p.boost * 3.6), 146, ['#ff5a6a', '#d070ff', '#7aff40', '#d8ff30'][RACE.SPIRAL.findIndex(c => c.add === p.boost)] || '#fff');
     if (p.pedal && !(p.brakeT > 0 || p.hitT > 0 || p.boostT > 0)) this.ctr(p.pedal === 'brake' ? 'BRAKE' : 'ACCEL', 146, p.pedal === 'brake' ? '#ff8aa0' : '#7affc8');      // the pedals (held)
     if (R.menu) {                                                                          // THE KART QUICK MENU: a see-through panel over the circuit
-      this.holo(84, 40, 152, 112, g.time, 9); this.txt('KARTING // NAV', 90, 44, '#ff9a2a'); if (Math.floor(g.time * 2) % 2) { ctx.fillStyle = '#ff9a2a'; ctx.fillRect(226, 44, 4, 4); }
+      this.holo(84, 40, 152, 112, g.time, 9); this.txt('CALAGTIC // KART', 90, 44, '#ff9a2a');      /* (the zone's name, the user: CALAGTIC) */ if (Math.floor(g.time * 2) % 2) { ctx.fillStyle = '#ff9a2a'; ctx.fillRect(226, 44, 4, 4); }
       const vrOk = !!(g.r && g.r.xr && g.r.xr.button);
       for (const b of KMENU) {                                                             // see-through buttons with a neon edge (green; turquoise under the pointer; grey when VR is not available)
         const m = g.mouse, hov = m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h, off = b.id === 'vr' && !vrOk, col = off ? '#6a7890' : hov ? '#ffffff' : '#bff8ff';

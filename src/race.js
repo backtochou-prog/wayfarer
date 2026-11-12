@@ -10,7 +10,7 @@ const RACE = {
   THROTTLE: 5, PEDAL_MUL: 0.5,   /* the PEDALS (the user: 'boutons accelerer, freiner'): accelerating while held adds THROTTLE m/s to the car's pace (the user asked for both cars faster: 43 / 58 m/s, the spirals scaled with them; 5, not more: measured by tests/race_sim.js, a player who only holds the accelerator in one lane wins about one race in six, an attentive one 85 % without it and all with it; the spirals stay the way to win), braking while held halves it */
   DROID_V: 12, DROID_TRIGGER: 50, RAMP_BEFORE: 30, BUMP_MUL: 0.6, BUMP_T: 0.9, BUMP_GAP: 4.4,          /* running into the back of the robot's car: it is an obstacle like any other, the player is slowed and held behind it */
 };
-// THE KART CIRCUIT (the Galerie Gasperi, a ring inside a big shopping centre): the same rules over two laps of a ring of radius R (src3d/kart3d.js draws it)
+// THE KART CIRCUIT (the Calagtic, a ring inside a big shopping centre): the same rules over two laps of a ring of radius R (src3d/kart3d.js draws it)
 const KART = { R: 240, LAPS: 5, BANK: 1.6, GATE_W: 12, INNER: -16, EQ_V: 140 };      /* EQ_V: how fast the equalizer colour change runs round the track, m/s (slower: a longer, more gradual passage, the user) */      /* INNER: the inner ring road's centre, metres across from the track's (lap 4 is run on it) */      /* (4 laps: the user added two; BANK: how far the inner edge goes down in lap 2, metres) */ KART.LAP = 2 * Math.PI * KART.R; KART.LEN = Math.round(KART.LAP * KART.LAPS);
 // THE GATE AT THE END OF LAP 3 (the user: neon electronic barriers guide the karts through the gate and forbid another lap on the big ring; lap 4 is run on the inner ring road): from FUNNEL the
 // lanes close from the right (the middle one 80 m before the line), then every kart turns left through the gate (TURN: where the turn starts, over TURN_L m) onto the inner road.
@@ -19,7 +19,7 @@ KART.GATE_S = 3 * KART.LAP; KART.FUNNEL = KART.GATE_S - 420; KART.FUNNEL2 = KART
 KART.fence = s => { if (s < KART.FUNNEL) return 6.3; const v = Math.max(0, Math.min(1, (s - KART.FUNNEL) / (KART.GATE_S - 40 - KART.FUNNEL))); return 6.3 - 7.5 * v; }; KART.TURN = KART.GATE_S - 14; KART.TURN_L = 50; KART.TD = 14; KART.DIVE_L = 110;      /* the gate leads UNDERGROUND (the user): the road dives TD m over DIVE_L m into the spiral tunnel */
 class Race {
   constructor(seed, opts) {
-    this.len = (opts && opts.len) || RACE.LEN; this.kart = !!(opts && opts.kart);      // (the KART circuit of the Galerie Gasperi: laps of a ring, src3d/kart3d.js)
+    this.len = (opts && opts.len) || RACE.LEN; this.kart = !!(opts && opts.kart);      // (the KART circuit of the Calagtic: laps of a ring, src3d/kart3d.js)
     this.seed = seed || 1; this.t = 0; this.done = false; this.result = null; this.fin = 0;          // result: 'win' | 'lose'
     this.p = { s: 0, lane: -1, x: -RACE.LANE_M, speed: RACE.BASE * 0.6, boost: 0, boostT: 0, brakeT: 0, hitT: 0, air: 0, pedal: null, spirals: 0, rare: 0, hits: 0, rings: 0, jumps: 0, near: 0, bumps: 0 };
     this.bot = { s: 0, speed: RACE.BASE * 0.65, lane: 1, x: RACE.LANE_M, finishT: null };             // the two cars start SIDE BY SIDE on the line, one at each side of the track (the player on the left, the robot on the right: a lane of road between them)                                              
