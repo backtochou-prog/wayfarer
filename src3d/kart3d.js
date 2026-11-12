@@ -5,6 +5,7 @@
 // the ring here: a point (x across, s along) of the straight track is ring(s, x) = centre + (R + x) (cos a, 0, -sin a), a = s / R (the karts turn LEFT round a centre at x = -R).
 class Kart3D {
   static get HALL() { return true; }      // the 3D ship hall instead of the painted arch and floor
+  static get WELD_FLOOR() { return false; }      // the user's floor picture (KART_ART.weldFloor) under the hall: removed for now, its settings kept to reuse later
   constructor(race3d) {
     const R = KART.R, sc = this.scene = new THREE.Scene(); this.r3 = race3d;
     sc.background = new THREE.Color('#05060f'); sc.fog = new THREE.Fog('#2a2436', 120, 520);
@@ -379,7 +380,7 @@ class Kart3D {
       const lg = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lp, true), 600, 0.35, 6, true), new THREE.MeshBasicMaterial({ color: '#ff1a2a', transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
       sc.add(lz, lg); this.gateStuff.push(lz, lg); this.laser = [lz, lg];
       const ce = new THREE.Mesh(new THREE.RingGeometry(R + xb, R + 66, 360, 1), new THREE.MeshBasicMaterial({ color: '#05060a', side: THREE.BackSide, fog: false })); ce.rotation.x = -Math.PI / 2; ce.position.set(-R, -0.45, 0); ce.visible = false; sc.add(ce); this.glassCeil = ce; }      /* (the ceiling above the glass: the underside of the track and the shops' walk, seen only from underground - the garden and Saturn stay open) */ this.wallL = null;      /* (D2 removed, the user) */
-    if (typeof KART_ART !== 'undefined' && KART_ART.weldFloor) {      /* THE FLOOR between them (the user's picture, once): across the full width of the hall, its length from the picture's own proportions, its top toward the front */
+    if (Kart3D.WELD_FLOOR && typeof KART_ART !== 'undefined' && KART_ART.weldFloor) {      /* (switched off, the user: kept with all its settings - 120 m long, y -62, right side curving up into D1's foot - to be used again later; set Kart3D.WELD_FLOOR = true) */      /* THE FLOOR between them (the user's picture, once): across the full width of the hall, its length from the picture's own proportions, its top toward the front */
       const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.weldFloor;
       const Lf = 120, NS = 80, NJ = 24, Yb = -52, Yf = -62, xR = -3, Rc = Yb - Yf, xL = -16 - W / 2, flat = (xR - Rc) - xL, arc = Math.PI / 2 * Rc, tot = flat + arc, pos = [], uv = [], idx = [];      /* (stretched forward to 120 m, the user; and across, its right side curves up, a quarter circle, into the foot of D1) */
       const prof = t => { const d = t * tot; if (d <= flat) return [xL + d, Yf]; const a = (d - flat) / Rc; return [xR - Rc + Rc * Math.sin(a), Yf + Rc - Rc * Math.cos(a)]; };
