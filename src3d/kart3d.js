@@ -364,11 +364,11 @@ class Kart3D {
       const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); bg.setIndex(idx);
       const bm = new THREE.Mesh(bg, new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, fog: false })); sc.add(bm); this.gateStuff.push(bm); this.hexBandMesh = bm; }
     { // THE LAST FLOOR, about 4 floors underground (the user: the tunnel is the 2nd basement): one dark ground over the whole circle, and on it a ROUNDABOUT made of the user's red, black and steel hexagons (KART_ART.hexBand2) - a 24 m ring right under the tunnel, all round
-      const Y4 = -70, gr = new THREE.Mesh(new THREE.CircleGeometry(R + 70, 240), new THREE.MeshBasicMaterial({ color: '#07070b', side: THREE.DoubleSide, fog: false })); gr.rotation.x = -Math.PI / 2; gr.position.set(-R, Y4 - 0.4, 0); sc.add(gr); this.gateStuff.push(gr); this.lastGround = gr;
+      const Y4 = -70, gr = new THREE.Mesh(new THREE.CircleGeometry(R + 100, 240), new THREE.MeshBasicMaterial({ color: '#07070b', side: THREE.DoubleSide, fog: false })); gr.rotation.x = -Math.PI / 2; gr.position.set(-R, Y4 - 0.4, 0); sc.add(gr); this.gateStuff.push(gr); this.lastGround = gr;
       if (typeof KART_ART !== 'undefined' && KART_ART.hexBand2) {
         const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.wrapS = THREE.MirroredRepeatWrapping; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.hexBand2;
         const Wc = 24, NS = 360, pos = [], uv = [], idx = [];
-        for (const [r0, xc] of [-16, -80, -144].entries()) {      /* (three rings, the user: the first under the tunnel, then two more like it, inside) */
+        for (const [r0, xc] of [48, -16, -80, -144].entries()) {      /* (four rings, the user: the first under the tunnel, two more inside, and a 4th outside, the same gap (64 m) between them) */
           const nR = 2 * Math.max(1, Math.round(KART.LAP * (R + xc) / R / (2 * Wc * KART_ART.ar_hexBand2))), b0 = pos.length / 3;      /* (an even number of mirrored repeats: each ring closes without a seam) */
           for (let k = 0; k <= NS; k++) for (let j = 0; j <= 1; j++) { const q = this.ringPos(sE + k / NS * KART.LAP, xc + (j - 0.5) * Wc, Y4); pos.push(q.x, q.y, q.z); uv.push(k / NS * nR, j); }
           for (let k = 0; k < NS; k++) { const a1 = b0 + k * 2; idx.push(a1, a1 + 2, a1 + 1, a1 + 1, a1 + 2, a1 + 3); } }
