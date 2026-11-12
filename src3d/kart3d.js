@@ -5,6 +5,7 @@
 // the ring here: a point (x across, s along) of the straight track is ring(s, x) = centre + (R + x) (cos a, 0, -sin a), a = s / R (the karts turn LEFT round a centre at x = -R).
 class Kart3D {
   static get HALL() { return true; }      // the 3D ship hall instead of the painted arch and floor
+  static get SPIRAL_FLAT() { return false; }      // the user's flat green spiral picture over the rings: replaced by the snaking light tube, kept to reuse
   static get WELD_FLOOR() { return false; }      // the user's floor picture (KART_ART.weldFloor) under the hall: removed for now, its settings kept to reuse later
   constructor(race3d) {
     const R = KART.R, sc = this.scene = new THREE.Scene(); this.r3 = race3d;
@@ -374,9 +375,14 @@ class Kart3D {
           for (let k = 0; k < NS; k++) { const a1 = b0 + k * 2; idx.push(a1, a1 + 2, a1 + 1, a1 + 1, a1 + 2, a1 + 3); } }
         const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); cg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); cg.setIndex(idx);
         const cm = new THREE.Mesh(cg, new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, fog: false })); sc.add(cm); this.gateStuff.push(cm); this.roundabout = cm; }
-      if (typeof KART_ART !== 'undefined' && KART_ART.spiralGreen) {      /* THE GREEN SPIRAL (the user's picture, its dark background cut away): laid flat just ABOVE the rings, once, over the whole of the last floor - its arms run across the rings and through the empty gaps between them */
+      if (Kart3D.SPIRAL_FLAT && typeof KART_ART !== 'undefined' && KART_ART.spiralGreen) {      /* THE GREEN SPIRAL as a flat picture (the user's, background cut away) - switched off since the light tube below replaced it, kept with its settings: set Kart3D.SPIRAL_FLAT = true */
         const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.spiralGreen;
         const Ws = 620, sp = new THREE.Mesh(new THREE.PlaneGeometry(Ws, Ws), new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, transparent: true, depthWrite: false, fog: false })); sp.rotation.x = -Math.PI / 2; sp.rotation.z = Math.PI; sp.position.set(-R, Y4 + 0.25, 0); sp.renderOrder = 5; sc.add(sp); this.gateStuff.push(sp); this.spiralGreen = sp; }
+      { /* THE LIGHT TUBE THAT SNAKES (the user): a raised tube of the spiral's green light, 1.3 m thick with a soft halo, weaving round the whole floor from the gap between two rings to the next - it passes OVER the rings (1.8 m above them) and along the empty gaps (their middles are 256, 192 and 128 m from the centre) - a squared wave of 4 periods round the circle */
+        const pts = [], NP = 900, k = 4, y = Y4 + 1.8, sq = Math.tanh(2.2);
+        for (let i = 0; i < NP; i++) { const th = i / NP * Math.PI * 2, r = 192 + 64 * Math.tanh(2.2 * Math.sin(k * th)) / sq;      /* (a squared wave: it keeps to the middle of an outer gap (256 m) or an inner one (128 m) for a long stretch, then crosses the rings quickly over their backs) */ pts.push(new THREE.Vector3(-R + r * Math.cos(th), y, -r * Math.sin(th))); }
+        const cv = new THREE.CatmullRomCurve3(pts, true), core = new THREE.MeshBasicMaterial({ color: '#9ee600', fog: false }), halo = new THREE.MeshBasicMaterial({ color: '#9be000', transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+        const tc = new THREE.Mesh(new THREE.TubeGeometry(cv, 1800, 1.3, 12, true), core), th2 = new THREE.Mesh(new THREE.TubeGeometry(cv, 1800, 3.4, 10, true), halo); th2.renderOrder = 6; sc.add(tc, th2); this.gateStuff.push(tc, th2); this.snake = [tc, th2]; this.snakeMats = [core, halo]; }
       if (typeof KART_ART !== 'undefined' && KART_ART.floorDisc) {      /* THE VERY CENTRE of the last floor (the user's glass flower of green, pink and violet rings, cut out of its checkerboard, used once, its own proportions): inside the smallest ring, 160 m long */
         const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.floorDisc;
         const Rd = 84, dg = new THREE.CircleGeometry(Rd, 160), P = dg.attributes.position, U = dg.attributes.uv;      /* (flush with the rings, the user: a round piece exactly filling the smallest ring's centre, at the same height, its edge meeting the ring's inner edge; the picture's own round heart - 88 % of it, all solid - mapped into it, its sides adapted to the circle) */
@@ -452,6 +458,7 @@ class Kart3D {
     if (this.vent) this.vent.rotation.z += dtk * (0.02 + 0.22 * en);
     const step = Math.floor(B.beat * 2), sub = B.beat * 2 - step;
     this.arrowStep = { step, sub };
+    if (this.snakeMats) { this.snakeMats[1].opacity = 0.2 + 0.2 * pulse; this.snakeMats[0].color.setRGB(0.34 + 0.16 * pulse, 0.78, 0.0); }      // (the snaking tube breathes on the beat)
     if (this.tunLaser) this.tunLaser.forEach((m, k) => { m.opacity = 0.25 + 0.3 * Math.abs(Math.sin(t * 6 + k * 1.6)); });      // (fine and light)
     if (this.arrowMats) this.arrowMats.forEach((m, k) => { const lit = step % 3 === k % 3, b = lit ? 0.55 + 0.45 * (1 - sub) : 0.22; m.f.color.copy(m.fc).multiplyScalar(0.3 + 0.7 * b); m.e.color.copy(m.ec).multiplyScalar(0.4 + 0.6 * b); });
     if (this.centreLit) { this.centreLit[0].material.opacity = 0.7 + 0.3 * pulse + 0.1 * Math.sin(t * 2.2); const k = 1 + 0.05 * pulse; this.centreLit[1].scale.set(230 * k, 230 * k, 1); this.centreLit[1].material.opacity = 0.75 + 0.25 * pulse; }
