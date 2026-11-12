@@ -256,6 +256,12 @@ assets/         music.mp3 (the track)
 src3d/*         3D front end: kit, road3d, stretch (scenery stretches), env_city/forest/market/neon/tram/coast/ruins (+ neon_art / neon_assets, tram_art, blossom_sprite + blossom_assets, board_art + board_assets, neon_shops, flower_assets), runner_sprite + avatar_assets (the artwork avatar), tree_sprite + tree_assets (the artwork trees), ui_assets (the menu-panel artwork), runner3d (the 3D model), items3d, fx3d, signs3d, renderer3d, main3d
 vendor/         three.min.js (Three.js r186)
 tools/preview3d.html  dev page that renders one 3D module in isolation
+Running the tests: every `tests/qa3d_*.js` is a stand-alone Node script that starts its own static server (each on its own port) and drives Chromium through playwright-core: `NODE_PATH=/path/to/node_modules node tests/qa3d_world.js` (set `CHROMIUM=/path/to/chrome` if it is not under `~/.cache/ms-playwright`). They print PASS/FAIL lines and `n/n passed`, and exit non-zero on a failure. Run them one at a time: each needs a minute or more in software WebGL.
+
+tests/race_sim.js      simulation (no browser): the race rules over many seeds
+tests/qa3d_xr.js       regression test: immersive VR with a fake WebXR device (the button, the session, the one loop, the rigs, errors, repeated enter / leave, 2D without VR code)
+tests/qa3d_kartvr.js   regression test: the kart circuit in VR (the XR rig, HUD panel, vignette and controllers on the kart's own scene; the rig follows the banked laps and the dive into the spiral tunnel; seated eye height; the quick menu answered at session start; a headset taken off holds the race)
+tests/_chromium.js     helper: finds the Chromium to launch ($CHROMIUM, else the newest one under ~/.cache/ms-playwright)
 tests/qa3d_coins.js   regression test: coin pickup (coins vanish at once, count once, can't be re-collected, pool reuse, both branches, restart)
 tests/qa3d_world.js   regression test: world variety, track integrity, pools, six junctions played
 tests/qa3d_audio.js   regression test: sound and music (locked until a gesture, the track and its beat grid checked against the decoded mp3, every event's effect, offline-rendered effects, mute, animation on the beat)

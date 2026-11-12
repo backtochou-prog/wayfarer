@@ -401,14 +401,15 @@ class Kart3D {
   ringPos(s, x, y, out) { const a = s / KART.R, r = KART.R + x; return (out || new THREE.Vector3()).set(-KART.R + r * Math.cos(a), y, -r * Math.sin(a)); }
   bind(R) {                                                                                          // Race3D builds the item meshes; each goes into a holder that stands on the ring
     if (this.r3.bound !== R) this.r3.bind(R);
-    if (this.holders) for (const h of this.holders) this.scene.remove(h);
+    if (this.holders) for (const h of this.holders) { this.scene.remove(h); h.traverse(o => { if (o.geometry) o.geometry.dispose(); const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const m of ms) m.dispose(); }); }      /* (a restart rebuilds every holder: the old ones' GPU buffers are released, not leaked - three re-uploads the few shared ones on demand) */
+    const chevG = new Map(), chev = k => { let g = chevG.get(k); if (!g) { const sh = new THREE.Shape(); sh.moveTo(-0.7 * k, -0.35 * k); sh.lineTo(0, 0.45 * k); sh.lineTo(0.7 * k, -0.35 * k); sh.lineTo(0.7 * k, -0.75 * k); sh.lineTo(0, 0.05 * k); sh.lineTo(-0.7 * k, -0.75 * k); sh.closePath(); g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); chevG.set(k, g); } return g; };      /* (one geometry per size for ALL the speed tokens, not five per token) */
     const COL = ['#ff2a3a', '#c050ff', '#50ff30', '#d8ff20'], smoke = new THREE.MeshBasicMaterial({ color: '#0c1014', transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false });
     this.holders = this.r3.meshes.map((m, i) => { const it = R.items[i], h = new THREE.Group();
       if (it.type === 'spiral') {                                                                    // THE SPEED TOKENS shaped like the blue arrow bands (three chevrons with a rim, lit one after the other toward the front), in their own neon colours
-        const col = new THREE.Color(COL[it.color]), rimC = col.clone().lerp(new THREE.Color('#ffffff'), 0.45), mk = k => { const sh = new THREE.Shape(); sh.moveTo(-0.7 * k, -0.35 * k); sh.lineTo(0, 0.45 * k); sh.lineTo(0.7 * k, -0.35 * k); sh.lineTo(0.7 * k, -0.75 * k); sh.lineTo(0, 0.05 * k); sh.lineTo(-0.7 * k, -0.75 * k); sh.closePath(); const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); return g; };
-        const fill = mk(1), rim = mk(1.22); rim.translate(0, -0.005, 0.02); h.userData.chev = [];
+        const col = new THREE.Color(COL[it.color]), rimC = col.clone().lerp(new THREE.Color('#ffffff'), 0.45), mk = chev;
+        const fill = mk(1); const rimG = chevG.get('rim') || (chevG.set('rim', chev(1.22).clone().translate(0, -0.005, 0.02)), chevG.get('rim')); h.userData.chev = [];
         for (let k = 0; k < 3; k++) { const fm = new THREE.MeshBasicMaterial({ color: col, fog: false }), em = new THREE.MeshBasicMaterial({ color: rimC, fog: false }), gm = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
-          const g3 = new THREE.Group(), glow = new THREE.Mesh(mk(1.6), gm); glow.position.y = -0.01; const f = new THREE.Mesh(fill, fm); f.position.y = 0.012; g3.add(glow, new THREE.Mesh(rim, em), f); g3.position.z = -k * 1.25; g3.scale.setScalar(1.6); h.add(g3); h.userData.chev.push({ fm, em, gm, col, rimC }); }
+          const g3 = new THREE.Group(), glow = new THREE.Mesh(mk(1.6), gm); glow.position.y = -0.01; const f = new THREE.Mesh(fill, fm); f.position.y = 0.012; g3.add(glow, new THREE.Mesh(rimG, em), f); g3.position.z = -k * 1.25; g3.scale.setScalar(1.6); h.add(g3); h.userData.chev.push({ fm, em, gm, col, rimC }); }
         h.userData.flat = true;
       } else if (it.type === 'ramp') {                                                               // THE RAMPS re-made for the kart circuit (the user: they had lost their look): the race's ramp picture under a smoked
         const M = RACE.LANE_M, W = M * 1.1, L = 11, A = 0.34, H = L * Math.sin(A), D = L * Math.cos(A), z0 = 1.2, zc = z0 - D / 2, rg = new THREE.Group();      // black glass, its red and blue neon sides, no white band
@@ -470,9 +471,8 @@ class Kart3D {
     this.camera.lookAt(this.ringPos(p.s + 12, (p.x * 0.4 + OFF), 0.9 + air * 0.6, this.v).setY(this.v.y + this.bankY(PX) + R.dep(p.s + 10)));
     }
     const X = g.r && g.r.xr && g.r.xr.presenting ? g.r.xr : null;                                  // VR: the headset looks from a rig at the chase pose (behind the kart, heading along the ring); no pitch, no roll
-    if (X) { if (!this.rig) { this.rig = new THREE.Group(); this.scene.add(this.rig); } if (this.camera.parent !== this.rig) this.rig.add(this.camera);
-      this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.ringPos(p.s - 4.6, (p.x * 0.6 + OFF), 0.6, this.rig.position); this.rig.position.y += this.bankY(PX) + R.dep(p.s); this.rig.rotation.set(0, p.s / KART.R, 0); }      /* (the VR rig follows the track's height too - the banked laps and the dive into the tunnel: it used to stay at 0.6 m, on the road ABOVE the tunnel, while the kart went underground) */
-    else if (this.rig && this.camera.parent === this.rig) { this.rig.remove(this.camera); this.scene.add(this.camera); }
+    if (X) { const rg = X.rig('race'), dtx = Math.min(0.05, Math.max(0, t - (this._xrT === undefined ? t : this._xrT))) || 1 / 72; this._xrT = t; if (rg) { this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.ringPos(p.s - 4.6, (p.x * 0.6 + OFF), 0, this.v); this.v.y += this.bankY(PX) + R.dep(p.s); X.placeKart(rg, this.v, p.s / KART.R, dtx); } }      /* VR: the headset looks from the XR rig mounted on THIS scene and camera (so the HUD panel, the controllers and the comfort vignette are drawn here too), at the chase pose behind the kart, heading along the ring, following the banked laps and the dive into the tunnel; no pitch, no roll */
+    else this._xrT = undefined;
     // THE RIGHT-HAND VIEW (the user's 1D picture: 'what one sees on the right through the transparent tunnel'): a far backdrop that travels with the kart on its right side while it is in the glass
     // tunnel (lap 4 from its glass stretch, and lap 5), so the painting is seen as painted, through the glass, behind everything else
     renderer.render(this.scene, this.camera);

@@ -14,11 +14,11 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
     fs.readFile(path.join(ROOT, p), (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'content-type': MIME[path.extname(p)] || 'application/octet-stream' }); r.end(d); } });
   }).listen(PORT);
-  const b = await chromium.launch({ executablePath: process.env.CHROMIUM || '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+  const b = await chromium.launch({ executablePath: process.env.CHROMIUM || require('./_chromium')(), args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const base = process.env.TEST_URL || 'http://localhost:' + PORT + '/';
   const open = async q => {
     const pg = await (await b.newContext({ viewport: { width: 960, height: 540 } })).newPage(); pg.errs = []; pg.on('pageerror', e => pg.errs.push(e.message)); pg.on('console', m => m.type() === 'error' && pg.errs.push(m.text()));
-    await pg.goto(base + q, { timeout: 90000 }); await pg.waitForFunction(() => window.__wf, null, { timeout: 60000 }); await pg.evaluate(() => { window.requestAnimationFrame = () => 0; }); await pg.waitForTimeout(700);   // (the game's own loop is stopped: the test steps frames itself)
+    await pg.goto(base + q, { timeout: 240000 }); await pg.waitForFunction(() => window.__wf, null, { timeout: 240000 }); await pg.evaluate(() => { window.requestAnimationFrame = () => 0; }); await pg.waitForTimeout(700);   // (the game's own loop is stopped: the test steps frames itself)
     await pg.evaluate(() => {
       const g = __wf, r = g.r; window.G = g;
       window.frames = n => { for (let i = 0; i < n; i++) { g.time += 1 / 60; g.draw(); } };
@@ -204,7 +204,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     // the zone ends: back on foot (the blend leaves 'tram')
     g.bgTo = 'city'; g.bgT = 0; g.update(1 / 60); out.leftZone = !g.riding;
     goto('scooter'); frames(3); g.mount(); out.again = g.riding; g.start(); out.restart = !g.riding && g.scooterHint === null;
-    out.hit = JSON.stringify(OBST); out.speed = BASE_SPEED; return out;
+    out.hit = JSON.stringify({ crate: OBST.crate, barrier: OBST.barrier, over: OBST.over });      /* (the three base hit boxes: Vic's own obstacles were added to OBST later, and are not what a scooter could change) */ out.speed = BASE_SPEED; return out;
   });
   T('riding: the card stands on the deck (lifted ' + Z.deck + ' m, the runner ' + Z.box.top + ' m tall), the wheels spin, the glide is steady (' + Z.bounce + ' m of bounce), steering leans the scooter (' + Z.lean + ' rad), the jump lifts its nose (' + Z.nose + ' rad)',
     Math.abs(Z.deck - 0.22) < 0.06 && Z.box.top > 1.9 && Z.box.top < 2.3 && Z.box.bottom > -0.05 && Z.box.bottom < 0.1 && Z.spin.every(Boolean) && Z.bounce < 0.03 && Math.abs(Z.lean) > 0.03 && Z.nose > 0.08, JSON.stringify(Z));

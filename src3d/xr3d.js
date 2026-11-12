@@ -35,7 +35,7 @@ class XR3D {
   showButton() {
     if (this.button || typeof document === 'undefined') return;
     const b = this.button = document.createElement('button'); b.id = 'xr-button'; b.type = 'button'; b.textContent = 'ENTER VR';
-    b.style.cssText = 'position:fixed;right:max(12px,env(safe-area-inset-right,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));z-index:5;padding:10px 16px;font:bold 14px/1 monospace;' +
+    b.style.cssText = 'position:fixed;right:max(12px,env(safe-area-inset-right,0px));top:max(12px,env(safe-area-inset-top,0px));z-index:5;padding:10px 16px;font:bold 14px/1 monospace;' +
       'letter-spacing:.08em;color:#fff3df;background:rgba(40,18,30,.78);border:2px solid #ffb35c;border-radius:6px;cursor:pointer;touch-action:manipulation';
     b.addEventListener('click', e => { e.stopPropagation(); this.presenting ? this.exit() : this.enter(); });
     b.addEventListener('pointerdown', e => e.stopPropagation());        // (the game's own pointer handlers never see a press on the button)
@@ -87,6 +87,7 @@ class XR3D {
     if (typeof XRComfort !== 'undefined') { this.comfort = this.comfort || new XRComfort(this); this.comfort.reset(); }       // PHASE 3: the vignette and the fades (src3d/xr_comfort.js)
     if (this.session) this.session.addEventListener('visibilitychange', this.onVis = () => this.visibility());
     g.loopOwner = 'xr'; this.last = -1;
+    if (g.state === 'race' && g.race && g.race.menu) g.kartChoose('chase');                // the kart's quick menu cannot be used with the controllers: the session start is the choice (the camera behind)
     // entering VR can blur the page (and the Game pauses on blur): a run that was going on goes on
     if (wasPlay === 'play') setTimeout(() => { if (this.presenting && g.state === 'pause') g.state = 'play'; }, 600);
   }
@@ -110,7 +111,7 @@ class XR3D {
   preFrame(dt) {
     const g = this.game;
     const prev = this.active;
-    this.active = (g.state === 'race' && g.race && this.r3.race3d) ? this.rig('race') : this.rigMain;
+    this.active = (g.state === 'race' && g.race && this.raceView()) ? this.rig('race') : this.rigMain;
     if (prev && prev !== this.active) { this.active.userData.fresh = true; if (this.comfort) this.comfort.cut(); }     // a change of scene (the race and back) snaps behind a short fade, never sweeps
     if (this.input) for (const c of this.input.ctrl) if (c && c.parent !== this.active) this.active.add(c);
     if (this.hud) { this.hud.place(); if (this.input) this.hud.aim(this.input); }
@@ -119,13 +120,15 @@ class XR3D {
     const pose = fr && ref && fr.getViewerPose ? fr.getViewerPose(ref) : null;
     this.pose = null;                                                                    // the headset in the room (reference space), exact this frame: for the eye height and recentring
     if (pose && pose.transform && pose.transform.matrix) { this.m4.fromArray(pose.transform.matrix).decompose(this.hp, this.q, this.sc); this.pose = this.hp; }
-    const now = performance.now(); if (pose) this.lostAt = 0; else if (!this.lostAt) this.lostAt = now;           // (real time: the game's dt is clamped)
+    const now = performance.now(); if (pose) this.lostAt = 0; else if (!this.lostAt) this.lostAt = now;
+    if (pose && g.race && g.race.hold && (!this.session || this.session.visibilityState === 'visible')) { g.race.hold = false; g.race.cd = Math.max(g.race.cd, 1.5); }      // the headset is back on: the race goes on after a short countdown           // (real time: the game's dt is clamped)
     if (this.lostAt && now - this.lostAt > 250) this.interrupt();
   }
   // the headset lost tracking, the session was hidden (the system menu, the headset taken off), or a controller went away mid-press: nothing stays held, a run waits
   interrupt() {
     if (this.input) this.input.release();
     const g = this.game; if (g.state === 'play') { g.state = 'pause'; g.releaseTouch(); }
+    else if (g.state === 'race' && g.race && !g.race.done && !g.race.menu) { g.race.hold = true; g.releaseTouch(); }      // a race (the kart's gate rule loses it for whoever is slow) waits too: Game.raceStep stands still while it is held
   }
   visibility() { if (this.session && this.session.visibilityState !== 'visible') this.interrupt(); }
   // the session is over, whoever ended it: stop the headset's loop, give the frames back to the window, take the cameras off their rigs
@@ -137,8 +140,9 @@ class XR3D {
     if (this.hud) this.hud.detach();
     if (this.comfort) this.comfort.detach();
     if (this.session && this.onVis) this.session.removeEventListener('visibilitychange', this.onVis); this.onVis = null;
+    if (this.game.race) this.game.race.hold = false;                                      // (a race held for a lost headset is not left frozen on the desktop)
     this.game.vr = false; this.game.mouse.x = this.game.mouse.y = -1; this.game.mouse.down = false; this.active = null;
-    this.unmountRig(this.rigMain, this.r3.camera); this.unmountRig(this.rigRace, this.r3.race3d && this.r3.race3d.camera);
+    this.unmountRig(this.rigMain, this.r3.camera); this.unmountRig(this.rigRace, this.rigRace && this.rigRace.userData.cam);
     this.cleanup();
     if (this.game.state === 'play') this.game.state = 'pause';                          // the headset came off: the run waits
     this.label('ENTER VR');
@@ -153,18 +157,25 @@ class XR3D {
   }
 
   // ---- the rigs. A camera sits in its rig only while presenting; the rig is a child of that camera's scene.
+  // the scene and camera the race is drawn with: the kart circuit has its OWN (Kart3D), every other race uses Race3D's
+  raceView() {
+    const r3 = this.r3, g = this.game, K = g && g.race && g.race.kart && r3.kart3d;
+    if (K) return { scene: K.scene, camera: K.camera, kart: true };
+    const R = r3.race3d; return R ? { scene: R.scene, camera: R.camera, kart: false } : null;
+  }
   mountRig(which) {
     if (which === 'main') {
       if (!this.rigMain) { this.rigMain = new THREE.Group(); this.rigMain.name = 'xrRigMain'; }
       this.attach(this.rigMain, this.r3.scene, this.r3.camera);
     } else {
-      const R = this.r3.race3d; if (!R) return null;
+      const V = this.raceView(); if (!V) return null;
       if (!this.rigRace) { this.rigRace = new THREE.Group(); this.rigRace.name = 'xrRigRace'; }
-      this.attach(this.rigRace, R.scene, R.camera);
+      this.attach(this.rigRace, V.scene, V.camera);
     }
     return which === 'main' ? this.rigMain : this.rigRace;
   }
   attach(rig, scene, cam) {
+    const old = rig.userData.cam; if (old && old !== cam && old.parent === rig) rig.remove(old);       // (the rig moves between the race scenes: the other scene's camera is let go)
     if (rig.parent !== scene) scene.add(rig);
     if (cam.parent !== rig) { cam.position.set(0, 0, 0); cam.quaternion.identity(); rig.add(cam); }
     rig.userData.cam = cam;                                                               // (not children[0]: the controllers and the HUD ride the rig too, in any order)
@@ -175,7 +186,26 @@ class XR3D {
     if (cam && cam.parent === rig) rig.remove(cam);
     if (rig.parent) rig.parent.remove(rig);
   }
-  rig(which) { return which === 'race' ? (this.rigRace && this.rigRace.parent && this.r3.race3d && this.r3.race3d.camera.parent === this.rigRace ? this.rigRace : this.mountRig('race')) : this.rigMain; }
+  rig(which) {
+    if (which !== 'race') return this.rigMain;
+    const V = this.raceView(), r = this.rigRace;
+    return r && V && r.parent === V.scene && V.camera.parent === r ? r : this.mountRig('race');       // (valid only on the scene being drawn now)
+  }
+  // the headset's own height over the floor, measured slowly (the seated compensation in place()), and the recentre request
+  trackHead(rig, dt) {
+    const cam = rig.userData.cam, fresh = rig.userData.fresh, hy = this.pose ? this.pose.y : (cam ? cam.position.y : 0);
+    if (hy > 0.3 && hy < 2.5) this.head += (hy - this.head) * (fresh ? 1 : Math.min(1, dt * 0.5));
+    if (this.wantCentre && this.pose) { this.centre(this.pose); this.wantCentre = false; }
+  }
+  // THE KART CIRCUIT'S RIG: the car drives round a ring, so the rig is put straight at `pos` (a world point on the road, height included), turned to `yaw` (about the vertical), no smoothing and no
+  // yaw clamp; the player's eyes sit cfg.eyeY above the road whatever their real height (the seated compensation), the room's own place and heading taken out as in place()
+  placeKart(rig, pos, yaw, dt) {
+    if (this.active && this.active !== rig) { rig.userData.fresh = true; if (this.comfort) this.comfort.cut(); }
+    this.active = rig; this.trackHead(rig, dt); rig.userData.fresh = false;
+    const c = this.cfg, h0 = this.h0, ry = yaw - h0.yaw, co = Math.cos(ry), si = Math.sin(ry);
+    rig.rotation.set(0, ry, 0);
+    rig.position.set(pos.x - (co * h0.x + si * h0.z), pos.y + c.eyeY - (c.seatedCompensate ? this.head : 0), pos.z - (-si * h0.x + co * h0.z));
+  }
 
   // the yaw (about the vertical) of a camera at `from` looking at `to`, the way three's cameras look (down -z)
   static yaw(from, to) { return Math.atan2(-(to.x - from.x), -(to.z - from.z)); }

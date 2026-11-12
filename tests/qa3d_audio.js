@@ -23,7 +23,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
       else { r.writeHead(200, { 'content-type': type, 'accept-ranges': 'bytes', 'content-length': st.size }); fs.createReadStream(f).pipe(r); }
     });
   }).listen(PORT);
-  const b = await chromium.launch({ executablePath: process.env.CHROMIUM || '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+  const b = await chromium.launch({ executablePath: process.env.CHROMIUM || require('./_chromium')(), args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const ctx = await b.newContext({ viewport: { width: 640, height: 360 } });
   const base = process.env.TEST_URL || 'http://localhost:' + PORT + '/';
   const open = async (url = base) => { const pg = await ctx.newPage(); pg.errs = []; pg.on('pageerror', e => pg.errs.push(e.message)); pg.on('console', m => m.type() === 'error' && pg.errs.push(m.text())); await pg.goto(url, { timeout: 90000 }); await pg.waitForFunction(() => window.__wf, null, { timeout: 60000 }); await pg.waitForTimeout(500); return pg; };

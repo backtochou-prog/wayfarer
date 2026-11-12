@@ -43,7 +43,8 @@ class Game {
     this.resetRun();
     addEventListener('keydown', e => this.onKey(e, true));
     addEventListener('keyup', e => this.onKey(e, false));
-    addEventListener('blur', () => { this.keys = {}; this.releaseTouch(); if (this.state === 'play') this.state = 'pause'; });
+    const away = () => { this.keys = {}; this.releaseTouch(); if (this.state === 'play') this.state = 'pause'; };
+    addEventListener('blur', away); const hide = () => { if (this.loopOwner !== 'xr') away(); }; addEventListener('pagehide', hide); document.addEventListener('visibilitychange', () => { if (document.hidden) hide(); });      /* (not while a VR session owns the frames: entering VR may hide the page for a moment, and the headset has its own pause rules) */      // (a phone's tab switch or lock screen does not always blur the window)
     this.mouse = { x: -1, y: -1, down: false };
     const at = e => { const r = cv.getBoundingClientRect(); this.mouse.x = (e.clientX - r.left) * VW / r.width; this.mouse.y = (e.clientY - r.top) * VH / r.height; };
     cv.addEventListener('pointermove', at);
@@ -380,7 +381,7 @@ class Game {
   }
   raceStep(dt) {
     const R = this.race; if (!R) { this.state = 'play'; return; }
-    if (R.menu) return; if (R.intro > 0) { R.intro -= dt; return; }                                                                 // (the kart's quick menu is open: nothing moves until a choice)
+    if (R.menu || R.hold) return; if (R.intro > 0) { R.intro -= dt; return; }                                                                 // (the kart's quick menu is open: nothing moves until a choice)
     if (R.cd > 0) { R.cd -= dt; return; }
     const lane = R.p.lane + Math.max(-1, Math.min(1, this.laneQ || 0)); this.laneQ = 0;
     R.step(Math.min(dt, 0.05), { lane, accel: this.pedal('jump'), brake: this.pedal('slide') });

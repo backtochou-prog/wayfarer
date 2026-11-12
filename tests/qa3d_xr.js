@@ -6,7 +6,7 @@
 // Run:  node tests/qa3d_xr.js     (needs playwright-core and a Chromium: CHROMIUM=/path/to/chrome, NODE_PATH or PW_CORE as for the other tests)
 const http = require('http'), fs = require('fs'), path = require('path');
 let chromium; try { ({ chromium } = require('playwright-core')); } catch (e) { ({ chromium } = require(process.env.PW_CORE || 'playwright-core')); }
-const ROOT = path.join(__dirname, '..'), PORT = 8131;
+const ROOT = path.join(__dirname, '..'), PORT = 8134;
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.mp3': 'audio/mpeg' };
 const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? 'PASS ' : 'FAIL ') + n + (i !== '' ? '  [' + i + ']' : '')); };
 
@@ -45,7 +45,7 @@ const FAKE = (opt) => {
     let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
     fs.readFile(path.join(ROOT, p), (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'content-type': MIME[path.extname(p)] || 'application/octet-stream' }); r.end(d); } });
   }).listen(PORT);
-  const b = await chromium.launch({ executablePath: process.env.CHROMIUM || '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+  const b = await chromium.launch({ executablePath: process.env.CHROMIUM || require('./_chromium')(), args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const open = async (q, opt) => {
     const ctx = await b.newContext({ viewport: { width: 640, height: 360 } }), pg = await ctx.newPage(), errs = [];
     pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => m.type() === 'error' && errs.push(m.text()));
@@ -74,7 +74,7 @@ const FAKE = (opt) => {
   // count every call to Game.frame and every headset frame, to see there is exactly one loop
   await pg.evaluate(() => { const g = __wf, f = g.frame.bind(g); window.__fc = 0; g.frame = dt => { window.__fc++; return f(dt); }; });
   const pr0 = await pg.evaluate(() => __wf.r.renderer.getPixelRatio());
-  await pg.click('#xr-button');
+  await pg.evaluate(() => document.getElementById('xr-button').click());
   await pg.waitForFunction(() => __wf.xr.presenting && __xrlog.rafs > 5, null, { timeout: 120000 });
   const s1 = await pg.evaluate(async () => {
     const g = __wf, X = g.xr, r = X.rigMain; g.start();
@@ -103,7 +103,7 @@ const FAKE = (opt) => {
 
   // EXIT
   const fcA = await pg.evaluate(() => { __wf.endRace(); __wf.state = 'play'; return window.__fc; });
-  await pg.click('#xr-button');
+  await pg.evaluate(() => document.getElementById('xr-button').click());
   await pg.waitForFunction(() => !__wf.xr.presenting, null, { timeout: 60000 });
   const s2 = await pg.evaluate(async () => {
     const g = __wf, X = g.xr; const st = g.state; const fc0 = window.__fc; await new Promise(k => setTimeout(k, 1200));
@@ -140,7 +140,7 @@ const FAKE = (opt) => {
   T('a frame that keeps failing in VR (3 in a row) ends the session cleanly and the desktop game carries on', er.out && er.owner === 'window' && er.runs, JSON.stringify(er));
   await S.ctx.close();
   const J = await open('?vr=1&seed=0', { supported: true, reject: true });
-  await J.pg.click('#xr-button'); await J.pg.waitForTimeout(400);
+  await J.pg.evaluate(() => document.getElementById('xr-button').click()); await J.pg.waitForTimeout(400);
   const rj = await J.pg.evaluate(() => ({ label: document.getElementById('xr-button').textContent, p: __wf.xr.presenting, owner: __wf.loopOwner, enabled: __wf.r.renderer.xr.enabled }));
   T('a refused session (requestSession rejects): a short message on the button, nothing presenting, the window loop untouched', rj.label === 'VR UNAVAILABLE' && !rj.p && rj.owner === 'window' && !rj.enabled, JSON.stringify(rj));
   await J.ctx.close();
@@ -148,7 +148,7 @@ const FAKE = (opt) => {
   // ---------------------------------------------------------------- 6. PHASE 2: the controllers, the HUD panel, the whole loop of the game in VR
   {
     const P = await open('?vr=1&seed=0', { supported: true }), q = P.pg;
-    await q.click('#xr-button'); await q.waitForFunction(() => __wf.xr.presenting && __xrlog.rafs > 2, null, { timeout: 120000 });
+    await q.evaluate(() => document.getElementById('xr-button').click()); await q.waitForFunction(() => __wf.xr.presenting && __xrlog.rafs > 2, null, { timeout: 120000 });
     // helpers in the page: wait n headset frames; aim a controller at canvas pixel (x, y) of the menu panel, or at the EXIT VR plate; press / release a button; push a stick
     await q.evaluate(() => {
       const X = __wf.xr; window.nf = async (n = 2) => { const f = X.frames + n; let k = 0; while (X.frames < f && k++ < 600) await new Promise(r => setTimeout(r, 20)); };
@@ -289,7 +289,7 @@ const FAKE = (opt) => {
   // ---------------------------------------------------------------- 7. PHASE 3: comfort (vignette, fades, scene cuts), haptics, recentring, re-entry, frame statistics
   {
     const P = await open('?vr=1&seed=0', { supported: true }), q = P.pg;
-    await q.click('#xr-button'); await q.waitForFunction(() => __wf.xr.presenting && __xrlog.rafs > 2, null, { timeout: 120000 });
+    await q.evaluate(() => document.getElementById('xr-button').click()); await q.waitForFunction(() => __wf.xr.presenting && __xrlog.rafs > 2, null, { timeout: 120000 });
     await q.evaluate(() => {
       const X = __wf.xr; window.nf = async (n = 2) => { const f = X.frames + n; let k = 0; while (X.frames < f && k++ < 600) await new Promise(r => setTimeout(r, 20)); };
       window.L = __xrPad('left'); window.R = __xrPad('right'); __xrlog.cur.addSources([L, R]);
