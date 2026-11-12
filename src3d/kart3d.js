@@ -5,6 +5,7 @@
 // the ring here: a point (x across, s along) of the straight track is ring(s, x) = centre + (R + x) (cos a, 0, -sin a), a = s / R (the karts turn LEFT round a centre at x = -R).
 class Kart3D {
   static get HALL() { return true; }      // the 3D ship hall instead of the painted arch and floor
+  static get CONTROL_ROOM() { return false; }      // the control-room picture on the 3rd basement: removed for now, kept to reuse
   static get SPIRAL_FLAT() { return false; }      // the user's flat green spiral picture over the rings: replaced by the snaking light tube, kept to reuse
   static get WELD_FLOOR() { return false; }      // the user's floor picture (KART_ART.weldFloor) under the hall: removed for now, its settings kept to reuse later
   constructor(race3d) {
@@ -392,7 +393,7 @@ class Kart3D {
           g.add(top, bot, wi, wo);
           for (const rr of [r0, r1]) { const l = new THREE.Mesh(new THREE.TorusGeometry(rr, 0.25, 6, 200), nm), h2 = new THREE.Mesh(new THREE.TorusGeometry(rr, 0.9, 6, 200), halo); l.rotation.x = h2.rotation.x = Math.PI / 2; l.position.y = h2.position.y = yy + 0.1; g.add(l, h2); }
           g.position.set(-R, 0, 0); sc.add(g); this.gateStuff.push(g); this.floorsBetween.push({ g, halo, nm }); } }
-      if (typeof KART_ART !== 'undefined' && KART_ART.controlRoom) {      /* THE CONTROL ROOM (the user's picture of the ship's control room, the part they circled, its see-through surround kept): once, as it is, standing on the 3rd basement's slab at its outer edge, curved round the centre, facing in - 60 m long, as high as the open space allows (25 m, up to just under the track) */
+      if (Kart3D.CONTROL_ROOM && typeof KART_ART !== 'undefined' && KART_ART.controlRoom) {      /* (removed, the user - switched off, the picture and its settings kept: Kart3D.CONTROL_ROOM = true) */      /* THE CONTROL ROOM (the user's picture of the ship's control room, the part they circled, its see-through surround kept): once, as it is, standing on the 3rd basement's slab at its outer edge, curved round the centre, facing in - 60 m long, as high as the open space allows (25 m, up to just under the track) */
         const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.wrapS = THREE.RepeatWrapping; t.repeat.x = -1; t.offset.x = 1; img.onload = () => { t.needsUpdate = true; };      /* (seen from inside the circle: unmirrored) */ img.src = KART_ART.controlRoom;
         const Lc = 60, Hc = Lc / KART_ART.ar_controlRoom, rc = 270, thc = Lc / rc, ac = (KART.GATE_S + 0.8 * KART.LAP + 500) / KART.R;
         const cr = new THREE.Mesh(new THREE.CylinderGeometry(rc, rc, Hc, 64, 1, true, ac + Math.PI / 2 - thc / 2, thc), new THREE.MeshBasicMaterial({ map: t, side: THREE.BackSide, transparent: true, alphaTest: 0.25, fog: false })); cr.position.set(-R, Y4 + 42 + Hc / 2, 0); sc.add(cr); this.gateStuff.push(cr); this.controlRoom = cr; }
