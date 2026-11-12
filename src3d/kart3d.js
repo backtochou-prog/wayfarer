@@ -8,7 +8,10 @@ class Kart3D {
   static get WELD_FLOOR() { return false; }      // the user's floor picture (KART_ART.weldFloor) under the hall: removed for now, its settings kept to reuse later
   constructor(race3d) {
     const R = KART.R, sc = this.scene = new THREE.Scene(); this.r3 = race3d;
-    sc.background = new THREE.Color('#05060f'); sc.fog = new THREE.Fog('#2a2436', 120, 520);
+    sc.background = new THREE.Color('#05060f');      /* THE 360 ROOM (the user's panorama of the ship's hexagon hall, once, as a 360 picture): underground it is the whole surround - the walls on every side, true in VR since a 360 picture is drawn at infinity and follows the head without distortion */
+    if (typeof KART_ART !== 'undefined' && KART_ART.vrPano) { const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.vrPano;
+      const sky = new THREE.Mesh(new THREE.SphereGeometry(1200, 96, 48), new THREE.MeshBasicMaterial({ map: t, side: THREE.BackSide, depthTest: false, depthWrite: false, fog: false })); sky.renderOrder = -1000; sky.frustumCulled = false; sky.visible = false;      /* (a sphere drawn first and behind everything, always centred on the eye - each eye in VR - so it reads as infinitely far: no distortion when the head turns) */
+      sky.onBeforeRender = (r, s2, cam) => { sky.matrixWorld.makeTranslation(cam.matrixWorld.elements[12], cam.matrixWorld.elements[13], cam.matrixWorld.elements[14]); }; sky.matrixAutoUpdate = false; sc.add(sky); this.vrSky = sky; }
     sc.add(new THREE.HemisphereLight('#fff0d8', '#4a3a40', 1.9)); const d = new THREE.DirectionalLight('#ffe2b8', 1.1); d.position.set(30, 80, 20); sc.add(d);
     this.camera = new THREE.PerspectiveCamera(64, 16 / 9, 0.2, 1400);
     this.C = new THREE.Vector3(-R, 0, 0);
@@ -418,7 +421,7 @@ class Kart3D {
   draw(g, renderer) {
     const R = g.race; if (this.bound !== R) this.bind(R);
     const bt = g.sfx ? g.sfx.beat() : null, pulse = bt ? bt.pulse * (0.45 + 0.55 * bt.energy) : 0, t = g.time, p = R.p, air = p.air > 0 ? Math.sin(Math.PI * (1 - p.air / RACE.JUMP_T)) : 0;
-    this.r3.placeItems(R, t, pulse); { const last = p.s >= (KART.LAPS - 1) * KART.LAP - 40; if (this.tunU) this.tunU.uGlassAll.value = last ? 1 : 0; if (this.tunClose) this.tunClose.visible = last; if (this.glassCeil) this.glassCeil.visible = p.s > KART.GATE_S + 60; if (this.entRoad && this._gateShown) this.entRoad.visible = !last; }      /* the last lap: the whole tunnel is clear glass, a complete circle */ if (this.tunU) this.tunU.off.value = -t * 0.35;      /* the spiral flows along the tunnel */ const OFF = R.off(p.s), PX = p.x + OFF;
+    this.r3.placeItems(R, t, pulse); { const last = p.s >= (KART.LAPS - 1) * KART.LAP - 40; if (this.tunU) this.tunU.uGlassAll.value = last ? 1 : 0; if (this.tunClose) this.tunClose.visible = last; if (this.glassCeil) this.glassCeil.visible = p.s > KART.GATE_S + 60; if (this.vrSky) this.vrSky.visible = p.s > KART.GATE_S + 60; if (this.entRoad && this._gateShown) this.entRoad.visible = !last; }      /* the last lap: the whole tunnel is clear glass, a complete circle */ if (this.tunU) this.tunU.off.value = -t * 0.35;      /* the spiral flows along the tunnel */ const OFF = R.off(p.s), PX = p.x + OFF;
     { const lap = Math.min(KART.LAPS - 1, Math.floor(p.s / KART.LAP)), into = p.s - lap * KART.LAP;      // the lap: the tiles' colour, and the banking of lap 2 (in over its first 120 m, out over the last 120 m)
       if (lap !== this.tileLap) this.paintTiles(lap, t);
       // THE RED WAVE BRINGS THEM (the user: no illogical pop): from lap 3 the fence posts appear as the equalizer wave of the red colour passes them, and the gate when the wave reaches it
