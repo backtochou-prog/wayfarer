@@ -326,6 +326,7 @@ class Kart3D {
     const beam = add(new THREE.CylinderGeometry(0.8, 2.2, 14, 16, 1, true), new THREE.MeshBasicMaterial({ color: '#ffcf70', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }), 0, 6, zR);
     for (const [r, c, t] of [[11, '#35f0ff', 0.5], [13.5, '#ff3fd0', 0.35], [16, '#b040ff', 0.6], [18.5, '#35f0ff', 0.3]]) { const m = add(new THREE.TorusGeometry(r, t, 8, 72, Math.PI), glow(c), 0, 0, -L / 2 + 3); fx.rings.push({ m, c: new THREE.Color(c) }); }      // the portal behind it
     fx.core = core; fx.halo = halo; fx.beam = beam;
+    { const n0 = g.children.indexOf(core) - 8; for (let k = Math.max(0, n0); k <= g.children.indexOf(beam); k++) g.children[k].visible = false; }      /* (the reactor removed, the user: base, its neon rings, the orange core, halo and beam - hidden, the portal behind stays) */
     // the consoles: curved desks on both sides of the walkway, each with two or three holographic screens
     const scrTex = k => { const cv = document.createElement('canvas'); cv.width = 128; cv.height = 96; const x = cv.getContext('2d'); x.fillStyle = 'rgba(10,60,90,0.55)'; x.fillRect(0, 0, 128, 96); x.strokeStyle = '#35f0ff'; x.lineWidth = 2; x.strokeRect(2, 2, 124, 92);
       const cols = ['#35f0ff', '#ff3fd0', '#ffb020', '#39ff14']; for (let i = 0; i < 9; i++) { x.fillStyle = cols[(i + k) % 4]; x.fillRect(8, 10 + i * 9, 20 + ((i * 37 + k * 13) % 80), 3); }
