@@ -58,7 +58,7 @@ const FAKE = (opt) => {
   // ---------------------------------------------------------------- 1. no button where VR is not offered
   {
     const A = await open('?seed=0'); const a = await A.pg.evaluate(() => ({ btn: !!document.getElementById('xr-button'), xr: !!__wf.xr, owner: __wf.loopOwner, t0: __wf.time }));
-    await A.pg.waitForTimeout(2500); const t1 = await A.pg.evaluate(() => __wf.time);
+    await A.pg.waitForFunction(t => __wf.time > t, a.t0, { timeout: 60000 }).catch(() => {}); const t1 = await A.pg.evaluate(() => __wf.time);      /* (waits for the clock to move instead of a fixed 2.5 s: a slow software-GL page load made that a flaky test) */
     T('the ordinary page (no ?vr=1 in an automated browser): no ENTER VR button, the window loop owns the frames and the game runs as before', !a.btn && a.owner === 'window' && t1 > a.t0 && !A.errs.length, JSON.stringify(a) + ' errs=' + A.errs.length);
     await A.ctx.close();
     const N = await open('?vr=1&seed=0', { supported: false, none: true }); const n = await N.pg.evaluate(() => !!document.getElementById('xr-button')); await N.ctx.close();
