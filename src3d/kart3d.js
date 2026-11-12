@@ -358,13 +358,15 @@ class Kart3D {
       for (let k = 0; k < NS; k++) { const a1 = k * 2; idx.push(a1, a1 + 2, a1 + 1, a1 + 1, a1 + 2, a1 + 3); }
       const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); bg.setIndex(idx);
       const bm = new THREE.Mesh(bg, new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, fog: false })); sc.add(bm); this.gateStuff.push(bm); this.hexBandMesh = bm; }
-    if (typeof KART_ART !== 'undefined' && KART_ART.hexBand2) {      /* THE CENTRE OF THE FLOOR (the user's red, black and steel hexagons): a strip under the glass road of the tunnel, along its middle, all round */
-      const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.wrapS = THREE.MirroredRepeatWrapping; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.hexBand2;
-      const Wc = 4.6, nR = 2 * Math.round(KART.LAP / (2 * Wc * KART_ART.ar_hexBand2)), NS = 360, pos = [], uv = [], idx = [];
-      for (let k = 0; k <= NS; k++) for (let j = 0; j <= 1; j++) { const q = this.ringPos(sE + k / NS * KART.LAP, -16 + (j - 0.5) * Wc, -KART.TD - 0.15); pos.push(q.x, q.y, q.z); uv.push(k / NS * nR, j); }
-      for (let k = 0; k < NS; k++) { const a1 = k * 2; idx.push(a1, a1 + 2, a1 + 1, a1 + 1, a1 + 2, a1 + 3); }
-      const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); cg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); cg.setIndex(idx);
-      const cm = new THREE.Mesh(cg, new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, fog: false })); sc.add(cm); this.gateStuff.push(cm); this.floorCentre = cm; }
+    { // THE LAST FLOOR, about 4 floors underground (the user: the tunnel is the 2nd basement): one dark ground over the whole circle, and on it a ROUNDABOUT made of the user's red, black and steel hexagons (KART_ART.hexBand2) - a 24 m ring right under the tunnel, all round
+      const Y4 = -70, gr = new THREE.Mesh(new THREE.CircleGeometry(R + 70, 240), new THREE.MeshBasicMaterial({ color: '#07070b', side: THREE.DoubleSide, fog: false })); gr.rotation.x = -Math.PI / 2; gr.position.set(-R, Y4 - 0.05, 0); sc.add(gr); this.gateStuff.push(gr); this.lastGround = gr;
+      if (typeof KART_ART !== 'undefined' && KART_ART.hexBand2) {
+        const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.wrapS = THREE.MirroredRepeatWrapping; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.hexBand2;
+        const Wc = 24, nR = 2 * Math.round(KART.LAP / (2 * Wc * KART_ART.ar_hexBand2)), NS = 360, pos = [], uv = [], idx = [];      /* (an even number of mirrored repeats: the ring closes without a seam) */
+        for (let k = 0; k <= NS; k++) for (let j = 0; j <= 1; j++) { const q = this.ringPos(sE + k / NS * KART.LAP, -16 + (j - 0.5) * Wc, Y4); pos.push(q.x, q.y, q.z); uv.push(k / NS * nR, j); }
+        for (let k = 0; k < NS; k++) { const a1 = k * 2; idx.push(a1, a1 + 2, a1 + 1, a1 + 1, a1 + 2, a1 + 3); }
+        const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); cg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); cg.setIndex(idx);
+        const cm = new THREE.Mesh(cg, new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, fog: false })); sc.add(cm); this.gateStuff.push(cm); this.roundabout = cm; } }      /* (the strip under the tunnel's road, 2nd basement, removed: the user) */
     { // SMOKED BLACK GLASS from the band's top edge up to the ceiling (the underside of the track and the garden), all round, with a red neon laser line along its middle (the user)
       const a2 = 38 * Math.PI / 180, xb = -13 + 9.85 * Math.cos(a2), yb2 = -14 + 9.85 * Math.sin(a2), yt = -0.5, NS = 240, pos = [], idx = [], lp = [];
       for (let k = 0; k <= NS; k++) { const s1 = sE + k / NS * KART.LAP; for (const y of [yb2, yt]) { const q = this.ringPos(s1, xb, y); pos.push(q.x, q.y, q.z); } lp.push(this.ringPos(s1, xb - 0.05, (yb2 + yt) / 2)); }
