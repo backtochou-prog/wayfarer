@@ -471,7 +471,7 @@ class Kart3D {
     }
     const X = g.r && g.r.xr && g.r.xr.presenting ? g.r.xr : null;                                  // VR: the headset looks from a rig at the chase pose (behind the kart, heading along the ring); no pitch, no roll
     if (X) { if (!this.rig) { this.rig = new THREE.Group(); this.scene.add(this.rig); } if (this.camera.parent !== this.rig) this.rig.add(this.camera);
-      this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.ringPos(p.s - 4.6, (p.x * 0.6 + OFF), 0.6, this.rig.position); this.rig.rotation.set(0, p.s / KART.R, 0); }
+      this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.ringPos(p.s - 4.6, (p.x * 0.6 + OFF), 0.6, this.rig.position); this.rig.position.y += this.bankY(PX) + R.dep(p.s); this.rig.rotation.set(0, p.s / KART.R, 0); }      /* (the VR rig follows the track's height too - the banked laps and the dive into the tunnel: it used to stay at 0.6 m, on the road ABOVE the tunnel, while the kart went underground) */
     else if (this.rig && this.camera.parent === this.rig) { this.rig.remove(this.camera); this.scene.add(this.camera); }
     // THE RIGHT-HAND VIEW (the user's 1D picture: 'what one sees on the right through the transparent tunnel'): a far backdrop that travels with the kart on its right side while it is in the glass
     // tunnel (lap 4 from its glass stretch, and lap 5), so the painting is seen as painted, through the glass, behind everything else
