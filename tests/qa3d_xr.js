@@ -106,7 +106,7 @@ const FAKE = (opt) => {
   await pg.evaluate(() => document.getElementById('xr-button').click());
   await pg.waitForFunction(() => !__wf.xr.presenting, null, { timeout: 60000 });
   const s2 = await pg.evaluate(async () => {
-    const g = __wf, X = g.xr; const st = g.state; const fc0 = window.__fc; await new Promise(k => setTimeout(k, 1200));
+    const g = __wf, X = g.xr; const st = g.state; const fc0 = window.__fc; await new Promise(k => setTimeout(k, 1200)); for (let w = 0; w < 300 && window.__fc - fc0 <= 5; w++) await new Promise(k => setTimeout(k, 100));      /* (waits for the window loop's frames instead of trusting a fixed 1.2 s: slow software GL made that flaky) */
     g.state = 'play'; const t0 = g.time; await new Promise(k => setTimeout(k, 600));
     return { owner: g.loopOwner, isP: g.r.renderer.xr.isPresenting, enabled: g.r.renderer.xr.enabled, label: document.getElementById('xr-button').textContent, camParent: g.r.camera.parent ? g.r.camera.parent.name || 'x' : null,
       rigGone: !X.rigMain.parent, raceCamParent: g.r.race3d.camera.parent ? 'x' : null, paused: st, windowFrames: window.__fc - fc0, advanced: g.time > t0, pr: g.r.renderer.getPixelRatio() };

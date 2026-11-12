@@ -67,7 +67,8 @@ class Renderer {
     if (R.intro > 0) { this.ctr('TOUCHE POUR PASSER', 146, '#c8c0e0'); return; }      // (the kart's flyover: no countdown yet, nothing but the hint)
     if (R.cd > 0) this.ctr(R.cd > 0.5 ? String(Math.ceil(R.cd - 0.5)) : 'GO', cy, R.kart ? '#2bff6a' : '#fff', cs);
     else if (R.t < 1.2) this.ctr('GO', cy, '#7affc8', cs);
-    if (R.done) { const win = R.result === 'win'; ctx.fillStyle = 'rgba(8,4,16,0.6)'; ctx.fillRect(0, 62, VW, 54); this.ctr(win ? 'YOU WIN' : 'ROBOT WINS', 68, win ? '#7affc8' : '#ff6a7a', 4); this.ctr(win ? '+30 COINS' : 'BACK TO THE ROAD', 98, '#f2ead6'); this.ctr('THE SPHERE IS CLOSED UNTIL THE NEXT ZONE', 108, '#a090c0'); }
+    if (R.done && R.honour) { const H = R.honour, msg = { brake: 'FIRST TO THE HALL', slide: 'THE LIFT OPENS', open: 'THE LIFT OPENS', down: 'GOING DOWN', free: 'HONOUR LAP' }[H.ph]; ctx.fillStyle = 'rgba(8,4,16,0.55)'; ctx.fillRect(0, H.ph === 'free' ? 58 : 62, VW, H.ph === 'free' ? 24 : 38); this.ctr(msg, H.ph === 'free' ? 60 : 66, '#7affc8', H.ph === 'free' ? 2 : 3); if (H.ph !== 'free') this.ctr(H.ph === 'brake' ? 'YOU WIN  +30 COINS' : 'HONOUR LAP', 90, '#f2ead6'); else this.ctr('ENTER: LEAVE', 73, '#a090c0'); }
+    else if (R.done) { const win = R.result === 'win'; ctx.fillStyle = 'rgba(8,4,16,0.6)'; ctx.fillRect(0, 62, VW, 54); this.ctr(win ? 'YOU WIN' : 'ROBOT WINS', 68, win ? '#7affc8' : '#ff6a7a', 4); this.ctr(win ? '+30 COINS' : 'BACK TO THE ROAD', 98, '#f2ead6'); this.ctr('THE SPHERE IS CLOSED UNTIL THE NEXT ZONE', 108, '#a090c0'); }
   }
 
   // THE COMM PANEL (the user: a pop-up like a virtual communication on a sophisticated spaceship: an orange frame, inside a see-through blue glass a little turquoise): it pops open

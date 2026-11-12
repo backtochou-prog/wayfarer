@@ -16,7 +16,7 @@ const KART = { R: 240, LAPS: 5, BANK: 1.6, GATE_W: 12, INNER: -16, EQ_V: 140 }; 
 // lanes close from the right (the middle one 80 m before the line), then every kart turns left through the gate (TURN: where the turn starts, over TURN_L m) onto the inner road.
 KART.GATE_S = 3 * KART.LAP; KART.FUNNEL = KART.GATE_S - 420; KART.FUNNEL2 = KART.GATE_S - 160;
 // THE DETOUR FENCE (the user's red line: one long diagonal from the right edge across the track to the left lane, in front of the gate): x across the track at s
-KART.fence = s => { if (s < KART.FUNNEL) return 6.3; const v = Math.max(0, Math.min(1, (s - KART.FUNNEL) / (KART.GATE_S - 40 - KART.FUNNEL))); return 6.3 - 7.5 * v; }; KART.TURN = KART.GATE_S - 14; KART.TURN_L = 50; KART.TD = 14; KART.DIVE_L = 110;      /* the gate leads UNDERGROUND (the user): the road dives TD m over DIVE_L m into the spiral tunnel */
+KART.fence = s => { if (s < KART.FUNNEL) return 6.3; const v = Math.max(0, Math.min(1, (s - KART.FUNNEL) / (KART.GATE_S - 40 - KART.FUNNEL))); return 6.3 - 7.5 * v; }; KART.TURN = KART.GATE_S - 14; KART.TURN_L = 50; KART.TD = 14; KART.DIVE_L = 110;      /* THE FINISH IS THE SHIP HALL (the user: the first kart to reach the hall wins, and gets the honour lap): the hall's middle in the 5th lap is HALL + LAP; the line is 56 m before its entrance, the winner brakes to a stop at the lift */ KART.HALL = KART.GATE_S + 0.8 * KART.LAP; KART.FIN = Math.round(KART.HALL + KART.LAP - 56);      /* KART.HONOUR: the honour lap and the finish at the hall are SWITCHED OFF for now (the user: 'oublie changement de règle' - the race keeps its rules, the 5 laps to the line); set it to true to bring them back */ KART.HONOUR = false;      /* the gate leads UNDERGROUND (the user): the road dives TD m over DIVE_L m into the spiral tunnel */
 class Race {
   constructor(seed, opts) {
     this.len = (opts && opts.len) || RACE.LEN; this.kart = !!(opts && opts.kart);      // (the KART circuit of the Calagtic: laps of a ring, src3d/kart3d.js)
@@ -117,12 +117,29 @@ class Race {
     for (const b of (this.kart ? this.bots : [bot])) if (b.finishT === null && b.s >= this.len) b.finishT = this.t;
     const first = this.kart ? this.bots.find(b => b.finishT !== null) : (bot.finishT !== null ? bot : null);
     if (this.kart) this.bot = this.bots.reduce((a, b) => (b.s > a.s ? b : a));                           // (the HUD's robot: the leading kart)
-    if (p.s >= this.len) { this.done = true; this.result = first ? 'lose' : 'win'; this.events.push({ e: this.result }); }
+    if (p.s >= this.len) { this.done = true; this.result = first ? 'lose' : 'win'; this.events.push({ e: this.result }); if (this.kart && KART.HONOUR && this.result === 'win') this.startHonour(); }
     else if (first) { this.done = true; this.result = 'lose'; this.events.push({ e: 'lose' }); }          // the robot crossed first: out at once
+  }
+  // THE HONOUR LAP (the user): the first kart to the hall is carried down WITH ITS KART by the glass lift to the hall's own floor and may drive about there, among the consoles, as a reward.
+  // Phases: brake (to a stop at the lift's door) > slide (across to the lift) > open > down (23 m) > free (drive about; Enter / E / a tap on the top bar leaves, or after 150 s)
+  startHonour() { const p = this.p, d = Math.max(20, KART.HALL + KART.LAP - p.s); this.honour = { ph: 'brake', t: 0, T: Math.max(1.5, 2 * d / Math.max(8, p.speed)), v0: Math.max(8, p.speed), xw0: p.x + this.off(p.s), dy: 0, lx: 9, lz: 0, h: 0, v: 0, tFree: 0, over: false }; }
+  honourStep(dt, inp) {
+    const H = this.honour, p = this.p, e = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); }; if (!H || H.over) return; H.t += dt;
+    if (H.ph === 'brake') { p.speed = H.v0 * Math.max(0, 1 - H.t / H.T); p.s += p.speed * dt; if (H.t >= H.T) { p.s = KART.HALL + KART.LAP; p.speed = 0; H.ph = 'slide'; H.t = 0; } }
+    else if (H.ph === 'slide') { p.x = H.xw0 + (-7 - H.xw0) * e(H.t / 1.8) - this.off(p.s); if (H.t >= 1.8) { H.ph = 'open'; H.t = 0; } }
+    else if (H.ph === 'open') { if (H.t >= 0.8) { H.ph = 'down'; H.t = 0; } }
+    else if (H.ph === 'down') { H.dy = -23 * e(H.t / 5); if (H.t >= 5) { H.dy = -23; H.ph = 'free'; H.t = 0; H.lx = 9; H.lz = 0; H.h = 0; H.v = 0; } }
+    else {      /* free: H.lx, H.lz = where the kart is on the hall's floor (metres from the hall's middle: across, along - the hall's front is -z), H.h = its heading (0 = along the hall, toward the front), H.v = its speed */
+      H.tFree += dt; const i = inp || {};
+      H.h += ((i.steer || 0) * 1.7 * Math.min(1, H.v / 5) + (i.flick || 0) * 0.45) * (i.flick ? 1 : dt);
+      H.v = Math.max(0, Math.min(16, H.v + ((i.accel ? 9 : i.brake ? -16 : -3) * dt)));
+      H.lx += Math.sin(H.h) * H.v * dt; H.lz -= Math.cos(H.h) * H.v * dt;
+      if (Math.abs(H.lx) > 12) { H.lx = Math.sign(H.lx) * 12; H.v *= 0.9; } if (Math.abs(H.lz) > 48) { H.lz = Math.sign(H.lz) * 48; H.v *= 0.9; }
+      if (i.exit || H.tFree > 150) H.over = true; }
   }
   place() { return this.kart ? 1 + this.bots.filter(b => b.s > this.p.s).length : (this.bot.s > this.p.s ? 2 : 1); }      // the player's place in the race (the kart: out of nine)
   off(s) { if (!this.kart) return 0; const v = Math.max(0, Math.min(1, (s - KART.TURN) / KART.TURN_L)); return KART.INNER * v * v * (3 - 2 * v); }      // the kart: lateral shift onto the inner road
-  dep(s) { if (!this.kart || s < KART.GATE_S) return 0; const v = Math.max(0, Math.min(1, (s - KART.GATE_S - 4) / KART.DIVE_L)); return -KART.TD * v * v * (3 - 2 * v); }      // lap 4 goes UNDERGROUND (the spiral tunnel)
+  dep(s) { if (!this.kart || s < KART.GATE_S) return 0; const v = Math.max(0, Math.min(1, (s - KART.GATE_S - 4) / KART.DIVE_L)); return -KART.TD * v * v * (3 - 2 * v) + (this.honour ? this.honour.dy : 0); }      // lap 4 goes UNDERGROUND (the spiral tunnel)
   keepLeft(s) { return !!this.kart && s > KART.FUNNEL - 250 && s < KART.GATE_S; }      // the zone of the KEEP LEFT indicators
   maxLane(s) { if (!this.kart || s < KART.FUNNEL || s > KART.GATE_S + 60) return 1; return Math.max(-1, Math.min(1, Math.floor((KART.fence(s) - 1.6) / RACE.LANE_M + 1e-6))); }      // a lane stays open while the fence is right of it       // the barriers close the lanes from the right
   gap() { return this.bot.s - this.p.s; }                                                              // metres the robot is ahead (negative: the player leads)

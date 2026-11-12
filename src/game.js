@@ -60,6 +60,7 @@ class Game {
       if (!c && this.state === 'play' && overHint()) { this.mount(); return; }
       if (this.state === 'race' && this.race && this.race.intro > 0) { this.race.intro = 0; return; }
       if (this.state === 'race' && this.race && this.race.menu) { const b = KMENU.find(q => this.mouse.x >= q.x && this.mouse.x <= q.x + q.w && this.mouse.y >= q.y && this.mouse.y <= q.y + q.h); if (b) this.kartChoose(b.id); return; }
+      if (!c && this.state === 'race' && this.race && this.race.honour && this.race.honour.ph === 'free' && this.mouse.y < 32) { this.honourExit = true; return; }      // (the honour lap: a tap on the top bar leaves)
       if (!c && this.state === 'race' && this.race && this.race.kart && this.mouse.y < 32) { this.kartCam = (this.kartCam || 0) ? 0 : 1; return; }      // a tap on the top of the screen (the progress bars) switches the kart camera                // a tap or click on the ring gets on the scooter (the touch buttons keep priority)
       if (c) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} this.hold(e.pointerId, c.id, true); if (this.state === 'race') this.laneQ = (this.laneQ || 0) + (c.id === 'right' ? 1 : c.id === 'left' ? -1 : 0); }
     });
@@ -217,6 +218,7 @@ class Game {
     if (c === 'KeyC' && this.state === 'title' && this.r.nextCharacter) { this.nextCharacter(); return; }
     if (down && !e.repeat && this.state === 'race' && this.race && this.race.intro > 0) { this.race.intro = 0; return; }
     if (down && !e.repeat && this.state === 'race' && this.race && this.race.menu) { const k = { Digit1: 'chase', Numpad1: 'chase', Enter: 'chase', Space: 'chase', Digit2: 'saturn', Numpad2: 'saturn', Digit3: 'vr', Numpad3: 'vr' }[c]; if (k) this.kartChoose(k); return; }
+    if (down && !e.repeat && this.state === 'race' && this.race && this.race.honour && this.race.honour.ph === 'free' && (c === 'Enter' || c === 'KeyE' || c === 'Escape')) { this.honourExit = true; return; }      // (the honour lap: Enter / E / Esc leaves)
     if (down && !e.repeat && c === 'KeyV' && this.state === 'race' && this.race && this.race.kart) { this.kartCam = (this.kartCam || 0) ? 0 : 1; return; }      // V (karting): the other camera, the SATURN view (optional)   // C (menu): the other character
     const s = this.state;
     if (s === 'title' && (c === 'Enter' || c === 'Space')) this.start();
@@ -374,7 +376,7 @@ class Game {
   beginRace(gate) {
     if (!this.r.supportsRace || typeof Race === 'undefined' || this.state !== 'play') return;
     if (gate) gate.taken = true;
-    const R = this.race = new Race(((Game.runSeed() || 0) + (++this.raceN) * 977) % 100000 + 1, (gate && gate.kart) || this.kartNow ? { kart: true, len: KART.LEN } : null); this.kartNow = false; if (R.kart) R.menu = true;
+    const R = this.race = new Race(((Game.runSeed() || 0) + (++this.raceN) * 977) % 100000 + 1, (gate && gate.kart) || this.kartNow ? { kart: true, len: KART.HONOUR ? KART.FIN : KART.LEN } : null); this.kartNow = false; if (R.kart) R.menu = true;
     { const st = R.kart && typeof location !== 'undefined' && (location.search.match(/[?&]start=(tunnel|tour5)\b/) || [])[1];      // ?zone=kart&start=tunnel: open just before the gate at the end of lap 3 (to test the tunnel without racing three laps); start=tour5: at the start of the last, all-glass lap
       if (st) { R.p.s = st === 'tunnel' ? KART.GATE_S - 300 : (KART.LAPS - 1) * KART.LAP + 5; R.p.lane = -1; R.p.x = -RACE.LANE_M; R.t = 60; R.bots.forEach((b, i) => { b.s = R.p.s - 40 - i * 25; }); R.items = R.items.filter(it => it.s > R.p.s + 30 || it.s < R.p.s - 400); } } R.cd = 3.2; this.state = 'race'; this.riding = false; this.scooterHint = null; this.keys = {}; this.releaseTouch(); this.rl = this.rr = false;
     this.emit('start');
@@ -383,6 +385,10 @@ class Game {
     const R = this.race; if (!R) { this.state = 'play'; return; }
     if (R.menu || R.hold) return; if (R.intro > 0) { R.intro -= dt; return; }                                                                 // (the kart's quick menu is open: nothing moves until a choice)
     if (R.cd > 0) { R.cd -= dt; return; }
+    if (R.kart && R.honour) {                                                                           // THE HONOUR LAP: the lift, then free driving on the hall's floor (the rules in Race.honourStep)
+      const lq = this.laneQ || 0, hl = this.keys.left || Object.values(this.held).includes('left'), hr = this.keys.right || Object.values(this.held).includes('right'); this.laneQ = 0;
+      R.honourStep(Math.min(dt, 0.05), { steer: (hr ? 1 : 0) - (hl ? 1 : 0), flick: Math.max(-1, Math.min(1, lq)), accel: this.pedal('jump'), brake: this.pedal('slide'), exit: !!this.honourExit }); this.honourExit = false;
+      if (R.honour.over) this.endRace(); return; }
     const lane = R.p.lane + Math.max(-1, Math.min(1, this.laneQ || 0)); this.laneQ = 0;
     R.step(Math.min(dt, 0.05), { lane, accel: this.pedal('jump'), brake: this.pedal('slide') });
     for (const ev of R.events.splice(0)) {
