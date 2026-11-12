@@ -362,9 +362,11 @@ class Kart3D {
       const Y4 = -70, gr = new THREE.Mesh(new THREE.CircleGeometry(R + 70, 240), new THREE.MeshBasicMaterial({ color: '#07070b', side: THREE.DoubleSide, fog: false })); gr.rotation.x = -Math.PI / 2; gr.position.set(-R, Y4 - 0.05, 0); sc.add(gr); this.gateStuff.push(gr); this.lastGround = gr;
       if (typeof KART_ART !== 'undefined' && KART_ART.hexBand2) {
         const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.wrapS = THREE.MirroredRepeatWrapping; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.hexBand2;
-        const Wc = 24, nR = 2 * Math.round(KART.LAP / (2 * Wc * KART_ART.ar_hexBand2)), NS = 360, pos = [], uv = [], idx = [];      /* (an even number of mirrored repeats: the ring closes without a seam) */
-        for (let k = 0; k <= NS; k++) for (let j = 0; j <= 1; j++) { const q = this.ringPos(sE + k / NS * KART.LAP, -16 + (j - 0.5) * Wc, Y4); pos.push(q.x, q.y, q.z); uv.push(k / NS * nR, j); }
-        for (let k = 0; k < NS; k++) { const a1 = k * 2; idx.push(a1, a1 + 2, a1 + 1, a1 + 1, a1 + 2, a1 + 3); }
+        const Wc = 24, NS = 360, pos = [], uv = [], idx = [];
+        for (const [r0, xc] of [-16, -80, -144].entries()) {      /* (three rings, the user: the first under the tunnel, then two more like it, inside) */
+          const nR = 2 * Math.max(1, Math.round(KART.LAP * (R + xc) / R / (2 * Wc * KART_ART.ar_hexBand2))), b0 = pos.length / 3;      /* (an even number of mirrored repeats: each ring closes without a seam) */
+          for (let k = 0; k <= NS; k++) for (let j = 0; j <= 1; j++) { const q = this.ringPos(sE + k / NS * KART.LAP, xc + (j - 0.5) * Wc, Y4); pos.push(q.x, q.y, q.z); uv.push(k / NS * nR, j); }
+          for (let k = 0; k < NS; k++) { const a1 = b0 + k * 2; idx.push(a1, a1 + 2, a1 + 1, a1 + 1, a1 + 2, a1 + 3); } }
         const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); cg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); cg.setIndex(idx);
         const cm = new THREE.Mesh(cg, new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide, fog: false })); sc.add(cm); this.gateStuff.push(cm); this.roundabout = cm; } }      /* (the strip under the tunnel's road, 2nd basement, removed: the user) */
     { // SMOKED BLACK GLASS from the band's top edge up to the ceiling (the underside of the track and the garden), all round, with a red neon laser line along its middle (the user)
