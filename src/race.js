@@ -65,6 +65,21 @@ class Race {
       { let kept = false; this.items = this.items.filter(it => { if (it.type !== 'ramp' || it.s <= KART.GATE_S) return true; if (kept) return false; kept = true; return true; }); }      // one ramp only in the tunnel
       for (const it of this.items) if (it.type === 'spiral' && it.s > KART.GATE_S) { if (it.s - last > 20) side = -side; it.lane = side; last = it.s; } }      // (nothing on the road where the barriers funnel the karts into the gate)
     this.items.sort((a, b) => a.s - b.s);
+    if (this.kart) this.tidy();
+  }
+  // NO TWO OBJECTS ON TOP OF EACH OTHER (found by tests/scan_objects.js): sets of items laid every ~55 m sometimes put a spiral on another item of the same lane (the speed tokens are 4 to 6 m long: they
+  // interpenetrated and flickered), and the right lane's items stood inside the particle portal's arch. A spiral within 6 m of another item in its lane gives way; anything in the arch's way is moved to the middle lane
+  tidy() {
+    const keep = [], last = {};
+    for (const it of this.items) {
+      if (it.type === 'droid') { keep.push(it); continue; }
+      for (let k = 0; k < 2; k++) { const sA = KART.PORT_A + k * KART.LAP; if (it.lane === 1 && Math.abs(it.s - sA) < 6) { if (it.type === 'rare') it.lane = 0; else it.drop = true; } }
+      if (it.drop) continue;
+      const pv = last[it.lane];
+      if (pv && it.s - pv.s < 6) { if (it.type === 'spiral') continue; if (pv.type === 'spiral') keep.splice(keep.lastIndexOf(pv), 1); }
+      keep.push(it); last[it.lane] = it;
+    }
+    this.items = keep;
   }
   // one step: input.lane (-1, 0, 1: the lane wanted, set by the key presses of the caller) -> the car changes lane smoothly; the airborne car cannot be hit
   step(dt, input) {
@@ -83,8 +98,9 @@ class Race {
     p.speed += Math.max(-RACE.ACCEL * (coast ? 0.3 : 2.2) * dt, Math.min(RACE.ACCEL * dt, target - p.speed));
     const s0 = p.s; p.s += p.speed * dt;
     if (this.kart && KART.PORTAL) this.portalStep(dt, s0);
-    if (this.kart) for (const b of this.bots) { { const P = b.P, want = Math.max(-1, Math.min(this.maxLane(b.s), Math.round(Math.sin(this.t * P.lf + b.ph) * 1.3 + (P.bias || 0)))); if (want === b.lane || want > this.maxLane(b.s) || !(p.lane === want && Math.abs(p.s - b.s) < 10)) b.lane = Math.min(want, this.maxLane(b.s)); }      /* (a robot does not cut into the player's lane right beside or in front of the player) */ b.x += (b.lane * RACE.LANE_M - b.x) * Math.min(1, dt * 1.4 * b.P.lx); b.speed += Math.min(14 * dt, b.v * (1 + b.P.sw * Math.sin(this.t * b.P.sf + b.ph)) - b.speed); b.s += b.speed * dt; }
-    else {
+    if (this.kart) for (const b of this.bots) { { const P = b.P, want = Math.max(-1, Math.min(this.botMax(b.s), Math.round(Math.sin(this.t * P.lf + b.ph) * 1.3 + (P.bias || 0)))); if (want === b.lane || want > this.botMax(b.s) || !((p.lane === want && Math.abs(p.s - b.s) < 10) || this.bots.some(o => o !== b && o.lane === want && Math.abs(o.s - b.s) < 8))) b.lane = Math.min(want, this.botMax(b.s)); }      /* (a robot does not cut into the player's lane right beside or in front of the player) */ b.lane = Math.min(b.lane, this.botMax(b.s)); b.x += (b.lane * RACE.LANE_M - b.x) * Math.min(1, dt * 1.4 * b.P.lx); b.speed += Math.min(14 * dt, b.v * (1 + b.P.sw * Math.sin(this.t * b.P.sf + b.ph)) - b.speed); b.s += b.speed * dt; }
+    if (this.kart) for (const b of this.bots) for (const o of this.bots) if (o !== b && Math.abs(o.x - b.x) < 1.9 && o.s > b.s && o.s - b.s < 5.4) { b.s = o.s - 5.4; b.speed = Math.min(b.speed, o.speed); }      // (a robot kart does not drive through the one in front of it: it falls in behind)
+    if (!this.kart) {
     bot.lane = Math.max(-1, Math.min(1, Math.round(Math.sin(this.t * 0.33 + Math.PI / 2) * 1.3)));                       // the robot drifts from lane to lane: the player has to go round it, not through it
     bot.x += (bot.lane * RACE.LANE_M - bot.x) * Math.min(1, dt * 1.6);
     bot.speed += Math.min(18 * dt, RACE.BOT * (1 + 0.04 * Math.sin(this.t * 0.9)) - bot.speed); bot.s += bot.speed * dt; }                           // the robot's pace breathes a little
@@ -167,6 +183,7 @@ class Race {
   off(s) { if (!this.kart) return 0; const v = Math.max(0, Math.min(1, (s - KART.TURN) / KART.TURN_L)); return KART.INNER * v * v * (3 - 2 * v); }      // the kart: lateral shift onto the inner road
   dep(s) { if (!this.kart || s < KART.GATE_S) return 0; const v = Math.max(0, Math.min(1, (s - KART.GATE_S - 4) / KART.DIVE_L)); return -KART.TD * v * v * (3 - 2 * v) + (this.honour ? this.honour.dy : 0); }      // lap 4 goes UNDERGROUND (the spiral tunnel)
   keepLeft(s) { return !!this.kart && s > KART.FUNNEL - 250 && s < KART.GATE_S; }      // the zone of the KEEP LEFT indicators
+  botMax(s) { return !this.kart || s < KART.FUNNEL - 60 ? 1 : Math.max(-1, Math.min(this.maxLane(s), Math.floor((KART.fence(s + 45) - 1.0) / RACE.LANE_M))); }      // a robot keeps its whole kart (0.9 m each side, and a hand's breadth) on the open side of the closing fence - the player is scraped by it, so the robots no longer drive through it
   maxLane(s) { if (!this.kart || s < KART.FUNNEL || s > KART.GATE_S + 60) return 1; return Math.max(-1, Math.min(1, Math.floor((KART.fence(s) - 1.6) / RACE.LANE_M + 1e-6))); }      // a lane stays open while the fence is right of it       // the barriers close the lanes from the right
   gap() { return this.bot.s - this.p.s; }                                                              // metres the robot is ahead (negative: the player leads)
   progress() { return Math.min(1, this.p.s / this.len); }

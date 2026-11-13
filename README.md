@@ -261,6 +261,8 @@ Running the tests: every `tests/qa3d_*.js` is a stand-alone Node script that sta
 tests/race_sim.js      simulation (no browser): the race rules over many seeds
 tests/qa3d_xr.js       regression test: immersive VR with a fake WebXR device (the button, the session, the one loop, the rigs, errors, repeated enter / leave, 2D without VR code)
 tests/qa3d_kartvr.js   regression test: the kart circuit in VR (the XR rig, HUD panel, vignette and controllers on the kart's own scene; the rig follows the banked laps and the dive into the spiral tunnel; seated eye height; the quick menu answered at session start; a headset taken off holds the race)
+tests/race_portal.js   the kart's optional particle portal and the ring tour (rules only, no browser)
+tests/scan_objects.js  object scan (no browser): items on top of each other, items in the portal arch / the gate, robot karts outside the road, through the fence or inside each other - over 30 seeds and 6 races; a regression guard
 tests/_chromium.js     helper: finds the Chromium to launch ($CHROMIUM, else the newest one under ~/.cache/ms-playwright)
 tests/qa3d_coins.js   regression test: coin pickup (coins vanish at once, count once, can't be re-collected, pool reuse, both branches, restart)
 tests/qa3d_world.js   regression test: world variety, track integrity, pools, six junctions played
