@@ -45,7 +45,7 @@ class Renderer {
     bar(p.s / R.len, 6, '#35e6ff'); bar(R.bot.s / R.len, 16, R.kart ? '#ff9a2a' : '#ff2a4a');
     this.txt('YOU', x0 - 24, 5, '#35e6ff'); this.txt('BOT', x0 - 24, 15, R.kart ? '#ff9a2a' : '#ff2a4a');
     if (R.kart) this.drawComm(g, R.keepLeft(p.s) && p.lane > -1);      // the detour's notification, as a holographic comm panel      // (the detour: blinking until the kart is in the left lane)
-    if (R.kart && p.away && p.away.k >= 0) { const A = p.away; this.ctr('RING ' + (A.k + 1) + '/3   LAP ' + Math.min(100, Math.round(A.th / (2 * Math.PI) * 100)) + '%   (THE RACE WAITS)', 33, '#b040ff'); }      // (the ring tour: the race stands still)
+    if (R.kart && p.away && p.away.k >= 0) { const A = p.away; this.ctr('RING ' + (A.k + 1) + '/' + KART.PORT_RINGS.length + '   LAP ' + Math.min(100, Math.round(A.th / (2 * Math.PI) * 100)) + '%   (THE RACE WAITS)', 33, '#b040ff'); }      // (the ring tour: the race stands still)
     else if (R.kart) { const pl = R.place(), lap = Math.min(KART.LAPS, 1 + Math.floor(p.s / KART.LAP)); this.ctr('TOUR ' + lap + '/' + KART.LAPS + '   PLACE ' + pl + '/' + (R.bots.length + 1), 33, pl === 1 ? '#7affc8' : '#ffd24a'); }      // (the kart: the player's place among the nine karts)
     else this.ctr(gap > 0 ? 'ROBOT +' + Math.round(gap) + ' M' : 'YOU +' + Math.round(-gap) + ' M', 33, gap > 0 ? '#ff6a7a' : '#7affc8');
     this.txt('RARE ' + g.rare, 6, 6, '#ffd24a');

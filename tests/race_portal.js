@@ -12,11 +12,11 @@ const run = (R, n, f) => { for (let i = 0; i < n && !R.done; i++) { R.step(1 / 6
 // 1. the right lane takes the arch: collapse > expand on ring 0 > lap > collapse > expand on ring 1 > lap > ... > collapse > expand in the tunnel
 { const R = mk(1), seq = [], laps = [], bots0 = R.bots.map(b => b.s); let began = false, sFrozen = null, tFrozen = null, botsMoved = false, sMoved = false, tMoved = false, steps = 0;
   run(R, 20000, R => { const A = R.p.away; if (A) { began = true; steps++; if (seq[seq.length - 1] !== A.ph + (A.k >= 0 ? A.k : '')) seq.push(A.ph + (A.k >= 0 ? A.k : '')); if (A.ph === 'c1' && sFrozen === null) { sFrozen = R.p.s; tFrozen = R.t; } if (A.ph === 'ring' && A.th > 0) laps[A.k] = A.th; if (R.p.s !== sFrozen) sMoved = true; if (R.t !== tFrozen) tMoved = true; if (R.bots.some((b, i) => b.s !== bots0[i] + (b.s - bots0[i]) && false)) botsMoved = true; } if (began && !A) R.done = true; });
-  T('the right lane takes the arch at PORT_A (' + KART.PORT_A + '): c1 > e1 (ring 0) > ring 0 > c2 > e2 (ring 1) > ring 1 > c2 > e2 (ring 2) > ring 2 > cE > eE (tunnel), then it is over', seq.join('>') === 'c10>e10>ring0>c20>e21>ring1>c21>e22>ring2>cE2>eE' && R.p.away === null, seq.join('>'));
-  T('each ring gets one FULL lap (the angle goes to 2 pi on all three rings: ' + laps.map(v => v.toFixed(2)).join(' / ') + ')', laps.length === 3 && laps.every(v => v > 6.0), '');
+  T('the right lane takes the arch at PORT_A (' + KART.PORT_A + '): c1 > e1 (ring 0) > ring 0 > c2 > e2 ... ring 3 (the last floor, round the flower) > cE > eE (tunnel), then it is over', seq.join('>') === 'c10>e10>ring0>c20>e21>ring1>c21>e22>ring2>c22>e23>ring3>cE3>eE' && R.p.away === null, seq.join('>'));
+  T('each ring gets one FULL lap (the angle goes to 2 pi on all four rings: ' + laps.map(v => v.toFixed(2)).join(' / ') + ')', laps.length === 4 && laps.every(v => v > 6.0), '');
   T('the race stands still on the rings: the kart\'s s (' + sFrozen + ') and the clock do not move, and afterwards the kart is back at the arch', !sMoved && !tMoved && Math.abs(R.p.s - sFrozen) < 0.001, JSON.stringify({ sMoved, tMoved, s: R.p.s, sFrozen }));
-  const secs = steps / 60; const exp = KART.PORT_RINGS.reduce((a, r) => a + 2 * Math.PI * (KART.R + r.x) / RACE.BASE, 0) + 6 * 0.45;
-  T('the tour is the three laps round the rings at the kart\'s own pace: ' + secs.toFixed(0) + ' s (expected about ' + exp.toFixed(0) + ' s)', Math.abs(secs - exp) < 12, '') }
+  const secs = steps / 60; const exp = KART.PORT_RINGS.reduce((a, r) => a + 2 * Math.PI * (KART.R + r.x) / RACE.BASE, 0) + 8 * 0.45;
+  T('the tour is the four laps round the rings at the kart\'s own pace: ' + secs.toFixed(0) + ' s (expected about ' + exp.toFixed(0) + ' s)', Math.abs(secs - exp) < 12, '') }
 
 // 2. the other karts do not move while the kart is away
 { const R = mk(1); let moved = false, before = null; run(R, 20000, R => { const A = R.p.away; if (A && A.ph === 'ring' && before === null) before = R.bots.map(b => b.s); if (A && A.ph === 'ring' && R.bots.some((b, i) => b.s !== before[i])) moved = true; if (before && !A) R.done = true; });
