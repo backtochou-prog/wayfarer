@@ -7,6 +7,7 @@ class Kart3D {
   static get HALL() { return true; }      // the 3D ship hall instead of the painted arch and floor
   static get LIFTS() { return false; }      // the two glass lifts in the ship hall: cancelled by the user, kept to reuse
   static get CONTROL_ROOM() { return false; }      // the control-room picture on the 3rd basement: removed for now, kept to reuse
+  static get INNER_ROAD() { return false; }      // the pink-edged ring road at track level inside the track (lap 4 is underground now): switched off, kept
   static get TREES() { return false; }      // the roundabout's trees (the ring at R-30 and the scattered ones in the garden): removed by the user, kept to reuse
   static get SPIRAL_FLAT() { return false; }      // the user's flat green spiral picture over the rings: replaced by the snaking light tube, kept to reuse
   static get WELD_FLOOR() { return false; }      // the user's floor picture (KART_ART.weldFloor) under the hall: removed for now, its settings kept to reuse later
@@ -260,8 +261,8 @@ class Kart3D {
           for (const [r, m] of [[R - 19.7, lzC], [R - 17.2, lzP], [R - 14.8, lzP], [R - 12.3, lzC]]) ring(r - 0.03, r + 0.03, m, -KART.TD + 0.04);
           for (const r of [R - 19.9, R - 12.1]) for (const [hh, m] of [[0.35, lzP], [0.75, lzC]]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.022, 720, 1, true), m); c.position.set(-R, -KART.TD + hh, 0); sc.add(c); } }
         for (const L of [lp, rp]) { const lg = new THREE.BufferGeometry().setFromPoints(L), ln = new THREE.Line(lg, new THREE.LineBasicMaterial({ color: '#ff3fd0', fog: false })); sc.add(ln); this.gateStuff.push(ln); } }
-      ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#0b0d10', emissive: '#1a0830', specular: 0x8899aa, shininess: 80, side: THREE.DoubleSide }), 0.02, 720, cutS(KART.GATE_S - 26, KART.GATE_S + 120));                          // the inner ring road
-      for (const r of [R - 20, R - 12]) ring(r - 0.1, r + 0.1, new THREE.MeshBasicMaterial({ color: '#ff3fd0', fog: false }), 0.03, 720, cutS(KART.GATE_S - 26, KART.GATE_S + 120)); }
+      if (Kart3D.INNER_ROAD) ring(R - 20, R - 12, new THREE.MeshPhongMaterial({ color: '#0b0d10', emissive: '#1a0830', specular: 0x8899aa, shininess: 80, side: THREE.DoubleSide }), 0.02, 720, cutS(KART.GATE_S - 26, KART.GATE_S + 120));      /* (THE INNER RING ROAD on the surface is switched off, the user: lap 4 is underground, and from the headset the pink-edged ring left at track level read as 'the kart stays turning on the ring instead of going down' - only the entrance road, which dives into the tunnel, is left; Kart3D.INNER_ROAD = true brings the ring back) */                          // the inner ring road
+      if (Kart3D.INNER_ROAD) for (const r of [R - 20, R - 12]) ring(r - 0.1, r + 0.1, new THREE.MeshBasicMaterial({ color: '#ff3fd0', fog: false }), 0.03, 720, cutS(KART.GATE_S - 26, KART.GATE_S + 120)); }
     // THE NEON BARRIERS at the end of lap 3 (shown while the player is in lap 3 and through the gate): a diagonal of laser posts closing the lanes from the right toward the gate,
     // and a barrier across the big ring just past the line (no fourth lap on it); arrows on them point left, into the gate
     { const B = this.barriers = new THREE.Group(), post = new THREE.MeshBasicMaterial({ color: '#20242c', fog: false }), las = new THREE.MeshBasicMaterial({ color: '#35f0ff', transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), las2 = new THREE.MeshBasicMaterial({ color: '#ff3fd0', transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
