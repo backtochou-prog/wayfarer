@@ -1,29 +1,33 @@
-// WAYFARER regression test (no browser): the kart circuit's optional PARTICLE PORTAL (src/race.js portalStep). In the glass tunnel, in the ship hall, the RIGHT lane runs through an arch at KART.PORT_A
-// (laps 4 and 5): the kart collapses (c1), re-appears 56 m down on the 2nd ring of the last floor (e1), runs PORT_D m there (run), collapses at the exit arch (c2) and re-appears in the tunnel (e2).
-// The arch is optional (any other lane just goes on), it costs no time (the kart's s goes on as ever), and while away the kart is out of reach of the tunnel's items and karts.
+// WAYFARER regression test (no browser): the kart circuit's optional PARTICLE PORTAL and RING TOUR (src/race.js portalStep / awayStep). In the glass tunnel, in the ship hall, the RIGHT lane runs through an arch at
+// KART.PORT_A (laps 4 and 5). The kart (as the user's strawberry pod) is sent to the first CARBON ring, drives one FULL LAP round it, is sucked through the neon portal at the lap line onto the next ring, and so on
+// through the three rings; after the last lap it is sucked back into the tunnel. The arch is optional (any other lane just goes on) and THE RACE STANDS STILL meanwhile (the other karts, the clock, the kart's own s).
 //
 // Run:  node tests/race_portal.js
 const vm = require('vm'), fs = require('fs'), path = require('path');
 vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'src', 'race.js'), 'utf8').replace(/^const /mg, 'var ').replace(/^class (\w+)/mg, 'var $1 = class $1'));
 const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? 'PASS ' : 'FAIL ') + n + (i !== '' ? '  [' + i + ']' : '')); };
 const mk = (lane, seed) => { const R = new Race(seed || 3, { kart: true, len: KART.LEN }); R.cd = 0; R.gateOpen = true; R.t = 60; R.bots.forEach((b, i) => { b.s = 5000 + i * 3; }); R.p.s = KART.PORT_A - 60; R.p.lane = lane; R.p.x = lane * RACE.LANE_M; R.p.speed = 43; return R; };
-const run = (R, n, f) => { for (let i = 0; i < n && !R.done; i++) { R.step(1 / 60, { lane: R.p.lane, accel: true }); if (f) f(R); } };
+const run = (R, n, f) => { for (let i = 0; i < n && !R.done; i++) { R.step(1 / 60, { lane: R.p.lane, accel: false }); if (f) f(R); } };
 
-// 1. the right lane takes the arch, the phases run in order, 56 m down, back after PORT_D m
-{ const R = mk(1), seen = [], dys = {}, s = {}; let began = false; run(R, 1500, R => { if (R.p.away) began = true; if (began && !R.p.away) R.done = true;      /* (one trip only: the 5th lap has its own arch) */ const a = R.p.away; if (a && seen[seen.length - 1] !== a.ph) { seen.push(a.ph); dys[a.ph] = a.dy; s[a.ph] = Math.round(R.p.s); } });
-  T('the right lane takes the portal at PORT_A (' + KART.PORT_A + '): collapse > re-appear 56 m down > run > collapse > back in the tunnel, then it is over', seen.join('>') === 'c1>e1>run>c2>e2' && dys.e1 === KART.PORT_DY && dys.e2 === 0 && R.p.away === null && s.c1 >= KART.PORT_A && s.c1 < KART.PORT_A + 3, JSON.stringify({ seen, dys, s }));
-  T('what it skips is PORT_D = ' + KART.PORT_D + ' m of tunnel: the exit arch is where the run ends (s ' + s.c2 + ' - ' + s.c1 + ' = ' + (s.c2 - s.c1) + ' m)', Math.abs((s.c2 - s.c1) - KART.PORT_D) < 5, '') }
+// 1. the right lane takes the arch: collapse > expand on ring 0 > lap > collapse > expand on ring 1 > lap > ... > collapse > expand in the tunnel
+{ const R = mk(1), seq = [], laps = [], bots0 = R.bots.map(b => b.s); let began = false, sFrozen = null, tFrozen = null, botsMoved = false, sMoved = false, tMoved = false, steps = 0;
+  run(R, 20000, R => { const A = R.p.away; if (A) { began = true; steps++; if (seq[seq.length - 1] !== A.ph + (A.k >= 0 ? A.k : '')) seq.push(A.ph + (A.k >= 0 ? A.k : '')); if (A.ph === 'c1' && sFrozen === null) { sFrozen = R.p.s; tFrozen = R.t; } if (A.ph === 'ring' && A.th > 0) laps[A.k] = A.th; if (R.p.s !== sFrozen) sMoved = true; if (R.t !== tFrozen) tMoved = true; if (R.bots.some((b, i) => b.s !== bots0[i] + (b.s - bots0[i]) && false)) botsMoved = true; } if (began && !A) R.done = true; });
+  T('the right lane takes the arch at PORT_A (' + KART.PORT_A + '): c1 > e1 (ring 0) > ring 0 > c2 > e2 (ring 1) > ring 1 > c2 > e2 (ring 2) > ring 2 > cE > eE (tunnel), then it is over', seq.join('>') === 'c10>e10>ring0>c20>e21>ring1>c21>e22>ring2>cE2>eE' && R.p.away === null, seq.join('>'));
+  T('each ring gets one FULL lap (the angle goes to 2 pi on all three rings: ' + laps.map(v => v.toFixed(2)).join(' / ') + ')', laps.length === 3 && laps.every(v => v > 6.0), '');
+  T('the race stands still on the rings: the kart\'s s (' + sFrozen + ') and the clock do not move, and afterwards the kart is back at the arch', !sMoved && !tMoved && Math.abs(R.p.s - sFrozen) < 0.001, JSON.stringify({ sMoved, tMoved, s: R.p.s, sFrozen }));
+  const secs = steps / 60; const exp = KART.PORT_RINGS.reduce((a, r) => a + 2 * Math.PI * (KART.R + r.x) / RACE.BASE, 0) + 6 * 0.45;
+  T('the tour is the three laps round the rings at the kart\'s own pace: ' + secs.toFixed(0) + ' s (expected about ' + exp.toFixed(0) + ' s)', Math.abs(secs - exp) < 12, '') }
 
-// 2. optional: the middle and the left lanes go straight on
+// 2. the other karts do not move while the kart is away
+{ const R = mk(1); let moved = false, before = null; run(R, 20000, R => { const A = R.p.away; if (A && A.ph === 'ring' && before === null) before = R.bots.map(b => b.s); if (A && A.ph === 'ring' && R.bots.some((b, i) => b.s !== before[i])) moved = true; if (before && !A) R.done = true; });
+  T('the other karts stand still on the rings tour (the race is paused, not lost)', before !== null && !moved, '') }
+
+// 3. optional: the middle and the left lanes go straight on
 for (const lane of [0, -1]) { const R = mk(lane); let hit = false; run(R, 1500, R => { if (R.p.away) hit = true; }); T('lane ' + lane + ' ignores the arch (it is optional)', !hit, ''); }
 
-// 3. no time gained or lost: the kart's s goes on the same, with or without the portal
-{ const A = mk(1), B = mk(0); A.items = []; B.items = []; A.bots.forEach(b => { b.s = 100; }); B.bots.forEach(b => { b.s = 100; }); run(A, 900); run(B, 900); T('the portal costs no time: after 15 s the kart that took the arch is as far on as the one that did not (' + A.p.s.toFixed(1) + ' / ' + B.p.s.toFixed(1) + ' m)', Math.abs(A.p.s - B.p.s) < 3, '') }
-
-// 4. while away the kart is out of reach of the tunnel's items and karts
-{ const R = mk(1); R.items = [{ type: 'spiral', s: KART.PORT_A + 60, lane: 1, color: 0, taken: false }, { type: 'ring', s: KART.PORT_A + 90, lane: 1, taken: false }]; run(R, 140, null);      // (the kart is away at 60 m past the arch)
-  const away = !!R.p.away; R.bots[0].s = R.p.s + 1; R.bots[0].x = R.p.x - 0.1; R.bots[0].lane = 1; const bumps0 = R.p.bumps || 0, sp0 = R.p.spirals; run(R, 90, null);
-  T('away on the ring, a spiral and a brake ring of the tunnel are not picked up, and a kart in the way cannot bump it', away && R.items.every(i => !i.taken) && (R.p.bumps || 0) === bumps0 && R.p.spirals === sp0, JSON.stringify({ away, taken: R.items.map(i => i.taken), bumps: R.p.bumps || 0 })) }
+// 4. afterwards the race goes on: the kart drives on from the arch and the others move again
+{ const R = mk(1); let began = false, done = false; run(R, 20000, R => { if (R.p.away) began = true; if (began && !R.p.away) done = true; if (done) R.done = true; }); R.done = false; const s0 = R.p.s, b0 = R.bots[0].s; run(R, 120, null);
+  T('after the tour the race goes on from the arch (the kart +' + (R.p.s - s0).toFixed(0) + ' m, a robot +' + (R.bots[0].s - b0).toFixed(0) + ' m in 2 s)', R.p.s - s0 > 60 && R.bots[0].s - b0 > 30, '') }
 
 // 5. both laps have the arch, and nothing happens before the tunnel
 { const R = mk(1); R.p.s = KART.PORT_A + KART.LAP - 40; R.bots.forEach(b => { b.s = 100; }); let hit = false; run(R, 300, R => { if (R.p.away) hit = true; }); const Q = mk(1); Q.p.s = KART.PORT_A - 3 * KART.LAP - 60; Q.bots.forEach(b => { b.s = 100; }); let early = false; run(Q, 300, R => { if (R.p.away) early = true; });

@@ -16,7 +16,7 @@ const KART = { R: 240, LAPS: 5, BANK: 1.6, GATE_W: 12, INNER: -16, EQ_V: 140 }; 
 // lanes close from the right (the middle one 80 m before the line), then every kart turns left through the gate (TURN: where the turn starts, over TURN_L m) onto the inner road.
 KART.GATE_S = 3 * KART.LAP; KART.FUNNEL = KART.GATE_S - 420; KART.FUNNEL2 = KART.GATE_S - 160;
 // THE DETOUR FENCE (the user's red line: one long diagonal from the right edge across the track to the left lane, in front of the gate): x across the track at s
-KART.fence = s => { if (s < KART.FUNNEL) return 6.3; const v = Math.max(0, Math.min(1, (s - KART.FUNNEL) / (KART.GATE_S - 40 - KART.FUNNEL))); return 6.3 - 7.5 * v; }; KART.TURN = KART.GATE_S - 14; KART.TURN_L = 50; KART.TD = 14; KART.DIVE_L = 110;      /* THE FINISH IS THE SHIP HALL (the user: the first kart to reach the hall wins, and gets the honour lap): the hall's middle in the 5th lap is HALL + LAP; the line is 56 m before its entrance, the winner brakes to a stop at the lift */ KART.HALL = KART.GATE_S + 0.8 * KART.LAP; KART.FIN = Math.round(KART.HALL + KART.LAP - 56);      /* KART.HONOUR: the honour lap and the finish at the hall are SWITCHED OFF for now (the user: 'oublie changement de règle' - the race keeps its rules, the 5 laps to the line); set it to true to bring them back */ KART.HONOUR = false;      /* THE PARTICLE PORTAL (the user: an OPTIONAL arch, 'comme un vieux téléviseur qui s'éteint et se rétablit ailleurs'): in the glass tunnel, in the ship hall, the right lane runs through a ring-shaped arch at PORT_A (laps 4 and 5); the kart collapses like a switched-off TV and re-appears right underneath, 56 m down, on the 2nd ring of the last floor, drives PORT_D m there (the same distance as the tunnel it skips: no time gained) and a second arch brings it back into the tunnel. While away it is out of reach of the tunnel's items and karts. */ KART.PORTAL = true; KART.PORT_A = Math.round(KART.HALL - 20); KART.PORT_D = 200; KART.PORT_DY = -56;      /* the gate leads UNDERGROUND (the user): the road dives TD m over DIVE_L m into the spiral tunnel */
+KART.fence = s => { if (s < KART.FUNNEL) return 6.3; const v = Math.max(0, Math.min(1, (s - KART.FUNNEL) / (KART.GATE_S - 40 - KART.FUNNEL))); return 6.3 - 7.5 * v; }; KART.TURN = KART.GATE_S - 14; KART.TURN_L = 50; KART.TD = 14; KART.DIVE_L = 110;      /* THE FINISH IS THE SHIP HALL (the user: the first kart to reach the hall wins, and gets the honour lap): the hall's middle in the 5th lap is HALL + LAP; the line is 56 m before its entrance, the winner brakes to a stop at the lift */ KART.HALL = KART.GATE_S + 0.8 * KART.LAP; KART.FIN = Math.round(KART.HALL + KART.LAP - 56);      /* KART.HONOUR: the honour lap and the finish at the hall are SWITCHED OFF for now (the user: 'oublie changement de règle' - the race keeps its rules, the 5 laps to the line); set it to true to bring them back */ KART.HONOUR = false;      /* THE PARTICLE PORTAL (the user: an OPTIONAL arch, 'comme un vieux téléviseur qui s'éteint et se rétablit ailleurs'): in the glass tunnel, in the ship hall, the right lane runs through a ring-shaped arch at PORT_A (laps 4 and 5); the kart collapses like a switched-off TV and re-appears right underneath, 56 m down, on the 2nd ring of the last floor, drives PORT_D m there (the same distance as the tunnel it skips: no time gained) and a second arch brings it back into the tunnel. While away it is out of reach of the tunnel's items and karts. */ KART.PORTAL = true; KART.PORT_A = Math.round(KART.HALL - 20); KART.PORT_RINGS = [{ x: 40, y: -28 }, { x: -48, y: -42 }, { x: -112, y: -56 }];      /* the three carbon rings (x across from the track's, y down from it), their lap lines at the arch's angle */      /* the gate leads UNDERGROUND (the user): the road dives TD m over DIVE_L m into the spiral tunnel */
 class Race {
   constructor(seed, opts) {
     this.len = (opts && opts.len) || RACE.LEN; this.kart = !!(opts && opts.kart);      // (the KART circuit of the Calagtic: laps of a ring, src3d/kart3d.js)
@@ -69,7 +69,8 @@ class Race {
   // one step: input.lane (-1, 0, 1: the lane wanted, set by the key presses of the caller) -> the car changes lane smoothly; the airborne car cannot be hit
   step(dt, input) {
     if (this.done) { this.fin += dt; return; }
-    const p = this.p, bot = this.bot; this.t += dt;
+    const p = this.p, bot = this.bot; if (this.kart && p.away) { this.awayStep(dt, input); return; }      // (away on the rings: the race stands still)
+    this.t += dt;
     if (input && input.lane !== undefined) p.lane = Math.max(-1, Math.min(1, input.lane));
     p.lane = Math.min(p.lane, this.maxLane(p.s));
     if (this.kart && p.s > KART.FUNNEL - 20 && p.s < KART.GATE_S && p.x + 0.9 > KART.fence(p.s)) {        // BRUSHING THE FENCE (pushed by it instead of moving left in time): the kart slows and sparks
@@ -121,16 +122,29 @@ class Race {
     if (p.s >= this.len) { this.done = true; this.result = first ? 'lose' : 'win'; this.events.push({ e: this.result }); if (this.kart && KART.HONOUR && this.result === 'win') this.startHonour(); }
     else if (first) { this.done = true; this.result = 'lose'; this.events.push({ e: 'lose' }); }          // the robot crossed first: out at once
   }
-  // THE PARTICLE PORTAL's phases: c1 (collapse in the tunnel) > e1 (re-appears on the ring below) > run (PORT_D m) > c2 (collapse on the ring) > e2 (re-appears in the tunnel) > done
+  // THE PARTICLE PORTAL (the user: first to the next floor up, complete the lap on its ring, then on to the next): the right lane's arch in the tunnel sends the kart, as the user's strawberry pod, to the first CARBON ring
+  // (cyan, 28 m down), where it drives ONE FULL LAP; at the lap line a neon portal sucks it up and it re-appears on the next ring (violet, then pink); after the pink lap it is sucked back into the tunnel, where the kart
+  // expands again at the arch. THE RACE STANDS STILL meanwhile (the other karts, the clock): the rings are a pause outside the race, not a shortcut. Phases: c1 (collapse in the tunnel) > e1 (expand on ring 0) > ring
+  // (the lap, th goes 0 to 2 pi) > c2 (collapse at the lap line) > e2 (expand on the next ring) > ring ... > cE (collapse on the last ring) > eE (expand in the tunnel) > done
   portalStep(dt, s0) {
-    const p = this.p, A = p.away;
-    if (!A) { if (p.s > KART.GATE_S + 60 && Math.abs(p.x - RACE.LANE_M) < 0.8) for (let k = 0; k < 2; k++) { const sA = KART.PORT_A + k * KART.LAP; if (s0 < sA && p.s >= sA) { p.away = { ph: 'c1', t: 0, dy: 0, sA, sB: sA + KART.PORT_D }; this.events.push({ e: 'portal' }); break; } } return; }
-    A.t += dt;
-    if (A.ph === 'c1' && A.t >= 0.45) { A.ph = 'e1'; A.t = 0; A.dy = KART.PORT_DY; }
-    else if (A.ph === 'e1' && A.t >= 0.45) { A.ph = 'run'; A.t = 0; }
-    else if (A.ph === 'run' && p.s >= A.sB) { A.ph = 'c2'; A.t = 0; this.events.push({ e: 'portal' }); }
-    else if (A.ph === 'c2' && A.t >= 0.45) { A.ph = 'e2'; A.t = 0; A.dy = 0; }
-    else if (A.ph === 'e2' && A.t >= 0.45) p.away = null;
+    const p = this.p;
+    if (p.away || p.s <= KART.GATE_S + 60 || Math.abs(p.x - RACE.LANE_M) >= 0.8) return;
+    for (let k = 0; k < 2; k++) { const sA = KART.PORT_A + k * KART.LAP; if (s0 < sA && p.s >= sA) { p.s = sA; p.away = { ph: 'c1', t: 0, k: 0, th: 0, sA }; this.events.push({ e: 'portal' }); break; } }
+  }
+  awayStep(dt, input) {
+    const p = this.p, A = p.away, e = KART.PORT_RINGS; A.t += dt;
+    if (input && input.lane !== undefined) p.lane = Math.max(-1, Math.min(1, input.lane));
+    p.x += (p.lane * RACE.LANE_M - p.x) * Math.min(1, dt * 9);
+    p.pedal = input && input.brake ? 'brake' : input && input.accel ? 'accel' : null;
+    let target = RACE.BASE + (p.pedal === 'accel' ? RACE.THROTTLE : 0); if (p.pedal === 'brake') target *= RACE.PEDAL_MUL;
+    p.speed += Math.max(-RACE.ACCEL * 2.2 * dt, Math.min(RACE.ACCEL * dt, target - p.speed));
+    if (A.ph === 'c1' && A.t >= 0.45) { A.ph = 'e1'; A.t = 0; A.k = 0; A.th = 0; }
+    else if (A.ph === 'e1' && A.t >= 0.45) { A.ph = 'ring'; A.t = 0; }
+    else if (A.ph === 'ring') { A.th += p.speed * dt / (KART.R + e[A.k].x); if (A.th >= 2 * Math.PI) { A.th = 2 * Math.PI; A.ph = A.k < e.length - 1 ? 'c2' : 'cE'; A.t = 0; this.events.push({ e: 'portal' }); } }
+    else if (A.ph === 'c2' && A.t >= 0.45) { A.ph = 'e2'; A.t = 0; A.k++; A.th = 0; }
+    else if (A.ph === 'e2' && A.t >= 0.45) { A.ph = 'ring'; A.t = 0; }
+    else if (A.ph === 'cE' && A.t >= 0.45) { A.ph = 'eE'; A.t = 0; A.k = -1; A.th = 0; }
+    else if (A.ph === 'eE' && A.t >= 0.45) p.away = null;
   }
   // THE HONOUR LAP (the user): the first kart to the hall is carried down WITH ITS KART by the glass lift to the hall's own floor and may drive about there, among the consoles, as a reward.
   // Phases: brake (to a stop at the lift's door) > slide (across to the lift) > open > down (23 m) > free (drive about; Enter / E / a tap on the top bar leaves, or after 150 s)
