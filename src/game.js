@@ -377,8 +377,8 @@ class Game {
     if (!this.r.supportsRace || typeof Race === 'undefined' || this.state !== 'play') return;
     if (gate) gate.taken = true;
     const R = this.race = new Race(((Game.runSeed() || 0) + (++this.raceN) * 977) % 100000 + 1, (gate && gate.kart) || this.kartNow ? { kart: true, len: KART.HONOUR ? KART.FIN : KART.LEN } : null); this.kartNow = false; if (R.kart) R.menu = true;
-    { const st = R.kart && typeof location !== 'undefined' && (location.search.match(/[?&]start=(tunnel|tour5)\b/) || [])[1];      // ?zone=kart&start=tunnel: open just before the gate at the end of lap 3 (to test the tunnel without racing three laps); start=tour5: at the start of the last, all-glass lap
-      if (st) { R.p.s = st === 'tunnel' ? KART.GATE_S - 300 : (KART.LAPS - 1) * KART.LAP + 5; R.p.lane = -1; R.p.x = -RACE.LANE_M; R.t = 60; R.bots.forEach((b, i) => { b.s = R.p.s - 40 - i * 25; }); R.items = R.items.filter(it => it.s > R.p.s + 30 || it.s < R.p.s - 400); } } R.cd = 3.2; this.state = 'race'; this.riding = false; this.scooterHint = null; this.keys = {}; this.releaseTouch(); this.rl = this.rr = false;
+    { const st = R.kart && typeof location !== 'undefined' && (location.search.match(/[?&]start=(tunnel|tour5|arch)\b/) || [])[1];      // ?zone=kart&start=tunnel: open just before the gate at the end of lap 3 (to test the tunnel without racing three laps); start=tour5: at the start of the last, all-glass lap
+      if (st) { R.p.s = st === 'tunnel' ? KART.GATE_S - 300 : st === 'arch' ? KART.PORT_A - 180 : (KART.LAPS - 1) * KART.LAP + 5; R.p.lane = st === 'arch' ? 1 : -1; R.p.x = st === 'arch' ? RACE.LANE_M : -RACE.LANE_M;      /* (start=arch: the tunnel, in the right lane, 180 m before the particle portal's arch in the ship hall) */ R.t = 60; R.bots.forEach((b, i) => { b.s = R.p.s - 40 - i * 25; }); R.items = R.items.filter(it => it.s > R.p.s + 30 || it.s < R.p.s - 400); } } R.cd = 3.2; this.state = 'race'; this.riding = false; this.scooterHint = null; this.keys = {}; this.releaseTouch(); this.rl = this.rr = false;
     this.emit('start');
   }
   raceStep(dt) {
