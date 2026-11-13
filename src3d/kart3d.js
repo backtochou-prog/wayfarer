@@ -7,6 +7,7 @@ class Kart3D {
   static get HALL() { return true; }      // the 3D ship hall instead of the painted arch and floor
   static get LIFTS() { return false; }      // the two glass lifts in the ship hall: cancelled by the user, kept to reuse
   static get CONTROL_ROOM() { return false; }      // the control-room picture on the 3rd basement: removed for now, kept to reuse
+  static get TREES() { return false; }      // the roundabout's trees (the ring at R-30 and the scattered ones in the garden): removed by the user, kept to reuse
   static get SPIRAL_FLAT() { return false; }      // the user's flat green spiral picture over the rings: replaced by the snaking light tube, kept to reuse
   static get WELD_FLOOR() { return false; }      // the user's floor picture (KART_ART.weldFloor) under the hall: removed for now, its settings kept to reuse later
   constructor(race3d) {
@@ -72,8 +73,8 @@ class Kart3D {
     const N = 150, cafes = [], terr = [], plant = [], trees = [], plantIn = [];
     for (let k = 0; k < N; k++) { const a = (k + 0.5) / N * 2 * Math.PI; (k % 3 === 2 ? plant : cafes).push(at(a, R + 21, true)); if (k % 3 !== 2) terr.push(at(a, R + 12, true)); else plant.push(at(a + 0.004, R + 9, true)); }
     for (let k = 0; k < 110; k++) { const a = (k + 0.25) / 110 * 2 * Math.PI; (k % 2 ? plantIn : trees).push(at(a, R - 30, false)); }
-    inst(P.cafeFront(), cafes); inst(P.terrace(), terr); inst(P.bigPlanter(), plant); inst(P.treeRing(), trees); inst(P.bigPlanter(), plantIn);
-    { const tr = []; for (let k = 0; k < 160; k++) { const a = k * 2.399, r = 95 + Math.sqrt(k / 160) * (R - 135); tr.push(at(a, r, false)); } inst(P.treeRing(), tr); }       // the garden: trees all over
+    inst(P.cafeFront(), cafes); inst(P.terrace(), terr); inst(P.bigPlanter(), plant); if (Kart3D.TREES) inst(P.treeRing(), trees); inst(P.bigPlanter(), plantIn);      /* (the roundabout's trees removed, the user: 'enlever les arbres du rond-point' - the planters stay; Kart3D.TREES = true brings the trees back) */
+    if (Kart3D.TREES) { const tr = []; for (let k = 0; k < 160; k++) { const a = k * 2.399, r = 95 + Math.sqrt(k / 160) * (R - 135); tr.push(at(a, r, false)); } inst(P.treeRing(), tr); }       // the garden: trees all over
     // THE CENTRE (the user's picture, 2026-11-09: a purple glass sphere): a big card always turned to the camera, standing in the middle of the garden
     if (typeof KART_ART !== 'undefined' && KART_ART.centre) { const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.centre;
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, fog: false })); sp.scale.set(150, 150, 1); sp.position.set(-R, 40, 0);      /* Saturn: its equator in the plane of the ring of the ventilation, in the open top of the dome */ sc.add(sp); this.centre = sp;
