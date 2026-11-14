@@ -93,8 +93,8 @@ class Kart3D {
       halo.scale.set(230, 230, 1); halo.position.copy(sp.position); sc.add(halo); this.centreLit = [lit, halo];
       if (Kart3D.CENTRE_SPHERE && KART_ART.centreSphere) {      /* SATURN'S SPHERE AS A REAL SPHERE (the user: 'rends la sphère de Saturne une vraie sphère comme la boule d'énergie, sans toucher les anneaux'): 73 m radius (the card showed it 146 m across), the picture wrapped as an equirectangular map (front = the picture, back = its mirror), its axis upright so its equator stays in the plane of the rings; the rings (the ventilation) are untouched and now emerge from its equator; it turns slowly, faster with the music; its neons are a second, additive skin */
         const im2 = new Image(), t2 = new THREE.Texture(im2); t2.colorSpace = THREE.SRGBColorSpace; t2.anisotropy = 8; im2.onload = () => { t2.needsUpdate = true; }; im2.src = KART_ART.centreSphere;
-        const g2 = new THREE.SphereGeometry(73, 96, 64), body = new THREE.Mesh(g2, new THREE.MeshBasicMaterial({ map: t2, fog: false })), skin = new THREE.Mesh(g2, new THREE.MeshBasicMaterial({ map: t2, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, opacity: 0.85 }));
-        body.position.copy(sp.position); skin.position.copy(sp.position); skin.scale.setScalar(1.004); skin.renderOrder = 2; sc.add(body, skin); sp.visible = false; lit.visible = false; this.centreSph = { body, skin }; this.centreLit = [skin, halo]; } }
+        const g2 = new THREE.SphereGeometry(73, 96, 64, 0, 2 * Math.PI, 0, 0.9926), body = new THREE.Mesh(g2, new THREE.MeshBasicMaterial({ map: t2, fog: false })), skin = new THREE.Mesh(g2, new THREE.MeshBasicMaterial({ map: t2, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, opacity: 0.85 }));
+        body.position.copy(sp.position); skin.position.copy(sp.position); skin.scale.setScalar(1.004); skin.renderOrder = 2; sc.add(body, skin); { const cap = new THREE.Mesh(new THREE.CircleGeometry(61, 64), new THREE.MeshBasicMaterial({ color: '#14061f', side: THREE.DoubleSide, fog: false })); cap.rotation.x = -Math.PI / 2; cap.position.set(-R, -0.06, 0); sc.add(cap); }      /* (the sphere ends at the garden floor; seen from the floors below its flat underside is a dark disc) */ sp.visible = false; lit.visible = false; this.centreSph = { body, skin }; this.centreLit = [skin, halo]; } }
     // THE VENTILATION (the user's picture, 2026-11-09): laid flat on the top of the dome, a lid that makes the shopping centre a flying saucer; seen from below as the ceiling's centre
     if (typeof KART_ART !== 'undefined' && KART_ART.vent) { const img = new Image(), t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; img.onload = () => { t.needsUpdate = true; }; img.src = KART_ART.vent;
       const v = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshBasicMaterial({ map: t, alphaTest: 0.4, side: THREE.DoubleSide, fog: false })); v.rotation.x = -Math.PI / 2; v.position.set(-R, 40, 0);      /* SATURN'S RINGS (the user: 'le système d'aération comme les anneaux de Saturne, la sphère Saturne; le vide entre les anneaux transparent'): 300 m across, its hole (0.31 of it, 93 m) wider than the sphere (75 m), the gaps see the starry sky */ sc.add(v); this.vent = v; }
@@ -547,6 +547,26 @@ class Kart3D {
       } else h.add(m);
       this.scene.add(h); return h; }); this.bound = R;
   }
+  /** THE ENERGY NETWORK links (see the update in draw): one curve per target, a faint additive line and 2 travelling light spots (shared round sprite texture). */
+  buildEnergy() {
+    const sc = this.scene, R = KART.R, o = this.orb, c0 = new THREE.Vector3(-R, o.y0, 0), A = this.ag;
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(180,220,255,0.6)'); gr.addColorStop(1, 'rgba(180,220,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+    const dotTex = new THREE.CanvasTexture(cv); dotTex.colorSpace = THREE.SRGBColorSpace;
+    const targets = [{ p: new THREE.Vector3(-R, A.Y4 + A.H, 0), col: 0xd070ff, arc: 0 }];      // Saturn: straight up the axis to the column's top
+    A.scr.forEach((m) => targets.push({ p: m.position.clone(), col: 0x35f0ff, arc: 0.22 }));
+    const pc = [0x35f0ff, 0xb040ff, 0xff3fd0, 0x9ee600]; this.ringPortals.forEach((P, i) => targets.push({ p: P.g.position.clone(), col: pc[i] ?? 0x35f0ff, arc: 0.18 }));
+    const links = [];
+    targets.forEach((T, i) => {
+      const dir = T.p.clone().sub(c0), len = dir.length(), mid = c0.clone().add(dir.clone().multiplyScalar(0.5)); mid.y += len * T.arc;
+      const curve = new THREE.QuadraticBezierCurve3(c0.clone(), mid, T.p.clone());
+      const line = new THREE.Mesh(new THREE.TubeGeometry(curve, 40, Math.max(0.12, Math.min(0.5, len * 0.0016)), 5, false), new THREE.MeshBasicMaterial({ color: T.col, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));      /* (a thin tube, not a 1 px line: it stays visible at 100+ m) */
+      line.frustumCulled = false; line.renderOrder = 5; sc.add(line); this.gateStuff.push(line);
+      const pulses = [0, 1].map(() => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: T.col, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); s.renderOrder = 6; sc.add(s); this.gateStuff.push(s); return s; });
+      links.push({ line, curve, pulses, off: (i * 0.173) % 1 });
+    });
+    this.energy = { links };
+  }
+
   /**
    * THE IDENTIFICATION SCREEN (the user: 'quand il arrive au fleur l'écran virtuel en face du joueur demande au joueur de s'identifier en regardant l'écran: son portrait s'affiche avec ses données et le champ antigravité est accessible; sinon il n'entre pas, et des avertissements le poussent à faire les étapes de déblocage'):
    * while the pod drives the last ring a screen stands 20 m ahead of it and 16 m towards the flower, turned to the pod. Looking at it (the camera view within 15 degrees of it: the head in VR, the free look elsewhere) fills a bar in 1.8 s; then the player's portrait and data show and p.away.id is set,
@@ -640,16 +660,19 @@ class Kart3D {
     if (this.vent) this.vent.rotation.z += dtk * (0.02 + 0.22 * en);
     const step = Math.floor(B.beat * 2), sub = B.beat * 2 - step;
     this.arrowStep = { step, sub };
+    if (this.orb && this.ag && this.ringPortals && !this.energy) this.buildEnergy();
+    if (this.energy) { const En = this.energy, wk = this.orb ? (this.orb.wake || 0) : 0, base = 0.1 + 0.9 * wk;      // THE ENERGY NETWORK (the user: the ball stays in its place, turns and distributes wireless energy to every other component): fine arcs from the ball to the screens, the four portals and up the axis to Saturn, with pulses running along them; dim at rest, bright once the sphere is awake
+      for (const L of En.links) { L.line.material.opacity = (0.4 + 0.5 * pulse) * base; for (let j = 0; j < L.pulses.length; j++) { const s = L.pulses[j], u = ((t * (0.22 + 0.1 * en) + L.off + j / L.pulses.length) % 1 + 1) % 1; L.curve.getPoint(u, s.position); s.material.opacity = base * Math.sin(Math.PI * u); s.scale.setScalar(3 + 3 * pulse); } } }
     if (this.ag) { const A = this.ag, aw = p.away, on = this.agHold !== undefined ? this.agHold > 0 : !!(aw && aw.k === 3);      // THE ACTIVATION: runs while the kart drives the last ring, steps back when it leaves (agHold forces a value, for tests)
       A.prog = this.agHold !== undefined ? this.agHold : Math.max(0, Math.min(1, A.prog + (on ? dtk / 14 : -dtk / 5)));
       const pr = A.prog, sm = (a, b) => { const x = Math.max(0, Math.min(1, (pr - a) / (b - a))); return x * x * (3 - 2 * x); }, wake = sm(0.15, 0.35), f = sm(0.35, 0.85); A.wake = wake; A.rise = f; const Ht = A.H * Math.max(f, 0.02);
       for (let i = 0; i < A.ps.length; i++) { let y = A.pp[i * 3 + 1] + A.ps[i] * dtk; if (y > A.Y4 + Ht) y = A.Y4 + (y - A.Y4) % Ht; A.pp[i * 3 + 1] = y; } A.pts.geometry.attributes.position.needsUpdate = true;
       A.col.visible = f > 0.002; A.col.scale.y = Math.max(f, 0.002); A.col.position.y = A.Y4 + A.H * f / 2; A.col.material.opacity = 0.85 + 0.15 * Math.sin(t * 1.2) + 0.2 * pulse;
       A.top.visible = f > 0.02; A.top.position.y = A.Y4 + A.H * f; A.top.material.opacity = 0.6 + 0.3 * Math.sin(t * 1.7) + 0.3 * pulse; A.pts.visible = f > 0.02; A.pts.material.opacity = 0.9 * Math.min(1, f * 3);
-      if (this.orb) { const Ob = this.orb; Ob.y0 = A.Y4 + 26 + (-29 - (A.Y4 + 26)) * f; Ob.wake = wake; if (Ob.sph) Ob.sph.material.color.setScalar(0.3 + 0.7 * wake); Ob.og.material.opacity = 0.25 + 0.75 * wake; if (Ob.sup) Ob.sup.children.forEach(m => m.material.color.copy(m.userData.c).multiplyScalar(0.3 + 0.7 * wake)); }
+      if (this.orb) { const Ob = this.orb; Ob.y0 = A.Y4 + 26;      /* (the user: leave the energy ball in its place, turning and distributing wireless energy to all the other components: it no longer rises; the column grows by itself) */ Ob.wake = wake; if (Ob.sph) Ob.sph.material.color.setScalar(0.3 + 0.7 * wake); Ob.og.material.opacity = 0.25 + 0.75 * wake; if (Ob.sup) Ob.sup.children.forEach(m => m.material.color.copy(m.userData.c).multiplyScalar(0.3 + 0.7 * wake)); }
       const stage = pr < 0.15 ? 0 : pr < 0.35 ? 1 : pr < 0.85 ? 2 : 3, pct = Math.round(f * 20) * 5;
       if (stage !== A.stage || (stage === 2 && pct !== A.pct)) { A.stage = stage; A.pct = pct; const x = A.sv.getContext('2d'), W = 512, Hh = 256; x.clearRect(0, 0, W, Hh); x.fillStyle = 'rgba(4,14,30,0.82)'; x.fillRect(0, 0, W, Hh); x.strokeStyle = stage === 3 ? '#7dffb0' : '#35f0ff'; x.lineWidth = 6; x.strokeRect(8, 8, W - 16, Hh - 16); x.textAlign = 'center'; x.fillStyle = stage === 3 ? '#7dffb0' : '#35f0ff'; x.font = 'bold 34px monospace';
-        const L = stage === 0 ? ['ANTI-GRAVITY', 'OFFLINE', '> SPHERE: ACTIVATE'] : stage === 1 ? ['ACTIVATION', 'REQUESTED', '> SPHERE WAKING'] : stage === 2 ? ['SPHERE ASCENDING', pct + ' %', 'FIELD FORMING'] : ['ANTI-GRAVITY', 'ONLINE', 'ENTER THE FLOWER'];
+        const L = stage === 0 ? ['ANTI-GRAVITY', 'OFFLINE', '> SPHERE: ACTIVATE'] : stage === 1 ? ['ACTIVATION', 'REQUESTED', '> SPHERE WAKING'] : stage === 2 ? ['ENERGY ROUTING', pct + ' %', 'FIELD FORMING'] : ['ANTI-GRAVITY', 'ONLINE', 'ENTER THE FLOWER'];
         x.fillText(L[0], W / 2, 80); x.font = 'bold 56px monospace'; x.fillText(L[1], W / 2, 150); x.font = '26px monospace'; x.fillStyle = '#ff7ad9'; x.fillText(L[2], W / 2, 210); A.stx.needsUpdate = true; }
       const so = sm(0, 0.08); A.scr.forEach((m, i) => { m.visible = so > 0.01; m.material.opacity = so * (0.85 + 0.15 * Math.sin(t * 2 + i)); m.position.y = A.Y4 + 12 + 0.6 * Math.sin(t * 0.8 + i); }); }      // (screens fade in, the sphere wakes, rises, the column grows behind it)
     if (this.orb) { const Ob = this.orb, k = 1 + 0.02 * Math.sin(t * 1.4) + 0.05 * pulse; Ob.os.scale.set(48 * k, 48 * k, 1); Ob.os.material.rotation += dtk * 0.05; Ob.os.position.y = Ob.og.position.y = Ob.y0 + 0.7 * Math.sin(t * 0.9); if (Ob.sup) Ob.sup.position.y = Ob.os.position.y; if (Ob.sph) { Ob.sph.rotation.y += dtk * (0.35 + 1.1 * (Ob.wake || 0)); Ob.sph.position.y = Ob.os.position.y; Ob.sph.scale.setScalar(k); Ob.os.visible = false; } Ob.og.material.opacity = 0.75 + 0.25 * pulse; }      // (the heart turns very slowly, rises and falls a little and breathes with the music)
