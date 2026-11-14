@@ -602,13 +602,17 @@ class Kart3D {
     const HF = R.honour && R.honour.ph === 'free' ? R.honour : null, hw = new THREE.Vector3(); let hyaw = HF ? this.hall.rotation.y - HF.h : 0;      /* (the honour lap's free driving: the kart is put in the hall's own coordinates, on its floor, heading HF.h) */
     if (HF) { this.hall.updateMatrixWorld(true); this.hall.localToWorld(hw.set(HF.lx, 0.02, HF.lz)); }
     const A0 = p.away, TF = A0 && A0.ph !== 'c1' && A0.ph !== 'eE' ? A0 : null;      /* THE RING TOUR (the particle portal): the pod's place on its carbon ring, a full lap from the lap line (the portal) round to it again */
-    if (TF) { const rk = KART.PORT_RINGS[TF.k], sr = TF.sA + TF.th * KART.R; this.ringPos(sr, rk.x + Math.max(-8, Math.min(8, p.x * 3)), rk.y + 0.02, hw); hyaw = sr / KART.R; }
+    if (TF && TF.ph === 'fl') {      /* THE ANTI-GRAVITY FLOWER (the user: bodies entering the flower float up to the top ring, inside its perimeter): the pod leaves the last ring, drifts in over the flower (84 m), is lifted up the column to just under the top ring, floats round the sphere once, sinks back and leaves again; all driven by the race's TF.f 0..1 */
+      const e = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); }, f = TF.f, rk = KART.PORT_RINGS[TF.k];
+      const rIn = 40, rF = 128 + (rIn - 128) * (e(f / 0.17) - e((f - 0.83) / 0.17)), hF = 52 * (e((f - 0.12) / 0.3) - e((f - 0.62) / 0.26));
+      const sr = TF.sA + (2 * Math.PI + 2 * Math.PI * e((f - 0.2) / 0.6)) * KART.R; this.ringPos(sr, rF - KART.R, rk.y + 0.02 + hF, hw); hyaw = sr / KART.R; this.floatH = hF;
+    } else if (TF) { const rk = KART.PORT_RINGS[TF.k], sr = TF.sA + TF.th * KART.R; this.ringPos(sr, rk.x + Math.max(-8, Math.min(8, p.x * 3)), rk.y + 0.02, hw); hyaw = sr / KART.R; this.floatH = 0; }
     const FREE = !!(HF || TF);
     put(this.car, p.s, PX, 0.02 + air * 2.2, -(p.lane * RACE.LANE_M - p.x) * 0.04 - 0.6 * (R.off(p.s + 3) - R.off(p.s - 3)) / 6); if (R.bots) R.bots.forEach((b, i) => put(this.bots[i], b.s, b.x + R.off(b.s), 0.02, -0.6 * (R.off(b.s + 3) - R.off(b.s - 3)) / 6)); else { this.bot.visible = true; put(this.bot, R.bot.s, R.bot.x, 0.02); }
     if (FREE) { this.car.position.copy(hw); this.car.rotation.set(0, hyaw, 0); }
     this.car.position.y += DP;
     { const A = p.away, e = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); }; let sx = 1, sy = 1, fl = 0;      // THE TV COLLAPSE: the kart is squashed flat to a bright line (the first 55 %), then the line shrinks to a dot; re-appearing is the same played backwards
-      if (A && A.ph !== 'ring') { const k = Math.min(1, A.t / 0.45), kk = A.ph === 'c1' || A.ph === 'c2' || A.ph === 'cE' ? k : 1 - k; if (kk < 0.55) sy = 1 - 0.97 * e(kk / 0.55); else { sy = 0.03; sx = Math.max(0.001, 1 - e((kk - 0.55) / 0.45)); } fl = 1; }
+      if (A && A.ph !== 'ring' && A.ph !== 'fl') { const k = Math.min(1, A.t / 0.45), kk = A.ph === 'c1' || A.ph === 'c2' || A.ph === 'cE' ? k : 1 - k; if (kk < 0.55) sy = 1 - 0.97 * e(kk / 0.55); else { sy = 0.03; sx = Math.max(0.001, 1 - e((kk - 0.55) / 0.45)); } fl = 1; }
       /* THE RESERVED VEHICLE BEYOND THE ARCH (the user): on the rings the kart is the user's strawberry POD (their picture, a camera-facing card) - it expands out of the arch, runs the 200 m and collapses into the exit arch, where the kart expands again */
       const podOn = !!TF; if (this.podTex && !this.podCar) { this.podCar = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.podTex, transparent: true, alphaTest: 0.2, fog: false })); this.podCar.center.set(0.5, 0.1); this.scene.add(this.podCar); this.gateStuff.push(this.podCar); }
       if (this.podCar) { this.podCar.visible = podOn; if (podOn) { const Wp = 3.6, bob = 0.12 * Math.sin(t * 3); this.podCar.position.copy(this.car.position); this.podCar.position.y += 0.9 + bob; this.podCar.scale.set(Wp * Math.max(0.001, sx), Wp / KART_ART.ar_pod * Math.max(0.02, sy), 1); } }
