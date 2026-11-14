@@ -46,6 +46,7 @@ class Game {
     const away = () => { this.keys = {}; this.releaseTouch(); if (this.state === 'play') this.state = 'pause'; };
     addEventListener('blur', away); const hide = () => { if (this.loopOwner !== 'xr') away(); }; addEventListener('pagehide', hide); document.addEventListener('visibilitychange', () => { if (document.hidden) hide(); });      /* (not while a VR session owns the frames: entering VR may hide the page for a moment, and the headset has its own pause rules) */      // (a phone's tab switch or lock screen does not always blur the window)
     this.mouse = { x: -1, y: -1, down: false };
+    this.look = { yaw: 0, pitch: 0, last: 0, drag: null };      /* FREE LOOK (the user: 'on peut tourner la caméra de vue du joueur en haut, en bas, à droite et à gauche, libre de regarder où il veut ?'): in the kart race, dragging the mouse or a finger over the view turns the camera on the spot (kart3d reads this.look: yaw about the camera's up, pitch about its side, around the chase pose); after 2.5 s without a drag it eases back; C or a double tap recentres at once; in VR the head does it */
     const at = e => { const r = cv.getBoundingClientRect(); this.mouse.x = (e.clientX - r.left) * VW / r.width; this.mouse.y = (e.clientY - r.top) * VH / r.height; };
     cv.addEventListener('pointermove', at);
     cv.addEventListener('pointerleave', () => { this.mouse.x = this.mouse.y = -1; this.mouse.down = false; });
@@ -62,13 +63,15 @@ class Game {
       if (this.state === 'race' && this.race && this.race.menu) { const b = KMENU.find(q => this.mouse.x >= q.x && this.mouse.x <= q.x + q.w && this.mouse.y >= q.y && this.mouse.y <= q.y + q.h); if (b) this.kartChoose(b.id); return; }
       if (!c && this.state === 'race' && this.race && this.race.honour && this.race.honour.ph === 'free' && this.mouse.y < 32) { this.honourExit = true; return; }      // (the honour lap: a tap on the top bar leaves)
       if (!c && this.state === 'race' && this.race && this.race.kart && this.mouse.y < 32) { this.kartCam = (this.kartCam || 0) ? 0 : 1; return; }      // a tap on the top of the screen (the progress bars) switches the kart camera                // a tap or click on the ring gets on the scooter (the touch buttons keep priority)
+      if (!c && this.state === 'race' && this.race && this.race.kart && !this.race.menu && !(this.race.intro > 0) && this.mouse.y >= 32 && !(this.r && this.r.xr && this.r.xr.presenting)) { const L = this.look, now = performance.now(); if (now - (L.tap || 0) < 320) { L.yaw = L.pitch = 0; } L.tap = now; L.drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; L.last = now; return; }
       if (c) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} this.hold(e.pointerId, c.id, true); if (this.state === 'race') this.laneQ = (this.laneQ || 0) + (c.id === 'right' ? 1 : c.id === 'left' ? -1 : 0); }
     });
+    addEventListener('pointermove', e => { const L = this.look; if (L.drag && L.drag.id === e.pointerId) { const dx = e.clientX - L.drag.x, dy = e.clientY - L.drag.y; L.drag.x = e.clientX; L.drag.y = e.clientY; L.yaw = Math.max(-Math.PI, Math.min(Math.PI, L.yaw - dx * 0.006)); L.pitch = Math.max(-1.2, Math.min(1.2, L.pitch - dy * 0.0045)); L.last = performance.now(); } });
     addEventListener('pointermove', e => { // sliding a finger between left and right keeps steering
       if (this.held[e.pointerId] !== 'left' && this.held[e.pointerId] !== 'right') return;
       const c = zone(); this.hold(e.pointerId, c && (c.id === 'left' || c.id === 'right') ? c.id : null, false);
     });
-    const lift = e => { delete this.held[e.pointerId]; this.syncTouch(); };
+    const lift = e => { delete this.held[e.pointerId]; this.syncTouch(); if (this.look.drag && this.look.drag.id === e.pointerId) { this.look.drag = null; this.look.last = performance.now(); } };
     addEventListener('pointercancel', lift);
     addEventListener('pointerup', e => { // a click counts when released over the same button it started on
       lift(e);
@@ -216,6 +219,7 @@ class Game {
     if (!down || e.repeat) return;
     if (c === 'KeyM' && this.sfx) { this.sfx.toggle(); return; }                      // M: sound on / off
     if (c === 'KeyC' && this.state === 'title' && this.r.nextCharacter) { this.nextCharacter(); return; }
+    if (c === 'KeyC' && this.state === 'race' && this.look) { this.look.yaw = this.look.pitch = 0; return; }      // C (karting): recentre the free look
     if (down && !e.repeat && this.state === 'race' && this.race && this.race.intro > 0) { this.race.intro = 0; return; }
     if (down && !e.repeat && this.state === 'race' && this.race && this.race.menu) { const k = { Digit1: 'chase', Numpad1: 'chase', Enter: 'chase', Space: 'chase', Digit2: 'saturn', Numpad2: 'saturn', Digit3: 'vr', Numpad3: 'vr' }[c]; if (k) this.kartChoose(k); return; }
     if (down && !e.repeat && this.state === 'race' && this.race && this.race.honour && this.race.honour.ph === 'free' && (c === 'Enter' || c === 'KeyE' || c === 'Escape')) { this.honourExit = true; return; }      // (the honour lap: Enter / E / Esc leaves)
