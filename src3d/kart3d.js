@@ -7,6 +7,7 @@ class Kart3D {
   static get HALL() { return true; }      // the 3D ship hall instead of the painted arch and floor
   static get LIFTS() { return false; }      // the two glass lifts in the ship hall: cancelled by the user, kept to reuse
   static get CONTROL_ROOM() { return false; }      // the control-room picture on the 3rd basement: removed for now, kept to reuse
+  static get IDENT() { return true; }           // the identification screen at the flower (look at it to unlock the anti-gravity field; see KART.IDENT in race.js)
   static get CENTRE_SPHERE() { return true; }   // Saturn's sphere (the garden's centre) as a real turning sphere, its rings untouched (false: the flat camera-facing picture)
   static get ANTIGRAV() { return true; }        // the flower is an anti-gravity zone: a column of light + rising specks up to the upper ring
   static get ORB_SPHERE() { return true; }      // the orb as a real turning sphere (false: the flat camera-facing picture)
@@ -546,6 +547,70 @@ class Kart3D {
       } else h.add(m);
       this.scene.add(h); return h; }); this.bound = R;
   }
+  /**
+   * THE IDENTIFICATION SCREEN (the user: 'quand il arrive au fleur l'écran virtuel en face du joueur demande au joueur de s'identifier en regardant l'écran: son portrait s'affiche avec ses données et le champ antigravité est accessible; sinon il n'entre pas, et des avertissements le poussent à faire les étapes de déblocage'):
+   * while the pod drives the last ring a screen stands 20 m ahead of it and 16 m towards the flower, turned to the pod. Looking at it (the camera view within 15 degrees of it: the head in VR, the free look elsewhere) fills a bar in 1.8 s; then the player's portrait and data show and p.away.id is set,
+   * which the race reads (race.js) at the end of the ring. Without it: warnings at 6 s, 11 s and on the last stretch, then the access is denied (phase 'deny'). g.identHint tells the HUD where to look.
+   */
+  identStep(g, p, R, hw, hyaw, renderer, dtk, t) {
+    const A = p.away, last = KART.PORT_RINGS.length - 1, on = !!(A && A.k === last && (A.ph === 'ring' || A.ph === 'deny'));
+    let I = this.ident;
+    if (!I) {
+      const cv = document.createElement('canvas'); cv.width = 640; cv.height = 400; const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(22, 13.75), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false, fog: false })); mesh.renderOrder = 8; mesh.visible = false; this.scene.add(mesh);
+      I = this.ident = { cv, tex, mesh, prog: 0, done: false, key: '', face: null, faceId: '', v: new THREE.Vector3(), w: new THREE.Vector3(), cam: new THREE.Vector3() };
+    }
+    if (!on) { I.mesh.visible = false; g.identHint = null; if (!A) { I.prog = 0; I.done = false; I.key = ''; } return; }
+    const fx = -Math.sin(hyaw), fz = -Math.cos(hyaw), ix = -KART.R - hw.x, iz = -hw.z, il = Math.hypot(ix, iz) || 1;
+    I.mesh.position.set(hw.x + fx * 20 + (ix / il) * 16, hw.y + 5.5, hw.z + fz * 20 + (iz / il) * 16); I.mesh.lookAt(hw.x, I.mesh.position.y - 1.5, hw.z); I.mesh.visible = true; I.mesh.updateMatrixWorld(true);
+    // where the player looks: the headset when presenting, the camera (with the free look) otherwise
+    const xrOn = !!(renderer && renderer.xr && renderer.xr.isPresenting), rc = xrOn ? renderer.xr.getCamera() : this.camera;
+    rc.updateMatrixWorld(true); rc.getWorldDirection(I.v); rc.getWorldPosition(I.cam);
+    I.w.copy(I.mesh.position).sub(I.cam); const dist = I.w.length() || 1; I.w.divideScalar(dist);
+    const ang = Math.acos(Math.max(-1, Math.min(1, I.v.dot(I.w))));
+    I.ang = ang; if (!I.done) { if (ang < 0.26) I.prog = Math.min(1, I.prog + dtk / 1.8); else I.prog = Math.max(0, I.prog - dtk / 3.5); if (I.prog >= 1) { I.done = true; A.id = true; I.doneAt = t; } }
+    if (A.id && !I.done) { I.done = true; I.prog = 1; I.doneAt = t; }      // (set from outside, e.g. by a test)
+    const denied = A.ph === 'deny' && !A.id, act = A.act || 0, frac = A.th / (2 * Math.PI);
+    // the stage of the screen: 0 asking, 1 first warning, 2 second warning, 3 last warning, 4 identified, 5 access denied
+    const stage = I.done ? 4 : denied ? 5 : frac > 0.8 ? 3 : act > 11 ? 2 : act > 6 ? 1 : 0;
+    const blink = stage >= 1 && stage <= 3 ? Math.floor(t * 2.5) % 2 : 0, pct = Math.round(I.prog * 20) * 5, pl = R.place(), lapN = Math.min(KART.LAPS, 1 + Math.floor(p.s / KART.LAP)), spd = Math.round(p.speed * 3.6), tm = R.t || 0;
+    const key = [stage, blink, pct, I.done ? pl + '|' + lapN : ''].join(':');
+    if (key !== I.key) { I.key = key; this.drawIdent(g, I, stage, blink, pct, { pl, lapN, spd, tm, n: R.bots ? R.bots.length + 1 : 15 }); }
+    I.mesh.material.opacity = Math.min(1, (A.ph === 'ring' ? A.t : 1) * 1.5) * (I.done && A.ph === 'ring' && t - I.doneAt > 9 ? Math.max(0, 1 - (t - I.doneAt - 9) / 1.5) : 1);
+    if (I.mesh.material.opacity < 0.02) I.mesh.visible = false;
+    // the HUD hint (render.js): which way to turn the view while the screen is not looked at
+    if (!I.done && ang > 0.35) { const cr = I.v.x * I.w.z - I.v.z * I.w.x; g.identHint = { side: cr > 0 ? 'right' : 'left', warn: stage }; } else g.identHint = null;
+  }
+
+  drawIdent(g, I, stage, blink, pct, d) {
+    const c = I.cv.getContext('2d'), W = 640, H = 400, deny = stage === 5, ok = stage === 4, warn = stage >= 1 && stage <= 3;
+    const col = ok ? '#7dffb0' : deny ? '#ff4d6a' : warn && blink ? '#ffb030' : warn ? '#ff7a40' : '#35f0ff';
+    c.clearRect(0, 0, W, H); c.fillStyle = 'rgba(4,12,26,0.88)'; c.fillRect(0, 0, W, H); c.strokeStyle = col; c.lineWidth = 8; c.strokeRect(10, 10, W - 20, H - 20);
+    c.fillStyle = col; c.textAlign = 'center'; c.font = 'bold 34px monospace';
+    const pic = (id) => { if (I.faceId !== id) { I.faceId = id; I.face = null; const src = id === 'zagla' ? (typeof ZAGLA_ASSETS !== 'undefined' ? ZAGLA_ASSETS.front : null) : (typeof AVATAR_ASSETS !== 'undefined' ? AVATAR_ASSETS.side.src : null); if (src) { const im = new Image(); im.onload = () => { I.face = im; I.key = ''; }; im.src = src; } } return I.face; };
+    if (ok) {
+      const id = g.r && g.r.character === 'zagla' ? 'zagla' : 'strawberry', im = pic(id), name = id === 'zagla' ? 'ZAGLA' : 'CAPTAIN STRAWBERRY';
+      c.fillText('IDENTITÉ CONFIRMÉE', W / 2, 62);
+      c.fillStyle = 'rgba(20,40,70,0.9)'; c.fillRect(34, 86, 190, 250); c.strokeStyle = col; c.lineWidth = 3; c.strokeRect(34, 86, 190, 250);
+      if (im) { const sw = im.width, sh = Math.min(im.height, Math.round(im.width * 1.3)); c.save(); c.beginPath(); c.rect(36, 88, 186, 246); c.clip(); const sc = Math.max(186 / sw, 246 / sh); c.drawImage(im, 0, 0, sw, sh, 36 + (186 - sw * sc) / 2, 88, sw * sc, sh * sc); c.restore(); }
+      c.fillStyle = 'rgba(53,240,255,0.08)'; for (let y = 90; y < 334; y += 6) c.fillRect(36, y, 186, 2);
+      c.textAlign = 'left'; c.fillStyle = '#e8f4ff'; c.font = 'bold 28px monospace'; c.fillText(name, 252, 120);
+      c.font = '26px monospace'; c.fillStyle = '#9fd8ff'; const mm = Math.floor(d.tm / 60), ss = Math.floor(d.tm % 60);
+      const rows = [['PLACE', d.pl + ' / ' + d.n], ['TOUR', d.lapN + ' / ' + KART.LAPS], ['VITESSE', d.spd + ' KM/H'], ['TEMPS', mm + ':' + (ss < 10 ? '0' : '') + ss], ['CHAMP', 'ACCÈS OUVERT']];
+      rows.forEach((r, i) => { c.fillStyle = '#7fa8c8'; c.fillText(r[0], 252, 168 + i * 40); c.fillStyle = i === 4 ? '#7dffb0' : '#e8f4ff'; c.textAlign = 'right'; c.fillText(r[1], W - 34, 168 + i * 40); c.textAlign = 'left'; });
+      c.textAlign = 'center'; c.fillStyle = '#7dffb0'; c.font = '24px monospace'; c.fillText('ENTREZ DANS LA FLEUR', W / 2, 372);
+    } else {
+      const title = deny ? 'ACCÈS REFUSÉ' : warn ? 'AVERTISSEMENT ' + stage + '/3' : 'IDENTIFICATION REQUISE';
+      c.fillText(title, W / 2, 70);
+      c.font = '27px monospace'; c.fillStyle = '#e8f4ff';
+      const lines = deny ? ['Identité non confirmée.', 'Le champ antigravité reste fermé.', ''] : stage === 3 ? ['DERNIÈRE CHANCE :', 'regardez cet écran maintenant', 'sinon la fleur reste fermée.'] : warn ? ['Le champ antigravité est verrouillé.', 'Regardez cet écran pour', 'vous identifier et le débloquer.'] : ['Bienvenue à la fleur.', 'Regardez cet écran pour', 'vous identifier.'];
+      lines.forEach((l, i) => c.fillText(l, W / 2, 140 + i * 44));
+      if (!deny) { c.strokeStyle = '#35f0ff'; c.lineWidth = 3; c.strokeRect(70, 300, W - 140, 34); c.fillStyle = col; c.fillRect(74, 304, (W - 148) * pct / 100, 26); c.fillStyle = '#9fd8ff'; c.font = '22px monospace'; c.fillText(pct > 0 ? 'ANALYSE… ' + pct + ' %' : 'ÉTAPE 1 : REGARDER L’ÉCRAN', W / 2, 372); }
+      else { c.fillStyle = '#ff9fb0'; c.font = '24px monospace'; c.fillText('Identifiez-vous au prochain passage.', W / 2, 340); }
+    }
+    I.tex.needsUpdate = true;
+  }
+
   draw(g, renderer) {
     const R = g.race; if (this.bound !== R) this.bind(R);
     const bt = g.sfx ? g.sfx.beat() : null, pulse = bt ? bt.pulse * (0.45 + 0.55 * bt.energy) : 0, t = g.time, p = R.p, air = p.air > 0 ? Math.sin(Math.PI * (1 - p.air / RACE.JUMP_T)) : 0;
@@ -618,7 +683,7 @@ class Kart3D {
     if (FREE) { this.car.position.copy(hw); this.car.rotation.set(0, hyaw, 0); }
     this.car.position.y += DP;
     { const A = p.away, e = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); }; let sx = 1, sy = 1, fl = 0;      // THE TV COLLAPSE: the kart is squashed flat to a bright line (the first 55 %), then the line shrinks to a dot; re-appearing is the same played backwards
-      if (A && A.ph !== 'ring' && A.ph !== 'fl') { const k = Math.min(1, A.t / 0.45), kk = A.ph === 'c1' || A.ph === 'c2' || A.ph === 'cE' ? k : 1 - k; if (kk < 0.55) sy = 1 - 0.97 * e(kk / 0.55); else { sy = 0.03; sx = Math.max(0.001, 1 - e((kk - 0.55) / 0.45)); } fl = 1; }
+      if (A && A.ph !== 'ring' && A.ph !== 'fl' && A.ph !== 'deny') { const k = Math.min(1, A.t / 0.45), kk = A.ph === 'c1' || A.ph === 'c2' || A.ph === 'cE' ? k : 1 - k; if (kk < 0.55) sy = 1 - 0.97 * e(kk / 0.55); else { sy = 0.03; sx = Math.max(0.001, 1 - e((kk - 0.55) / 0.45)); } fl = 1; }
       /* THE RESERVED VEHICLE BEYOND THE ARCH (the user): on the rings the kart is the user's strawberry POD (their picture, a camera-facing card) - it expands out of the arch, runs the 200 m and collapses into the exit arch, where the kart expands again */
       const podOn = !!TF; if (this.podTex && !this.podCar) { this.podCar = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.podTex, transparent: true, alphaTest: 0.2, fog: false })); this.podCar.center.set(0.5, 0.1); this.scene.add(this.podCar); this.gateStuff.push(this.podCar); }
       if (this.podCar) { this.podCar.visible = podOn; if (podOn) { const Wp = 3.6, bob = 0.12 * Math.sin(t * 3); this.podCar.position.copy(this.car.position); this.podCar.position.y += 0.9 + bob; this.podCar.scale.set(Wp * Math.max(0.001, sx), Wp / KART_ART.ar_pod * Math.max(0.02, sy), 1); } }
@@ -644,6 +709,7 @@ class Kart3D {
     { const Lk = g.look, nowL = performance.now();      /* FREE LOOK: the player's drag turns the view round the chase pose (up / down / left / right, all the way round sideways); it eases back to the road 2.5 s after the last drag */
       if (Lk) { if (!Lk.drag && Lk.last && nowL - Lk.last > 2500) { const kk = Math.exp(-dtk * 2.4); Lk.yaw *= kk; Lk.pitch *= kk; if (Math.abs(Lk.yaw) < 0.002 && Math.abs(Lk.pitch) < 0.002) Lk.yaw = Lk.pitch = 0; }
         if (!(g.r && g.r.xr && g.r.xr.presenting) && (Lk.yaw !== 0 || Lk.pitch !== 0)) { this.camera.rotateY(Lk.yaw); this.camera.rotateX(Lk.pitch); } } }
+    if (Kart3D.IDENT) this.identStep(g, p, R, hw, hyaw, renderer, dtk, t);
     const X = g.r && g.r.xr && g.r.xr.presenting ? g.r.xr : null;                                  // VR: the headset looks from a rig at the chase pose (behind the kart, heading along the ring); no pitch, no roll
     if (X) { const rg = X.rig('race'), dtx = Math.min(0.05, Math.max(0, t - (this._xrT === undefined ? t : this._xrT))) || 1 / 72; this._xrT = t; if (rg) { this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); if (FREE) { this.v.set(hw.x + Math.sin(hyaw) * 4.6, hw.y, hw.z + Math.cos(hyaw) * 4.6); X.placeKart(rg, this.v, hyaw, dtx); } else { this.ringPos(p.s - 4.6, (p.x * 0.6 + OFF), 0, this.v); this.v.y += this.bankY(PX) + (R.dep(p.s) + DP); X.placeKart(rg, this.v, p.s / KART.R, dtx); } } }      /* VR: the headset looks from the XR rig mounted on THIS scene and camera (so the HUD panel, the controllers and the comfort vignette are drawn here too), at the chase pose behind the kart, heading along the ring, following the banked laps and the dive into the tunnel; no pitch, no roll */
     else this._xrT = undefined;
