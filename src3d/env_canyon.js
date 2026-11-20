@@ -198,7 +198,7 @@ const NeonAvenue = {
       return Kit.merge(parts); },
   // THE BRIDGE across the road over the tunnel, under the spiral (ART CITY's last slot): a deck on pillars (foundations), its sides wearing the race zone's ramp picture
     artBridge: () => { const W = 50, y = 12.6, parts = [Kit.box(W, 1.0, 7, 0, y - 1.0, 0, '#22264a'), Kit.box(W, 0.14, 0.14, 0, y, 3.5, C.pink, { glow: true }), Kit.box(W, 0.14, 0.14, 0, y, -3.5, C.cyan, { glow: true })];
-      for (const x of [-20, -12, 12, 20]) parts.push(Kit.box(1.6, y - 1, 1.6, x, 0, 0, C.pillar), Kit.box(1.7, 0.14, 1.7, x, 4, 0, C.pink, { glow: true }));
+      for (const x of [-21, -15, 12, 20]) parts.push(Kit.box(1.6, y - 1, 1.6, x, 0, 0, C.pillar), Kit.box(1.7, 0.14, 1.7, x, 4, 0, C.pink, { glow: true }));
       const fasc = [3.52, -3.52].map(z => NeonAvenue.plain([-W / 2, y - 3.2, z], [W / 2, y - 3.2, z], [W / 2, y, z], [-W / 2, y, z]));
       return tex(parts, fasc, () => NeonAvenue.rampMaterial()); },
   });
@@ -335,7 +335,17 @@ const NeonAvenue = {
       return Kit.merge(P); };
     props.pkHallA = hall(0); props.pkHallB = hall(1);
     // the hall's two ends: the tunnel comes in through a wall; at the far end the ramp and the stairs leave through an opening
-    props.pkHallIn = () => Kit.merge([Kit.box(2 * HW, 6, 0.3, 0, CH, 6.0, '#1b1d26'), Kit.box(HW - 6.4, CH, 0.3, -(HW + 6.4) / 2, 0, 6.0, WALL), Kit.box(HW - 6.4, CH, 0.3, (HW + 6.4) / 2, 0, 6.0, WALL)]);
+    props.pkHallIn = () => Kit.merge([Kit.box(2 * HW, 6, 0.3, 0, CH, 6.0, '#1b1d26'), Kit.box(HW - 4.2, CH, 0.3, -(HW + 4.2) / 2, 0, 6.0, WALL), Kit.box(HW - 4.2, CH, 0.3, (HW + 4.2) / 2, 0, 6.0, WALL)]);
+    // THE SLIP ROAD to the car park's tube (in the circuit's frame): PIN slots, PTUBE_M metres to the left by the mouth; asphalt beside the circuit only, a rail on its left, one on its right once it has left
+    { const PN = NC.PIN || 3, PT = NC.PTUBE_M || 12; NeonAvenue.psh = t => PT * e(Math.max(0, Math.min(1, t)));
+      for (let k = 0; k < PN; k++) props['pkSlip' + k] = () => { const P = [], n = 8;
+        for (let a = 0; a < n; a++) { const f0 = a / n, f1 = (a + 1) / n, x0 = -NeonAvenue.psh((k + f0) / PN), x1 = -NeonAvenue.psh((k + f1) / PN), z0 = 6.1 - f0 * 12.2, z1 = 6.1 - f1 * 12.2, xm = (x0 + x1) / 2, zm = (z0 + z1) / 2, len = Math.hypot(x1 - x0, z1 - z0) + 0.06, ry = Math.atan2(x0 - x1, z0 - z1);
+          const xr = Math.min(xm + 3.6, -3.62), xl = xm - 3.6; if (xr > xl + 0.2) P.push(Kit.box(xr - xl, 0.03, len, (xl + xr) / 2, 0.03, zm, '#4a4d58', { ry: xr < xm + 3.6 ? 0 : ry }));
+          P.push(Kit.box(0.25, 0.75, len, xm - 3.75, 0, zm, '#5a4ad8', { ry }), Kit.box(0.27, 0.08, len, xm - 3.75, 0.75, zm, '#8f7bff', { glow: true, ry }));
+          if (xm - 3.1 < -3.9) P.push(Kit.box(0.14, 0.02, len, xm - 3.1, 0.06, zm, '#ffffff', { ry }));
+          if (xm + 3.75 < -4.3) P.push(Kit.box(0.25, 0.75, len, xm + 3.75, 0, zm, '#5a4ad8', { ry }), Kit.box(0.27, 0.08, len, xm + 3.75, 0.75, zm, '#8f7bff', { glow: true, ry }), Kit.box(0.14, 0.02, len, xm + 3.1, 0.06, zm, '#ffffff', { ry })); }
+        return Kit.merge(P); };
+      props.pkMainRoad = () => Kit.merge([Kit.box(7.2, 0.05, 12.3, 0, 0, 0, '#4a4d58'), Kit.box(0.14, 0.02, 12.3, -3.1, 0.05, 0, '#ffffff'), Kit.box(0.14, 0.02, 12.3, 3.1, 0.05, 0, '#ffffff'), Kit.box(0.12, 0.02, 3, -1.1, 0.05, -3, '#ffffff'), Kit.box(0.12, 0.02, 3, 1.1, 0.05, -3, '#ffffff')]); }
     props.pkHallEnd = () => Kit.merge([Kit.box(HW + X0, CH, 0.3, (X0 - HW) / 2, 0, -6.0, WALL), Kit.box(HW - X1, CH, 0.3, (X1 + HW) / 2, 0, -6.0, WALL), Kit.box(XW, 0.12, 0.34, XM, CH - 0.12, -6.0, C.cyan, { glow: true }),
       Kit.box(1.5, 0.5, 0.1, -4.75, CH - 0.9, -5.8, '#3aa878', { glow: true }), Kit.box(2.6, 0.5, 0.1, 0, CH - 0.9, -5.8, '#3a7bd8', { glow: true })]);
     const TINT = [['#0b0b10', '#121219'], ['#0a0f1c', '#101829'], ['#140a18', '#1d1024'], ['#0a1411', '#0f1d18'], ['#0b0b10', '#131320']];

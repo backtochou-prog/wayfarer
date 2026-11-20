@@ -130,6 +130,17 @@ const ArtCity = {
       if (k < 0) out.push({ prop: 'cnRailF' + (k + 10), x: x0, dist: 6 });
       else out.push({ prop: 'cnRail', x: x0 + (up ? NeonAvenue.shift((k + 0.5) / U) : 0), dist: 6, dy: -liftM });
     }
+    const PN = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER.PIN : 0;
+    if (!up && PN && r >= N - PN && typeof NeonAvenue !== 'undefined' && NeonAvenue.psh) {                    // THE CAR PARK'S SLIP ROAD (the user: a real tube beside the tunnel): it leaves the circuit to the left over the last PIN slots
+      const k = r - (N - PN);
+      if (k < PN - 1) for (let n = out.length - 1; n >= 0; n--) if (out[n].prop === 'artRail' && out[n].x < 0) out.splice(n, 1);      // (the left rail opens where it leaves)
+      out.push({ prop: 'pkSlip' + k, x: 0.001, dist: 6 });
+      if (det && det.park) {                                                                                  // ON THE SLIP ROAD: everything stays where it stands (the road bends, World.extraOff; Renderer3D turns each slot with it)
+        out.push({ prop: 'pkMainRoad', x: 0.001, dist: 6 });
+        const s0 = NeonAvenue.psh(k / PN), s1 = NeonAvenue.psh((k + 1) / PN), rot = -Math.atan((s1 - s0) / 12);
+        for (const o of out) { const nx = o.x + s0 + (s1 - s0) * o.dist / 12; if (o.x < 0 && nx >= 0) o.rotY = (o.rotY || 0) + Math.PI; o.x = nx; o.rotY = (o.rotY || 0) + rot; }
+      }
+    }
     for (const q of out) q.solo = true;
     return out;
   };

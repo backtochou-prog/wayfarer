@@ -101,7 +101,7 @@ class Renderer3D {
       const props = envs[id].props; if (!props) continue;
       for (const name of Object.keys(props)) {
         if (this.props[name]) continue;
-        const m = props[name](), cap = /^house/.test(name) ? 26 : /^pk(cn|ft|GlassD|Rise|Top)/.test(name) ? 3 : /^sign/.test(name) ? 4 : CAP[name] || 28, list = [];
+        const m = props[name](), cap = /^house/.test(name) ? 26 : /^pk(cn|ft|GlassD|Rise|Top|TubeDv|Slip)/.test(name) ? 3 : /^sign/.test(name) ? 4 : CAP[name] || 28, list = [];
         for (let i = 0; i < cap; i++) {
           // textured panels (trees: TreeSprite; the neon billboard and tower facades: NeonArt) are a `sprite` geometry with its own material, optionally beside ordinary merged geometry (`merged`)
           let g;

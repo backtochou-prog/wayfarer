@@ -120,10 +120,15 @@ const NEON_CORNER = {
   // (the same DIVE), opens on a big car park under the tiled floor of the avenue (PARK slots, about 100 m), then a ramp with stairs beside it (PRISE slots) climbs back to the tiled floor,
   // POFF_M metres to the left of the circuit, and a slip road (PMERGE slots) joins the circuit that runs on the ground all along under the avenue, to the way down and the short tunnel back.
   PARK: 8, PRISE: 6, PMERGE: 4, POFF_M: 8.2,
+  // ITS OWN TUBE (the user: "a real tube"): the choice is made PIN slots before the mouth; a slip road leaves the circuit to the left there and enters a smaller tube whose axis is
+  // PTUBE_M metres to the left of the big one (off, below); inside, on the way down, the road comes back under the circuit's line.
+  PIN: 3, PTUBE_M: 12,
   // THE RAMP BENDS LEFT (the user: seen from below it curves away, so riding it must curve the same way): the lateral offset of the road (lateral units) on the glass ramp, up and down:
   // SHIFT_M metres to the left by the top (the circuit stays where it is, to the right), back by the end of the way down. Lateral units are U3.X = 2.2 / 0.62 metres.
   SHIFT_M: 17,
   off(d, z) {
+    if (d && d.park) { const S = this.SLOT, zT = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zP = zT - this.PIN * S, zR = zT + S, zQ = zT + this.DIVE * S, e = t => t * t * (3 - 2 * t), D = this.PTUBE_M / (2.2 / 0.62);      // (straight beside the big tube for one slot, then back)
+      return z <= zP || z >= zQ ? 0 : -D * (z < zT ? e((z - zP) / (zT - zP)) : z < zR ? 1 : 1 - e((z - zR) / (zQ - zR))); }
     if (!d || !d.up) return 0;
     const S = this.SLOT, z0 = d.z0 + (this.STREET + this.TUNNEL + this.ART - this.UP) * S, zA = z0 + this.UP * S, zB = zA + this.CANYON * S, zC = zB + this.DOWN * S, e = t => t * t * (3 - 2 * t), D = this.SHIFT_M / (2.2 / 0.62);
     return z <= z0 || z >= zC ? 0 : -D * (z < zA ? e((z - z0) / (zA - z0)) : z < zB ? 1 : 1 - e((z - zB) / (zC - zB)));

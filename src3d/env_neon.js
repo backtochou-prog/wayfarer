@@ -113,17 +113,19 @@ window.ENV3D = window.ENV3D || {};
   const sideMerged = parts => ({ lit: mergeGeo(parts.map(([m, j]) => m.lit && m.lit.clone().applyMatrix4(SIDE(j)))), glow: mergeGeo(parts.map(([m, j]) => m.glow && m.glow.clone().applyMatrix4(SIDE(j)))) });
   // the tube of the underground tunnel on its slopes: the straight tube sheared so its floor follows the dive (dir -1) or the rise (dir 1), slot k of n (the prop is placed at the height of
   // the slot's middle, NEON_CORNER.lift)
-  const slopeTube = (u0, u1, k, n, dir) => { const t = tube(u0, u1), D = NEON_CORNER.DEPTH / 10, ee = x => x * x * (3 - 2 * x), L = 12.2;
+  const slopeTube = (u0, u1, k, n, dir, mk = tube) => { const t = mk(u0, u1), D = NEON_CORNER.DEPTH / 10, ee = x => x * x * (3 - 2 * x), L = 12.2;
     const hy = z => { const f = (L / 2 - z) / L, a = (k + f) / n, b = (k + 0.5) / n; return dir < 0 ? -D * (ee(a) - ee(b)) : D * (ee(a) - ee(b)); };
     const shear = g => { if (!g) return; const P = g.attributes.position; for (let i = 0; i < P.count; i++) P.setY(i, P.getY(i) + hy(P.getZ(i))); P.needsUpdate = true; g.computeBoundingSphere(); g.computeBoundingBox(); };
     shear(t.merged.lit); shear(t.merged.glow); shear(t.sprite); return t; };
   const TUN_CUTS = [0, 0.1, 0.2, 0.3, 0.4, 0.5];                                    // where a slot's window of the picture starts (u), see neonTunnel0..5
   // one slot (12.2 m) of the round tunnel: dark shell, the picture inside from u0 to u1, a green ring of light at the slot's start, a lamp at the top
-  const tube = (u0, u1) => { const L = 12.2, R = 6.6, cy = 3.6, p = [], n = 28;
-    for (let k = 0; k < n; k++) { const a = -0.5 + (Math.PI + 1.0) * k / (n - 1), len = (Math.PI + 1.0) * (R + 0.3) / (n - 1) * 1.2; p.push(Kit.box(len, 0.4, L, Math.cos(a) * (R + 0.3), cy + Math.sin(a) * (R + 0.3), 0, '#14141c', { rz: a + Math.PI / 2 })); }
-    for (let k = 0; k < 22; k++) { const a = -0.45 + (Math.PI + 0.9) * k / 21, len = (Math.PI + 0.9) * (R - 0.15) / 21 * 1.15; p.push(Kit.box(len, 0.14, 0.14, Math.cos(a) * (R - 0.15), cy + Math.sin(a) * (R - 0.15), -L / 2 + 0.1, N.green, { glow: true, rz: a + Math.PI / 2 })); }
+  const tube = (u0, u1, R = 6.6, cy = 3.6, a0 = 0.5, L = 12.2, ringCol = N.green) => { const p = [], n = 28;
+    for (let k = 0; k < n; k++) { const a = -a0 + (Math.PI + 2 * a0) * k / (n - 1), len = (Math.PI + 2 * a0) * (R + 0.3) / (n - 1) * 1.2; p.push(Kit.box(len, 0.4, L, Math.cos(a) * (R + 0.3), cy + Math.sin(a) * (R + 0.3), 0, '#14141c', { rz: a + Math.PI / 2 })); }
+    for (let k = 0; k < 22; k++) { const a = -a0 + 0.05 + (Math.PI + 2 * a0 - 0.1) * k / 21, len = (Math.PI + 2 * a0 - 0.1) * (R - 0.15) / 21 * 1.15; p.push(Kit.box(len, 0.14, 0.14, Math.cos(a) * (R - 0.15), cy + Math.sin(a) * (R - 0.15), -L / 2 + 0.1, ringCol, { glow: true, rz: a + Math.PI / 2 })); }
     p.push(Kit.box(2.4, 0.12, 0.6, 0, cy + R - 0.35, 0, N.warm, { glow: true }));
-    return { merged: Kit.merge(p), sprite: NeonArt.vault(R, cy, L, -0.5, u0, u1), material: () => NeonArt.materialTunnel() }; };
+    return { merged: Kit.merge(p), sprite: NeonArt.vault(R, cy, L, -a0, u0, u1), material: () => NeonArt.materialTunnel() }; };
+  // the car park's own tube (the user: "a real tube"): smaller (three lanes fit), blue rings, a little longer than a slot so its pieces close on the bend
+  const tubeS = (u0, u1) => tube(u0, u1, 4.3, 1.9, 0.46, 12.7, '#3aa0ff');
   const ring = (cx, cy, R, thick, col, parts, n = 20) => { for (let k = 0; k < n; k++) { const a = 2 * Math.PI * k / n, len = 2 * Math.PI * R / n * 1.15; parts.push(Kit.box(len, thick, thick, cx + Math.cos(a) * R, cy + Math.sin(a) * R, 0, col, { glow: true, rz: a + Math.PI / 2 })); } };
 
   // the name of the tower, RED TOWER, in neon letters on a dark board at its foot (one material per colour)
@@ -217,6 +219,9 @@ window.ENV3D = window.ENV3D || {};
       neonPicSideTube: () => { const a = tube(0, 0.5), b = tube(0.5, 1); return { merged: sideMerged([[a.merged, PIC_N], [b.merged, PIC_N + 1]]), sprite: mergeGeo([a.sprite.applyMatrix4(SIDE(PIC_N)), b.sprite.applyMatrix4(SIDE(PIC_N + 1))]), material: () => NeonArt.materialTunnel() }; },
       ...Object.fromEntries(Array.from({ length: 6 }, (_, k) => ['neonTunnelDv' + k, () => slopeTube((k % 2) * 0.5, (k % 2) * 0.5 + 0.5, k, NEON_CORNER.DIVE, -1)])),
       ...Object.fromEntries(Array.from({ length: 6 }, (_, k) => ['neonTunnelRs' + k, () => slopeTube((k % 2) * 0.5, (k % 2) * 0.5 + 0.5, k, NEON_CORNER.RISE, 1)])),
+      ...Object.fromEntries(Array.from({ length: 6 }, (_, k) => ['pkTubeDv' + k, () => slopeTube((k % 2) * 0.5, (k % 2) * 0.5 + 0.5, k, NEON_CORNER.DIVE, -1, tubeS)])),
+      pkTubeMouth: () => { const p = [], zr = (R, th, col, n) => { for (let k = 0; k < n; k++) { const a = 2 * Math.PI * k / n, len = 2 * Math.PI * R / n * 1.15; p.push(Kit.box(len, th, th, Math.cos(a) * R, 1.9 + Math.sin(a) * R, 6.2, col, { glow: true, rz: a + Math.PI / 2 })); } };
+        zr(4.75, 0.3, '#ffffff', 32); zr(4.35, 0.3, '#3aa0ff', 32); return Kit.merge(p); },
       // a pink neon at the top of the vault, 1.5 m long along the tunnel (the user: one every 40 m)
       neonTunnelPink: () => Kit.merge([Kit.box(0.5, 0.12, 1.7, 0, 9.95, 0, N.base), Kit.box(0.22, 0.16, 1.5, 0, 9.82, 0, N.mag, { glow: true })]),
       neonTunnelMouth: () => { const p = [], zr = (R, th, col, n) => { for (let k = 0; k < n; k++) { const a = 2 * Math.PI * k / n, len = 2 * Math.PI * R / n * 1.15; p.push(Kit.box(len, th, th, Math.cos(a) * R, 3.6 + Math.sin(a) * R, 5.95, col, { glow: true, rz: a + Math.PI / 2 })); } };
@@ -242,11 +247,15 @@ window.ENV3D = window.ENV3D || {};
         let q = r - NA;
         if (det && det.up && typeof NeonAvenue !== 'undefined') { if (q >= 0 && q < C.CANYON + C.DOWN) return NeonAvenue.layout(q, rnd, liftM); q -= C.CANYON + C.DOWN; }
         if (det && det.park && typeof NeonAvenue !== 'undefined' && NeonAvenue.park) {                                                                                        // THE CAR PARK's way: the same way down, the car park, its ramp, the circuit under the avenue
-          if (q >= 0 && q < C.DIVE) { const o = [{ prop: 'neonTunnelDv' + q, x: 0, dist: 6, solo: true }]; if (q === 0) o.push({ prop: 'neonTunnelMouth', x: 0, dist: 6, solo: true }); return o; }
+          if (q >= 0 && q < C.DIVE) { const o = [{ prop: 'pkTubeDv' + q, x: 0, dist: 6, solo: true }]; if (q === 0) o.push({ prop: 'pkTubeMouth', x: 0, dist: 6, solo: true });      // (its own tube; the big one stays beside it, to the right)
+            if (q === 0) o.push({ prop: 'neonTunnelDv0', x: C.PTUBE_M, dist: 6, solo: true }, { prop: 'neonTunnelMouth', x: C.PTUBE_M, dist: 6, solo: true });
+            return o; }
           if (q >= C.DIVE && q < C.CANYON + C.DOWN) return NeonAvenue.park(q, rnd);
           q -= C.CANYON + C.DOWN; }
         if (det && det.down) {                                                                                                                                                 // THE UNDERGROUND TUNNEL: down, under, back up
-          if (q >= 0 && q < C.DIVE) { const o = [{ prop: 'neonTunnelDv' + q, x: 0, dist: 6, solo: true }]; if (q === 0) o.push({ prop: 'neonTunnelMouth', x: 0, dist: 6, solo: true }); return o; }
+          if (q >= 0 && q < C.DIVE) { const o = [{ prop: 'neonTunnelDv' + q, x: 0, dist: 6, solo: true }]; if (q === 0) o.push({ prop: 'neonTunnelMouth', x: 0, dist: 6, solo: true });
+            if (q < 3) { o.push({ prop: 'pkTubeDv' + q, x: -C.PTUBE_M, dist: 6, rotY: Math.PI, solo: true }); if (q === 0) o.push({ prop: 'pkTubeMouth', x: -C.PTUBE_M, dist: 6, rotY: Math.PI, solo: true }); }      // (the car park's tube beside it, to the left)
+            return o; }
           if (q >= C.DIVE && q < C.DIVE + C.UNDER) return [{ prop: 'neonTunnel' + ((q * 5) % 6), x: 0, dist: 6, solo: true }];
           if (q >= C.DIVE + C.UNDER && q < C.DIVE + C.UNDER + C.RISE) return [{ prop: 'neonTunnelRs' + (q - C.DIVE - C.UNDER), x: 0, dist: 6, solo: true }];
           q -= C.DIVE + C.UNDER + C.RISE; }
