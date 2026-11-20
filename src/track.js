@@ -133,11 +133,20 @@ const NEON_CORNER = {
     if (qf < this.SIN - this.PIN) return this.SIDE_M * e((qf + this.PIN) / this.SIN);
     if (qf >= R0) return this.SIDE_M * (1 - e((qf - R0) / this.SOUT));
     return this.SIDE_M + (this.SPARK_M - this.SIDE_M) * e(c((qf - (P0 - this.SSW)) / this.SSW)) * (1 - e(c((qf - P1) / this.SSW))); },
+  // THE GLASS BRANCH of the side road (the user, 2026-11-20: "connect a glass ramp that passes through the centre of these towers"): in the park's last slot (GQ slots after the mouth) the
+  // RIGHT lane of the side road climbs a one-lane glass ramp (GUP slots, GH units of run high: 2.80 m, the user), which runs between the two rows of towers, GM metres right of the circuit, under the
+  // stations' glass tunnels, and comes down in a long curve (GOUT slots) onto the circuit before the tunnel back. glassW(qf): the ramp's centre line (metres, where it STANDS);
+  // glassM(qf): the road's centre for its runner (it starts on the side road's centre, the runner being in the right lane, and joins the ramp's line within a slot); glassH: its height.
+  GQ: 46, GM: 52.5, GH: 28, GUP: 6, GDN: 6, GOUT: 10,
+  glassW(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.SPARK_M + 2.2, R = this.CANYON + this.DOWN - this.GOUT;
+    return qf < R ? a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) : this.GM * (1 - e(c((qf - R) / this.GOUT))); },
+  glassM(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)); return this.glassW(qf) - 2.2 * (1 - e(c(qf - this.GQ))); },
+  glassH(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)); return this.GH * e(c((qf - this.GQ) / this.GUP)) * (1 - e(c((qf - (this.CANYON - 2)) / this.GDN))); },
   // THE RAMP BENDS LEFT (the user: seen from below it curves away, so riding it must curve the same way): the lateral offset of the road (lateral units) on the glass ramp, up and down:
   // SHIFT_M metres to the left by the top (the circuit stays where it is, to the right), back by the end of the way down. Lateral units are U3.X = 2.2 / 0.62 metres.
   SHIFT_M: 17,
   off(d, z) {
-    if (d && d.side) return this.sideM((z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART)) / (2.2 / 0.62);
+    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.glass && qf >= this.GQ ? this.glassM(qf) : this.sideM(qf)) / (2.2 / 0.62); }
     if (d && d.park) { const S = this.SLOT, zT = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zP = zT - this.PIN * S, zR = zT + S, zQ = zT + this.DIVE * S, e = t => t * t * (3 - 2 * t), D = this.PTUBE_M / (2.2 / 0.62);      // (straight beside the big tube for one slot, then back)
       return z <= zP || z >= zQ ? 0 : -D * (z < zT ? e((z - zP) / (zT - zP)) : z < zR ? 1 : 1 - e((z - zR) / (zQ - zR))); }
     if (!d || !d.up) return 0;
@@ -146,6 +155,7 @@ const NEON_CORNER = {
   },
   // the height of the road (units of run) at z for a detour that took the glass ramp (positive), or the underground tunnel (negative)
   lift(d, z) {
+    if (d && d.glass) return this.glassH((z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART));
     if (d && (d.down || d.park)) { const S = this.SLOT, z0 = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zA = z0 + this.DIVE * S, zB = zA + (d.park ? this.PARK : this.UNDER) * S, zC = zB + (d.park ? this.PRISE : this.RISE) * S, e = t => t * t * (3 - 2 * t);
       return z <= z0 || z >= zC ? 0 : -this.DEPTH * (z < zA ? e((z - z0) / (zA - z0)) : z < zB ? 1 : 1 - e((z - zB) / (zC - zB))); }
     if (!d || !d.up) return 0;

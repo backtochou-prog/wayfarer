@@ -246,7 +246,7 @@ window.ENV3D = window.ENV3D || {};
           const o = ArtCity.layout(r, rnd, det, liftM); if (det && det.up && r >= NA - C.UP && typeof NeonAvenue !== 'undefined') o.push({ prop: 'cnGlassU' + (r - (NA - C.UP)), x: 0.001, dist: 6, solo: true }); return o; }
         let q = r - NA;
         if (det && det.up && typeof NeonAvenue !== 'undefined') { if (q >= 0 && q < C.CANYON + C.DOWN) return NeonAvenue.layout(q, rnd, liftM); q -= C.CANYON + C.DOWN; }
-        if (det && det.side && typeof NeonAvenue !== 'undefined' && NeonAvenue.side) { if (q >= 0 && q < C.CANYON + C.DOWN) return NeonAvenue.side(q, rnd); q -= C.CANYON + C.DOWN; }      // THE SIDE ROAD: beyond the rail, along the buildings, through the park, back on the circuit
+        if (det && det.side && typeof NeonAvenue !== 'undefined' && NeonAvenue.side) { if (q >= 0 && q < C.CANYON + C.DOWN) return NeonAvenue.side(q, rnd, !!det.glass); q -= C.CANYON + C.DOWN; }      // THE SIDE ROAD: beyond the rail, along the buildings, through the park, back on the circuit
         if (det && det.park && typeof NeonAvenue !== 'undefined' && NeonAvenue.park) {                                                                                        // THE CAR PARK's way: the same way down, the car park, its ramp, the circuit under the avenue
           if (q >= 0 && q < C.DIVE) { const o = [{ prop: 'pkTubeDv' + q, x: 0, dist: 6, solo: true }]; if (q === 0) o.push({ prop: 'pkTubeMouth', x: 0, dist: 6, solo: true });      // (its own tube; the big one stays beside it, to the right)
             if (q === 0) o.push({ prop: 'neonTunnelDv0', x: C.PTUBE_M, dist: 6, solo: true }, { prop: 'neonTunnelMouth', x: C.PTUBE_M, dist: 6, solo: true });

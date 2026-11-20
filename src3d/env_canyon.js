@@ -144,7 +144,8 @@ const NeonAvenue = {
     // A STATION for every building (the user: no aerial train without stations): a glass platform beside the hanging line, at the cars' floor, a GLASS TUNNEL from it, and at its end
     // THE HALL (the user): a zone of the building under a glass vault, a station of its own (benches, ticket posts, screens, planters, people), with a BIG LIFT in a glass shaft that takes
     // people down to the street. All the ceilings are CURVED (the user): vaults of flat glass panels. (N: the near row, 10 m away; F: the far row, 30 m.) Local x = 0 is the line.
-    ...Object.fromEntries([['N', 10], ['F', 30]].map(([n, far]) => ['ftStation' + n, () => { const y = 17.3, x0 = 1.5, P = [], G = [], GL = '#9fe6ff', DK = '#2a3358';
+    ...Object.fromEntries([['N', 10], ['F', 30], ['G', 30]].map(([n, far]) => ['ftStation' + n, () => { const gb = n === 'G';      // (G: the far station over the glass branch, its lift inside the hall's near end so that the ramp passes free)
+      const y = 17.3, x0 = 1.5, P = [], G = [], GL = '#9fe6ff', DK = '#2a3358';
       const vaultX = (L, xc, yb, R, zc, out, col, o, th = 0.08, nn = 6) => { for (let k = 0; k < nn; k++) { const t = (k + 0.5) / nn * Math.PI; out.push(Kit.box(L, th, 2 * R * Math.sin(Math.PI / 2 / nn) * 1.04, xc, yb + R * Math.sin(t) - th / 2, zc + R * Math.cos(t), col, Object.assign({ rx: Math.PI / 2 - t }, o))); } };      // a vault whose axis runs along x
       const vaultZ = (L, zc, yb, R, xc, out, col, o, th = 0.08, nn = 6) => { for (let k = 0; k < nn; k++) { const t = (k + 0.5) / nn * Math.PI; out.push(Kit.box(2 * R * Math.sin(Math.PI / 2 / nn) * 1.04, th, L, xc + R * Math.cos(t), yb + R * Math.sin(t) - th / 2, zc, col, Object.assign({ rz: t - Math.PI / 2 }, o))); } };      // ... along z
       // the platform under its curved canopy
@@ -166,12 +167,12 @@ const NeonAvenue = {
       G.push(Kit.box(hd, 2.4, 0.08, hc, y, -hw, GL), Kit.box(hd, 2.4, 0.08, hc, y, hw, GL), Kit.box(0.08, 2.4, hw - 1.5, hx, y, -(hw + 1.5) / 2, GL), Kit.box(0.08, 2.4, hw - 1.5, hx, y, (hw + 1.5) / 2, GL)); vaultX(hd, hc, y + 2.4, hw, 0, G, GL, {}, 0.08, 8);
       // ... full of a station's things: benches, ticket posts, a departures screen, planters with small trees, a kiosk, people
       for (const z of [-2.6, 2.6]) P.push(Kit.box(Math.min(2.4, hd - 2.4), 0.45, 0.6, hc, y, z, '#e8ecf4'), Kit.box(0.9, 0.5, 0.9, far - 0.9, y, z * 1.25, '#5a6078'), Kit.cyl(0.07, 0.09, 1.2, far - 0.9, y + 0.5, z * 1.25, '#6a4a36'), Kit.ico(0.75, far - 0.9, y + 2.2, z * 1.25, F.leaf), Kit.ico(0.5, far - 0.6, y + 2.8, z * 1.25 + 0.2, F.leafL));
-      for (const z of [-1.1, 1.1]) P.push(Kit.box(0.35, 1.2, 0.35, hx + 0.9, y, z * 2.4, '#d6dce8'), Kit.box(0.37, 0.3, 0.3, hx + 0.9, y + 0.8, z * 2.4, F.cyan, { glow: true }));
+      for (const z of gb ? [-1.1] : [-1.1, 1.1]) P.push(Kit.box(0.35, 1.2, 0.35, hx + 0.9, y, z * 2.4, '#d6dce8'), Kit.box(0.37, 0.3, 0.3, hx + 0.9, y + 0.8, z * 2.4, F.cyan, { glow: true }));
       P.push(Kit.box(0.12, 1.0, 2.6, far - 0.25, y + 2.6, 0, '#10182c'), Kit.box(0.06, 0.8, 2.4, far - 0.33, y + 2.7, 0, F.cyan, { glow: true }), Kit.box(0.3, 3.2, 2.6, far - 0.1, y, 0, F.lime, { glow: true }));                          // the screen over the lit door into the building
       if (hd > 6) P.push(Kit.box(1.6, 2.1, 1.6, hc + 1.6, y, -3.4, '#ff8a5a'), Kit.box(1.9, 0.14, 1.9, hc + 1.6, y + 2.1, -3.4, F.pink, { glow: true }));                                                                                    // (a kiosk)
       for (const [dx, z, c] of [[1.4, 0.7, '#ffd27a'], [hd * 0.5, -1.2, '#ff8ac0'], [hd * 0.62, 1.6, '#8ad0ff'], [hd - 1.6, -0.5, '#c8ff9a']]) P.push(Kit.box(0.36, 1.05, 0.26, hx + dx, y, z, c), Kit.ico(0.2, hx + dx, y + 1.3, z, '#e8c2a0'));  // people
       // THE BIG LIFT: a glass shaft down the side of the hall to the street, its lit cabin half-way, a lit door at the bottom
-      { const ex = far - 2, ez = hw + 1.7, S = 3.2;
+      { const S = gb ? 2.4 : 3.2, ex = gb ? hx + 1.4 : far - 2, ez = gb ? hw - 1.4 : hw + 1.7;
         for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) P.push(Kit.box(0.18, y + 3.4, 0.18, ex + dx * S / 2, 0, ez + dz * S / 2, '#c9d2e0'));
         for (let yy = 0; yy <= y + 3.4; yy += (y + 3.4) / 5) P.push(Kit.box(S + 0.2, 0.14, S + 0.2, ex, yy, ez, F.cyan, { glow: true }));
         P.push(Kit.box(S - 0.5, 2.6, S - 0.5, ex, y * 0.45, ez, '#f2f5fa'), Kit.box(S - 0.4, 0.12, S - 0.4, ex, y * 0.45 - 0.1, ez, F.lime, { glow: true }), Kit.box(S - 0.44, 1.0, S - 0.44, ex, y * 0.45 + 1.1, ez, '#16233a'), Kit.box(0.12, 2.4, 1.6, ex - S / 2 - 0.02, 0, ez, F.lime, { glow: true }), Kit.box(2.6, 0.1, 5, ex - S / 2 - 1.3, 0.02, ez, '#3a4468'));
@@ -370,6 +371,22 @@ const NeonAvenue = {
           if (xm - 3.6 > 4.0) P.push(Kit.box(0.16, 0.05, len, xm - 3.6, 0.07, zm, C.cyan, { glow: true, ry }));
           if (a % 4 === 1) for (const x of [-1.1, 1.1]) if (xm + x > 4.0) P.push(Kit.box(0.12, 0.02, len * 1.4, xm + x, 0.07, zm, '#9ff4ff', { glow: true, ry })); }
         return Kit.merge(P); }; }
+    // THE GLASS BRANCH of the side road (the user: "a glass ramp that passes through the centre of these towers"), NEON_CORNER.glassW / glassH: slot k of it in the CIRCUIT's frame, at its
+    // true heights (it stands there whoever rides it): a glass deck one lane wide, glass skirts, a pink light along each edge and a cyan one under it, a pillar every other slot
+    if (NC.glassW) { const G0 = NC.GQ, GN = NC.CANYON + NC.DOWN - G0;
+      for (let k = 0; k < GN; k++) props['sgRamp' + k] = () => { const n = 8, X = 1.75, LL = 12.25, parts = [], sk = [], q = G0 + k, Hm = f => Math.max(0.1, NC.glassH(q + f) / 10);
+        for (let a = 0; a < n; a++) { const f0 = a / n, f1 = (a + 1) / n, x0 = NC.glassW(q + f0), x1 = NC.glassW(q + f1), y0 = Hm(f0), y1 = Hm(f1), z0 = LL / 2 - f0 * LL, z1 = LL / 2 - f1 * LL, xm = (x0 + x1) / 2, ym = (y0 + y1) / 2, zm = (z0 + z1) / 2;
+          if (y0 < 0.15 && y1 < 0.15 && Math.min(x0, x1) - X < 3.7) continue;                                                             // (no glass over the circuit's asphalt, where the ramp has landed)
+          const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0) + 0.04, rx = Math.atan2(y1 - y0, z0 - z1), ry = Math.atan2(x0 - x1, z0 - z1), h0 = Math.min(2.5, y0), h1 = Math.min(2.5, y1);
+          sk.push(NeonAvenue.plain([x0 - X, y0, z0], [x0 + X, y0, z0], [x1 + X, y1, z1], [x1 - X, y1, z1]));
+          for (const s of [-1, 1]) { sk.push(NeonAvenue.plain([x0 + s * X, y0, z0], [x1 + s * X, y1, z1], [x1 + s * X, y1 - h1, z1], [x0 + s * X, y0 - h0, z0]));
+            parts.push(Kit.box(0.12, 0.12, len, xm + s * (X + 0.1), ym - 0.02, zm, s < 0 ? C.cyan : C.pink, { glow: true, rx, ry }));
+            if (ym > 1) parts.push(Kit.box(0.2, 0.6, len, xm + s * (X + 0.2), ym - 0.3, zm, '#2a2f6a', { rx, ry }));
+            if (ym > 2.9) parts.push(Kit.box(0.1, 0.1, len, xm + s * (X + 0.05), ym - 2.4, zm, s < 0 ? C.pink : C.cyan, { glow: true, rx, ry })); }
+          if (a % 2 === 0) parts.push(Kit.box(0.1, 0.03, len * 0.6, xm, ym + 0.01, zm, C.cyan, { glow: true, rx, ry }));
+          parts.push(Kit.box(2 * X, 0.04, 0.06, x0, y0 - 0.01, z0, '#9ff4ff', { glow: true, ry }));
+          if (a === n / 2 && k % 2 === 0 && y0 > 2.5) parts.push(Kit.box(1.0, y0 - 0.4, 1.0, x0, 0, z0, C.pillar), Kit.box(2 * X + 0.4, 0.4, 1.2, x0, y0 - 0.45, z0, C.pillar), Kit.box(1.1, 0.12, 1.1, x0, 1.2, z0, C.pink, { glow: true })); }
+        return tex(parts, sk, () => NeonAvenue.glassMaterial()); }; }
     props.pkHallEnd = () => Kit.merge([Kit.box(HW + X0, CH, 0.3, (X0 - HW) / 2, 0, -6.0, WALL), Kit.box(HW - X1, CH, 0.3, (X1 + HW) / 2, 0, -6.0, WALL), Kit.box(XW, 0.12, 0.34, XM, CH - 0.12, -6.0, C.cyan, { glow: true }),
       Kit.box(1.5, 0.5, 0.1, -4.75, CH - 0.9, -5.8, '#3aa878', { glow: true }), Kit.box(2.6, 0.5, 0.1, 0, CH - 0.9, -5.8, '#3a7bd8', { glow: true })]);
     const TINT = [['#0b0b10', '#121219'], ['#0a0f1c', '#101829'], ['#140a18', '#1d1024'], ['#0a1411', '#0f1d18'], ['#0b0b10', '#131320']];
@@ -420,21 +437,26 @@ const NeonAvenue = {
       const k = q - CN, Hk = d => HM * (1 - e(Math.max(0, Math.min(1, (k + d / 12) / DN)))), sh = d => NeonAvenue.shift(1 - (k + d / 12) / DN);      // the avenue's way down, seen from the circuit it comes down to
       return solo(NeonAvenue.layout(q, rnd, Hk(6)).map(p => { if (/^cnGlassD/.test(p.prop)) p.prop = 'pkGlassD' + k; if (/^cnMainRoadD/.test(p.prop)) return { prop: 'cnMainRoadBare', x: 0.001, dist: 6 }; return Object.assign(p, { x: p.x - sh(p.dist), dy: (p.dy || 0) + Hk(p.dist) }); })); };
     // slot q of THE SIDE ROAD's way (the runner's road is NEON_CORNER.sideM metres to the right of the circuit on the ground; everything else stands where it stood)
-    NeonAvenue.side = (q, rnd) => { const CN = NC.CANYON, DN = NC.DOWN, PT = NC.PTUBE_M || 12, S = f => NC.sideM(f), s0 = S(q), s1 = S(q + 1), bend = Math.abs(s1 - s0) > 0.01; let o;
+    NeonAvenue.side = (q, rnd, glass) => { const CN = NC.CANYON, DN = NC.DOWN, PT = NC.PTUBE_M || 12, gl = !!(glass && NC.glassM && q >= NC.GQ), S = f => gl ? NC.glassM(f) : NC.sideM(f), s0 = S(q), s1 = S(q + 1), bend = Math.abs(s1 - s0) > 0.01; let o;
       if (q < CN) o = NeonAvenue.layout(q, rnd, HM).map(p => Object.assign(p, { x: p.x - D, dy: (p.dy || 0) + HM }));
       else { const k = q - CN, Hk = d => HM * (1 - e(Math.max(0, Math.min(1, (k + d / 12) / DN)))), sh = d => NeonAvenue.shift(1 - (k + d / 12) / DN);
         o = NeonAvenue.layout(q, rnd, Hk(6)).map(p => { if (/^cnGlassD/.test(p.prop)) p.prop = 'pkGlassD' + k; if (/^cnMainRoadD/.test(p.prop)) return { prop: 'cnMainRoadBare', x: 0.001, dist: 6 }; return Object.assign(p, { x: p.x - sh(p.dist), dy: (p.dy || 0) + Hk(p.dist) }); });
         if (q <= CN + 3) o = o.filter(p => !TW.includes(p.prop) || p.x < 0); }
       const mid = Math.floor((15 + CN) / 2), swing = (q >= mid - 9 && q <= mid - 5) || (q >= mid + 5 && q <= mid + 9), open = (q >= mid - 9 && q <= mid - 7) || (q >= mid + 7 && q <= mid + 9), inPark = Math.abs(q - mid) <= 4;
       if (swing) { o = o.filter(p => !/^ftStation/.test(p.prop)); for (const p of o) if (/^ft(Green|Plain)/.test(p.prop)) p.x = 62; }      // (the user: the buildings step back where the road swings to the park)
+      if (NC.glassW && q === CN - 2) { o = o.filter(p => !/^ftStation/.test(p.prop)); for (const p of o) if (/^ft(Green|Plain)/.test(p.prop)) p.x = 72; }      // (the glass branch curves out through this tower's place: it steps back behind the far row)
       for (const p of o) {
         if (p.prop === 'ftStreet' && !inPark) p.prop = open ? 'sdStreetO' : swing ? 'ftStreet' : q >= CN - 3 && q <= CN - 2 ? 'sdStreetL' : 'sdStreet';
         if (p.prop === 'ftParkA') p.prop = 'sdParkA'; if (p.prop === 'ftParkB') p.prop = 'sdParkB';
         if (p.prop === 'cnRail' && (q === 0 || q === CN - 1)) p.prop = 'cnRailSpan'; }
       if (q < 3) { o.push({ prop: 'pkTubeDv' + q, x: -PT, dist: 6, rotY: Math.PI }); if (q === 0) o.push({ prop: 'pkTubeMouth', x: -PT, dist: 6, rotY: Math.PI }); }
       if (q >= 4 && q <= 14 && q % 2 === 0) o.push({ prop: 'cnPlanter', x: 31.4, dist: 6 });                                         // (green beside the road before the street begins)
+      if (NC.glassW && q >= NC.GQ) for (const p of o) if (p.prop === 'ftStationF') p.prop = 'ftStationG';
+      if (NC.glassW && q >= NC.GQ) o.push({ prop: 'sgRamp' + (q - NC.GQ), x: 0.001, dist: 6 });                                              // THE GLASS BRANCH, standing where it stands
+      if (gl) { const a0 = NC.sideM(q), a1 = NC.sideM(q + 1); o.push({ prop: Math.abs(a1 - a0) > 0.01 ? 'sdRoadC' : 'sdRoad', x: (a0 + a1) / 2 || 0.001, dist: 6, rotY: -Math.atan((a1 - a0) / 12) });      // (from the glass, the side road stays below)
+        for (const p of o) p.dy = (p.dy || 0) - NC.glassH(q + p.dist / 12) / 10; }
       for (const p of o) { const nx = p.x - (s0 + (s1 - s0) * p.dist / 12); if ((p.x < 0) !== (nx < 0)) p.rotY = (p.rotY || 0) + Math.PI; p.x = nx || 0.001; p.rotY = (p.rotY || 0) + Math.atan((s1 - s0) / 12); }
-      o.push({ prop: bend ? 'sdRoadC' : 'sdRoad', x: 0.001, dist: 6 });
+      if (!gl) o.push({ prop: bend ? 'sdRoadC' : 'sdRoad', x: 0.001, dist: 6 });
       for (const p of o) p.solo = true; return o; };
   }
   NeonAvenue.props = props;
