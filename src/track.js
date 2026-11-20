@@ -150,6 +150,11 @@ const NEON_CORNER = {
   // high ramp runs straight at its 7 m; so the ramp reaches 7 m before it (G2UP) and curves back to the towers after it.
   // (the user, on a screenshot: "where I want the tunnel with the station", "between the 2 buildings": between the skyline's pavilion and its blue spire tower, G2TX m out)
   G2T: 54, G2TN: 4, G2TX: 59,
+  // THE BACK ROAD (the user, on a screenshot: "a new road behind the buildings, the green zones; it leaves from a roundabout that we add at the very start of that side"): scenery so far
+  // (no access yet). The roundabout NRQ slots after the tunnel's mouth, its centre NRC m right of the circuit; the road NRX m out, behind the far row of towers; where the built skyline
+  // stands it comes in to NRIN m and passes under the square tunnel's station, then goes out again. backM(qf): its offset.
+  NRQ: 8, NRC: 66, NRX: 74, NRIN: 65,
+  backM(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)); return this.NRX + (this.NRIN - this.NRX) * e(c((qf - 51) / 3)) * (1 - e(c((qf - 58) / 3))); },
   glass2W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.SPARK_M + 2.2, back = e(c((qf - 58) / 3));
     if (qf >= this.G2R) return (this.GM - 1) * (1 - e(c((qf - this.G2R) / this.G2OUT)));
     return a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) + this.G2X * e(c((qf - this.G2Q) / 4)) * (1 - back) - back; },

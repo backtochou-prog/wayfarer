@@ -344,6 +344,10 @@ const NeonAvenue = {
       out.push({ prop: 'ftStreet', x: 42, dist: 6, dy: -liftM }); if (q % 9 === 2) out.push({ prop: 'ftHangTrain', x: 42, dist: 6, dy: -liftM });
       if (inPark) out.push({ prop: q % 2 ? 'ftParkA' : 'ftParkB', x: 68, dist: 6, dy: -liftM });
       else if (!sky) out.push({ prop: q % 3 === 2 ? (q % 2 ? 'ftPlainA' : 'ftPlainB') : ['ftGreenA', 'ftGreenB', 'ftGreenC'][(Math.floor(q / 3) + q % 3) % 3], x: q % 2 ? 72 : 52, dist: 6, dy: -liftM }, { prop: q % 2 ? 'ftStationF' : 'ftStationN', x: 42, dist: 6, dy: -liftM }); }      // (the user: the train stays, with its rail; the city picture (cnMetroView) is removed)                       // THE PROTECTION WALL on the left (the user): from the ground up to 2 m over the glass road, 2 m from its edge
+    if (liftM > 3 && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.backM && q < CN) { const N2 = NEON_CORNER, D2 = NeonAvenue.D;      // THE BACK ROAD behind the towers, from its roundabout
+      if (q === N2.NRQ) out.push({ prop: 'nrRound', x: N2.NRC + D2, dist: 6, dy: -liftM });
+      if (q > N2.NRQ) { const a0 = N2.backM(q), a1 = N2.backM(q + 1), bd = Math.abs(a1 - a0) > 0.01; out.push({ prop: bd ? 'nrRoadC' : 'nrRoad', x: (a0 + a1) / 2 + D2, dist: 6, dy: -liftM, rotY: -Math.atan((a1 - a0) / 12) });
+        if (q % 4 === 1 && !bd && a0 === N2.NRX) out.push({ prop: 'cnPlanter', x: a0 + 6.5 + D2, dist: 6, dy: -liftM }); } }      // (green along it)
     for (const o of out) o.solo = true;
     return out;
   };
@@ -385,6 +389,24 @@ const NeonAvenue = {
     { const AS = '#1d2550', road = len => () => { const P = [Kit.box(7.5, 0.08, len, 0, 0, 0, AS), Kit.box(0.16, 0.05, len, -3.6, 0.08, 0, C.cyan, { glow: true }), Kit.box(0.16, 0.05, len, 3.6, 0.08, 0, C.pink, { glow: true })];
         for (const x of [-1.1, 1.1]) for (const z of [-3, 3]) P.push(Kit.box(0.12, 0.02, 2.4, x, 0.08, z, '#9ff4ff', { glow: true })); return Kit.merge(P); };
       props.sdRoad = road(12.3); props.sdRoadC = road(13.6);
+      // THE BACK ROAD and its ROUNDABOUT (NEON_CORNER.backM): the same neon asphalt; the roundabout a ring 7 m wide round a green island (grass, trees, flowers, a lit column), a spur
+      // joining it to the side road
+      props.nrRoad = road(12.3); props.nrRoadC = road(13.6);
+      props.nrRound = () => { const P = [], N = 36, RO = 15, RI = 8, RM = (RO + RI) / 2, ex = Math.PI - Math.asin((NC.NRX - NC.NRC) / RM), near = (a, b, w) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) < w;
+        for (let k = 0; k < N; k++) { const a = (k + 0.5) / N * Math.PI * 2, sx = Math.sin(a), cz = Math.cos(a), ry = a - Math.PI / 2;
+          P.push(Kit.box(RO - RI, 0.08, 2 * Math.PI * RO / N + 0.1, RM * sx, 0, RM * cz, AS, { ry }));
+          if (!near(a, Math.PI * 1.5, 0.3) && !near(a, ex, 0.5)) P.push(Kit.box(0.16, 0.05, 2 * Math.PI * RO / N + 0.05, (RO - 0.1) * sx, 0.08, (RO - 0.1) * cz, C.cyan, { glow: true, ry }));
+          P.push(Kit.box(0.16, 0.05, 2 * Math.PI * RI / N + 0.05, (RI + 0.1) * sx, 0.08, (RI + 0.1) * cz, C.pink, { glow: true, ry }));
+          if (k % 3 === 0) P.push(Kit.box(0.12, 0.02, 1.6, RM * sx, 0.08, RM * cz, '#9ff4ff', { glow: true, ry })); }
+        P.push(Kit.cyl(RI - 0.3, RI, 0.45, 0, 0, 0, '#8a8a90', { seg: 24 }), Kit.cyl(RI - 0.5, RI - 0.5, 0.1, 0, 0.45, 0, '#2fae4a', { seg: 24 }));                                 // the island: a kerb, the grass
+        for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + 0.3, x = 5.2 * Math.sin(a), z = 5.2 * Math.cos(a), hh = 3.2 + (k % 3) * 0.7;                                     // its trees
+          P.push(Kit.cyl(0.16, 0.24, hh, x, 0.5, z, '#6a4a2e', { seg: 6 }), Kit.ico(1.7, x, hh + 1.3, z, k % 2 ? '#3fd060' : '#2fae4a', { detail: 1 }), Kit.ico(1.1, x + 0.7, hh + 2.3, z - 0.4, '#35c456', { detail: 1 })); }
+        for (let k = 0; k < 18; k++) { const a = k / 18 * Math.PI * 2, r = 2.6 + (k % 3) * 0.9; P.push(Kit.box(0.35, 0.3, 0.35, r * Math.sin(a), 0.55, r * Math.cos(a), ['#ff4fa0', '#ffd23a', '#ffffff', '#b06bff'][k % 4])); }      // its flowers
+        P.push(Kit.cyl(0.35, 0.5, 7, 0, 0.5, 0, '#23285e', { seg: 8 }), Kit.cyl(1.1, 1.1, 0.25, 0, 7.5, 0, C.cyan, { glow: true, seg: 12 }), Kit.ico(0.7, 0, 8.6, 0, C.pink, { glow: true }));      // the lit column
+        const x0 = NC.SIDE_M + 3.75 - NC.NRC, x1 = -RO + 0.6, xm = (x0 + x1) / 2, w = x1 - x0;                                                                                           // the spur from the side road
+        P.push(Kit.box(w, 0.08, 7.5, xm, 0, 0, AS), Kit.box(w, 0.05, 0.16, xm, 0.08, -3.6, C.cyan, { glow: true }), Kit.box(w, 0.05, 0.16, xm, 0.08, 3.6, C.pink, { glow: true }));
+        for (let x = x0 + 3; x < x1 - 2; x += 5) P.push(Kit.box(2.4, 0.02, 0.12, x, 0.08, 0, '#9ff4ff', { glow: true }));
+        return Kit.merge(P); };
       if (NC.sideM) for (let k = 0; k < (NC.PIN || 3) + 3; k++) props['sdSlip' + k] = () => { const P = [], n = 8, PN = NC.PIN || 3;
         for (let a = 0; a < n; a++) { const f0 = a / n, f1 = (a + 1) / n, x0 = NC.sideM(k - PN + f0), x1 = NC.sideM(k - PN + f1), z0 = 6.1 - f0 * 12.2, z1 = 6.1 - f1 * 12.2, xm = (x0 + x1) / 2, zm = (z0 + z1) / 2, len = Math.hypot(x1 - x0, z1 - z0) + 0.06, ry = Math.atan2(x0 - x1, z0 - z1);
           const xl = Math.max(xm - 3.75, 3.62), xr = xm + 3.75; if (xr > xl + 0.2) P.push(Kit.box(xr - xl, 0.04, len, (xl + xr) / 2, 0.03, zm, AS, { ry: xl > xm - 3.75 ? 0 : ry }));
@@ -413,8 +435,38 @@ const NeonAvenue = {
         return tex(parts, sk, () => NeonAvenue.glassMaterial()); };
       for (let k = 0; k < GN; k++) props['sgRamp' + k] = ramp(G0 + k, k, f => NC.glassW(f), f => NC.glassH(f), false);
       if (NC.glass2W) for (let k = 0; k < NC.CANYON + NC.DOWN - NC.G2Q; k++) props['sgHigh' + k] = ramp(NC.G2Q + k, k, f => NC.glass2W(f), f => NC.glass2H(f), true);
+      // THE TRIANGLE GARDEN (the user, on a screenshot: "a small triangle garden whose corners are not at the same height: the highest, seen in the middle and the farthest, 2 m, the next
+      // 1.10 m, the third 40 cm"): in the wedge where the high branch leaves the glass branch (slots TQ-0.9 .. TQ+1.4), heights counted from the glass deck (GH); its walls go down to the ground
+      if (NC.glass2W) props.sgTri = () => { const TQ = NC.G2Q + 3, B0 = NC.GH / 10, zq = qf => 6 - (qf - TQ) * 12, P = [], qa = TQ - 0.9, qb = TQ + 1.4;
+        const A = [(NC.glassW(qa) + NC.glass2W(qa)) / 2, B0 + 0.4, zq(qa)], Bc = [NC.glassW(qb) + 2.5, B0 + 1.1, zq(qb)], Cc = [NC.glass2W(qb) - 2.6, B0 + 2, zq(qb)], V = [A, Bc, Cc];
+        const part = (T, color, glow) => { const g = new THREE.BufferGeometry(), F = []; for (const t of T) F.push(...t[0], ...t[1], ...t[2], ...t[0], ...t[2], ...t[1]);
+          g.setAttribute('position', new THREE.Float32BufferAttribute(F, 3)); g.computeVertexNormals(); return { geo: g, color, glow: !!glow }; };
+        const at = (u, v, up = 0) => { const w = 1 - u - v; return [A[0] * w + Bc[0] * u + Cc[0] * v, A[1] * w + Bc[1] * u + Cc[1] * v + up, A[2] * w + Bc[2] * u + Cc[2] * v]; };
+        const walls = []; for (let i = 0; i < 3; i++) { const a = V[i], b = V[(i + 1) % 3]; walls.push([[a[0], 0, a[2]], [b[0], 0, b[2]], b], [[a[0], 0, a[2]], b, a]); }
+        P.push(part(walls, '#8a8a90'), part([[at(0, 0, 0.02), at(1, 0, 0.02), at(0, 1, 0.02)]], '#a0a0a8'));                                   // the stone walls and their rim
+        P.push(part([[at(0.04, 0.04, 0.06), at(0.92, 0.04, 0.06), at(0.04, 0.92, 0.06)]], '#2f8a3c'));                                             // the sloping lawn
+        for (let i = 0; i < 3; i++) { const a = V[i], b = V[(i + 1) % 3], len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]), hz = Math.hypot(b[0] - a[0], b[2] - a[2]);
+          P.push(Kit.box(0.12, 0.12, len, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, i === 1 ? C.pink : C.cyan, { glow: true, rx: Math.atan2(b[1] - a[1], hz), ry: Math.atan2(a[0] - b[0], a[2] - b[2]) })); }
+        const cols = ['#ff4fa0', '#ffd23a', '#ffffff', '#b06bff', '#ff7a3a']; let n = 0;
+        for (let u = 0.1; u < 0.85; u += 0.13) for (let v = 0.1; u + v < 0.88; v += 0.13) { const p = at(u, v, 0.06), k = n++;
+          if (k % 7 === 3) { P.push(Kit.cyl(0.07, 0.1, 1.1, p[0], p[1], p[2], '#5a3a22'), Kit.ico(0.7, p[0], p[1] + 1.5, p[2], '#2f9a45', { detail: 1 })); }       // small trees
+          else if (k % 3 === 0) P.push(Kit.ico(0.38, p[0], p[1] + 0.25, p[2], '#3aa84e'));                                                            // bushes
+          else P.push(Kit.cyl(0.02, 0.02, 0.3, p[0], p[1], p[2], '#2f8a3c'), Kit.ico(0.13, p[0], p[1] + 0.38, p[2], cols[k % 5])); }                  // flowers
+        return Kit.merge(P); };
       // THE SQUARE TUNNEL (SQUARE: as high as it is wide, the user: "Tunnel carré !"; the user's picture: blue walls with violet rings, a ceiling with its line of light, the dark red floor with pink rings between two black bands, green strips in the
       // corners, a cyan frame at the mouth): vast, on pillars at the high ramp's 7 m; the ramp is its pedestrian lane, on the left; a platform and a standing train on the right.
+      // THE GREAT VAULT (the user, circling the left pavilion's dark roof on a screenshot: "stretch it up and forward until it becomes a great vault covering the two rails"): the roof goes on
+      // as a dark shell from the ground left of the glass branch, over both glass ramps, down to 8 m on the right (two slim columns; the back road passes beyond them), from the pavilion's
+      // front and the square tunnel's mouth (slot G2T) forward over VN slots; warm lit ribs like the pavilion's windows, a cyan arch in front
+      if (NC.glass2W && NC.G2T) props.sgVault = () => { const VN = 4, CX = 57.5, RA = 12.5, RB = 22, N = 16, t1 = Math.asin(8 / RB), LEN = VN * 12 - 0.6, ZC = 6 + (VN / 2 - 2) * 12 + 0.3, P = [];
+        const pt = t => [CX + RA * Math.cos(t), RB * Math.sin(t)];
+        for (let i = 0; i < N; i++) { const a = pt(Math.PI - (Math.PI - t1) * i / N), b = pt(Math.PI - (Math.PI - t1) * (i + 1) / N), w = Math.hypot(b[0] - a[0], b[1] - a[1]) + 0.05, rz = Math.atan2(b[1] - a[1], b[0] - a[0]), xm = (a[0] + b[0]) / 2, ym = (a[1] + b[1]) / 2;
+          P.push(Kit.box(w, 0.3, LEN, xm, ym - 0.15, ZC, i % 2 ? '#1b1638' : '#221b46', { rz }));
+          for (let z = ZC - LEN / 2 + 3; z < ZC + LEN / 2 - 1; z += 6) P.push(Kit.box(w, 0.55, 0.3, xm, ym - 0.275, z, '#ffb347', { glow: true, rz }));
+          P.push(Kit.box(w, 0.6, 0.35, xm, ym - 0.3, ZC + LEN / 2, C.cyan, { glow: true, rz }), Kit.box(w, 0.6, 0.35, xm, ym - 0.3, ZC - LEN / 2, C.pink, { glow: true, rz })); }
+        const e = pt(t1); P.push(Kit.box(0.3, 0.3, LEN, e[0], e[1] - 0.15, ZC, C.cyan, { glow: true }));
+        for (const z of [ZC + LEN / 2 - 2.5, ZC + LEN / 2 - 14.5]) P.push(Kit.cyl(0.3, 0.4, e[1], e[0], 0, z, C.pillar, { seg: 8 }), Kit.box(0.9, 0.12, 0.9, e[0], 1.2, z, C.pink, { glow: true }));
+        return Kit.merge(P); };
       if (NC.G2TN && typeof STTUNNEL_ASSETS !== 'undefined') for (let k = 0; k < NC.G2TN; k++) props['sgTun' + k] = () => { const XL = NC.G2TX, WD = 12, XR = XL + WD, XM = XL + WD / 2, Y = 6.9, HT = WD, YC = Y + HT, P = [], sk = [], T = STTUNNEL_ASSETS, Q = NeonAvenue.quad, zf = k % 2 ? 6 : -6, zn = -zf, wall = '#141a5c', lite = '#9ff4ff', green = '#35ff2e', B = (w, h, d, x, y, z, c, o) => Kit.box(w, h, d, XL + x, y, z, c, o);
         P.push(B(WD + 0.8, 0.4, 12, WD / 2, Y - 0.4, 0, '#0a0a14'), B(0.4, HT + 0.8, 12, -0.2, Y - 0.4, 0, wall), B(0.4, HT + 0.8, 12, WD + 0.2, Y - 0.4, 0, wall), B(WD + 0.8, 0.4, 12, WD / 2, YC, 0, wall));      // the shell
         sk.push(Q(T, 'wallL', [XL + 0.03, Y, zf], [XL + 0.03, Y, zn], [XL + 0.03, YC, zn], [XL + 0.03, YC, zf]), Q(T, 'wallR', [XR - 0.03, Y, zf], [XR - 0.03, Y, zn], [XR - 0.03, YC, zn], [XR - 0.03, YC, zf]));      // (the faces mirror from one slot to the next, so the rings join)
@@ -428,7 +480,7 @@ const NeonAvenue = {
         for (const z of [-3.2, 3.2]) P.push(B(0.06, 1.9, 1.3, 9.43, Y + 0.5, z, C.pink, { glow: true }));                                                                                                     // (its doors)
         P.push(B(1.2, 0.5, 1.2, 8.7, Y + 0.3, 3, '#8a8a90'), B(1.0, 0.8, 1.0, 8.7, Y + 0.8, 3, '#2fae4a'), B(0.6, 0.5, 0.6, 8.7, Y + 1.6, 3, '#3fd060'), B(0.45, 0.45, 1.8, 8.5, Y + 0.3, -2.5, '#f2f5fa'));      // green on the platform, a bench
         P.push(B(0.08, 4.4, 0.08, 8.8, YC - 4.8, 0, '#8a94a8'), B(2.0, 0.7, 0.12, 8.8, YC - 5.4, 0, C.cyan, { glow: true }));                                                                              // the station's sign
-        for (const x of [7.5, 11]) P.push(B(1.0, Y - 0.4, 1.0, x, 0, 0, C.pillar), B(1.1, 0.12, 1.1, x, 1.2, 0, C.cyan, { glow: true }));                                                                    // the pillars
+        for (const x of [0.6, 11.5]) P.push(B(1.0, Y - 0.4, 1.0, x, 0, 0, C.pillar), B(1.1, 0.12, 1.1, x, 1.2, 0, C.cyan, { glow: true }));                                                                    // the pillars
         for (const z of [k === 0 ? 6 : null, k === NC.G2TN - 1 ? -6 : null]) if (z !== null) { P.push(B(WD + 1.0, 0.3, 0.3, WD / 2, Y - 0.35, z, lite, { glow: true }), B(WD + 1.0, 0.3, 0.3, WD / 2, YC + 0.05, z, lite, { glow: true }));      // the cyan frame of each mouth
           for (const x of [-0.2, WD + 0.2]) P.push(B(0.3, HT + 0.7, 0.3, x, Y - 0.35, z, lite, { glow: true }));
           if (z < 0) P.push(B(4.6, 0.05, 0.3, 4, Y + 0.02, z + 0.2, lite, { glow: true })); }                                                                                                               // (the bar of light at the far end)
@@ -497,10 +549,12 @@ const NeonAvenue = {
         if (p.prop === 'ftParkA') p.prop = 'sdParkA'; if (p.prop === 'ftParkB') p.prop = 'sdParkB';
         if (p.prop === 'cnRail' && (q === 0 || q === CN - 1)) p.prop = 'cnRailSpan'; }
       if (q < 3) { o.push({ prop: 'pkTubeDv' + q, x: -PT, dist: 6, rotY: Math.PI }); if (q === 0) o.push({ prop: 'pkTubeMouth', x: -PT, dist: 6, rotY: Math.PI }); }
-      if (q >= 4 && q <= 14 && q % 2 === 0) o.push({ prop: 'cnPlanter', x: 31.4, dist: 6 });                                         // (green beside the road before the street begins)
+      if (q >= 4 && q <= 14 && q % 2 === 0 && q !== NC.NRQ) o.push({ prop: 'cnPlanter', x: 31.4, dist: 6 });                                         // (green beside the road before the street begins)
       if (NC.glassW && q >= NC.GQ) for (const p of o) if (p.prop === 'ftStationF') p.prop = 'ftStationG';
       if (NC.glassW && q >= NC.GQ) o.push({ prop: 'sgRamp' + (q - NC.GQ), x: 0.001, dist: 6 });                                              // THE GLASS BRANCH, standing where it stands
-      if (NC.glass2W && q >= NC.G2Q) o.push({ prop: 'sgHigh' + (q - NC.G2Q), x: 0.001, dist: 6 });                                          // THE HIGH BRANCH (7 m)
+      if (NC.glass2W && q >= NC.G2Q) o.push({ prop: 'sgHigh' + (q - NC.G2Q), x: 0.001, dist: 6 });
+      if (NC.G2T && q === NC.G2T - 2 && props.sgVault) o.push({ prop: 'sgVault', x: 0.001, dist: 6 });                                              // THE GREAT VAULT over the two glass ramps
+      if (NC.glass2W && q === NC.G2Q + 3 && props.sgTri) o.push({ prop: 'sgTri', x: 0.001, dist: 6 });                                              // THE TRIANGLE GARDEN in the wedge between the two glass ramps                                          // THE HIGH BRANCH (7 m)
       if (NC.G2TN && q >= NC.G2T && q < NC.G2T + NC.G2TN && props['sgTun' + (q - NC.G2T)]) o = o.filter(p => !/^ftStation/.test(p.prop));      // (the far stations' halls would stand in the square tunnel)
       if (NC.G2TN && q >= NC.G2T && q < NC.G2T + NC.G2TN && props['sgTun' + (q - NC.G2T)]) o.push({ prop: 'sgTun' + (q - NC.G2T), x: 0.001, dist: 6 });      // THE SQUARE TUNNEL the high branch crosses
       if (gl) { const a0 = NC.sideM(q), a1 = NC.sideM(q + 1); o.push({ prop: Math.abs(a1 - a0) > 0.01 ? 'sdRoadC' : 'sdRoad', x: (a0 + a1) / 2 || 0.001, dist: 6, rotY: -Math.atan((a1 - a0) / 12) });      // (from the glass, the side road stays below)
