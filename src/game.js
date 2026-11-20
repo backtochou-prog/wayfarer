@@ -442,6 +442,14 @@ class Game {
           w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.emit('corner'); }
       }
     }
+    if (this.detour && this.detour.glass === true && !this.detour.asked3 && typeof NEON_CORNER.glass2W === 'function') {      // THE HIGH BRANCH: RIGHT pressed on the glass branch takes the second ramp, up to 7 m (NEON_CORNER.glass2W)
+      const C = NEON_CORNER, zC2 = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART + C.G2Q) * C.SLOT;
+      if (p.z > this.detour.zC + C.SLOT * 0.5 && p.z < zC2) { if (this.keys.right || this.tright) this.detour.want2 = true; else if (this.keys.left || this.tleft) this.detour.want2 = false; }
+      if (prevZ < zC2 && p.z >= zC2) {
+        if (!this.detour.want2) this.detour.asked3 = true;
+        else { const d = Object.assign({}, this.detour, { asked3: true, glass: 2 }); w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.emit('corner'); }
+      }
+    }
     if (this.detour && this.detour.decided && (this.detourSweep = (this.detourSweep || 0) + 1) % 20 === 0) {      // (items the world builds later along the glass route or the underground tunnel: the same rule as at the choice)
       const C = NEON_CORNER, up = this.detour.up, a = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART - C.UP) * C.SLOT + (up ? 0 : (C.UP - (this.detour.park || this.detour.side ? C.PIN : 0)) * C.SLOT), b2 = this.detour.park || this.detour.side ? this.detour.zG : this.detour.z1;      // (the car park's way: the circuit on the ground keeps its obstacles after the slip road)
       const gone = it => it.z >= a && it.z <= b2 && (OBST[it.kind] || it.kind === 'raceGate' || (up && it.kind === 'coin' && Math.abs(it.x) > 0.2));

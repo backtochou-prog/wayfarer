@@ -101,7 +101,7 @@ class Renderer3D {
       const props = envs[id].props; if (!props) continue;
       for (const name of Object.keys(props)) {
         if (this.props[name]) continue;
-        const m = props[name](), cap = /^house/.test(name) ? 26 : /^(pk(cn|ft|GlassD|Rise|Top|TubeDv|Slip)|sdSlip|sgRamp)/.test(name) ? 3 : /^sign/.test(name) ? 4 : CAP[name] || 28, list = [];
+        const m = props[name](), cap = /^house/.test(name) ? 26 : /^(pk(cn|ft|GlassD|Rise|Top|TubeDv|Slip)|sdSlip|sgRamp|sgHigh|sgTun)/.test(name) ? 3 : /^sign/.test(name) ? 4 : CAP[name] || 28, list = [];
         for (let i = 0; i < cap; i++) {
           // textured panels (trees: TreeSprite; the neon billboard and tower facades: NeonArt) are a `sprite` geometry with its own material, optionally beside ordinary merged geometry (`merged`)
           let g;
@@ -413,7 +413,7 @@ class Renderer3D {
       const C = NEON_CORNER, d = g.detour, zA = d.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT;
       NeonAvenue.SKY_Q.forEach((q, k) => { const zf = zA + (q + 0.5) * C.SLOT, ahead = (zf - p.z) * U.Z; if (ahead < -80 || ahead > 392) return;
         const bs = w.bandsAt(zf), m = this.skies[k];
-        m.position.set(this.centreOf(bs, bs[0].side) - Lref + NeonAvenue.SKY_X - (d.park || d.side ? NeonAvenue.D : 0) - (d.side ? (d.glass && q >= C.GQ ? C.glassM(q + 0.5) : C.sideM(q + 0.5)) : 0), WALK_Y + dy(zf) - C.lift(d, zf) * U.Z, -ahead); m.visible = true; });
+        m.position.set(this.centreOf(bs, bs[0].side) - Lref + NeonAvenue.SKY_X - (d.park || d.side ? NeonAvenue.D : 0) - (d.side ? (d.glass && q >= C.GQ ? C.gM(d.glass, q + 0.5) : C.sideM(q + 0.5)) : 0), WALK_Y + dy(zf) - C.lift(d, zf) * U.Z, -ahead); m.visible = true; });
     }
 
     // ---- scenery: slots of SEG_LEN, per road and side; the biome of each side is chosen by the blend at that spot

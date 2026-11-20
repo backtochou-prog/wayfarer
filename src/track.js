@@ -142,11 +142,25 @@ const NEON_CORNER = {
     return qf < R ? a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) : this.GM * (1 - e(c((qf - R) / this.GOUT))); },
   glassM(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)); return this.glassW(qf) - 2.2 * (1 - e(c(qf - this.GQ))); },
   glassH(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)); return this.GH * e(c((qf - this.GQ) / this.GUP)) * (1 - e(c((qf - (this.CANYON - 2)) / this.GDN))); },
+  // THE HIGH BRANCH (the user, 2026-11-20: "add another ramp this way, which climbs more and more until it reaches 7 metres"): G2Q slots after the mouth, a runner on the glass branch who
+  // has pressed RIGHT on it leaves it to the right on a second glass ramp, which climbs more and more up to G2H (7 m), comes back OVER the first one to pass between the towers (1 m left of
+  // its line), and comes down in its own later, tighter curve onto the circuit. glass2W: its centre line (metres); glass2H: its height. gM / gH: the line and height for a detour's `glass` (true or 2).
+  G2Q: 50, G2H: 70, G2X: 5, G2UP: 4, G2R: 68.5, G2OUT: 7.5,
+  // THE SQUARE TUNNEL (the user, 2026-11-20: "a vast square tunnel, a train station as much as a pedestrian passage (our ramp)", "crossed by the high ramp"): G2TN slots from slot G2T, where the
+  // high ramp runs straight at its 7 m; so the ramp reaches 7 m before it (G2UP) and curves back to the towers after it.
+  G2T: 54, G2TN: 4,
+  glass2W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.SPARK_M + 2.2, back = e(c((qf - 58) / 3));
+    if (qf >= this.G2R) return (this.GM - 1) * (1 - e(c((qf - this.G2R) / this.G2OUT)));
+    return a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) + this.G2X * e(c((qf - this.G2Q) / 3)) * (1 - back) - back; },
+  glass2H(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), h = this.GH * e(c((qf - this.GQ) / this.GUP));
+    return (h + (this.G2H - h) * e(c((qf - this.G2Q) / this.G2UP))) * (1 - e(c((qf - 68) / 7))); },
+  gM(g, qf) { return g === 2 && qf >= this.G2Q ? this.glass2W(qf) : this.glassM(qf); },
+  gH(g, qf) { return g === 2 && qf >= this.G2Q ? this.glass2H(qf) : this.glassH(qf); },
   // THE RAMP BENDS LEFT (the user: seen from below it curves away, so riding it must curve the same way): the lateral offset of the road (lateral units) on the glass ramp, up and down:
   // SHIFT_M metres to the left by the top (the circuit stays where it is, to the right), back by the end of the way down. Lateral units are U3.X = 2.2 / 0.62 metres.
   SHIFT_M: 17,
   off(d, z) {
-    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.glass && qf >= this.GQ ? this.glassM(qf) : this.sideM(qf)) / (2.2 / 0.62); }
+    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.glass && qf >= this.GQ ? this.gM(d.glass, qf) : this.sideM(qf)) / (2.2 / 0.62); }
     if (d && d.park) { const S = this.SLOT, zT = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zP = zT - this.PIN * S, zR = zT + S, zQ = zT + this.DIVE * S, e = t => t * t * (3 - 2 * t), D = this.PTUBE_M / (2.2 / 0.62);      // (straight beside the big tube for one slot, then back)
       return z <= zP || z >= zQ ? 0 : -D * (z < zT ? e((z - zP) / (zT - zP)) : z < zR ? 1 : 1 - e((z - zR) / (zQ - zR))); }
     if (!d || !d.up) return 0;
@@ -155,7 +169,7 @@ const NEON_CORNER = {
   },
   // the height of the road (units of run) at z for a detour that took the glass ramp (positive), or the underground tunnel (negative)
   lift(d, z) {
-    if (d && d.glass) return this.glassH((z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART));
+    if (d && d.glass) return this.gH(d.glass, (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART));
     if (d && (d.down || d.park)) { const S = this.SLOT, z0 = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zA = z0 + this.DIVE * S, zB = zA + (d.park ? this.PARK : this.UNDER) * S, zC = zB + (d.park ? this.PRISE : this.RISE) * S, e = t => t * t * (3 - 2 * t);
       return z <= z0 || z >= zC ? 0 : -this.DEPTH * (z < zA ? e((z - z0) / (zA - z0)) : z < zB ? 1 : 1 - e((z - zB) / (zC - zB))); }
     if (!d || !d.up) return 0;
