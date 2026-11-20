@@ -123,10 +123,21 @@ const NEON_CORNER = {
   // ITS OWN TUBE (the user: "a real tube"): the choice is made PIN slots before the mouth; a slip road leaves the circuit to the left there and enters a smaller tube whose axis is
   // PTUBE_M metres to the left of the big one (off, below); inside, on the way down, the road comes back under the circuit's line.
   PIN: 3, PTUBE_M: 12,
+  // THE SIDE ROAD (the user, 2026-11-20: "a second road at the car park's entrance, to a new circuit beyond the rails, beside the buildings and through the green zone, then a deviation
+  // back to the main circuit"): at the same choice (PIN slots before the mouth) the RIGHT lane leaves the circuit to the right, passes right of the tunnel, under the monorail rail, and
+  // runs SIDE_M metres to the right of the circuit (the ground floor of the two-floor street), swings out to SPARK_M through the park (SSW slots each way), and comes back to the circuit
+  // over SOUT slots at the end of the avenue. sideM(qf): its offset in metres at qf slots after the tunnel's mouth.
+  SIDE_M: 25, SIN: 6, SPARK_M: 43, SSW: 5, SOUT: 6,
+  sideM(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), P0 = Math.floor((15 + this.CANYON) / 2) - 4, P1 = P0 + 9, R0 = this.CANYON - 3;
+    if (qf <= -this.PIN || qf >= R0 + this.SOUT) return 0;
+    if (qf < this.SIN - this.PIN) return this.SIDE_M * e((qf + this.PIN) / this.SIN);
+    if (qf >= R0) return this.SIDE_M * (1 - e((qf - R0) / this.SOUT));
+    return this.SIDE_M + (this.SPARK_M - this.SIDE_M) * e(c((qf - (P0 - this.SSW)) / this.SSW)) * (1 - e(c((qf - P1) / this.SSW))); },
   // THE RAMP BENDS LEFT (the user: seen from below it curves away, so riding it must curve the same way): the lateral offset of the road (lateral units) on the glass ramp, up and down:
   // SHIFT_M metres to the left by the top (the circuit stays where it is, to the right), back by the end of the way down. Lateral units are U3.X = 2.2 / 0.62 metres.
   SHIFT_M: 17,
   off(d, z) {
+    if (d && d.side) return this.sideM((z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART)) / (2.2 / 0.62);
     if (d && d.park) { const S = this.SLOT, zT = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zP = zT - this.PIN * S, zR = zT + S, zQ = zT + this.DIVE * S, e = t => t * t * (3 - 2 * t), D = this.PTUBE_M / (2.2 / 0.62);      // (straight beside the big tube for one slot, then back)
       return z <= zP || z >= zQ ? 0 : -D * (z < zT ? e((z - zP) / (zT - zP)) : z < zR ? 1 : 1 - e((z - zR) / (zQ - zR))); }
     if (!d || !d.up) return 0;

@@ -141,6 +141,16 @@ const ArtCity = {
         for (const o of out) { const nx = o.x + s0 + (s1 - s0) * o.dist / 12; if (o.x < 0 && nx >= 0) o.rotY = (o.rotY || 0) + Math.PI; o.x = nx; o.rotY = (o.rotY || 0) + rot; }
       }
     }
+    if (!up && PN && r >= N - PN && typeof NeonAvenue !== 'undefined' && NEON_CORNER.sideM) {                // THE SIDE ROAD (the user): it leaves the circuit to the right over the same slots, beyond the rail
+      const k = r - (N - PN), SM = f => NEON_CORNER.sideM(f - PN);
+      for (let n = out.length - 1; n >= 0; n--) if ((out[n].prop === 'artRail' && out[n].x > 0 && !(det && det.park)) || (k === 0 && out[n].x > 4 && BLD.includes(out[n].prop))) out.splice(n, 1);
+      if (!(det && det.park)) out.push({ prop: 'sdSlip' + k, x: 0.001, dist: 6 });
+      if (det && det.side) {
+        out.push({ prop: 'pkMainRoad', x: 0.001, dist: 6 });
+        const s0 = SM(k), s1 = SM(k + 1), rot = Math.atan((s1 - s0) / 12);
+        for (const o of out) { const nx = o.x - (s0 + (s1 - s0) * o.dist / 12); if ((o.x < 0) !== (nx < 0)) o.rotY = (o.rotY || 0) + Math.PI; o.x = nx || 0.001; o.rotY = (o.rotY || 0) + rot; }
+      }
+    }
     for (const q of out) q.solo = true;
     return out;
   };

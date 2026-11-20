@@ -420,7 +420,12 @@ class Game {
       const C = NEON_CORNER, zT = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT, zP = zT - C.PIN * C.SLOT;      // (chosen PIN slots before the mouth, where its slip road leaves the circuit)
       if (prevZ < zP && p.z >= zP) {
         const dx = p.x - w.playerBand(zP, p.x).c, park = dx < -LANE_W * 0.3 || (dx < 0 && (this.keys.left || this.tleft));
-        if (!park) this.detour.asked = true;
+        const side = !park && typeof C.sideM === 'function' && (dx > LANE_W * 0.3 || (dx > 0 && (this.keys.right || this.tright)));      // THE SIDE ROAD: the right lane leaves to the right (NEON_CORNER.sideM)
+        if (side) { const d = Object.assign({}, this.detour, { asked: true, down: false, side: true }); d.z1 = d.z0 + (C.STREET + C.TUNNEL + C.ART + C.CANYON + C.DOWN + C.EXIT) * C.SLOT; d.zG = zT + (C.SIN - C.PIN) * C.SLOT;
+          const zE = d.z1 - C.EXIT * C.SLOT; w.noRoad = z => z > zT && z < zE;      // (its own neon asphalt from the mouth's line on: props, over the tiled floor, the street and the park)
+          w.items = w.items.filter(it => !(OBST[it.kind] && it.z >= zP && it.z <= d.zG));
+          w.extraLift = null; w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.emit('corner'); }
+        else if (!park) this.detour.asked = true;
         else { const d = Object.assign({}, this.detour, { asked: true, down: false, park: true }); d.z1 = d.z0 + (C.STREET + C.TUNNEL + C.ART + C.CANYON + C.DOWN + C.EXIT) * C.SLOT; d.zG = zT + (C.DIVE + C.PARK + C.PRISE + C.PMERGE) * C.SLOT;
           const zN = zT + C.DIVE * C.SLOT, zE = d.z1 - C.EXIT * C.SLOT; w.noRoad = z => z > zN && z < zE;      // (no asphalt from the car park on: its floor, the ramp, then the tiled floor, "sans goudron")
           w.items = w.items.filter(it => !(OBST[it.kind] && it.z >= zP && it.z <= zT));
@@ -428,7 +433,7 @@ class Game {
       }
     }
     if (this.detour && this.detour.decided && (this.detourSweep = (this.detourSweep || 0) + 1) % 20 === 0) {      // (items the world builds later along the glass route or the underground tunnel: the same rule as at the choice)
-      const C = NEON_CORNER, up = this.detour.up, a = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART - C.UP) * C.SLOT + (up ? 0 : (C.UP - (this.detour.park ? C.PIN : 0)) * C.SLOT), b2 = this.detour.park ? this.detour.zG : this.detour.z1;      // (the car park's way: the circuit on the ground keeps its obstacles after the slip road)
+      const C = NEON_CORNER, up = this.detour.up, a = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART - C.UP) * C.SLOT + (up ? 0 : (C.UP - (this.detour.park || this.detour.side ? C.PIN : 0)) * C.SLOT), b2 = this.detour.park || this.detour.side ? this.detour.zG : this.detour.z1;      // (the car park's way: the circuit on the ground keeps its obstacles after the slip road)
       const gone = it => it.z >= a && it.z <= b2 && (OBST[it.kind] || it.kind === 'raceGate' || (up && it.kind === 'coin' && Math.abs(it.x) > 0.2));
       if (w.items.some(gone)) w.items = w.items.filter(it => !gone(it));
     }

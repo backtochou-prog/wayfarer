@@ -47,12 +47,24 @@ const NeonAvenue = {
   // the colours of the quarter of 2455, a tree (trunk and a crown of three balls), and a slot of its park
   const F = { cyan: '#7fe8ff', pink: '#ff5ad8', violet: '#8a5cff', lime: '#9dff7a', leaf: '#3fae5a', leafD: '#2c8448', leafL: '#6fd070' };
   const tree = (x, y, z, r) => [Kit.cyl(r * 0.1, r * 0.16, r * 1.3, x, y, z, '#6a4a36'), Kit.ico(r * 0.62, x, y + r * 1.75, z, F.leaf), Kit.ico(r * 0.46, x + r * 0.42, y + r * 1.45, z + r * 0.25, F.leafD), Kit.ico(r * 0.42, x - r * 0.4, y + r * 1.5, z - r * 0.3, F.leafL)];
-  const park = v => { const L = 12.25, P = [Kit.box(40, 0.3, L, 0, 0, 0, v ? '#2f9450' : '#34a058'), Kit.box(3, 0.06, L, v ? -6 : -8, 0.3, 0, '#d9c9a0'), Kit.box(0.14, 0.1, L, -20, 0.3, 0, F.lime, { glow: true }), Kit.box(0.14, 0.1, L, 20, 0.3, 0, F.lime, { glow: true })];
+  const street = m => { const L = 12.25, PX = m ? 4.3 : 3.2, P = [Kit.box(7.4, 0.5, L, 0, 9, 0, '#232a4a'), Kit.box(0.14, 0.05, L * 0.5, 0, 9.5, 0, F.lime, { glow: true })];
+      if (!m) P.push(Kit.box(7, 0.12, L, 0, 0, 0, '#17152a'), Kit.box(0.12, 0.05, L * 0.5, 0, 0.12, 0, F.cyan, { glow: true })); else P.push(Kit.box(9.2, 0.4, 0.6, 0, 8.6, 0, '#2a3156'));
+      for (const s of [-1, 1]) { P.push(Kit.box(0.14, 0.14, L, s * 3.7, 9.5, 0, s < 0 ? F.cyan : F.pink, { glow: true }), Kit.box(0.08, 0.9, L, s * 3.7, 9.6, 0, '#2f3a66'));
+        if (!((m === 2 && s > 0) || (m === 3 && s < 0))) P.push(Kit.box(0.6, 9, 0.6, s * PX, 0, 0, '#2a3156'));
+        if (!m) P.push(Kit.box(0.14, 0.14, L, s * 3.5, 0.12, 0, F.violet, { glow: true })); }
+      P.push(Kit.box(1.5, 0.9, 3, -1.7, 9.7, 3, '#e8eef6'), Kit.box(1.52, 0.35, 2, -1.7, 10.3, 3, '#1c2a44'), Kit.box(1.2, 0.12, 0.1, -1.7, 9.95, 1.48, '#fff2c0', { glow: true }));
+      if (!m) P.push(Kit.box(1.5, 0.9, 3, 1.7, 0.3, -2, '#ffb050'), Kit.box(1.52, 0.35, 2, 1.7, 0.9, -2, '#1c2a44'), Kit.box(1.2, 0.12, 0.1, 1.7, 0.55, -3.52, '#ff5a6a', { glow: true }));
+      P.push(Kit.box(0.9, 1.0, L, 0, 22, 0, '#c9d2e0'), Kit.box(0.3, 0.12, L, 0, 21.9, 0, F.cyan, { glow: true }));
+      if (m !== 2) P.push(Kit.box(0.7, 23.4, 0.7, 5.2, 0, 0, '#aab4c8'), Kit.box(5.6, 0.6, 0.7, 2.6, 22.9, 0, '#aab4c8'), Kit.box(0.3, 0.3, 0.3, 5.2, 23.5, 0, F.pink, { glow: true }));
+      return Kit.merge(P); };
+  const park = (v, road) => { const L = 12.25, G = v ? '#2f9450' : '#34a058', P = road ? [Kit.box(8, 0.3, L, -16, 0, 0, G), Kit.box(24, 0.3, L, 8, 0, 0, G), Kit.box(0.14, 0.1, L, -12.07, 0.3, 0, F.lime, { glow: true }), Kit.box(0.14, 0.1, L, -3.93, 0.3, 0, F.lime, { glow: true })] : [Kit.box(40, 0.3, L, 0, 0, 0, G), Kit.box(3, 0.06, L, v ? -6 : -8, 0.3, 0, '#d9c9a0')];      // (road: the side road's corridor through the lawn, 8 m wide at x -8, NEON_CORNER.SPARK_M)
+    P.push(Kit.box(0.14, 0.1, L, -20, 0.3, 0, F.lime, { glow: true }), Kit.box(0.14, 0.1, L, 20, 0.3, 0, F.lime, { glow: true }));
     const T = v ? [[-14, 3, 9], [-1, -3, 13], [9, 2, 10], [16, -4, 8]] : [[-15, -3, 8], [-2, 3, 12], [6, -2, 9], [15, 3, 11]];
     for (const [x, z, r] of T) P.push(...tree(x, 0.3, z, r));
     if (v) P.push(Kit.cyl(4.5, 4.5, 0.12, 3, 0.3, 4, '#3aa0c8', { seg: 10 }), Kit.cyl(0.25, 0.25, 0.12, 3, 0.4, 4, '#e8fbff', { glow: true, seg: 6 }));
-    else P.push(Kit.box(5, 0.5, 2, 10, 0.3, 4.5, '#ff7ab8'), Kit.box(5, 0.5, 2, -10, 0.3, 4.5, '#ffd24a'), Kit.box(4, 0.5, 2, 1, 0.3, -5, '#c084ff'));
-    P.push(Kit.box(1.8, 0.45, 0.5, v ? -4 : -6, 0.3, 2, '#e8eef6'), Kit.cyl(0.06, 0.08, 3.2, v ? -8 : -10, 0.3, -3, '#c9d2e0'), Kit.ico(0.3, v ? -8 : -10, 3.7, -3, '#fff2c0', { glow: true }));
+    else P.push(Kit.box(5, 0.5, 2, 10, 0.3, 4.5, '#ff7ab8'), Kit.box(5, 0.5, 2, road ? -16.6 : -10, 0.3, 4.5, '#ffd24a'), Kit.box(4, 0.5, 2, 1, 0.3, -5, '#c084ff'));
+    if (!road) P.push(Kit.box(1.8, 0.45, 0.5, v ? -4 : -6, 0.3, 2, '#e8eef6'), Kit.cyl(0.06, 0.08, 3.2, v ? -8 : -10, 0.3, -3, '#c9d2e0'), Kit.ico(0.3, v ? -8 : -10, 3.7, -3, '#fff2c0', { glow: true }));
+    else P.push(Kit.cyl(0.06, 0.08, 3.2, -12.6, 0.3, -3, '#c9d2e0'), Kit.ico(0.3, -12.6, 3.7, -3, '#fff2c0', { glow: true }), Kit.cyl(0.06, 0.08, 3.2, -3.4, 0.3, 3.4, '#c9d2e0'), Kit.ico(0.3, -3.4, 3.7, 3.4, '#fff2c0', { glow: true }));
     return Kit.merge(P); };
 
   const props = {
@@ -109,6 +121,7 @@ const NeonAvenue = {
         for (const [dx, dz] of [[-0.75, 0], [0.75, 0], [0, 0.75], [0, -0.75]]) P.push(Kit.box(0.4, 0.06, 0.4, x + dx, 0.45, z + dz, '#c8553d'), Kit.box(0.04, 0.45, 0.04, x + dx, 0, z + dz, '#3a3a44'), Kit.box(dx ? 0.05 : 0.4, 0.4, dz ? 0.05 : 0.4, x + dx * 1.25, 0.5, z + dz * 1.25, '#c8553d')); }
       return Kit.merge(P); },
     // the monorail's rail: a concrete beam 12 m over the ground on a pillar, a steel guide on top
+    cnRailSpan: () => Kit.merge([Kit.box(1.4, 1.1, 12.25, 0, 11, 0, '#b8a890'), Kit.box(0.5, 0.25, 12.25, 0, 12.1, 0, '#8a8f99'), Kit.box(1.45, 0.08, 12.25, 0, 10.98, 0, '#ffd27a', { glow: true })]),      // (no pillar: the side road passes under)
     cnRail: () => Kit.merge([Kit.box(1.4, 1.1, 12.25, 0, 11, 0, '#b8a890'), Kit.box(0.5, 0.25, 12.25, 0, 12.1, 0, '#8a8f99'), Kit.box(1.1, 11, 1.1, 0, 0, 0, '#a89880'), Kit.box(2.2, 0.6, 1.6, 0, 10.4, 0, '#a89880'), Kit.box(1.45, 0.08, 12.25, 0, 10.98, 0, '#ffd27a', { glow: true })]),
     // (the user: the first rail is stretched BACK over the bridge and the glass ramp, and fades away among ART CITY's buildings: cnRailF0..9, more and more solid towards the ramp)
     ...Object.fromEntries(Array.from({ length: 10 }, (_, j) => ['cnRailF' + j, () => ({ merged: Kit.merge([Kit.box(0.05, 0.05, 0.05, 0, -60, 0, '#a89880')]), sprite: Kit.merge([Kit.box(1.4, 1.1, 12.25, 0, 11, 0, '#b8a890'), Kit.box(0.5, 0.25, 12.25, 0, 12.1, 0, '#8a8f99'), Kit.box(1.1, 11, 1.1, 0, 0, 0, '#a89880'), Kit.box(2.2, 0.6, 1.6, 0, 10.4, 0, '#a89880'), Kit.box(1.45, 0.08, 12.25, 0, 10.98, 0, '#ffd27a')]).lit,
@@ -125,11 +138,8 @@ const NeonAvenue = {
     // train's back), towers of the future behind it, 2 of every 3 with vertical gardens (67 %), and a park in the middle of the avenue, the breathing point. All local: metres, the ground at y 0.
     // the two-floor street, one slot (its centre at x 0, 7.4 m wide): the ground lane, the upper deck 9 m up on pillars, light along its edges, a few pods; over it the hanging line's beam, 22 m
     // up on a pylon with an arm
-    ftStreet: () => { const L = 12.25, P = [Kit.box(7, 0.12, L, 0, 0, 0, '#17152a'), Kit.box(0.12, 0.05, L * 0.5, 0, 0.12, 0, F.cyan, { glow: true }), Kit.box(7.4, 0.5, L, 0, 9, 0, '#232a4a'), Kit.box(0.14, 0.05, L * 0.5, 0, 9.5, 0, F.lime, { glow: true })];
-      for (const s of [-1, 1]) P.push(Kit.box(0.14, 0.14, L, s * 3.7, 9.5, 0, s < 0 ? F.cyan : F.pink, { glow: true }), Kit.box(0.08, 0.9, L, s * 3.7, 9.6, 0, '#2f3a66'), Kit.box(0.6, 9, 0.6, s * 3.2, 0, 0, '#2a3156'), Kit.box(0.14, 0.14, L, s * 3.5, 0.12, 0, F.violet, { glow: true }));
-      P.push(Kit.box(1.5, 0.9, 3, -1.7, 9.7, 3, '#e8eef6'), Kit.box(1.52, 0.35, 2, -1.7, 10.3, 3, '#1c2a44'), Kit.box(1.2, 0.12, 0.1, -1.7, 9.95, 1.48, '#fff2c0', { glow: true }), Kit.box(1.5, 0.9, 3, 1.7, 0.3, -2, '#ffb050'), Kit.box(1.52, 0.35, 2, 1.7, 0.9, -2, '#1c2a44'), Kit.box(1.2, 0.12, 0.1, 1.7, 0.55, -3.52, '#ff5a6a', { glow: true }));
-      P.push(Kit.box(0.9, 1.0, L, 0, 22, 0, '#c9d2e0'), Kit.box(0.3, 0.12, L, 0, 21.9, 0, F.cyan, { glow: true }), Kit.box(0.7, 23.4, 0.7, 5.2, 0, 0, '#aab4c8'), Kit.box(5.6, 0.6, 0.7, 2.6, 22.9, 0, '#aab4c8'), Kit.box(0.3, 0.3, 0.3, 5.2, 23.5, 0, F.pink, { glow: true }));
-      return Kit.merge(P); },
+    ftStreet: () => street(0),
+    sdStreet: () => street(1), sdStreetO: () => street(2), sdStreetL: () => street(3),      // (the side road runs under the deck: no floor, no pod, the pillars apart; O: open to the right, L: to the left)
     // the hanging train: three white cars under the beam, hung by their roofs (the rail on their back), a dark window band, light under the floor
     // A STATION for every building (the user: no aerial train without stations): a glass platform beside the hanging line, at the cars' floor, a GLASS TUNNEL from it, and at its end
     // THE HALL (the user): a zone of the building under a glass vault, a station of its own (benches, ticket posts, screens, planters, people), with a BIG LIFT in a glass shaft that takes
@@ -164,7 +174,7 @@ const NeonAvenue = {
       { const ex = far - 2, ez = hw + 1.7, S = 3.2;
         for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) P.push(Kit.box(0.18, y + 3.4, 0.18, ex + dx * S / 2, 0, ez + dz * S / 2, '#c9d2e0'));
         for (let yy = 0; yy <= y + 3.4; yy += (y + 3.4) / 5) P.push(Kit.box(S + 0.2, 0.14, S + 0.2, ex, yy, ez, F.cyan, { glow: true }));
-        P.push(Kit.box(S - 0.5, 2.6, S - 0.5, ex, y * 0.45, ez, '#f2f5fa'), Kit.box(S - 0.4, 0.12, S - 0.4, ex, y * 0.45 - 0.1, ez, F.lime, { glow: true }), Kit.box(S - 0.44, 1.0, S - 0.44, ex, y * 0.45 + 1.1, ez, '#16233a'), Kit.box(0.12, 2.4, 1.6, ex - S / 2 - 0.02, 0, ez, F.lime, { glow: true }), Kit.box(4, 0.1, 5, ex - S / 2 - 2, 0.02, ez, '#3a4468'));
+        P.push(Kit.box(S - 0.5, 2.6, S - 0.5, ex, y * 0.45, ez, '#f2f5fa'), Kit.box(S - 0.4, 0.12, S - 0.4, ex, y * 0.45 - 0.1, ez, F.lime, { glow: true }), Kit.box(S - 0.44, 1.0, S - 0.44, ex, y * 0.45 + 1.1, ez, '#16233a'), Kit.box(0.12, 2.4, 1.6, ex - S / 2 - 0.02, 0, ez, F.lime, { glow: true }), Kit.box(2.6, 0.1, 5, ex - S / 2 - 1.3, 0.02, ez, '#3a4468'));
         G.push(Kit.box(S, y + 3.4, 0.08, ex, 0, ez - S / 2, GL), Kit.box(S, y + 3.4, 0.08, ex, 0, ez + S / 2, GL), Kit.box(0.08, y + 3.4, S, ex - S / 2, 0, ez, GL), Kit.box(0.08, y + 3.4, S, ex + S / 2, 0, ez, GL)); }
       return { merged: Kit.merge(P), sprite: Kit.merge(G).lit, material: () => NeonAvenue._stGlass || (NeonAvenue._stGlass = new THREE.MeshBasicMaterial({ color: '#9fe6ff', transparent: true, opacity: 0.3, depthWrite: false, side: THREE.DoubleSide })) }; }])),
     ftRailArm: () => Kit.merge([Kit.box(5.4, 0.35, 0.7, -2.7, 10.05, 0, '#a89880'), Kit.box(0.3, 0.3, 0.72, -5.2, 10.4, 0, '#8a8f99')]),      // the arm that holds the glass track beside the rail
@@ -192,13 +202,14 @@ const NeonAvenue = {
     // THE PARK in the middle of the avenue (the breathing point), one slot, 40 m wide (its centre at x 0): lawn, a pale path, a pond, giant trees whose crowns rise over the high road, flower
     // beds, benches and soft lamps. Two slots that alternate.
     ftParkA: () => park(0), ftParkB: () => park(1),
+    sdParkA: () => park(0, true), sdParkB: () => park(1, true),
     // THE PROTECTION WALL (the user): a dark glass wall standing on the ground on the left of the high road, 2 m from its edge, up to 2 m over its deck (NEON_CORNER.H + 2 m), lit edges
     cnWall: () => { const H = (typeof NEON_CORNER !== 'undefined' ? NEON_CORNER.H / 10 : 14) + 2, L = 12.25, parts = [Kit.box(0.35, H, L, 0, 0, 0, '#1a1438'), Kit.box(0.4, 0.14, L, 0, H, 0, C.pink, { glow: true }), Kit.box(0.4, 0.1, L, 0, H - 2.4, 0, C.cyan, { glow: true })];
       for (const z of [-L / 2 + 0.2, 0]) parts.push(Kit.box(0.42, H, 0.18, 0, 0, z, '#2a2f6a'), Kit.box(0.44, H * 0.9, 0.05, 0, H * 0.05, z, C.violet, { glow: true }));
       return Kit.merge(parts); },
   // THE BRIDGE across the road over the tunnel, under the spiral (ART CITY's last slot): a deck on pillars (foundations), its sides wearing the race zone's ramp picture
     artBridge: () => { const W = 50, y = 12.6, parts = [Kit.box(W, 1.0, 7, 0, y - 1.0, 0, '#22264a'), Kit.box(W, 0.14, 0.14, 0, y, 3.5, C.pink, { glow: true }), Kit.box(W, 0.14, 0.14, 0, y, -3.5, C.cyan, { glow: true })];
-      for (const x of [-21, -15, 12, 20]) parts.push(Kit.box(1.6, y - 1, 1.6, x, 0, 0, C.pillar), Kit.box(1.7, 0.14, 1.7, x, 4, 0, C.pink, { glow: true }));
+      for (const x of [-21, -15, 13.2, 20]) parts.push(Kit.box(1.6, y - 1, 1.6, x, 0, 0, C.pillar), Kit.box(1.7, 0.14, 1.7, x, 4, 0, C.pink, { glow: true }));
       const fasc = [3.52, -3.52].map(z => NeonAvenue.plain([-W / 2, y - 3.2, z], [W / 2, y - 3.2, z], [W / 2, y, z], [-W / 2, y, z]));
       return tex(parts, fasc, () => NeonAvenue.rampMaterial()); },
   });
@@ -347,6 +358,18 @@ const NeonAvenue = {
           if (xm + 3.75 < -4.3) P.push(Kit.box(0.25, 0.75, len, xm + 3.75, 0, zm, '#5a4ad8', { ry }), Kit.box(0.27, 0.08, len, xm + 3.75, 0.75, zm, '#8f7bff', { glow: true, ry }), Kit.box(0.14, 0.02, len, xm + 3.1, 0.06, zm, '#ffffff', { ry })); }
         return Kit.merge(P); };
       props.pkMainRoad = () => Kit.merge([Kit.box(7.2, 0.05, 12.3, 0, 0, 0, '#4a4d58'), Kit.box(0.14, 0.02, 12.3, -3.1, 0.05, 0, '#ffffff'), Kit.box(0.14, 0.02, 12.3, 3.1, 0.05, 0, '#ffffff'), Kit.box(0.12, 0.02, 3, -1.1, 0.05, -3, '#ffffff'), Kit.box(0.12, 0.02, 3, 1.1, 0.05, -3, '#ffffff')]); }
+    // THE SIDE ROAD (the user: a second road at the car park's entrance, beyond the rail, along the buildings and through the park, back on the circuit at the end; "neon asphalt"):
+    // NEON_CORNER.sideM. sdRoad/sdRoadC: one slot of it in ITS OWN frame (C: longer, for the bends); sdSlip k: its first slots in the CIRCUIT's frame (the fork seen before the choice)
+    { const AS = '#1d2550', road = len => () => { const P = [Kit.box(7.5, 0.08, len, 0, 0, 0, AS), Kit.box(0.16, 0.05, len, -3.6, 0.08, 0, C.cyan, { glow: true }), Kit.box(0.16, 0.05, len, 3.6, 0.08, 0, C.pink, { glow: true })];
+        for (const x of [-1.1, 1.1]) for (const z of [-3, 3]) P.push(Kit.box(0.12, 0.02, 2.4, x, 0.08, z, '#9ff4ff', { glow: true })); return Kit.merge(P); };
+      props.sdRoad = road(12.3); props.sdRoadC = road(13.6);
+      if (NC.sideM) for (let k = 0; k < (NC.PIN || 3) + 3; k++) props['sdSlip' + k] = () => { const P = [], n = 8, PN = NC.PIN || 3;
+        for (let a = 0; a < n; a++) { const f0 = a / n, f1 = (a + 1) / n, x0 = NC.sideM(k - PN + f0), x1 = NC.sideM(k - PN + f1), z0 = 6.1 - f0 * 12.2, z1 = 6.1 - f1 * 12.2, xm = (x0 + x1) / 2, zm = (z0 + z1) / 2, len = Math.hypot(x1 - x0, z1 - z0) + 0.06, ry = Math.atan2(x0 - x1, z0 - z1);
+          const xl = Math.max(xm - 3.75, 3.62), xr = xm + 3.75; if (xr > xl + 0.2) P.push(Kit.box(xr - xl, 0.04, len, (xl + xr) / 2, 0.03, zm, AS, { ry: xl > xm - 3.75 ? 0 : ry }));
+          P.push(Kit.box(0.16, 0.05, len, xm + 3.6, 0.07, zm, C.pink, { glow: true, ry }));
+          if (xm - 3.6 > 4.0) P.push(Kit.box(0.16, 0.05, len, xm - 3.6, 0.07, zm, C.cyan, { glow: true, ry }));
+          if (a % 4 === 1) for (const x of [-1.1, 1.1]) if (xm + x > 4.0) P.push(Kit.box(0.12, 0.02, len * 1.4, xm + x, 0.07, zm, '#9ff4ff', { glow: true, ry })); }
+        return Kit.merge(P); }; }
     props.pkHallEnd = () => Kit.merge([Kit.box(HW + X0, CH, 0.3, (X0 - HW) / 2, 0, -6.0, WALL), Kit.box(HW - X1, CH, 0.3, (X1 + HW) / 2, 0, -6.0, WALL), Kit.box(XW, 0.12, 0.34, XM, CH - 0.12, -6.0, C.cyan, { glow: true }),
       Kit.box(1.5, 0.5, 0.1, -4.75, CH - 0.9, -5.8, '#3aa878', { glow: true }), Kit.box(2.6, 0.5, 0.1, 0, CH - 0.9, -5.8, '#3a7bd8', { glow: true })]);
     const TINT = [['#0b0b10', '#121219'], ['#0a0f1c', '#101829'], ['#140a18', '#1d1024'], ['#0a1411', '#0f1d18'], ['#0b0b10', '#131320']];
@@ -392,6 +415,23 @@ const NeonAvenue = {
       if (q < CN) return solo(NeonAvenue.layout(q, rnd, HM).map(p => Object.assign(p, { x: p.x - D, dy: (p.dy || 0) + HM })));          // the circuit on the ground, under the avenue's right side
       const k = q - CN, Hk = d => HM * (1 - e(Math.max(0, Math.min(1, (k + d / 12) / DN)))), sh = d => NeonAvenue.shift(1 - (k + d / 12) / DN);      // the avenue's way down, seen from the circuit it comes down to
       return solo(NeonAvenue.layout(q, rnd, Hk(6)).map(p => { if (/^cnGlassD/.test(p.prop)) p.prop = 'pkGlassD' + k; if (/^cnMainRoadD/.test(p.prop)) return { prop: 'cnMainRoadBare', x: 0.001, dist: 6 }; return Object.assign(p, { x: p.x - sh(p.dist), dy: (p.dy || 0) + Hk(p.dist) }); })); };
+    // slot q of THE SIDE ROAD's way (the runner's road is NEON_CORNER.sideM metres to the right of the circuit on the ground; everything else stands where it stood)
+    NeonAvenue.side = (q, rnd) => { const CN = NC.CANYON, DN = NC.DOWN, PT = NC.PTUBE_M || 12, S = f => NC.sideM(f), s0 = S(q), s1 = S(q + 1), bend = Math.abs(s1 - s0) > 0.01; let o;
+      if (q < CN) o = NeonAvenue.layout(q, rnd, HM).map(p => Object.assign(p, { x: p.x - D, dy: (p.dy || 0) + HM }));
+      else { const k = q - CN, Hk = d => HM * (1 - e(Math.max(0, Math.min(1, (k + d / 12) / DN)))), sh = d => NeonAvenue.shift(1 - (k + d / 12) / DN);
+        o = NeonAvenue.layout(q, rnd, Hk(6)).map(p => { if (/^cnGlassD/.test(p.prop)) p.prop = 'pkGlassD' + k; if (/^cnMainRoadD/.test(p.prop)) return { prop: 'cnMainRoadBare', x: 0.001, dist: 6 }; return Object.assign(p, { x: p.x - sh(p.dist), dy: (p.dy || 0) + Hk(p.dist) }); });
+        if (q <= CN + 3) o = o.filter(p => !TW.includes(p.prop) || p.x < 0); }
+      const mid = Math.floor((15 + CN) / 2), swing = (q >= mid - 9 && q <= mid - 5) || (q >= mid + 5 && q <= mid + 9), open = (q >= mid - 9 && q <= mid - 7) || (q >= mid + 7 && q <= mid + 9), inPark = Math.abs(q - mid) <= 4;
+      if (swing) { o = o.filter(p => !/^ftStation/.test(p.prop)); for (const p of o) if (/^ft(Green|Plain)/.test(p.prop)) p.x = 62; }      // (the user: the buildings step back where the road swings to the park)
+      for (const p of o) {
+        if (p.prop === 'ftStreet' && !inPark) p.prop = open ? 'sdStreetO' : swing ? 'ftStreet' : q >= CN - 3 && q <= CN - 2 ? 'sdStreetL' : 'sdStreet';
+        if (p.prop === 'ftParkA') p.prop = 'sdParkA'; if (p.prop === 'ftParkB') p.prop = 'sdParkB';
+        if (p.prop === 'cnRail' && (q === 0 || q === CN - 1)) p.prop = 'cnRailSpan'; }
+      if (q < 3) { o.push({ prop: 'pkTubeDv' + q, x: -PT, dist: 6, rotY: Math.PI }); if (q === 0) o.push({ prop: 'pkTubeMouth', x: -PT, dist: 6, rotY: Math.PI }); }
+      if (q >= 4 && q <= 14 && q % 2 === 0) o.push({ prop: 'cnPlanter', x: 31.4, dist: 6 });                                         // (green beside the road before the street begins)
+      for (const p of o) { const nx = p.x - (s0 + (s1 - s0) * p.dist / 12); if ((p.x < 0) !== (nx < 0)) p.rotY = (p.rotY || 0) + Math.PI; p.x = nx || 0.001; p.rotY = (p.rotY || 0) + Math.atan((s1 - s0) / 12); }
+      o.push({ prop: bend ? 'sdRoadC' : 'sdRoad', x: 0.001, dist: 6 });
+      for (const p of o) p.solo = true; return o; };
   }
   NeonAvenue.props = props;
   if (ENV3D.neon) Object.assign(ENV3D.neon.props, props);
