@@ -224,8 +224,8 @@ const NeonAvenue = {
     Kit.box(0.25, 0.75, 12.3, -3.75, 0, 0, '#5a4ad8'), Kit.box(0.27, 0.08, 12.3, -3.75, 0.75, 0, '#8f7bff', { glow: true }), Kit.box(0.25, 0.75, 12.3, 3.75, 0, 0, '#5a4ad8'), Kit.box(0.27, 0.08, 12.3, 3.75, 0.75, 0, '#8f7bff', { glow: true })]);
 
   // (the user, "sans goudron": under the avenue the circuit has no asphalt, only its lines and its barriers on the floor)
-  props.cnMainRoadBare = () => Kit.merge([Kit.box(0.14, 0.02, 12.3, -3.1, 0.03, 0, '#ffffff'), Kit.box(0.14, 0.02, 12.3, 3.1, 0.03, 0, '#ffffff'), Kit.box(0.12, 0.02, 3, -1.1, 0.03, -3, '#ffffff'), Kit.box(0.12, 0.02, 3, 1.1, 0.03, -3, '#ffffff'),
-    Kit.box(0.25, 0.75, 12.3, -3.75, 0, 0, '#5a4ad8'), Kit.box(0.27, 0.08, 12.3, -3.75, 0.75, 0, '#8f7bff', { glow: true }), Kit.box(0.25, 0.75, 12.3, 3.75, 0, 0, '#5a4ad8'), Kit.box(0.27, 0.08, 12.3, 3.75, 0.75, 0, '#8f7bff', { glow: true })]);
+  // (the user, 2026-11-20, "enlever les lines": no edge lines and no rails on the tiled floor, only the lane dashes)
+  props.cnMainRoadBare = () => Kit.merge([Kit.box(0.12, 0.02, 3, -1.1, 0.03, -3, '#ffffff'), Kit.box(0.12, 0.02, 3, 1.1, 0.03, -3, '#ffffff')]);
   // (the user: the circuit beside the ramp was a staircase of straight pieces; each slot's piece is now bent along the curve, cnMainRoadU0.. on the way up, cnMainRoadD0.. on the way down)
   { const bend = (k, n, dir) => () => { const m = props.cnMainRoad(), f = z => NeonAvenue.shift(dir > 0 ? (k + (6 - z) / 12.2) / n : 1 - (k + (6 - z) / 12.2) / n), c = f(0);
       for (const g of [m.lit, m.glow]) if (g) { const P = g.attributes.position; for (let i = 0; i < P.count; i++) P.setX(i, P.getX(i) + f(P.getZ(i)) - c); P.needsUpdate = true; g.computeBoundingSphere(); g.computeBoundingBox(); }
@@ -318,7 +318,7 @@ const NeonAvenue = {
   // THE CAR PARK under the avenue (the user: "the tunnel's entrance is the entrance of two tunnels; after 100 m underground, a big car park under the tiled floor, then a ramp and stairs
   // up to the tiled floor"). NEON_CORNER.PARK: the second tunnel goes down like the first, opens on the car park (pkHall*, PARK slots), and a ramp with stairs on its left (pkRise0..) climbs
   // through an open trench in the tiled floor, POFF_M m to the left of the circuit on the ground; a slip road (PMERGE slots, the avenue's long props bent: pk<name>k) joins that circuit.
-  { const NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : { DIVE: 6, PARK: 8, PRISE: 6, PMERGE: 4, POFF_M: 8.2, DEPTH: 120, CANYON: 70, DOWN: 6 }, PD = NC.DEPTH / 10, PR = NC.PRISE, PM = NC.PMERGE, OFF = NC.POFF_M, L = 12.2, D = NeonAvenue.D, CH = 5.4, HW = 21;
+  { const NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : { DIVE: 6, PARK: 8, PRISE: 6, PMERGE: 4, POFF_M: 8.2, DEPTH: 120, CANYON: 70, DOWN: 6 }, PD = NC.DEPTH / 10, PR = NC.PRISE, PM = NC.PMERGE, OFF = NC.POFF_M, L = 12.2, D = NeonAvenue.D, CH = 5.4, HW = 34;      // (the user, 2026-11-20: a vaster and longer car park: four rows a side, PARK 16)
     const X0 = -5.85, X1 = 4.1, XM = (X0 + X1) / 2, XW = X1 - X0, WALL = '#262a38', SLAB = '#3a3d46';      // (the trench: the stairs on the left, the ramp, between two walls)
     const gy = (k, f) => PD * (1 - e(Math.max(0, Math.min(1, (k + f) / PR))));                             // the tiled floor's height over the ramp, slot k, fraction f
     NeonAvenue.PK = { q0: NC.DIVE + NC.PARK, n: PR, x: D - OFF };
@@ -326,12 +326,13 @@ const NeonAvenue = {
     const car = (x, z, col, s) => [Kit.box(4.2, 0.75, 1.8, x, 0.25, z, col), Kit.box(2.2, 0.6, 1.6, x + s * 0.3, 1.0, z, '#1a2030'), Kit.box(0.08, 0.16, 1.4, x - s * 2.1, 0.62, z, '#fff2c0', { glow: true })];
     const hall = v => () => { const P = [Kit.box(2 * HW, 0.2, L + 0.05, 0, -0.2, 0, '#30333c'), Kit.box(2 * HW, 0.4, L + 0.05, 0, CH, 0, '#1b1d26'), Kit.box(0.25, 0.02, 2.4, 0, 0, 0.6, '#ffffff'), Kit.box(0.25, 0.02, 1.3, 0.42, 0, -0.75, '#ffffff', { ry: -0.7 }), Kit.box(0.25, 0.02, 1.3, -0.42, 0, -0.75, '#ffffff', { ry: 0.7 })];
       for (const s of [-1, 1]) { P.push(Kit.box(0.4, CH, L + 0.05, s * HW, 0, 0, WALL), Kit.box(0.44, 0.5, L, s * (HW - 0.02), 1.6, 0, s < 0 ? '#3a7bd8' : '#ff8a3a'), Kit.box(0.14, 0.02, L, s * 3.6, 0, 0, '#ffffff'),
-          Kit.box(0.5, 0.08, 9, s * 3.4, CH - 0.08, 0, '#eaf6ff', { glow: true }), Kit.box(0.5, 0.08, 9, s * 14, CH - 0.08, 0, '#eaf6ff', { glow: true }),
+          Kit.box(0.5, 0.08, 9, s * 3.4, CH - 0.08, 0, '#eaf6ff', { glow: true }), Kit.box(0.5, 0.08, 9, s * 14, CH - 0.08, 0, '#eaf6ff', { glow: true }), Kit.box(0.5, 0.08, 9, s * 26.8, CH - 0.08, 0, '#eaf6ff', { glow: true }),
+          Kit.box(0.8, CH, 0.8, s * 19, 0, 0, '#4a4d58'), Kit.box(0.84, 0.5, 0.84, s * 19, 0.9, 0, '#f0c020'),
           Kit.box(0.8, CH, 0.8, s * 10.8, 0, 0, '#4a4d58'), Kit.box(0.84, 0.5, 0.84, s * 10.8, 0.9, 0, '#f0c020'));
-        for (const row of [0, 1]) { const xc = s * (row ? 15.5 : 6.9), green = v && s < 0 && row;
+        for (const row of [0, 1, 2, 3]) { const xc = s * [6.9, 15.5, 22.5, 31.1][row], green = (v && s < 0 && row === 1) || (!v && s > 0 && row === 3) || (v && s > 0 && row === 2);
           if (green) { P.push(Kit.box(5, 0.6, 8, xc, 0, 0, '#8a8a90'), Kit.box(4.6, 0.1, 7.6, xc, 0.56, 0, '#3a2a1c'), Kit.box(4.6, 0.1, 7.6, xc, CH - 0.06, 0, '#fff6d8', { glow: true }), ...tree(xc, 0.6, 0, 2.1), Kit.ico(0.9, xc - 1.2, 0.6, 2.6, F.leafL), Kit.ico(0.8, xc + 1.1, 0.6, -2.7, F.leafD), Kit.ico(0.35, xc + 1.4, 0.9, 2.4, '#ff7ab8'), Kit.ico(0.35, xc - 1.3, 0.9, -2.2, '#ffd24a')); continue; }
           for (let b = 0; b < 4; b++) { const z = -L / 2 + b * L / 4; P.push(Kit.box(5, 0.02, 0.12, xc, 0, z + 0.06, '#ffffff'));
-            if ((b * 7 + v * 3 + (s > 0 ? 5 : 0) + row * 2) % 5 < 3) P.push(...car(xc, z + L / 8, COLS[(b + v * 2 + row * 3 + (s > 0 ? 4 : 0)) % 7], row ? -s : s)); } } }
+            if ((b * 7 + v * 3 + (s > 0 ? 5 : 0) + row * 2) % 5 < 3) P.push(...car(xc, z + L / 8, COLS[(b + v * 2 + row * 3 + (s > 0 ? 4 : 0)) % 7], row % 2 ? -s : s)); } } }
       return Kit.merge(P); };
     props.pkHallA = hall(0); props.pkHallB = hall(1);
     // the hall's two ends: the tunnel comes in through a wall; at the far end the ramp and the stairs leave through an opening
@@ -368,7 +369,7 @@ const NeonAvenue = {
       props['pkTop' + k] = () => Kit.merge([...rim(0, k), Kit.box(XW - 0.3, 0.03, L, XM, 0.045, 0, k === PR - 1 ? SLAB : k === PR - 2 ? '#1c1e26' : '#050507'), ...(k >= PR - 2 ? [Kit.box(0.14, 0.02, L, -3.4, 0.08, 0, '#ffffff'), Kit.box(0.14, 0.02, L, 3.4, 0.08, 0, '#ffffff'), Kit.box(1.8, 0.03, L, -4.65, 0.08, 0, '#a4a8b2')] : [])]); }
     // the runner's own lane on the tiles after the ramp, the circuit without its left barrier (the slip road opens into it), the car park's sign
     props.pkLane = () => Kit.merge([Kit.box(0.14, 0.02, L, -3.4, 0.03, 0, '#ffffff'), Kit.box(0.14, 0.02, L, 3.4, 0.03, 0, '#ffffff'), Kit.box(0.12, 0.02, 3, 0, 0.03, -3, '#ffffff')]);
-    props.cnMainRoadBareR = () => Kit.merge([Kit.box(0.14, 0.02, 12.3, 3.1, 0.03, 0, '#ffffff'), Kit.box(0.12, 0.02, 3, -1.1, 0.03, -3, '#ffffff'), Kit.box(0.12, 0.02, 3, 1.1, 0.03, -3, '#ffffff'), Kit.box(0.25, 0.75, 12.3, 3.75, 0, 0, '#5a4ad8'), Kit.box(0.27, 0.08, 12.3, 3.75, 0.75, 0, '#8f7bff', { glow: true })]);
+    props.cnMainRoadBareR = () => Kit.merge([Kit.box(0.12, 0.02, 3, -1.1, 0.03, -3, '#ffffff'), Kit.box(0.12, 0.02, 3, 1.1, 0.03, -3, '#ffffff')]);
     props.pkSign = () => { const P = [Kit.box(0.14, 3.2, 0.14, 0, 0, 0, '#c9d2e0'), Kit.box(1.7, 2.3, 0.1, 0, 3.2, 0, '#1f5fd0')];      // (a blue panel, a white P and an arrow to the left, readable from both faces)
       for (const s of [1, -1]) { P.push(Kit.box(1.5, 2.1, 0.02, 0, 3.3, s * 0.06, '#2f7bff', { glow: true }));
         for (const [w, h, x, y, rz] of [[0.16, 0.9, -0.25, 4.3, 0], [0.5, 0.14, 0, 5.06, 0], [0.5, 0.14, 0, 4.66, 0], [0.14, 0.5, 0.25, 4.68, 0], [0.9, 0.14, 0.05, 3.7, 0], [0.14, 0.5, -0.3, 3.62, 0.8], [0.14, 0.5, -0.3, 3.4, -0.8]]) P.push(Kit.box(w, h, 0.02, s * x, y, s * 0.09, '#ffffff', { glow: true, rz: s * rz })); }

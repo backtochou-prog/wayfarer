@@ -119,7 +119,7 @@ const NEON_CORNER = {
   // THE CAR PARK (the user: "the entrance of the tunnel is the entrance of two tunnels"): a runner in the LEFT lane at the tunnel's mouth takes the second tunnel. It goes down like the first
   // (the same DIVE), opens on a big car park under the tiled floor of the avenue (PARK slots, about 100 m), then a ramp with stairs beside it (PRISE slots) climbs back to the tiled floor,
   // POFF_M metres to the left of the circuit, and a slip road (PMERGE slots) joins the circuit that runs on the ground all along under the avenue, to the way down and the short tunnel back.
-  PARK: 8, PRISE: 6, PMERGE: 4, POFF_M: 8.2,
+  PARK: 16, PRISE: 6, PMERGE: 4, POFF_M: 8.2,
   // ITS OWN TUBE (the user: "a real tube"): the choice is made PIN slots before the mouth; a slip road leaves the circuit to the left there and enters a smaller tube whose axis is
   // PTUBE_M metres to the left of the big one (off, below); inside, on the way down, the road comes back under the circuit's line.
   PIN: 3, PTUBE_M: 12,
