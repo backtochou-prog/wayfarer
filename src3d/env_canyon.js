@@ -393,6 +393,10 @@ const NeonAvenue = {
     // the runner's own lane on the tiles after the ramp, the circuit without its left barrier (the slip road opens into it), the car park's sign
     props.pkLane = () => Kit.merge([Kit.box(0.14, 0.02, L, -3.4, 0.03, 0, '#ffffff'), Kit.box(0.14, 0.02, L, 3.4, 0.03, 0, '#ffffff'), Kit.box(0.12, 0.02, 3, 0, 0.03, -3, '#ffffff')]);
     props.cnMainRoadBareR = () => Kit.merge([Kit.box(0.12, 0.02, 3, -1.1, 0.03, -3, '#ffffff'), Kit.box(0.12, 0.02, 3, 1.1, 0.03, -3, '#ffffff')]);
+    props.sdSign = () => { const P = [Kit.box(0.14, 3.2, 0.14, 0, 0, 0, '#c9d2e0'), Kit.box(2.3, 2.3, 0.1, 0, 3.2, 0, '#12203a')];      // (the side road's sign: two cyan arrows to the right on a dark panel with a pink rim, readable from both faces)
+      for (const s of [1, -1]) { P.push(Kit.box(2.1, 2.1, 0.02, 0, 3.3, s * 0.06, '#1d2550', { glow: true }), Kit.box(2.3, 0.1, 0.02, 0, 3.2, s * 0.07, '#ff5ad8', { glow: true }), Kit.box(2.3, 0.1, 0.02, 0, 5.4, s * 0.07, '#ff5ad8', { glow: true }));
+        for (const y of [3.75, 4.65]) for (const [w, h, x, yy, rz] of [[1.2, 0.16, -0.05, y + 0.1, 0], [0.16, 0.6, 0.42, y - 0.02, 0.8], [0.16, 0.6, 0.42, y - 0.3, -0.8]]) P.push(Kit.box(w, h, 0.02, s * x, yy, s * 0.09, '#9ff4ff', { glow: true, rz: s * rz })); }
+      return Kit.merge(P); };
     props.pkSign = () => { const P = [Kit.box(0.14, 3.2, 0.14, 0, 0, 0, '#c9d2e0'), Kit.box(1.7, 2.3, 0.1, 0, 3.2, 0, '#1f5fd0')];      // (a blue panel, a white P and an arrow to the left, readable from both faces)
       for (const s of [1, -1]) { P.push(Kit.box(1.5, 2.1, 0.02, 0, 3.3, s * 0.06, '#2f7bff', { glow: true }));
         for (const [w, h, x, y, rz] of [[0.16, 0.9, -0.25, 4.3, 0], [0.5, 0.14, 0, 5.06, 0], [0.5, 0.14, 0, 4.66, 0], [0.14, 0.5, 0.25, 4.68, 0], [0.9, 0.14, 0.05, 3.7, 0], [0.14, 0.5, -0.3, 3.62, 0.8], [0.14, 0.5, -0.3, 3.4, -0.8]]) P.push(Kit.box(w, h, 0.02, s * x, y, s * 0.09, '#ffffff', { glow: true, rz: s * rz })); }

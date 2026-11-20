@@ -141,6 +141,7 @@ const ArtCity = {
         for (const o of out) { const nx = o.x + s0 + (s1 - s0) * o.dist / 12; if (o.x < 0 && nx >= 0) o.rotY = (o.rotY || 0) + Math.PI; o.x = nx; o.rotY = (o.rotY || 0) + rot; }
       }
     }
+    if (!up && PN && typeof NeonAvenue !== 'undefined' && NEON_CORNER.sideM && !(det && det.park)) { if (r === N - PN - 3) out.push({ prop: 'sdSign', x: 5.3, dist: 6 }); if (r === N - PN - 1) out.push({ prop: 'sdSign', x: 5.3, dist: 3 }); }      // (the user did not see the fork: two signs before it, on the right)
     if (!up && PN && r >= N - PN && typeof NeonAvenue !== 'undefined' && NEON_CORNER.sideM) {                // THE SIDE ROAD (the user): it leaves the circuit to the right over the same slots, beyond the rail
       const k = r - (N - PN), SM = f => NEON_CORNER.sideM(f - PN);
       for (let n = out.length - 1; n >= 0; n--) if ((out[n].prop === 'artRail' && out[n].x > 0 && !(det && det.park)) || (k === 0 && out[n].x > 4 && BLD.includes(out[n].prop))) out.splice(n, 1);
