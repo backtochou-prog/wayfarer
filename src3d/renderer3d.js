@@ -130,7 +130,7 @@ class Renderer3D {
     }
     this.droppedBy = {}; this.dropped = 0;                 // props skipped because a pool was full (should stay 0)
     this.layouts = {}; for (const id of Object.keys(envs)) if (envs[id].layout) this.layouts[id] = new Map();   // per biome: slot -> cached placements
-    this.slotCache = []; for (let i = 0; i < 20; i++) this.slotCache.push({ i: -1e9, ver: -1, mid: null, a: null, b: null });   // track bands per scenery slot (middle / start / end), reused until the track changes
+    this.slotCache = []; for (let i = 0; i < 32; i++) this.slotCache.push({ i: -1e9, ver: -1, mid: null, a: null, b: null });   // track bands per scenery slot (middle / start / end), reused until the track changes
     this.items = new Items3D(this.scene);
     this.fx = new Fx3D(this.scene);
     this.saucers = typeof Saucer3D !== 'undefined' ? new Saucer3D(this.scene) : null;                  // the flying saucers of the coastal town (one per landing pad in view)
@@ -419,11 +419,13 @@ class Renderer3D {
     // ---- scenery: slots of SEG_LEN, per road and side; the biome of each side is chosen by the blend at that spot
     for (const k in this.propUsed) this.propUsed[k] = 0;
     this.spots.length = 0;
-    const i0 = Math.floor(rz / SL) - 2, i1 = i0 + TRACK3D.SLOTS - 1;
+    // (the user: "all the structures in this zone appear late": on the NEON AVENUE and its side roads, whose fog is far away (280 m), the scenery lives FAR_SLOTS slots, 250 m ahead instead of 150)
+    const farZone = typeof NEON_CORNER !== 'undefined' && g.detour && (g.detour.up || g.detour.park || g.detour.side) && g.detour.decided && p.z > g.detour.z0 + (NEON_CORNER.STREET + NEON_CORNER.TUNNEL + NEON_CORNER.ART - 10) * NEON_CORNER.SLOT;
+    const i0 = Math.floor(rz / SL) - 2, i1 = i0 + (farZone ? 24 : TRACK3D.SLOTS) - 1;
     this.doorsNow = []; this.padsNow = [];                    // the doors placed this frame (for the runner's journey) and the landing pads (for the saucers)
     { const tp = w.pieces.find(q => q.type === 'fork' && q.fork.tube && rz < (q.fe + q.fork.tube.len) * U.Z + 600 && rz > q.z0 * U.Z - 3000); this.tubeCut = tp ? [Math.ceil(tp.fe * U.Z / SL) * SL, Math.floor((tp.fe + tp.fork.tube.len) * U.Z / SL) * SL] : null; }
     for (let i = i0; i <= i1; i++) {
-      const zs = i * SL, sc = this.slotCache[((i % 20) + 20) % 20];
+      const zs = i * SL, sc = this.slotCache[((i % 32) + 32) % 32];
       if (sc.i !== i || sc.ver !== w.ver) { sc.i = i; sc.ver = w.ver; sc.mid = w.bandsAt((zs + SL / 2) / U.Z); sc.a = w.bandsAt(zs / U.Z); sc.b = w.bandsAt((zs + SL) / U.Z); }
       const bands = sc.mid, two = bands.length > 1 && !hide, qk = two && bands[0].lifted;          // qk: a junction with a raised road (the upper circuit of Utrecht)
       for (let bi = 0; bi < bands.length; bi++) {
