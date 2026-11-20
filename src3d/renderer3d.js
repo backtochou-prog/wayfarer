@@ -369,7 +369,7 @@ class Renderer3D {
     { const rf = w.riseFork(p.z); this.groundPivot.position.y = -0.03 - (rf && rf.fork.rise && rf.choice === rf.fork.rise.side ? w.riseAt(rf, p.z) * U.Z : 0); }       // (on the raised road, the upper circuit of Utrecht, the ground is the level of the water: 3.45 m under the runner)
     if (w.extraLift) { const el = w.extraLift(p.z) * U.Z; this.groundPivot.position.y = -0.03 - el; this.groundBack.position.y = -0.03 - el; this.groundPivot.rotation.x = 0; }      // (the glass ramps of ART CITY and the underground tunnel: the ground stays flat at street level, under or over the road; it was reset by the line above)
     else this.groundBack.position.y = -0.03;
-    this.groundPivot.visible = this.groundBack.visible = !(g.detour && g.detour.park && w.extraLift && w.extraLift(p.z) < -0.5);      // (the car park and its open ramp are under the ground: the far ground would lie over them)
+    const under = !!(g.detour && (g.detour.park || g.detour.down) && w.extraLift && (w.extraLift(p.z) < -0.02 || w.extraLift(p.z + 600) < -0.02));      // (the underground tunnel, the car park and its open ramp are under the ground: the far ground, which stays at street level, would lie over the road)
     // under the sea: the coast road beside the tunnel is not seen once the runner is deep (hide = the side of the junction not drawn); the surface of the sea is a plane at the sea's own height over the tunnel, from mouth
     // to mouth, but only visible where the road under it is deep (its alpha follows the depth: the entrance and its surroundings stay dry), seen from above on the way down and up and from below in the deep
     const depthM = w.seaDepth(p.z) * U.Z, hide = depthM >= 3.5 ? -1 : 0; this.road.hide = hide; this.hide = hide;
@@ -381,7 +381,7 @@ class Renderer3D {
     // THE CANAL BETWEEN THE TWO DOORS of a passage (Portal): from the entry door to the exit door the houses, the road and the ground are not drawn: a tube of pink light joins the two spirals
     let cut = null; if (g.portal && typeof PortalArt !== 'undefined') for (const q of g.portal.list) if (p.z > q.zIn - 1200 && p.z < q.zOut + 100) { cut = [q.zIn * U.Z, q.zOut * U.Z]; break; }
     this.road.cut = cut; this.cut = cut; this.road.art = this.artRange(g); this.road.cny = this.canyonRange(g);                    // (ART CITY's road is grey with white lines: Road3D.palBand)
-    this.groundPivot.visible = this.groundBack.visible = !(cut && rz - 7.5 > cut[0] && rz - 7.5 < cut[1]);
+    this.groundPivot.visible = this.groundBack.visible = !under && !(cut && rz - 7.5 > cut[0] && rz - 7.5 < cut[1]);
     if (!this.tubeSegs && typeof PortalArt !== 'undefined') { this.tubeSegs = []; for (let k = 0; k < 16; k++) { const geo = new THREE.CylinderGeometry(5.5, 5.5, 5.2, 28, 1, true); geo.rotateX(Math.PI / 2); const m = new THREE.Mesh(geo, PortalArt.tubeMaterial()); m.visible = false; m.frustumCulled = false; this.scene.add(m); this.tubeSegs.push(m); } }
     if (this.tubeSegs) {
       const T = this.tubeSegs, mat = PortalArt.tubeMaterial(); for (const m of T) m.visible = false;
