@@ -257,7 +257,7 @@ const NeonAvenue = {
   // real volume at its own depth (the big screen towers in front, the twin towers with their stepped crowns and spires at the back, the low city between them, the two roofed pavilions and
   // palms in front); the picture itself is projected on them from the front, so each building wears exactly its own part of it (sides and tops darker). Measures: the picture is 165 m wide
   // and 110 m tall, its smeared bottom 9 m under the ground. A far group of its own (the renderer places it, seen from 390 m: Renderer3D "skies"), at the slots SKY_Q, SKY_X m to the right.
-  NeonAvenue.SKY_Q = [54]; NeonAvenue.SKY_X = 140; NeonAvenue.SKY_S = 75.6 / 110;      // (the user: at the scale of the towers of the left, the tallest 75.6 m like theirs; as far beyond the rail as
+  NeonAvenue.SKY_Q = [54]; NeonAvenue.SKY_X = 114; NeonAvenue.SKY_S = 75.6 / 110;      // (the user: at the scale of the towers of the left, the tallest 75.6 m like theirs; as far beyond the rail as
   // theirs stand from the road, 20 m: its nearest corner 52 m from the road's centre; the first of the two cities removed)
   NeonAvenue.skyMesh = () => {
     const H = 110, W = H * SKYLINE_ART.w / SKYLINE_ART.h, SINK = 9, X = px => (px / 2000 - 0.5) * W, Y = py => (1 - py / 1333) * H - SINK, M = W / 2000, geos = [];
@@ -266,7 +266,7 @@ const NeonAvenue = {
     const cyl = (cx, r0, r1, y0, y1, z, seg) => add(new THREE.CylinderGeometry(r1 * M, r0 * M, Y(y1) - Y(y0), seg || 12), X(cx), (Y(y0) + Y(y1)) / 2, z);
     const poly = (pts, z, d) => { const sh = new THREE.Shape(); pts.forEach((q, k) => k ? sh.lineTo(X(q[0]), Y(q[1])) : sh.moveTo(X(q[0]), Y(q[1]))); add(new THREE.ExtrudeGeometry(sh, { depth: d, bevelEnabled: false }), 0, 0, z - d); };
     // the front row: the big screen towers of both edges
-    box(55, 232, 70, 22); box(232, 316, 0, 18, 10); box(316, 440, 60, 14);
+    box(55, 232, 70, 22); box(232, 316, 0, 18, 10);      // (the third screen tower, 316..440, stood where THE SQUARE TUNNEL passes: removed)
     box(1545, 1890, 0, 22, 18); box(1452, 1548, 0, 15, 8); box(1830, 2000, 0, 12, 12);
     // the middle: the cyan screen block, the round screen tower, the two spire towers
     box(655, 762, 600, 0); cyl(1283, 78, 78, 1333, 300, 0, 16); cyl(1283, 78, 40, 300, 270, 0, 16);
@@ -275,8 +275,8 @@ const NeonAvenue = {
     box(430, 1452, 1010, -16, 10);
     // (the user: the twin towers are removed)
     // the two roofed pavilions in front (their roof lines), and palms standing before them (their colours taken from the picture's own palms)
-    poly([[0, 790], [110, 800], [430, 1060], [430, 1333], [0, 1333]], 36, 12); poly([[2000, 960], [1600, 1170], [1600, 1333], [2000, 1333]], 36, 12);
-    for (const [px, z, hh] of [[600, 44, 13], [1470, 44, 15], [760, 30, 11], [1340, 30, 12]]) { const x = X(px);
+    poly([[0, 790], [110, 800], [385, 1023], [385, 1333], [0, 1333]], 36, 12); poly([[2000, 960], [1600, 1170], [1600, 1333], [2000, 1333]], 36, 12);
+    for (const [px, z, hh] of [[900, 44, 13], [1470, 44, 15], [760, 30, 11], [1340, 30, 12]]) { const x = X(px);
       add(new THREE.CylinderGeometry(0.28, 0.45, hh, 6), x, hh / 2, z, [1420, 1100]);
       for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2, g = new THREE.ConeGeometry(0.9, 6.5, 4); g.scale(1, 1, 0.25); g.rotateZ(-Math.PI / 2 + 0.5); g.translate(2.6, -0.9, 0); g.rotateY(a); add(g, x, hh, z, k % 2 ? [640, 960] : [1500, 930]); } }
     // one geometry: the picture projected from the front (uv from x and y), faces that do not look to the front darker
@@ -400,23 +400,23 @@ const NeonAvenue = {
       if (NC.glass2W) for (let k = 0; k < NC.CANYON + NC.DOWN - NC.G2Q; k++) props['sgHigh' + k] = ramp(NC.G2Q + k, k, f => NC.glass2W(f), f => NC.glass2H(f), true);
       // THE SQUARE TUNNEL (SQUARE: as high as it is wide, the user: "Tunnel carré !"; the user's picture: blue walls with violet rings, a ceiling with its line of light, the dark red floor with pink rings between two black bands, green strips in the
       // corners, a cyan frame at the mouth): vast, on pillars at the high ramp's 7 m; the ramp is its pedestrian lane, on the left; a platform and a standing train on the right.
-      if (NC.G2TN && typeof STTUNNEL_ASSETS !== 'undefined') for (let k = 0; k < NC.G2TN; k++) props['sgTun' + k] = () => { const XL = 53.5, XR = 67.5, XM = (XL + XR) / 2, WD = XR - XL, Y = 6.9, HT = XR - XL, YC = Y + HT, P = [], sk = [], T = STTUNNEL_ASSETS, Q = NeonAvenue.quad, zf = k % 2 ? 6 : -6, zn = -zf, wall = '#141a5c', lite = '#9ff4ff', green = '#35ff2e';
-        P.push(Kit.box(WD + 0.8, 0.4, 12, XM, Y - 0.4, 0, '#0a0a14'), Kit.box(0.4, HT + 0.8, 12, XL - 0.2, Y - 0.4, 0, wall), Kit.box(0.4, HT + 0.8, 12, XR + 0.2, Y - 0.4, 0, wall), Kit.box(WD + 0.8, 0.4, 12, XM, YC, 0, wall));      // the shell
+      if (NC.G2TN && typeof STTUNNEL_ASSETS !== 'undefined') for (let k = 0; k < NC.G2TN; k++) props['sgTun' + k] = () => { const XL = NC.G2TX, WD = 12, XR = XL + WD, XM = XL + WD / 2, Y = 6.9, HT = WD, YC = Y + HT, P = [], sk = [], T = STTUNNEL_ASSETS, Q = NeonAvenue.quad, zf = k % 2 ? 6 : -6, zn = -zf, wall = '#141a5c', lite = '#9ff4ff', green = '#35ff2e', B = (w, h, d, x, y, z, c, o) => Kit.box(w, h, d, XL + x, y, z, c, o);
+        P.push(B(WD + 0.8, 0.4, 12, WD / 2, Y - 0.4, 0, '#0a0a14'), B(0.4, HT + 0.8, 12, -0.2, Y - 0.4, 0, wall), B(0.4, HT + 0.8, 12, WD + 0.2, Y - 0.4, 0, wall), B(WD + 0.8, 0.4, 12, WD / 2, YC, 0, wall));      // the shell
         sk.push(Q(T, 'wallL', [XL + 0.03, Y, zf], [XL + 0.03, Y, zn], [XL + 0.03, YC, zn], [XL + 0.03, YC, zf]), Q(T, 'wallR', [XR - 0.03, Y, zf], [XR - 0.03, Y, zn], [XR - 0.03, YC, zn], [XR - 0.03, YC, zf]));      // (the faces mirror from one slot to the next, so the rings join)
         sk.push(Q(T, 'ceil', [XL, YC - 0.03, zn], [XR, YC - 0.03, zn], [XR, YC - 0.03, zf], [XL, YC - 0.03, zf]));
-        for (const z of [6, 0]) sk.push(Q(T, 'floor', [55.2, Y + 0.01, z], [59.8, Y + 0.01, z], [59.8, Y + 0.01, z - 6], [55.2, Y + 0.01, z - 6]));                                                            // the red floor, under the glass of the ramp
-        P.push(Kit.box(1.7, 0.12, 12, 54.35, Y, 0, '#000000'), Kit.box(1.7, 0.12, 12, 60.65, Y, 0, '#000000'));                                                                                                // the two black bands
-        for (const x of [XL + 0.2, XR - 0.2]) P.push(Kit.box(0.3, 0.3, 12, x, YC - 0.36, 0, green, { glow: true }));                                                                                           // the green strips
-        P.push(Kit.box(2.8, 0.3, 12, 62.9, Y, 0, '#23285e'), Kit.box(0.15, 0.04, 12, 64.2, Y + 0.3, 0, lite, { glow: true }), Kit.box(0.5, 0.02, 12, 63.8, Y + 0.3, 0, '#ffd23a'));                           // THE STATION: the platform, its lit edge
-        for (const x of [65.2, 66.6]) P.push(Kit.box(0.12, 0.14, 12, x, Y, 0, '#8a94a8'));                                                                                                                    // the rails
-        P.push(Kit.box(2.5, 3.0, 11.4, 65.9, Y + 0.3, 0, '#f2f5fa'), Kit.box(2.56, 1.0, 10.6, 65.9, Y + 1.6, 0, '#16233a'), Kit.box(2.2, 0.12, 10.9, 65.9, Y + 0.2, 0, C.cyan, { glow: true }), Kit.box(2.6, 0.2, 11.4, 65.9, Y + 3.3, 0, '#d6dce8'));      // the train, standing
-        for (const z of [-3.2, 3.2]) P.push(Kit.box(0.06, 1.9, 1.3, 64.63, Y + 0.5, z, C.pink, { glow: true }));                                                                                              // (its doors)
-        P.push(Kit.box(1.6, 0.5, 1.6, 62.6, Y + 0.3, 3, '#8a8a90'), Kit.box(1.3, 0.8, 1.3, 62.6, Y + 0.8, 3, '#2fae4a'), Kit.box(0.8, 0.5, 0.8, 62.6, Y + 1.6, 3, '#3fd060'), Kit.box(0.5, 0.45, 1.8, 62.4, Y + 0.3, -2.5, '#f2f5fa'));      // green on the platform, a bench
-        P.push(Kit.box(0.08, 4.4, 0.08, 63, YC - 4.8, 0, '#8a94a8'), Kit.box(2.6, 0.7, 0.12, 63, YC - 5.4, 0, C.cyan, { glow: true }));                                                                // the station's sign
-        for (const x of [61, 66.5]) P.push(Kit.box(1.0, Y - 0.4, 1.0, x, 0, 0, C.pillar), Kit.box(1.1, 0.12, 1.1, x, 1.2, 0, C.cyan, { glow: true }));                                                          // the pillars
-        for (const z of [k === 0 ? 6 : null, k === NC.G2TN - 1 ? -6 : null]) if (z !== null) { P.push(Kit.box(WD + 1.0, 0.3, 0.3, XM, Y - 0.35, z, lite, { glow: true }), Kit.box(WD + 1.0, 0.3, 0.3, XM, YC + 0.05, z, lite, { glow: true }));      // the cyan frame of each mouth
-          for (const x of [XL - 0.2, XR + 0.2]) P.push(Kit.box(0.3, HT + 0.7, 0.3, x, Y - 0.35, z, lite, { glow: true }));
-          if (z < 0) P.push(Kit.box(4.6, 0.05, 0.3, 57.5, Y + 0.02, z + 0.2, lite, { glow: true })); }                                                                                                       // (the bar of light at the far end)
+        for (const z of [6, 0]) sk.push(Q(T, 'floor', [XL + 1.7, Y + 0.01, z], [XL + 6.3, Y + 0.01, z], [XL + 6.3, Y + 0.01, z - 6], [XL + 1.7, Y + 0.01, z - 6]));                                              // the red floor, under the glass of the ramp
+        P.push(B(1.7, 0.12, 12, 0.85, Y, 0, '#000000'), B(1.7, 0.12, 12, 7.15, Y, 0, '#000000'));                                                                                                            // the two black bands
+        for (const x of [0.2, WD - 0.2]) P.push(B(0.3, 0.3, 12, x, YC - 0.36, 0, green, { glow: true }));                                                                                                    // the green strips
+        P.push(B(1.6, 0.3, 12, 8.8, Y, 0, '#23285e'), B(0.15, 0.04, 12, 9.5, Y + 0.3, 0, lite, { glow: true }), B(0.3, 0.02, 12, 9.2, Y + 0.3, 0, '#ffd23a'));                                              // THE STATION: the platform, its lit edge
+        for (const x of [10.0, 11.4]) P.push(B(0.12, 0.14, 12, x, Y, 0, '#8a94a8'));                                                                                                                          // the rails
+        P.push(B(2.5, 3.0, 11.4, 10.7, Y + 0.3, 0, '#f2f5fa'), B(2.56, 1.0, 10.6, 10.7, Y + 1.6, 0, '#16233a'), B(2.2, 0.12, 10.9, 10.7, Y + 0.2, 0, C.cyan, { glow: true }), B(2.6, 0.2, 11.4, 10.7, Y + 3.3, 0, '#d6dce8'));      // the train, standing
+        for (const z of [-3.2, 3.2]) P.push(B(0.06, 1.9, 1.3, 9.43, Y + 0.5, z, C.pink, { glow: true }));                                                                                                     // (its doors)
+        P.push(B(1.2, 0.5, 1.2, 8.7, Y + 0.3, 3, '#8a8a90'), B(1.0, 0.8, 1.0, 8.7, Y + 0.8, 3, '#2fae4a'), B(0.6, 0.5, 0.6, 8.7, Y + 1.6, 3, '#3fd060'), B(0.45, 0.45, 1.8, 8.5, Y + 0.3, -2.5, '#f2f5fa'));      // green on the platform, a bench
+        P.push(B(0.08, 4.4, 0.08, 8.8, YC - 4.8, 0, '#8a94a8'), B(2.0, 0.7, 0.12, 8.8, YC - 5.4, 0, C.cyan, { glow: true }));                                                                              // the station's sign
+        for (const x of [7.5, 11]) P.push(B(1.0, Y - 0.4, 1.0, x, 0, 0, C.pillar), B(1.1, 0.12, 1.1, x, 1.2, 0, C.cyan, { glow: true }));                                                                    // the pillars
+        for (const z of [k === 0 ? 6 : null, k === NC.G2TN - 1 ? -6 : null]) if (z !== null) { P.push(B(WD + 1.0, 0.3, 0.3, WD / 2, Y - 0.35, z, lite, { glow: true }), B(WD + 1.0, 0.3, 0.3, WD / 2, YC + 0.05, z, lite, { glow: true }));      // the cyan frame of each mouth
+          for (const x of [-0.2, WD + 0.2]) P.push(B(0.3, HT + 0.7, 0.3, x, Y - 0.35, z, lite, { glow: true }));
+          if (z < 0) P.push(B(4.6, 0.05, 0.3, 4, Y + 0.02, z + 0.2, lite, { glow: true })); }                                                                                                               // (the bar of light at the far end)
         return tex(P, sk, () => NeonAvenue.tunnelMaterial()); }; }
     props.pkHallEnd = () => Kit.merge([Kit.box(HW + X0, CH, 0.3, (X0 - HW) / 2, 0, -6.0, WALL), Kit.box(HW - X1, CH, 0.3, (X1 + HW) / 2, 0, -6.0, WALL), Kit.box(XW, 0.12, 0.34, XM, CH - 0.12, -6.0, C.cyan, { glow: true }),
       Kit.box(1.5, 0.5, 0.1, -4.75, CH - 0.9, -5.8, '#3aa878', { glow: true }), Kit.box(2.6, 0.5, 0.1, 0, CH - 0.9, -5.8, '#3a7bd8', { glow: true })]);

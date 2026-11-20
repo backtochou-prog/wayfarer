@@ -145,13 +145,14 @@ const NEON_CORNER = {
   // THE HIGH BRANCH (the user, 2026-11-20: "add another ramp this way, which climbs more and more until it reaches 7 metres"): G2Q slots after the mouth, a runner on the glass branch who
   // has pressed RIGHT on it leaves it to the right on a second glass ramp, which climbs more and more up to G2H (7 m), comes back OVER the first one to pass between the towers (1 m left of
   // its line), and comes down in its own later, tighter curve onto the circuit. glass2W: its centre line (metres); glass2H: its height. gM / gH: the line and height for a detour's `glass` (true or 2).
-  G2Q: 50, G2H: 70, G2X: 5, G2UP: 4, G2R: 68.5, G2OUT: 7.5,
+  G2Q: 49, G2H: 70, G2X: 10.5, G2UP: 5, G2R: 68.5, G2OUT: 7.5,
   // THE SQUARE TUNNEL (the user, 2026-11-20: "a vast square tunnel, a train station as much as a pedestrian passage (our ramp)", "crossed by the high ramp"): G2TN slots from slot G2T, where the
   // high ramp runs straight at its 7 m; so the ramp reaches 7 m before it (G2UP) and curves back to the towers after it.
-  G2T: 54, G2TN: 4,
+  // (the user, on a screenshot: "where I want the tunnel with the station", "between the 2 buildings": between the skyline's pavilion and its blue spire tower, G2TX m out)
+  G2T: 54, G2TN: 4, G2TX: 59,
   glass2W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.SPARK_M + 2.2, back = e(c((qf - 58) / 3));
     if (qf >= this.G2R) return (this.GM - 1) * (1 - e(c((qf - this.G2R) / this.G2OUT)));
-    return a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) + this.G2X * e(c((qf - this.G2Q) / 3)) * (1 - back) - back; },
+    return a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) + this.G2X * e(c((qf - this.G2Q) / 4)) * (1 - back) - back; },
   glass2H(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), h = this.GH * e(c((qf - this.GQ) / this.GUP));
     return (h + (this.G2H - h) * e(c((qf - this.G2Q) / this.G2UP))) * (1 - e(c((qf - 68) / 7))); },
   gM(g, qf) { return g === 2 && qf >= this.G2Q ? this.glass2W(qf) : this.glassM(qf); },
