@@ -265,8 +265,23 @@ const NeonAvenue = {
     const box = (x0, x1, top, z, d) => { const w = (x1 - x0) * M, h = Y(top) + SINK; add(new THREE.BoxGeometry(w, h, d || Math.min(w, 16)), X((x0 + x1) / 2), h / 2 - SINK, z); };
     const cyl = (cx, r0, r1, y0, y1, z, seg) => add(new THREE.CylinderGeometry(r1 * M, r0 * M, Y(y1) - Y(y0), seg || 12), X(cx), (Y(y0) + Y(y1)) / 2, z);
     const poly = (pts, z, d) => { const sh = new THREE.Shape(); pts.forEach((q, k) => k ? sh.lineTo(X(q[0]), Y(q[1])) : sh.moveTo(X(q[0]), Y(q[1]))); add(new THREE.ExtrudeGeometry(sh, { depth: d, bevelEnabled: false }), 0, 0, z - d); };
+    // THE GALLERY (the user: the low glass ramp ran through the walls; of three solutions, "trou": a hole): a passage carved through the left pavilion and the two screen towers behind it,
+    // along the ramp's line (which crosses this turned city askew: the hole's centre HX moves with the depth). Each carved building is built in slices 1 m deep, every slice in three parts
+    // (left of the hole, right of it, the lintel over it); lit cyan ribs every 3 m.
+    const HX = z => -61.7 + (z - 24) * 0.417, HW = 5.1, HT = 11.6;
+    const clip = (Pg, ax, k, sg) => { const o = []; for (let i = 0; i < Pg.length; i++) { const p = Pg[i], q = Pg[(i + 1) % Pg.length], dp = sg * (p[ax] - k), dq = sg * (q[ax] - k);
+      if (dp >= 0) o.push(p); if ((dp >= 0) !== (dq >= 0)) { const t = dp / (dp - dq); o.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]); } } return o; };
+    const ext = (Pg, z0, z1) => { let ar = 0; for (let i = 0; i < Pg.length; i++) { const p = Pg[i], q = Pg[(i + 1) % Pg.length]; ar += p[0] * q[1] - q[0] * p[1]; } if (Pg.length < 3 || Math.abs(ar) < 0.02) return;
+      const sh = new THREE.Shape(); Pg.forEach((q, k) => k ? sh.lineTo(q[0], q[1]) : sh.moveTo(q[0], q[1])); add(new THREE.ExtrudeGeometry(sh, { depth: z1 - z0, bevelEnabled: false }), 0, 0, z0); };
+    const carve = (pts, z0, z1) => { const Pg = pts.map(q => [X(q[0]), Y(q[1])]), n = Math.ceil(z1 - z0);
+      for (let i = 0; i < n; i++) { const za = z0 + (z1 - z0) * i / n, zb = z0 + (z1 - z0) * (i + 1) / n, xc = HX((za + zb) / 2), hl = xc - HW, hr = xc + HW;
+        ext(clip(Pg, 0, hl, -1), za, zb); ext(clip(Pg, 0, hr, 1), za, zb); ext(clip(clip(clip(Pg, 0, hl, 1), 0, hr, -1), 1, HT, 1), za, zb); } };
+    const cbox = (x0, x1, top, z, d) => { d = d || Math.min((x1 - x0) * M, 16); carve([[x0, top], [x1, top], [x1, 1333], [x0, 1333]], z - d / 2, z + d / 2); };
+    for (let z = 13.5; z < 36.5; z += 3) { const xc = HX(z), lit = [208, 67];
+      for (const sx of [-1, 1]) add(new THREE.BoxGeometry(0.3, HT, 0.3), xc + sx * (HW - 0.15), HT / 2, z, lit);
+      add(new THREE.BoxGeometry(HW * 2, 0.3, 0.3), xc, HT - 0.15, z, lit); }
     // the front row: the big screen towers of both edges
-    box(55, 232, 70, 22); box(232, 316, 0, 18, 10);      // (the third screen tower, 316..440, stood where THE SQUARE TUNNEL passes: removed)
+    cbox(55, 232, 70, 22); cbox(232, 316, 0, 18, 10);      // (the third screen tower, 316..440, stood where THE SQUARE TUNNEL passes: removed)
     box(1545, 1890, 0, 22, 18); box(1452, 1548, 0, 15, 8); box(1830, 2000, 0, 12, 12);
     // the middle: the cyan screen block, the round screen tower, the two spire towers
     box(655, 762, 600, 0); cyl(1283, 78, 78, 1333, 300, 0, 16); cyl(1283, 78, 40, 300, 270, 0, 16);
@@ -275,7 +290,7 @@ const NeonAvenue = {
     box(430, 1452, 1010, -16, 10);
     // (the user: the twin towers are removed)
     // the two roofed pavilions in front (their roof lines), and palms standing before them (their colours taken from the picture's own palms)
-    poly([[0, 790], [110, 800], [385, 1023], [385, 1333], [0, 1333]], 36, 12); poly([[2000, 960], [1600, 1170], [1600, 1333], [2000, 1333]], 36, 12);
+    carve([[0, 790], [110, 800], [385, 1023], [385, 1333], [0, 1333]], 24, 36); poly([[2000, 960], [1600, 1170], [1600, 1333], [2000, 1333]], 36, 12);
     for (const [px, z, hh] of [[900, 44, 13], [1470, 44, 15], [760, 30, 11], [1340, 30, 12]]) { const x = X(px);
       add(new THREE.CylinderGeometry(0.28, 0.45, hh, 6), x, hh / 2, z, [1420, 1100]);
       for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2, g = new THREE.ConeGeometry(0.9, 6.5, 4); g.scale(1, 1, 0.25); g.rotateZ(-Math.PI / 2 + 0.5); g.translate(2.6, -0.9, 0); g.rotateY(a); add(g, x, hh, z, k % 2 ? [640, 960] : [1500, 930]); } }
