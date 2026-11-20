@@ -259,7 +259,9 @@ window.ENV3D = window.ENV3D || {};
           if (q >= C.DIVE && q < C.DIVE + C.UNDER) return [{ prop: 'neonTunnel' + ((q * 5) % 6), x: 0, dist: 6, solo: true }];
           if (q >= C.DIVE + C.UNDER && q < C.DIVE + C.UNDER + C.RISE) return [{ prop: 'neonTunnelRs' + (q - C.DIVE - C.UNDER), x: 0, dist: 6, solo: true }];
           q -= C.DIVE + C.UNDER + C.RISE; }
-        if (q >= 0 && q < C.EXIT) { const o = [{ prop: 'neonTunnel' + (q % 6), x: 0, dist: 6, solo: true }]; if (q === 0) o.push({ prop: 'neonTunnelMouth', x: 0, dist: 6, solo: true }); return o; } }
+        if (q >= 0 && q < C.EXIT) { const o = [{ prop: 'neonTunnel' + (q % 6), x: 0, dist: 6, solo: true }]; if (q === 0) o.push({ prop: 'neonTunnelMouth', x: 0, dist: 6, solo: true });
+          if (!(det && (det.up || det.down || det.park))) { o.push({ prop: 'pkTubeDv' + q, x: -C.PTUBE_M, dist: 6, rotY: Math.PI, solo: true }); if (q === 0) o.push({ prop: 'pkTubeMouth', x: -C.PTUBE_M, dist: 6, rotY: Math.PI, solo: true }); }      // (before the choice: the car park's tube already stands beside it)
+          return o; } }
       const ps = picSlot(i); if (ps >= 0) { const o = [{ prop: 'neonPicSt' + ps, x: 0, dist: 6, solo: true }]; if (ps === 3) o.push({ prop: 'bikeSport', x: 4.4, dist: 6, solo: true }); return o; }      // (the user: the e-bike HERE, at the entrance of the district: 40 m into the picture street, on the right)      // the picture street: the picture and nothing else
       const j = tunSlot(i); if (j >= 0) { const cut = s => Math.floor(rnd(s, 77) * TUN_CUTS.length), k = cut(i) === cut(i - 1) ? (cut(i) + 1) % TUN_CUTS.length : cut(i);
         const o = [{ prop: 'neonTunnel' + k, x: 0, dist: 6, solo: true }]; if (j === 0) o.push({ prop: 'neonTunnelMouth', x: 0, dist: 6 }, { prop: 'neonPicBack', x: 0, dist: 6 });
