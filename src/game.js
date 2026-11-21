@@ -243,8 +243,10 @@ class Game {
   bikeLane(z) {
     const w = this.world; if (!this.r || !this.r.layoutFor) return null; const bands = w.bandsAt(z); if (bands.length !== 1) return null; const b = bands[0];
     if (this.detour && !this.detour.up && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.bikeEntry) { const C = NEON_CORNER, rf = (z - this.detour.z0) / C.SLOT - C.STREET - C.TUNNEL, r = Math.floor(rf), qf = rf - C.ART, U = 2.2 / 0.62;      // ART CITY's bike lane (NEON_CORNER.bikeM): open to everyone, on foot too
-      if (r >= 0 && r < C.ART - C.PIN) return { edge: b.hi - 0.12, c: b.hi + 0.31 + (C.bikeM(qf) - C.BIKE_M) / U, entry: C.bikeEntry(r), any: true };
-      if (r >= 0 && this.detour.side && !this.detour.glass && qf < C.BIKE_END) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) - C.sideM(qf)) / U, entry: qf < C.SIN - C.PIN || qf >= C.BIKE_RET + 5, any: true }; }      // (beyond the fork, on the side road's detour: by the roundabout and the back road)
+      if (r >= 0 && r < C.ART - C.PIN) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) + C.BIKE_G) / U, entry: C.bikeEntry(r), any: true };
+      if (r >= 0 && this.detour.side && !this.detour.glass && qf < C.BIKE_END) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) + C.BIKE_G - C.sideM(qf)) / U, entry: qf < C.SIN - C.PIN || qf >= C.BIKE_RET + 5.15, any: true,
+        road: qf >= C.NRQ + 3 && qf < C.BIKE_RET ? (b.lo + b.hi) / 2 + (C.backM(qf) - 1.9 + 1.2 * C.dipK(qf) - C.sideM(qf)) / U : null,
+        roadHi: C.dipK(qf) > 0.02 || C.dipK(qf + 1) > 0.02 || C.dipK(qf - 1) > 0.02 ? (b.lo + b.hi) / 2 + (C.backM(qf) + 1.9 - C.sideM(qf)) / U : null }; }      // (road: along the BACK ROAD the runner may leave the lane to the left and run the road itself, its two sides)      // (beyond the fork, on the side road's detour: by the roundabout and the back road)
     if (!(b.t > 0.6) || !/^coast/.test(b.to) || !this.r.envs || !this.r.envs[b.to] || !this.r.layouts[b.to]) return null;
     const i = Math.floor(z * U3.Z / SEG_LEN); if (!this.r.layoutFor(b.to, i).some(q => q.prop === 'coastBike')) return null;
     const m = ((i % 20) + 20) % 20; return { edge: b.hi - 0.12, c: b.hi + 0.31, entry: m <= 1 };
@@ -311,8 +313,8 @@ class Game {
     const pb = w.playerBand(p.z, p.x);
     const jump = this.prevTgt - pb.c;
     this.camErr = (this.camErr + (Math.abs(jump) > 0.2 ? jump : 0)) * Math.exp(-6 * dt); this.prevTgt = pb.c;
-    const dxc = p.x - pb.c, far = Math.abs(dxc) > 1.6;                                   // (far from the road, on the bike lane by the roundabout: the camera goes with the runner)
-    this.camRel += ((far ? dxc - Math.sign(dxc) * Math.max(0.25, 0.8 - (Math.abs(dxc) - 1.6) * 0.5) : dxc * 0.5) - this.camRel) * Math.min(1, dt * (far ? 8 : 5));
+    const dxc = p.x - pb.c;                                                              // (on the bike lane, and on the back road it leads to, the camera goes with the runner: centred)
+    this.camRel += ((this.onLane ? dxc : dxc * 0.5) - this.camRel) * Math.min(1, dt * 5);
     this.camX = pb.c + this.camErr + this.camRel;
     this.camOff = pb.off;
 
@@ -575,8 +577,11 @@ class Game {
     // it, but only gets on (or off) it at an ENTRANCE (a lowered kerb every 240 m, 24 m long): a missed entrance waits for the next one; on foot or on the skateboard, never. The lane is clear.
     const BL = this.bikeLane(p.z), onVeh = this.riding && (this.vehicle === 'bike' || this.vehicle === 'scooter');
     if (BL && (onVeh || BL.any) && (this.onLane || BL.entry)) {
-      const b = w.bandsAt(p.z)[0], lo = BL.entry ? b.lo + 0.12 : BL.c - 0.05, hi = BL.c + 0.05;     // at an entrance: anywhere from the road to the lane; between two: kept in the lane
+      const b = w.bandsAt(p.z)[0]; let lo = BL.entry ? b.lo + 0.12 : BL.road != null ? BL.road : BL.c - 0.05, hi = BL.c + 0.05;
+      if (BL.roadHi != null && !BL.entry) { if (p.x > (BL.roadHi + BL.c) / 2) lo = BL.c - 0.05; else hi = BL.roadHi; }      // (under the station the lane and the road are apart, its legs between them: no crossing there)     // at an entrance: anywhere from the road to the lane; between two: kept in the lane
       cx = Math.min(hi, Math.max(lo, p.x));
+      if (BL.road != null && !BL.entry && !dir) { const U = 2.2 / 0.62, R = BL.road + (3.8 - 1.2 * NEON_CORNER.dipK((p.z - this.detour.z0) / NEON_CORNER.SLOT - NEON_CORNER.STREET - NEON_CORNER.TUNNEL - NEON_CORNER.ART)) / U,      // THE BACK ROAD's two places (the user, 2026-11-21): its left side and its right side, and the lane beyond: hands off, the runner settles on the nearest
+          tx = cx > (R + BL.c) / 2 ? BL.c : cx > (BL.road + R) / 2 ? R : BL.road, was = this._bkT; this._bkT = tx; cx = was != null && Math.abs(was - cx) < 0.06 && Math.abs(tx - was) < 0.3 ? tx : cx + (tx - cx) * Math.min(1, dt * 5); p.vx = 0; } else this._bkT = null;      // (once settled it is carried along with its place, through the bends)
       const was = this.onLane; this.onLane = cx > BL.edge + 0.08; if (this.onLane !== was) { this.banner = { t: 1.4, text: this.onLane ? 'BIKE LANE' : 'BACK ON THE ROAD' }; this.emit('choose'); }
     } else if (this.onLane) { this.onLane = false; this.laneEase = 0.6; }                                                    // (the lane ends, or the runner got off the vehicle: back onto the road, eased by the clamp)
     // ease onto the chosen road at the start of the junction, hard clamp everywhere else

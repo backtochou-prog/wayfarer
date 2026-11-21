@@ -552,7 +552,8 @@ class Renderer3D {
     // ---- camera: chase (behind and above, centred on the 2D camera) blended with the menu showcase orbit; looks down the active route
     const orbit = Math.sin(g.time * 0.35) * 0.5;                  // menu camera drifts around the character
     this.cam.set((relX + Math.sin(orbit) * 2.6) * mm, 4.2 + (1.35 - 4.2) * mm, 7.5 + (Math.cos(orbit) * 3.5 - 7.5) * mm);
-    const ahead = this.axisLat(w, p.z + TRACK3D.LOOK_AHEAD, Lref);
+    let ahead = this.axisLat(w, p.z + TRACK3D.LOOK_AHEAD, Lref);
+    if (g.onLane && g.bikeLane) { const zA = p.z + TRACK3D.LOOK_AHEAD, B0 = g.bikeLane(p.z), B1 = g.bikeLane(zA); if (B0 && B1) ahead = (ahead + (B1.c + Math.min(0, p.x - B0.c) - w.playerBand(zA, p.x).c) * U.X) / 0.8; }      // (on the bike lane the camera looks down the LANE, not down the road it left)
     this.lookX += (ahead * 0.8 - this.lookX) * (1 - Math.exp(-4 * dt));
     this.look.set(this.lookX + ((relX - 1.0) - this.lookX) * mm, 0.8 + 0.3 * mm, -20 * (1 - mm));
     // THE SECOND CAMERA ON A VEHICLE (the user chose the rider's eyes; optional: the CAMERA button, or V): the camera at the rider's eyes, a little behind the handlebar, looking down the road;
