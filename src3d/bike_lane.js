@@ -53,7 +53,83 @@
   P.bkParkA = park(0); P.bkParkB = park(1);
   // NEO METROPOLIS (the user's blueprint, 2026-11-21: "construire ces immeubles sur les traits, éloignés de la voie vélo d'à peu près 24 mètres"): the building of src3d/metropolis_art.js,
   // its front to the lane, 24 m beyond it (the park between the two), one every METRO_EVERY slots along the back road.
-  const METRO_EVERY = 6; if (typeof NeoMetroArt !== 'undefined') P.bkMetro = () => ({ sprite: NeoMetroArt.building(), material: () => NeoMetroArt.material() });
+  // (2026-11-21, the user: of the 10 Neo Metropolis plots the 1st, 4th, 7th and 8th keep their building; the 2nd and 3rd are a GARDEN, the 5th and 6th a SKATE PARK; the others stay empty.
+  // Each plot 42 m deep (x, the lane on the -x side) and 50 m long (z).)
+  const lampP = (p, x, z, c) => p.push(Kit.cyl(0.09, 0.12, 4.6, x, 0.1, z, '#23285e', { seg: 6 }), Kit.box(0.9, 0.14, 0.3, x, 4.7, z, c, { glow: true }));
+  const bench = (p, x, z, ry) => p.push(Kit.box(2.2, 0.12, 0.6, x, 0.5, z, '#b9824a', { ry }), Kit.box(2.2, 0.5, 0.1, x + 0.28 * Math.sin(ry), 0.62, z + 0.28 * Math.cos(ry), '#b9824a', { ry }), Kit.box(2, 0.4, 0.12, x, 0.1, z, '#3a3d55', { ry }));
+  P.bkGarden = () => { const p = [Kit.box(42, 0.14, 50, 0, 0, 0, '#2a8a52')], SAND = '#d9c9a3', FL = ['#ff4fa0', '#ffd23a', '#ffffff', '#b06bff', '#ff7a3a'];
+    p.push(Kit.box(42, 0.05, 3, 0, 0.14, 0, SAND), Kit.box(3, 0.05, 50, 0, 0.14, 0, SAND), Kit.cyl(7.5, 7.5, 0.05, 0, 0.15, 0, SAND, { seg: 24 }));                                   // the paths: a cross and a round place
+    p.push(Kit.cyl(4, 4.3, 0.7, 0, 0.15, 0, '#8a8a90', { seg: 20 }), Kit.cyl(3.6, 3.6, 0.1, 0, 0.8, 0, '#4fe3ff', { glow: true, seg: 20 }), Kit.cyl(0.5, 0.8, 2.2, 0, 0.8, 0, '#8a8a90', { seg: 8 }),
+      Kit.cyl(1.5, 0.4, 0.3, 0, 3, 0, '#8a8a90', { seg: 12 }), Kit.ico(0.6, 0, 3.4, 0, '#9ff4ff', { glow: true }));                                                                    // the fountain
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const bx = sx * 11.5, bz = sz * 13.5;                                                                                       // four flower beds, a tree in each
+      p.push(Kit.box(13, 0.35, 15, bx, 0.14, bz, '#5a3b2e'), Kit.box(12.4, 0.1, 14.4, bx, 0.49, bz, '#3fae5a'));
+      for (let i = 0; i < 5; i++) for (let j = 0; j < 6; j++) if ((i + j) % 2 === 0 && !(i === 2 && (j === 2 || j === 3))) p.push(Kit.box(1.1, 0.4, 1.1, bx - 4.8 + i * 2.4, 0.55, bz - 6 + j * 2.4, FL[(i * 2 + j + (sx + 1) + (sz + 1) / 2) % 5]));
+      tree(p, bx, bz, 3.4, 2.3, '#3fd060'); bench(p, sx * 6.3, sz * 3.2, sz > 0 ? 0 : Math.PI); lampP(p, sx * 3.2, sz * 9, '#ffe9a8'); }
+    for (let k = 0; k < 9; k++) { tree(p, 19.3, -22 + k * 5.5, 4 + (k % 3) * 0.6, 2.2, k % 2 ? '#2f9e58' : '#3fd060'); if (k % 2 === 0 && Math.abs(k - 4) > 0) { tree(p, -19.3, -22 + k * 5.5, 3.6, 2, '#2f9e58'); } }      // a row of trees at the back, a few in front
+    for (const sz of [-1, 1]) { p.push(Kit.box(42, 0.8, 0.7, 0, 0.14, sz * 24.6, '#1f6b45')); p.push(Kit.box(0.7, 0.8, 21.5, -20.6, 0.14, sz * 13.9, '#1f6b45')); }                     // hedges round it, the gate facing the lane
+    p.push(Kit.box(0.7, 0.8, 50, 20.6, 0.14, 0, '#1f6b45'));
+    for (const sz of [-1, 1]) p.push(Kit.cyl(0.2, 0.25, 3.4, -20.6, 0.14, sz * 2.4, '#e8e2d0', { seg: 8 })); p.push(Kit.box(0.5, 0.4, 6.2, -20.6, 3.5, 0, '#e8e2d0'), Kit.box(0.2, 0.16, 5, -20.9, 3.62, 0, '#ff4fa0', { glow: true }));      // the gate
+    for (let k = 0; k < 4; k++) { const z = -4.5 + k * 3; p.push(Kit.cyl(0.14, 0.14, 2.8, 13, 0.14, z, '#e8e2d0', { seg: 6 }), Kit.cyl(0.14, 0.14, 2.8, 16, 0.14, z, '#e8e2d0', { seg: 6 }), Kit.box(4, 0.14, 0.2, 14.5, 2.94, z, '#e8e2d0')); }      // a pergola at the back
+    p.push(Kit.box(0.2, 0.14, 9.6, 13, 3.08, 0, '#e8e2d0'), Kit.box(0.2, 0.14, 9.6, 16, 3.08, 0, '#e8e2d0'), Kit.box(3.4, 0.2, 9, 14.5, 3.2, 0, '#3fae5a'));
+    return Kit.merge(p); };
+  P.bkSkate = () => { const CO = '#4a4e6c', C2 = '#5c6185', p = [Kit.box(42, 0.14, 50, 0, 0, 0, '#34374f')], arc = (cx, a0, a1, R, z, len, col) => { const n = 7;                    // (arc: a curved ramp, its section in x/y)
+      for (let k = 0; k < n; k++) { const a = a0 + (a1 - a0) * (k + 0.5) / n, w = Math.abs(a1 - a0) * R / n + 0.08; p.push(Kit.box(w, 0.16, len, cx + R * Math.cos(a), 0.14 + R + R * Math.sin(a) - 0.08, z, col, { rz: a + Math.PI / 2 })); } };
+    for (const sz of [-1, 1]) p.push(Kit.box(42, 0.05, 0.2, 0, 0.14, sz * 24.8, '#4fe3ff', { glow: true })); for (const sx of [-1, 1]) p.push(Kit.box(0.2, 0.05, 50, sx * 20.8, 0.14, 0, '#ff4fa0', { glow: true }));
+    // the half-pipe at the back: two quarter arcs 3.4 m high, a flat between, a deck on each side
+    arc(9.4, Math.PI, Math.PI * 1.5, 3.4, 8, 18, C2); arc(12.4, Math.PI * 1.5, Math.PI * 2, 3.4, 8, 18, C2); p.push(Kit.box(3.1, 0.16, 18, 10.9, 0.14, 8, C2));
+    p.push(Kit.box(2, 3.4, 18, 5, 0.14, 8, CO), Kit.box(2, 3.4, 18, 16.8, 0.14, 8, CO), Kit.box(0.1, 0.9, 18, 4.05, 3.54, 8, '#ffd23a'), Kit.box(0.1, 0.9, 18, 17.75, 3.54, 8, '#ffd23a'),
+      Kit.box(0.12, 0.12, 18, 6, 3.5, 8, '#4fe3ff', { glow: true }), Kit.box(0.12, 0.12, 18, 15.8, 3.5, 8, '#ff4fa0', { glow: true }));
+    // the fun box in the middle: a table, a bank on each of its four sides, a rail over it
+    { const fx = -6, fz = -6, h = 0.9, L = 3.2, a = Math.atan(h / L), s = Math.hypot(h, L);
+      p.push(Kit.box(5, h, 5, fx, 0.14, fz, CO));
+      for (const d of [-1, 1]) { p.push(Kit.box(s, 0.14, 5, fx + d * (2.5 + L / 2), 0.14 + h / 2 - 0.07, fz, C2, { rz: -d * a }), Kit.box(5, 0.14, s, fx, 0.14 + h / 2 - 0.07, fz + d * (2.5 + L / 2), C2, { rx: d * a })); }
+      p.push(Kit.box(0.1, 0.1, 9, fx + 1.4, 0.14 + h + 0.5, fz, '#ffd23a', { glow: true })); for (const d of [-1, 0, 1]) p.push(Kit.box(0.1, 0.5, 0.1, fx + 1.4, 0.14 + h, fz + d * 2.2, '#8a8a90')); }
+    // a quarter pipe on the near side, a low rail and a ledge, three steps with a handrail
+    for (let k = 0; k < 6; k++) { const a = -Math.PI / 2 * (k + 0.5) / 6, R = 2.6, w = Math.PI / 2 * R / 6 + 0.08; p.push(Kit.box(14, 0.16, w, -4, 0.14 + R - R * Math.cos(a) - 0.08, -19.4 + R * Math.sin(a) , C2, { rx: a })); }
+    p.push(Kit.box(14, 2.6, 1.6, -4, 0.14, -23.4, CO), Kit.box(14, 0.12, 0.12, -4, 2.74, -22.5, '#4fe3ff', { glow: true }));
+    p.push(Kit.box(0.1, 0.1, 8, -14, 0.64, 6, '#4fe3ff', { glow: true }), Kit.box(0.1, 0.5, 0.1, -14, 0.14, 3, '#8a8a90'), Kit.box(0.1, 0.5, 0.1, -14, 0.14, 9, '#8a8a90'), Kit.box(1.2, 0.5, 7, -10, 0.14, 14, CO), Kit.box(0.1, 0.06, 7, -9.4, 0.64, 14, '#ff4fa0', { glow: true }));
+    for (let k = 0; k < 3; k++) p.push(Kit.box(1.1, 0.3 * (3 - k), 5, -2 + k * 1.1, 0.14, 19, CO)); p.push(Kit.box(8, 0.9, 5, -6.55, 0.14, 19, CO), Kit.box(3.6, 0.08, 0.08, -0.9, 1.0, 19, '#ffd23a', { glow: true, rz: -Math.atan(0.9 / 3.3) }));
+    // a painted wall at the back, lamps, benches, trees at the corners and along the back
+    p.push(Kit.box(0.4, 3.2, 26, 20, 0.14, -8, '#23285e')); for (let k = 0; k < 6; k++) p.push(Kit.box(0.1, 1.6 + (k % 3) * 0.5, 3.4, 19.75, 0.6 + (k % 2) * 0.4, -18.6 + k * 4.2, ['#ff4fa0', '#4fe3ff', '#ffd23a', '#b06bff', '#3fd060', '#ff7a3a'][k], { glow: k % 2 === 0 }));
+    for (const [x, z, c] of [[-18, -22, '#4fe3ff'], [-18, 22, '#ff4fa0'], [0, 0, '#ffe9a8'], [2, 22, '#4fe3ff'], [18, -3, '#ff4fa0']]) lampP(p, x, z, c);
+    bench(p, -18.5, -8, -Math.PI / 2); bench(p, -18.5, 12, -Math.PI / 2);
+    for (const [x, z] of [[-18.5, -17], [-18.5, 18], [18.5, 22], [12, 22], [18.5, -23], [-18.5, 2]]) { p.push(Kit.cyl(1.2, 1.2, 0.4, x, 0.14, z, '#5a3b2e', { seg: 8 })); tree(p, x, z, 3.6, 2.1, '#3fd060'); }
+    return Kit.merge(p); };
+  // NEO METROPOLIS, CENTRAL DISTRICT (2026-11-21, the user's second blueprint and red lines: behind the plots): the complex of the picture at its own scale, 800 m long, 60 m deep,
+  // 120 m at its highest, laid out as on the "vue de face": a glazed podium all along (shops lit at street level, a planted roof), on it five terraced buildings with round ends and
+  // planted balconies, four glass towers with white fins, two glass footbridges. Built once in "s" (metres from the picture's left end) and cut in ND_L m chunks (ndC0..), one prop each;
+  // the picture's right end comes first on the way. A paved walk with trees (ndWalk) runs between the plots and its front.
+  const ND_L = 96, ND_N = 9, ND = (() => { const W = '#eef2f6', G1 = '#3f78ad', G2 = '#2c5a8a', GR = '#3fae5a', GD = '#2f9e58', WARM = '#ffd9a0', L = [], rnd = n => { const v = Math.sin(n * 127.1 + 3.7) * 43758.5453; return v - Math.floor(v); };
+    const B = (w, h, d, x, y, s, c, o) => L.push({ s, f: z => Kit.box(w, h, d, x, y, z, c, o || {}) }), CY = (r, h, x, y, s, c, o) => L.push({ s, f: z => Kit.cyl(r, r, h, x, y, z, c, Object.assign({ seg: 12 }, o || {})) }),
+      TR = (x, y, s, h, r) => L.push({ s, f: z => Kit.cyl(0.3, 0.4, h, x, y, z, '#5a3b2e', { seg: 6 }) }, { s, f: z => Kit.ico(r, x, y + h + r * 0.5, z, rnd(s) > 0.5 ? GR : GD, { sy: 0.9 }) });
+    const PH = 26;                                                                                                             // THE PODIUM: 24 m bays from s 20 to 788
+    for (let s = 32; s < 788; s += 24) { B(54, PH, 24, 1, 0, s, s % 48 ? G1 : G2); B(60, 1.2, 24.2, 0, 12.4, s, W); B(60, 1.4, 24.2, 0, PH, s, W); B(1.6, PH, 1.6, -29, 0, s - 12, W);
+      B(0.4, 9, 19, -26.3, 1.2, s, WARM, { glow: true }); if (rnd(s) > 0.45) B(0.4, 7, 17, -26.3, 15.5, s, '#bfe6ff', { glow: true });
+      B(2.4, 1.6, 24, -28.4, PH + 1.4, s, GR); B(1.6, 1, 24, -28.9, 13.6, s, GD); if (rnd(s + 5) > 0.4) TR(-24, PH + 1.4, s + 6 * rnd(s + 1) - 3, 4.5, 3.4); }
+    const Y0 = PH + 1.4, FL = 9;
+    const terr = (s0, s1, top, deep) => { const n = Math.max(2, Math.round((top - Y0) / FL)), c = (s0 + s1) / 2;                  // A TERRACED BUILDING: every floor steps back and in, a white slab over it, a planted edge, round ends
+      for (let i = 0; i < n; i++) { const y = Y0 + i * FL, w = s1 - s0 - 24 - i * 3, d = deep - i * 3.2, x = -26 + i * 3.2 + d / 2, r = Math.min(12, d / 2 - 1), xr = x - d / 2 + r;
+        B(d, FL - 1, w, x, y, c, i % 2 ? G1 : G2); B(d + 5, 1.1, w + 2, x - 1, y + FL - 1, c, W); B(1.6, 1.3, w, x - d / 2 - 2.4, y + FL + 0.1, c, i % 2 ? GR : GD);
+        for (const e of [-1, 1]) { CY(r, FL - 1, xr, y, c + e * w / 2, i % 2 ? G2 : G1); CY(r + 2.6, 1.1, xr, y + FL - 1, c + e * w / 2, W, { seg: 16 }); CY(r + 2.2, 1.3, xr, y + FL + 0.1, c + e * w / 2, i % 2 ? GD : GR); CY(r + 0.6, 1.4, xr, y + FL + 0.1, c + e * w / 2, W); }
+        for (let k = 0; k < 3; k++) if (rnd(s0 + i * 7 + k) > 0.5) B(0.4, 4.5, w / 5, x - d / 2 - 0.25, y + 1.5, c + (k - 1) * w / 3.4, k % 2 ? WARM : '#bfe6ff', { glow: true });
+        if (i % 2 === 0) TR(x - d / 2 - 2.4, y + FL + 0.1, c + (rnd(s0 + i) - 0.5) * w * 0.8, 3, 2.6); }
+      const yt = Y0 + n * FL + 0.1, wt = s1 - s0 - 24 - n * 3; B(deep - n * 3.2 - 8, 1.2, wt, -26 + n * 3.2 + (deep - n * 3.2) / 2, yt, c, GR); for (const e of [-1, 0, 1]) TR(-20 + n * 3.2 + (deep - n * 3.2) / 2 - 6, yt + 1.2, c + e * wt / 3, 4, 3.2); };
+    const tower = (s0, s1, top) => { const w = s1 - s0, c = (s0 + s1) / 2, d = 34, x = 4;                                           // A TOWER: glass, white fins on its front, a band every third floor, a white crown
+      B(d, top - Y0 - 6, w, x, Y0, c, G2); for (let f = s0 + 3; f <= s1 - 3 + 0.01; f += (w - 6) / Math.max(2, Math.round(w / 9))) { B(1.6, top - Y0 - 6, 1, x - d / 2 - 0.8, Y0, f, W); B(1.6, top - Y0 - 6, 1, x + d / 2 + 0.8, Y0, f, W); }
+      for (let y = Y0 + 12; y < top - 10; y += 14) B(d + 3.4, 1, w + 2, x, y, c, W);
+      for (let y = Y0 + 3; y < top - 12; y += 7) for (let k = 0; k < 2; k++) if (rnd(s0 + y * 3 + k) > 0.55) B(0.4, 3.6, w / 4, x - d / 2 - 0.25, y, c + (k - 0.5) * w / 2.2, k ? WARM : '#bfe6ff', { glow: true });
+      B(d + 4, 1.4, w + 3, x, top - 6, c, W); B(d - 8, 4.6, w - 8, x + 2, top - 4.6, c, G1); B(d - 6, 0.8, w - 6, x + 2, top - 0.8, c, W); B(0.5, 9, 0.5, x + 6, top, c, W); B(0.9, 0.9, 0.9, x + 6, top + 9, c, '#ff4fa0', { glow: true }); };
+    const bridge = (s0, s1, y) => { for (let s = s0 + 6; s < s1; s += 12) { B(9, 6, 12.1, -4, y, s, G1); B(10.4, 0.9, 12.1, -4, y - 0.9, s, W); B(10.4, 0.9, 12.1, -4, y + 6, s, W); B(8, 1, 12.1, -4, y + 6.9, s, GR); } };
+    terr(40, 92, 54, 30); terr(88, 198, 82, 46); tower(196, 246, 116); terr(276, 380, 82, 44); bridge(380, 428, 52); tower(428, 478, 120); terr(470, 532, 66, 36);
+    tower(552, 594, 98); bridge(594, 632, 60); tower(632, 672, 120); terr(662, 772, 108, 48);
+    { const c = 717, y = Y0 + 9 * FL + 1.3; for (const e of [-1, 1]) B(2, 12, 2, 2, y, c + e * 26, W); B(26, 2, 56, 4, y + 12, c, W); CY(13, 2, -9, y + 12, c, W, { seg: 16 }); }      // (the big building's white canopy)
+    return L; })();
+  for (let k = 0; k < ND_N; k++) P['ndC' + k] = () => Kit.merge(ND.filter(o => Math.floor(o.s / ND_L) === k).map(o => o.f(o.s - (k + 0.5) * ND_L)));
+  P.ndWalkA = P.ndWalkB = null; for (const v of [0, 1]) P[v ? 'ndWalkB' : 'ndWalkA'] = () => { const p = [Kit.box(14, 0.12, 12.25, 0, 0, 0, '#c9ccd6'), Kit.box(0.3, 0.05, 12.25, -6.6, 0.12, 0, '#4fe3ff', { glow: true }), Kit.box(4, 0.3, 12.25, 4.6, 0.12, 0, '#2a8a52')];
+    if (v) { tree(p, 4.6, 0, 4.4, 2.6, '#3fd060'); p.push(Kit.box(2.2, 0.12, 0.6, -2, 0.5, 3, '#b9824a'), Kit.box(2, 0.4, 0.12, -2, 0.12, 3, '#3a3d55')); } else { lampP(p, -5.6, 0, '#ffe9a8'); tree(p, 4.6, -3, 3.6, 2.1, '#2f9e58'); p.push(Kit.box(2.6, 0.7, 2.6, 4.6, 0.3, 3.5, '#8a8a90'), Kit.box(2.2, 0.5, 2.2, 4.6, 1, 3.5, '#ff4fa0')); }
+    return Kit.merge(p); };
+  const ND_X = C.NRX + C.BIKE_OUT + 1 + 24 + 42 + 14 + 30, ND_Q0 = 66;      // (its middle line; chunk k stands at slot ND_Q0 - 8 k)
+  const METRO_EVERY = 6, PLOT = { 0: 'bkMetro', 1: 'bkGarden', 2: 'bkGarden', 3: 'bkMetro', 4: 'bkSkate', 5: 'bkSkate', 6: 'bkMetro', 7: 'bkMetro' }; if (typeof NeoMetroArt !== 'undefined') P.bkMetro = () => ({ sprite: NeoMetroArt.building(), material: () => NeoMetroArt.material() });
   const SW = PN + 6, RT = C.BIKE_RET, RE = C.BIKE_END, bend = q => Math.abs(C.bikeM(q + 1) - C.bikeM(q)) > 0.01 || Math.abs(C.bikeM(q + 0.5) - C.bikeM(q)) > 0.01;      // (the swing round the signs starts 6 slots before the fork)
   for (let k = 0; k < SW; k++) P['bkBA' + k] = bent(k - SW, 0.05);
   for (let q = 0; q < RE; q++) P['bkB' + q] = bent(q, 0.12);
@@ -72,7 +148,8 @@
     if (liftM > 3 && q > RT && q < RT + 5) for (let n = out.length - 1; n >= 0; n--) if (/^ftStation/.test(out[n].prop)) out.splice(n, 1);      // (... and the stations with them: their lifts and legs stood on the link)
     if (liftM > 3 && q >= 0 && q < C.CANYON) for (let n = out.length - 1; n >= 0; n--) if (out[n].prop === 'cnPlanter' && Math.abs(out[n].x - NeonAvenue.D - C.bikeM(q + 0.5)) < 3) out.splice(n, 1);      // (no planter on the lane)
     if (liftM > 3 && q >= 0 && q < C.CANYON) { const it = (prop, x) => out.push({ prop, x: x + NeonAvenue.D, dist: 6, dy: -liftM, solo: true });
-      if (q >= RT) it('bkStrip', C.NRX + C.BIKE_OUT); if (P.bkMetro && q >= C.NRQ + 5 && (q - C.NRQ - 5) % METRO_EVERY === 0) out.push({ prop: 'bkMetro', x: C.NRX + C.BIKE_OUT + H + 24 + 21 + NeonAvenue.D, dist: 6, dy: -liftM, solo: true, rotY: -Math.PI / 2 }); if (q >= C.NRQ + 3) it(q % 2 ? 'bkParkB' : 'bkParkA', (q >= RT ? C.NRX + C.BIKE_OUT : Math.max(C.bikeM(q), C.bikeM(q + 0.5), C.bikeM(q + 1))) + H + 9.4); if (q < RE) it(bend(q) ? 'bkB' + q : 'bkStrip', C.bikeM(q + 0.5)); }
+      if (q >= RT) it('bkStrip', C.NRX + C.BIKE_OUT); if (P.bkMetro && q >= C.NRQ + 5 && (q - C.NRQ - 5) % METRO_EVERY === 0) { const pl = PLOT[(q - C.NRQ - 5) / METRO_EVERY]; if (pl) out.push({ prop: pl, x: C.NRX + C.BIKE_OUT + H + 24 + 21 + NeonAvenue.D, dist: 6, dy: -liftM, solo: true, rotY: pl === 'bkMetro' ? -Math.PI / 2 : 0 }); } if (q >= C.NRQ + 3) it(q % 2 ? 'bkParkB' : 'bkParkA', (q >= RT ? C.NRX + C.BIKE_OUT : Math.max(C.bikeM(q), C.bikeM(q + 0.5), C.bikeM(q + 1))) + H + 9.4); if (q < RE) it(bend(q) ? 'bkB' + q : 'bkStrip', C.bikeM(q + 0.5)); 
+      if (q >= 2 && q <= ND_Q0 && (ND_Q0 - q) % 8 === 0) it('ndC' + (ND_Q0 - q) / 8, ND_X); if (q >= 3) it(q % 2 ? 'ndWalkB' : 'ndWalkA', ND_X - 37); }
     return out; };
   // (the link comes in under the two-floor street: there the street stands open to the right, no pillar and no pylon on the lane)
   const baseS = NeonAvenue.side; if (baseS) NeonAvenue.side = (q, rnd, glass) => { const o = baseS(q, rnd, glass); if (q > RT + 3 && q < RT + 6) for (const p of o) if (/^(sdStreet|sdStreetL|ftStreet)$/.test(p.prop)) p.prop = 'sdStreetO';
