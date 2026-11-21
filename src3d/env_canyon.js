@@ -458,14 +458,16 @@ const NeonAvenue = {
       // THE GREAT VAULT (the user, circling the left pavilion's dark roof on a screenshot: "stretch it up and forward until it becomes a great vault covering the two rails"): the roof goes on
       // as a dark shell from the ground left of the glass branch, over both glass ramps, down to 8 m on the right (two slim columns; the back road passes beyond them), from the pavilion's
       // front and the square tunnel's mouth (slot G2T) forward over VN slots; warm lit ribs like the pavilion's windows, a cyan arch in front
-      if (NC.glass2W && NC.G2T) props.sgVault = () => { const VN = 4, CX = 57.5, RA = 12.5, RB = 22, N = 16, t1 = Math.asin(8 / RB), LEN = VN * 12 - 0.6, ZC = 6 + (VN / 2 - 2) * 12 + 0.3, P = [];
+      // (the user, drawing its arc left of it: "that is where the vault must be, stuck to the picture building: so we fill its corners little by little, to make it more than a posed picture":
+      // the shell springs from the ground LEFT of the pavilion, takes the whole pavilion under it, and its left part runs back INTO the pavilion's (askew) front; the right part stops at the tunnel's mouth)
+      if (NC.glass2W && NC.G2T) props.sgVault = () => { const CX = 51, RA = 18, RB = 30, N = 22, t1 = Math.asin(8 / RB), ZF0 = 29.7, ZG = 10.5, P = [];      // (the user: "complete it down to the ground": on the right the shell reaches the ground as far as ZG; behind, it stops 8 m up: the back road comes in under it there)
         const pt = t => [CX + RA * Math.cos(t), RB * Math.sin(t)];
-        for (let i = 0; i < N; i++) { const a = pt(Math.PI - (Math.PI - t1) * i / N), b = pt(Math.PI - (Math.PI - t1) * (i + 1) / N), w = Math.hypot(b[0] - a[0], b[1] - a[1]) + 0.05, rz = Math.atan2(b[1] - a[1], b[0] - a[0]), xm = (a[0] + b[0]) / 2, ym = (a[1] + b[1]) / 2;
+        for (let i = 0; i < N; i++) { const a = pt(Math.PI * (1 - i / N)), b = pt(Math.PI * (1 - (i + 1) / N)), w = Math.hypot(b[0] - a[0], b[1] - a[1]) + 0.05, rz = Math.atan2(b[1] - a[1], b[0] - a[0]), xm = (a[0] + b[0]) / 2, ym = (a[1] + b[1]) / 2;
+          const ZB = xm < 58 ? -24 : xm > CX && ym < 8 ? ZG : -17.4, ZF = xm < 38 ? 17 : ZF0, LEN = ZF - ZB, ZC = (ZF + ZB) / 2;                 // (its low left part starts a slot later: the side road comes back from the park there)
           P.push(Kit.box(w, 0.3, LEN, xm, ym - 0.15, ZC, i % 2 ? '#1b1638' : '#221b46', { rz }));
-          for (let z = ZC - LEN / 2 + 3; z < ZC + LEN / 2 - 1; z += 6) P.push(Kit.box(w, 0.55, 0.3, xm, ym - 0.275, z, '#ffb347', { glow: true, rz }));
-          P.push(Kit.box(w, 0.6, 0.35, xm, ym - 0.3, ZC + LEN / 2, C.cyan, { glow: true, rz }), Kit.box(w, 0.6, 0.35, xm, ym - 0.3, ZC - LEN / 2, C.pink, { glow: true, rz })); }
-        const e = pt(t1); P.push(Kit.box(0.3, 0.3, LEN, e[0], e[1] - 0.15, ZC, C.cyan, { glow: true }));
-        for (const z of [ZC + LEN / 2 - 2.5, ZC + LEN / 2 - 14.5]) P.push(Kit.cyl(0.3, 0.4, e[1], e[0], 0, z, C.pillar, { seg: 8 }), Kit.box(0.9, 0.12, 0.9, e[0], 1.2, z, C.pink, { glow: true }));
+          for (let z = ZF - 3; z > ZB + 1; z -= 6) P.push(Kit.box(w, 0.55, 0.3, xm, ym - 0.275, z, '#ffb347', { glow: true, rz }));
+          P.push(Kit.box(w, 0.6, 0.35, xm, ym - 0.3, ZF, C.cyan, { glow: true, rz }), Kit.box(w, 0.6, 0.35, xm, ym - 0.3, ZB, C.pink, { glow: true, rz })); }
+        const e = pt(t1); P.push(Kit.box(0.3, 0.3, ZG + 17.4, e[0], e[1] - 0.15, (ZG - 17.4) / 2, C.cyan, { glow: true }), Kit.box(0.35, e[1], 0.35, e[0] + 0.3, 0, ZG, C.cyan, { glow: true }));
         return Kit.merge(P); };
       if (NC.G2TN && typeof STTUNNEL_ASSETS !== 'undefined') for (let k = 0; k < NC.G2TN; k++) props['sgTun' + k] = () => { const XL = NC.G2TX, WD = 12, XR = XL + WD, XM = XL + WD / 2, Y = 6.9, HT = WD, YC = Y + HT, P = [], sk = [], T = STTUNNEL_ASSETS, Q = NeonAvenue.quad, zf = k % 2 ? 6 : -6, zn = -zf, wall = '#141a5c', lite = '#9ff4ff', green = '#35ff2e', B = (w, h, d, x, y, z, c, o) => Kit.box(w, h, d, XL + x, y, z, c, o);
         P.push(B(WD + 0.8, 0.4, 12, WD / 2, Y - 0.4, 0, '#0a0a14'), B(0.4, HT + 0.8, 12, -0.2, Y - 0.4, 0, wall), B(0.4, HT + 0.8, 12, WD + 0.2, Y - 0.4, 0, wall), B(WD + 0.8, 0.4, 12, WD / 2, YC, 0, wall));      // the shell
