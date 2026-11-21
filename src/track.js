@@ -175,13 +175,29 @@ const NEON_CORNER = {
     return a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) + this.G2X * e(c((qf - this.G2Q) / 4)) * (1 - back) - back; },
   glass2H(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), h = this.GH * e(c((qf - this.GQ) / this.GUP));
     return (h + (this.G2H - h) * e(c((qf - this.G2Q) / this.G2UP))) * (1 - e(c((qf - 68) / 7))); },
-  gM(g, qf) { return g === 2 && qf >= this.G2Q ? this.glass2W(qf) : this.glassM(qf); },
-  gH(g, qf) { return g === 2 && qf >= this.G2Q ? this.glass2H(qf) : this.glassH(qf); },
+  gM(g, qf) { return g === 3 ? this.glass3O(qf) : g === 2 && qf >= this.G2Q ? this.glass2W(qf) : this.glassM(qf); },
+  gH(g, qf) { return g === 3 ? this.glass3H(qf) : g === 2 && qf >= this.G2Q ? this.glass2H(qf) : this.glassH(qf); },
+  // THE WALLED RAMP of the back road (the user, 2026-11-21, a red line along the road's left edge: "a glass ramp, 2 m high, which climbs little by little", starting just after the
+  // roundabout, "and the square station tunnel wider, so that this ramp passes INSIDE it"; rideable): G3Q slots after the mouth, a runner on the back road's LEFT place leaves it to the
+  // left, onto a one-lane glass ramp with glass walls 2 m high, straight, G3X m out (the dark ground between the far towers and the road). It climbs slowly (G3UP slots) to G3H (7 m: the
+  // square tunnel's floor), crosses the tunnel beyond the station's train (the back road and the lane pass under it there), and comes down to the ground by slot G3LAND, left of the road,
+  // where the lane's link back to the side road arrives: its runner goes on along that link (G3E: where the detour is the side road's again, the runner on the lane).
+  // glass3W: where it stands; glass3M: its runner's line; glass3H: its height;
+  // glass3O: the road's centre for that detour at any slot (one straight slot to and from the side road's own line, before G3Q and after G3E: Game moves the runner by the difference).
+  G3Q: 17, G3X: 73, G3H: 70, G3E: 65, G3UP: 34, G3LAND: 63,
+  glass3W(qf) { return this.G3X; },
+  glass3M(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), W = this.glass3W(qf), m = W + (this.backM(this.G3Q) - 1.9 - W) * (1 - e(c((qf - this.G3Q) / 2)));
+    return m + (this.bikeM(qf) + this.BIKE_G - m) * e(c((qf - this.G3LAND + 0.2) / (this.G3E - this.G3LAND + 0.2))); },
+  glass3H(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)); return this.G3H * e(c((qf - this.G3Q - 2) / this.G3UP)) * (1 - e(c((qf - 58.5) / (this.G3LAND - 58.5)))); },
+  glass3O(qf) { const A = this.G3Q, B = this.G3E; if (qf <= A - 1 || qf >= B + 1) return this.sideM(qf);
+    if (qf < A) return this.sideM(A - 1) + (this.glass3M(A) - this.sideM(A - 1)) * (qf - A + 1);
+    if (qf > B) return this.glass3M(B) + (this.sideM(B + 1) - this.glass3M(B)) * (qf - B);
+    return this.glass3M(qf); },
   // THE RAMP BENDS LEFT (the user: seen from below it curves away, so riding it must curve the same way): the lateral offset of the road (lateral units) on the glass ramp, up and down:
   // SHIFT_M metres to the left by the top (the circuit stays where it is, to the right), back by the end of the way down. Lateral units are U3.X = 2.2 / 0.62 metres.
   SHIFT_M: 17,
   off(d, z) {
-    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.glass && qf >= this.GQ ? this.gM(d.glass, qf) : this.sideM(qf)) / (2.2 / 0.62); }
+    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.glass === 3 ? this.glass3O(qf) : d.glass && qf >= this.GQ ? this.gM(d.glass, qf) : this.sideM(qf)) / (2.2 / 0.62); }
     if (d && d.park) { const S = this.SLOT, zT = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zP = zT - this.PIN * S, zR = zT + S, zQ = zT + this.DIVE * S, e = t => t * t * (3 - 2 * t), D = this.PTUBE_M / (2.2 / 0.62);      // (straight beside the big tube for one slot, then back)
       return z <= zP || z >= zQ ? 0 : -D * (z < zT ? e((z - zP) / (zT - zP)) : z < zR ? 1 : 1 - e((z - zR) / (zQ - zR))); }
     if (!d || !d.up) return 0;

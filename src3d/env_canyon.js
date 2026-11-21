@@ -285,9 +285,10 @@ const NeonAvenue = {
     box(1545, 1890, 0, 22, 18); box(1452, 1548, 0, 15, 8); box(1830, 2000, 0, 12, 12);
     // the middle: the cyan screen block, the round screen tower, the two spire towers
     box(655, 762, 600, 0); cyl(1283, 78, 78, 1333, 300, 0, 16); cyl(1283, 78, 40, 300, 270, 0, 16);
-    box(482, 580, 600, -8); cyl(531, 34, 0, 600, 470, -8, 6); box(1122, 1196, 600, -8); cyl(1159, 30, 0, 600, 455, -8, 6);
+    box(1122, 1196, 600, -8);      // (the first spire tower, 482..580, stood where THE SQUARE TUNNEL, widened for the walled ramp, passes: removed)
+    cyl(1159, 30, 0, 600, 455, -8, 6);
     // the back: the low city
-    box(430, 1452, 1010, -16, 10);
+    box(560, 1452, 1010, -16, 10);      // (from 560, not 430: clear of the widened square tunnel)
     // (the user: the twin towers are removed)
     // the two roofed pavilions in front (their roof lines), and palms standing before them (their colours taken from the picture's own palms)
     carve([[0, 790], [110, 800], [385, 1023], [385, 1333], [0, 1333]], 24, 36); poly([[2000, 960], [1600, 1170], [1600, 1333], [2000, 1333]], 36, 12);
@@ -434,6 +435,37 @@ const NeonAvenue = {
             else if (!over) parts.push(Kit.box(1.0, y0 - 0.4, 1.0, x0, 0, z0, C.pillar), Kit.box(2 * X + 0.4, 0.4, 1.2, x0, y0 - 0.45, z0, C.pillar), Kit.box(1.1, 0.12, 1.1, x0, 1.2, z0, C.pink, { glow: true })); } }
         return tex(parts, sk, () => NeonAvenue.glassMaterial()); };
       for (let k = 0; k < GN; k++) props['sgRamp' + k] = ramp(G0 + k, k, f => NC.glassW(f), f => NC.glassH(f), false);
+      // THE WALLED RAMP of the back road (NEON_CORNER.glass3W / glass3H; the user: "a glass ramp, 2 m high, which climbs little by little"): slot q of it, in the circuit's frame: the same
+      // glass deck, but with glass WALLS 2 m high over it on both sides (a lit rail on top), a pillar every other slot once it is high; none where the back road and the lane pass
+      // under it, before and after the square tunnel, nor inside the tunnel
+      if (NC.glass3W) { const A3 = NC.G3Q + 2, B3 = Math.ceil(NC.G3LAND);
+        const walk = q => () => { const n = 8, X = 1.75, LL = 12.25, WL = 2, parts = [], sk = [], Hm = f => Math.max(0.1, NC.glass3H(q + f) / 10);
+          for (let a = 0; a < n; a++) { const f0 = a / n, f1 = (a + 1) / n, x0 = NC.glass3W(q + f0), x1 = NC.glass3W(q + f1), y0 = Hm(f0), y1 = Hm(f1), z0 = LL / 2 - f0 * LL, z1 = LL / 2 - f1 * LL, xm = (x0 + x1) / 2, ym = (y0 + y1) / 2, zm = (z0 + z1) / 2;
+            if (q + f0 >= NC.G3LAND) continue;                                                                                            // (landed)
+            const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0) + 0.04, rx = Math.atan2(y1 - y0, z0 - z1), ry = Math.atan2(x0 - x1, z0 - z1);
+            sk.push(NeonAvenue.plain([x0 - X, y0, z0], [x0 + X, y0, z0], [x1 + X, y1, z1], [x1 - X, y1, z1]));
+            for (const s of [-1, 1]) { sk.push(NeonAvenue.plain([x0 + s * X, y0, z0], [x1 + s * X, y1, z1], [x1 + s * X, y1 + WL, z1], [x0 + s * X, y0 + WL, z0]));      // the glass wall, 2 m
+              parts.push(Kit.box(0.12, 0.12, len, xm + s * (X + 0.1), ym - 0.02, zm, s < 0 ? C.cyan : C.pink, { glow: true, rx, ry }), Kit.box(0.08, 0.08, len, xm + s * X, ym + WL, zm, s < 0 ? C.pink : C.cyan, { glow: true, rx, ry }));
+              if (a % 4 === 0) parts.push(Kit.box(0.08, WL, 0.08, x0 + s * X, y0, z0, '#9ff4ff', { glow: true }));                              // (a slim lit post every 6 m)
+              if (ym > 1) parts.push(Kit.box(0.2, 0.6, len, xm + s * (X + 0.2), ym - 0.3, zm, '#2a2f6a', { rx, ry })); }
+            if (a % 2 === 0) parts.push(Kit.box(0.1, 0.03, len * 0.6, xm, ym + 0.01, zm, C.cyan, { glow: true, rx, ry }));
+            parts.push(Kit.box(2 * X, 0.04, 0.06, x0, y0 - 0.01, z0, '#9ff4ff', { glow: true, ry }));
+            if (a === n / 2 && q === 61 && y0 > 1.2) parts.push(Kit.box(0.8, y0 - 0.3, 0.8, x0, 0, z0, C.pillar));                                                   // (one short leg under the way down, clear of the road)
+            if (a === n / 2 && y0 > 2.5 && (q % 2 === 0 && q <= 50)) parts.push(Kit.box(1.0, y0 - 0.4, 1.0, x0, 0, z0, C.pillar), Kit.box(2 * X + 0.4, 0.4, 1.2, x0, y0 - 0.45, z0, C.pillar), Kit.box(1.1, 0.12, 1.1, x0, 1.2, z0, C.pink, { glow: true })); }
+          if (q === A3) for (const s of [-1, 1]) parts.push(Kit.box(0.14, WL + 0.5, 0.14, NC.G3X + s * X, 0, LL / 2, C.cyan, { glow: true }));              // (its mouth: two lit posts, a bar over them)
+          if (q === A3) parts.push(Kit.box(2 * X + 0.14, 0.14, 0.14, NC.G3X, WL + 0.5, LL / 2, C.pink, { glow: true }));
+          return tex(parts, sk, () => NeonAvenue.glassMaterial()); };
+        for (let q = A3; q < B3; q++) props['sgWalk' + (q - A3)] = walk(q);
+        props.sgWalkIn = () => { const P = [], n = 16;                                                                                    // the way in: a strip of neon asphalt from the road's left place to the ramp's mouth, chevrons
+          for (let a = 0; a < n; a++) { const f0 = a / 8, f1 = (a + 1) / 8, x0 = NC.glass3M(NC.G3Q + f0), x1 = NC.glass3M(NC.G3Q + f1), z0 = 6 - f0 * 12, z1 = 6 - f1 * 12, xm = (x0 + x1) / 2, zm = (z0 + z1) / 2, len = Math.hypot(x1 - x0, z1 - z0) + 0.06, ry = Math.atan2(x0 - x1, z0 - z1);
+            P.push(Kit.box(3.5, 0.04, len, xm, 0.085, zm, '#1b2050', { ry }), Kit.box(0.12, 0.04, len, xm - 1.7, 0.1, zm, C.cyan, { glow: true, ry }), Kit.box(0.12, 0.04, len, xm + 1.7, 0.1, zm, C.pink, { glow: true, ry }));
+            if (a % 2 === 0) P.push(Kit.box(0.1, 0.02, 0.9, xm - 0.3, 0.13, zm, '#9ff4ff', { glow: true, ry: ry + 0.6 }), Kit.box(0.1, 0.02, 0.9, xm + 0.3, 0.13, zm, '#9ff4ff', { glow: true, ry: ry - 0.6 })); }
+          return Kit.merge(P); };
+        props.sgWalkOut = () => { const P = [], n = 18;                                                                                    // the way out: the same strip from the ramp's foot to the lane's link back to the side road
+          for (let a = 0; a < n; a++) { const f0 = (a - 2) / 8, f1 = (a - 1) / 8, x0 = NC.glass3M(NC.G3LAND + f0), x1 = NC.glass3M(NC.G3LAND + f1), z0 = 6 - f0 * 12, z1 = 6 - f1 * 12, xm = (x0 + x1) / 2, zm = (z0 + z1) / 2, len = Math.hypot(x1 - x0, z1 - z0) + 0.06, ry = Math.atan2(x0 - x1, z0 - z1);
+            P.push(Kit.box(3.5, 0.04, len, xm, 0.085, zm, '#1b2050', { ry }), Kit.box(0.12, 0.04, len, xm - 1.7, 0.1, zm, C.cyan, { glow: true, ry }), Kit.box(0.12, 0.04, len, xm + 1.7, 0.1, zm, C.pink, { glow: true, ry }));
+            if (a % 2 === 0) P.push(Kit.box(0.1, 0.02, 0.9, xm - 0.3, 0.13, zm, '#9ff4ff', { glow: true, ry: ry + 0.6 }), Kit.box(0.1, 0.02, 0.9, xm + 0.3, 0.13, zm, '#9ff4ff', { glow: true, ry: ry - 0.6 })); }
+          return Kit.merge(P); }; }
       if (NC.glass2W) for (let k = 0; k < NC.CANYON + NC.DOWN - NC.G2Q; k++) props['sgHigh' + k] = ramp(NC.G2Q + k, k, f => NC.glass2W(f), f => NC.glass2H(f), true);
       // THE TRIANGLE GARDEN (the user, on a screenshot: "a small triangle garden whose corners are not at the same height: the highest, seen in the middle and the farthest, 2 m, the next
       // 1.10 m, the third 40 cm"): in the wedge where the high branch leaves the glass branch (slots TQ-0.9 .. TQ+1.4), heights counted from the glass deck (GH); its walls go down to the ground
@@ -468,7 +500,7 @@ const NeonAvenue = {
           for (let z = ZF - 3; z > ZB + 1; z -= 6) P.push(Kit.box(w, 0.55, 0.3, xm, ym - 0.275, z, '#ffb347', { glow: true, rz }));
           P.push(Kit.box(w, 0.6, 0.35, xm, ym - 0.3, ZF, C.cyan, { glow: true, rz }), Kit.box(w, 0.6, 0.35, xm, ym - 0.3, ZB, C.pink, { glow: true, rz })); }
         const e = pt(t1); P.push(Kit.box(0.3, 0.3, ZG + 17.4, e[0], e[1] - 0.15, (ZG - 17.4) / 2, C.cyan, { glow: true }), Kit.box(0.35, e[1], 0.35, e[0] + 0.3, 0, ZG, C.cyan, { glow: true }));
-        if (NC.G2TN) { const ZA = -17.4, ZT = ZA - 9, M = 12, tA = Math.acos((NC.G2TX - CX) / RA), XL = NC.G2TX - 0.4, XR = NC.G2TX + 12.4, YT = 19.3, top = XR - XL, tot = top + YT - e[1], S = [[], []], rim = [];      // (the user: "fit the square tunnel's corner to the vault's angle": a hood runs from the back arch of the vault down onto the tunnel's roof and outer wall)
+        if (NC.G2TN) { const ZA = -17.4, ZT = ZA - 9, M = 12, tA = Math.acos((NC.G2TX - CX) / RA), XL = NC.G2TX - 0.4, XR = NC.G2TX + (NC.glass3W ? 18.4 : 12.4), YT = 19.3, top = XR - XL, tot = top + YT - e[1], S = [[], []], rim = [];      // (the user: "fit the square tunnel's corner to the vault's angle": a hood runs from the back arch of the vault down onto the tunnel's roof and outer wall)
           const sq = f => { const d = f * tot; return d < top ? [XL + d, YT, ZT] : [XR, YT - (d - top), ZT]; }, ar = f => { const p = pt(tA + (t1 - tA) * f); return [p[0], p[1], ZA]; };
           const tri = (T, color, glow) => { const g = new THREE.BufferGeometry(), F = []; for (const t of T) F.push(...t[0], ...t[1], ...t[2], ...t[0], ...t[2], ...t[1]); g.setAttribute('position', new THREE.Float32BufferAttribute(F, 3)); g.computeVertexNormals(); return { geo: g, color, glow: !!glow }; };
           for (let i = 0; i < M; i++) { const a0 = ar(i / M), a1 = ar((i + 1) / M), b0 = sq(i / M), b1 = sq((i + 1) / M); S[i % 2].push([a0, a1, b1], [a0, b1, b0]);
@@ -476,7 +508,8 @@ const NeonAvenue = {
           S[0].push([ar(0), [XL, YT, ZA], sq(0)]);                                                                                                     // (its inner end, closed)
           P.push(tri(S[0], '#221b46'), tri(S[1], '#1b1638'), tri(rim, C.pink, true)); }
         return Kit.merge(P); };
-      if (NC.G2TN && typeof STTUNNEL_ASSETS !== 'undefined') for (let k = 0; k < NC.G2TN; k++) props['sgTun' + k] = () => { const XL = NC.G2TX, WD = 12, XR = XL + WD, XM = XL + WD / 2, Y = 6.9, HT = WD, YC = Y + HT, P = [], sk = [], T = STTUNNEL_ASSETS, Q = NeonAvenue.quad, zf = k % 2 ? 6 : -6, zn = -zf, wall = '#141a5c', lite = '#9ff4ff', green = '#35ff2e', B = (w, h, d, x, y, z, c, o) => Kit.box(w, h, d, XL + x, y, z, c, o);
+      if (NC.G2TN && typeof STTUNNEL_ASSETS !== 'undefined') for (let k = 0; k < NC.G2TN; k++) props['sgTun' + k] = () => { const XL = NC.G2TX, W3 = NC.glass3W ? NC.G3X - XL : 0, WD = W3 ? 18 : 12, XR = XL + WD, XM = XL + WD / 2, Y = 6.9, HT = 12, YC = Y + HT,      // (WD 18: wider, the walled ramp of the back road passes inside, beyond the train)
+        P = [], sk = [], T = STTUNNEL_ASSETS, Q = NeonAvenue.quad, zf = k % 2 ? 6 : -6, zn = -zf, wall = '#141a5c', lite = '#9ff4ff', green = '#35ff2e', B = (w, h, d, x, y, z, c, o) => Kit.box(w, h, d, XL + x, y, z, c, o);
         P.push(B(WD + 0.8, 0.4, 12, WD / 2, Y - 0.4, 0, '#0a0a14'), B(0.4, HT + 0.8, 12, -0.2, Y - 0.4, 0, wall), B(0.4, HT + 0.8, 12, WD + 0.2, Y - 0.4, 0, wall), B(WD + 0.8, 0.4, 12, WD / 2, YC, 0, wall));      // the shell
         sk.push(Q(T, 'wallL', [XL + 0.03, Y, zf], [XL + 0.03, Y, zn], [XL + 0.03, YC, zn], [XL + 0.03, YC, zf]), Q(T, 'wallR', [XR - 0.03, Y, zf], [XR - 0.03, Y, zn], [XR - 0.03, YC, zn], [XR - 0.03, YC, zf]));      // (the faces mirror from one slot to the next, so the rings join)
         sk.push(Q(T, 'ceil', [XL, YC - 0.03, zn], [XR, YC - 0.03, zn], [XR, YC - 0.03, zf], [XL, YC - 0.03, zf]));
@@ -489,7 +522,9 @@ const NeonAvenue = {
         for (const z of [-3.2, 3.2]) P.push(B(0.06, 1.9, 1.3, 9.43, Y + 0.5, z, C.pink, { glow: true }));                                                                                                     // (its doors)
         P.push(B(1.2, 0.5, 1.2, 8.7, Y + 0.3, 3, '#8a8a90'), B(1.0, 0.8, 1.0, 8.7, Y + 0.8, 3, '#2fae4a'), B(0.6, 0.5, 0.6, 8.7, Y + 1.6, 3, '#3fd060'), B(0.45, 0.45, 1.8, 8.5, Y + 0.3, -2.5, '#f2f5fa'));      // green on the platform, a bench
         P.push(B(0.08, 4.4, 0.08, 8.8, YC - 4.8, 0, '#8a94a8'), B(2.0, 0.7, 0.12, 8.8, YC - 5.4, 0, C.cyan, { glow: true }));                                                                              // the station's sign
-        for (const x of [0.6, 11.5]) P.push(B(1.0, Y - 0.4, 1.0, x, 0, 0, C.pillar), B(1.1, 0.12, 1.1, x, 1.2, 0, C.cyan, { glow: true }));                                                                    // the pillars
+        for (const x of W3 ? [0.6, 11.5, WD - 0.6] : [0.6, 11.5]) P.push(B(1.0, Y - 0.4, 1.0, x, 0, 0, C.pillar), B(1.1, 0.12, 1.1, x, 1.2, 0, C.cyan, { glow: true }));
+        if (W3) { for (const z of [6, 0]) sk.push(Q(T, 'floor', [XL + W3 - 1.9, Y + 0.01, z], [XL + W3 + 1.9, Y + 0.01, z], [XL + W3 + 1.9, Y + 0.01, z - 6], [XL + W3 - 1.9, Y + 0.01, z - 6]));      // THE WALLED RAMP's bay: a second red floor under its glass, a black band, green by the outer wall
+          P.push(B(0.25, 0.5, 12, 12.15, Y, 0, '#23285e'), B(WD - W3 - 1.9, 0.12, 12, (WD + W3 + 1.9) / 2, Y, 0, '#000000'), B(0.9, 0.5, 2.4, WD - 1.0, Y + 0.1, 2.5, '#8a8a90'), B(0.7, 0.9, 2.0, WD - 1.0, Y + 0.6, 2.5, '#2fae4a'), B(0.12, 0.05, 12, W3 + 2.1, Y + 0.13, 0, lite, { glow: true })); }                                                                    // the pillars
         for (const z of [k === 0 ? 6 : null, k === NC.G2TN - 1 ? -6 : null]) if (z !== null) { P.push(B(WD + 1.0, 0.3, 0.3, WD / 2, Y - 0.35, z, lite, { glow: true }), B(WD + 1.0, 0.3, 0.3, WD / 2, YC + 0.05, z, lite, { glow: true }));      // the cyan frame of each mouth
           for (const x of [-0.2, WD + 0.2]) P.push(B(0.3, HT + 0.7, 0.3, x, Y - 0.35, z, lite, { glow: true }));
           if (z < 0) P.push(B(4.6, 0.05, 0.3, 4, Y + 0.02, z + 0.2, lite, { glow: true })); }                                                                                                               // (the bar of light at the far end)
@@ -544,7 +579,7 @@ const NeonAvenue = {
       const k = q - CN, Hk = d => HM * (1 - e(Math.max(0, Math.min(1, (k + d / 12) / DN)))), sh = d => NeonAvenue.shift(1 - (k + d / 12) / DN);      // the avenue's way down, seen from the circuit it comes down to
       return solo(NeonAvenue.layout(q, rnd, Hk(6)).map(p => { if (/^cnGlassD/.test(p.prop)) p.prop = 'pkGlassD' + k; if (/^cnMainRoadD/.test(p.prop)) return { prop: 'cnMainRoadBare', x: 0.001, dist: 6 }; return Object.assign(p, { x: p.x - sh(p.dist), dy: (p.dy || 0) + Hk(p.dist) }); })); };
     // slot q of THE SIDE ROAD's way (the runner's road is NEON_CORNER.sideM metres to the right of the circuit on the ground; everything else stands where it stood)
-    NeonAvenue.side = (q, rnd, glass) => { const CN = NC.CANYON, DN = NC.DOWN, PT = NC.PTUBE_M || 12, gl = !!(glass && NC.glassM && q >= NC.GQ), S = f => gl ? NC.gM(glass, f) : NC.sideM(f), s0 = S(q), s1 = S(q + 1), bend = Math.abs(s1 - s0) > 0.01; let o;
+    NeonAvenue.side = (q, rnd, glass) => { const CN = NC.CANYON, DN = NC.DOWN, PT = NC.PTUBE_M || 12, g3 = glass === 3 && !!NC.glass3O, gl = g3 ? q >= NC.G3Q - 1 && q <= NC.G3E : !!(glass && NC.glassM && q >= NC.GQ), S = f => g3 ? NC.glass3O(f) : gl ? NC.gM(glass, f) : NC.sideM(f), s0 = S(q), s1 = S(q + 1), bend = Math.abs(s1 - s0) > 0.01; let o;
       if (q < CN) o = NeonAvenue.layout(q, rnd, HM).map(p => Object.assign(p, { x: p.x - D, dy: (p.dy || 0) + HM }));
       else { const k = q - CN, Hk = d => HM * (1 - e(Math.max(0, Math.min(1, (k + d / 12) / DN)))), sh = d => NeonAvenue.shift(1 - (k + d / 12) / DN);
         o = NeonAvenue.layout(q, rnd, Hk(6)).map(p => { if (/^cnGlassD/.test(p.prop)) p.prop = 'pkGlassD' + k; if (/^cnMainRoadD/.test(p.prop)) return { prop: 'cnMainRoadBare', x: 0.001, dist: 6 }; return Object.assign(p, { x: p.x - sh(p.dist), dy: (p.dy || 0) + Hk(p.dist) }); });
@@ -562,6 +597,9 @@ const NeonAvenue = {
       if (NC.glassW && q >= NC.GQ) for (const p of o) if (p.prop === 'ftStationF') p.prop = 'ftStationG';
       if (NC.glassW && q >= NC.GQ) o.push({ prop: 'sgRamp' + (q - NC.GQ), x: 0.001, dist: 6 });                                              // THE GLASS BRANCH, standing where it stands
       if (NC.glass2W && q >= NC.G2Q) o.push({ prop: 'sgHigh' + (q - NC.G2Q), x: 0.001, dist: 6 });
+      if (NC.glass3W && q >= NC.G3Q + 2 && props['sgWalk' + (q - NC.G3Q - 2)]) o.push({ prop: 'sgWalk' + (q - NC.G3Q - 2), x: 0.001, dist: 6 });      // THE WALLED RAMP of the back road, through the square tunnel
+      if (NC.glass3W && q === NC.G3Q) o.push({ prop: 'sgWalkIn', x: 0.001, dist: 6 });
+      if (NC.glass3W && q === NC.G3LAND) o.push({ prop: 'sgWalkOut', x: 0.001, dist: 6 });
       if (NC.G2T && q === NC.G2T - 2 && props.sgVault) o.push({ prop: 'sgVault', x: 0.001, dist: 6 });                                              // THE GREAT VAULT over the two glass ramps
       if (NC.glass2W && q === NC.G2Q + 3 && props.sgTri) o.push({ prop: 'sgTri', x: 0.001, dist: 6 });                                              // THE TRIANGLE GARDEN in the wedge between the two glass ramps                                          // THE HIGH BRANCH (7 m)
       if (NC.G2TN && q >= NC.G2T && q < NC.G2T + NC.G2TN && props['sgTun' + (q - NC.G2T)]) o = o.filter(p => !/^ftStation/.test(p.prop));      // (the far stations' halls would stand in the square tunnel)
@@ -570,6 +608,7 @@ const NeonAvenue = {
         for (const p of o) p.dy = (p.dy || 0) - NC.gH(glass, q + p.dist / 12) / 10; }
       for (const p of o) { const nx = p.x - (s0 + (s1 - s0) * p.dist / 12); if ((p.x < 0) !== (nx < 0)) p.rotY = (p.rotY || 0) + Math.PI; p.x = nx || 0.001; p.rotY = (p.rotY || 0) + Math.atan((s1 - s0) / 12); }
       if (!gl) o.push({ prop: bend ? 'sdRoadC' : 'sdRoad', x: 0.001, dist: 6 });
+      if (q === 68) for (let i = o.length - 1; i >= 0; i--) if (o[i].prop === 'ftPlainB') o.splice(i, 1);      // (the user, a red mark on it: "enlever": the plain twin tower that stood ahead of the walled ramp, removed)
       for (const p of o) p.solo = true; return o; };
   }
   NeonAvenue.props = props;

@@ -456,11 +456,22 @@ class Game {
         else { const d = Object.assign({}, this.detour, { asked3: true, glass: 2 }); w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.emit('corner'); }
       }
     }
+    if (this.detour && this.detour.side && (this.detour.glass === 3 || (!this.detour.glass && !this.detour.asked4)) && typeof NEON_CORNER.glass3M === 'function') {      // THE WALLED RAMP of the back road (NEON_CORNER.glass3W): its LEFT place climbs it, just after the roundabout, through the square tunnel
+      const C = NEON_CORNER, U = 2.2 / 0.62, zQ = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT, zC = zQ + C.G3Q * C.SLOT, zE = zQ + C.G3E * C.SLOT;
+      if (!this.detour.glass && prevZ < zC && p.z >= zC) { const BL = this.bikeLane(zC);
+        if (!(BL && BL.road != null && this.onLane && p.x < BL.road + 1.9 / U)) this.detour.asked4 = true;
+        else { const d = Object.assign({}, this.detour, { asked2: true, asked4: true, glass: 3 }), dx = (C.glass3M(C.G3Q) - C.sideM(C.G3Q)) / U; d.zC = zC; d.zE3 = zE;
+          w.items = w.items.filter(it => !(it.z >= zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2))));
+          w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; p.x -= dx; this.camRel -= dx; this.onLane = false; this._bkT = null;      // (the road's centre is the ramp's line from here: the runner and the camera stay where they are)
+          this.banner = { t: 1.6, text: 'GLASS RAMP' }; this.emit('corner'); } }
+      else if (this.detour.glass === 3 && prevZ < zE && p.z >= zE) { const d = Object.assign({}, this.detour, { glass: null }), dx = (C.glass3M(C.G3E) - C.sideM(C.G3E)) / U;      // (landed, on the lane's link: the side road's detour again, the runner on the lane)
+        w.extraLift = null; w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; p.x += dx; this.camRel += dx; this.onLane = true; this._bkT = null; }
+    }
     if (this.detour && this.detour.decided && (this.detourSweep = (this.detourSweep || 0) + 1) % 20 === 0) {      // (items the world builds later along the glass route or the underground tunnel: the same rule as at the choice)
       const C = NEON_CORNER, up = this.detour.up, a = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART - C.UP) * C.SLOT + (up ? 0 : (C.UP - (this.detour.park || this.detour.side ? C.PIN : 0)) * C.SLOT), b2 = this.detour.park || this.detour.side ? this.detour.zG : this.detour.z1;      // (the car park's way: the circuit on the ground keeps its obstacles after the slip road)
       const gone = it => it.z >= a && it.z <= b2 && (OBST[it.kind] || it.kind === 'raceGate' || (up && it.kind === 'coin' && Math.abs(it.x) > 0.2));
       if (w.items.some(gone)) w.items = w.items.filter(it => !gone(it));
-      if (this.detour.glass) { const zC = this.detour.zC, zE = this.detour.z1 - C.EXIT * C.SLOT, g2 = it => it.z >= zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2)); if (w.items.some(g2)) w.items = w.items.filter(it => !g2(it)); }
+      if (this.detour.glass) { const zC = this.detour.zC, zE = this.detour.glass === 3 ? this.detour.zE3 : this.detour.z1 - C.EXIT * C.SLOT, g2 = it => it.z >= zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2)); if (w.items.some(g2)) w.items = w.items.filter(it => !g2(it)); }
     }
     if (this.detour && p.z > this.detour.z1) { this.detour = null; w.extraLift = null; w.noRoad = null; if (w.extraOff) { w.extraOff = null; w.ver++; } }      // out of the tunnel: back on the neon street
     this.steer(dt);
@@ -541,7 +552,7 @@ class Game {
     const w = this.world, p = this.p;
     const dir = (this.keys.right || this.tright ? 1 : 0) - (this.keys.left || this.tleft ? 1 : 0);
     const vp = w.pieceAt(p.z); let lanes = 0, lc = 0;
-    if (w.extraLift && w.extraLift(p.z) > 1) { lanes = 1; lc = w.playerBand(p.z, p.x).c; }      // THE GLASS RAMPS (up and down, NEON_CORNER): one lane, narrower than the circuit, like the ramps of a motorway
+    if ((w.extraLift && w.extraLift(p.z) > 1) || (this.detour && this.detour.glass === 3)) { lanes = 1; lc = w.playerBand(p.z, p.x).c; }      // THE GLASS RAMPS (up and down, NEON_CORNER): one lane, narrower than the circuit, like the ramps of a motorway
     else if (vp && vp.type === 'seg') lanes = vp.seg.lanes || 0; else if (vp && vp.type === 'fork' && vp.choice) { lanes = w.track.segments[vp.fork[vp.choice].route].lanes || 0; lc = w.playerBand(p.z, p.x).c; }       // (on a chosen road of a junction the places are those of that road)
     if (lanes) {                                   // VIC, the narrow streets: only TWO places, the left half and the right half of the street (lane +-0.28), or ONE in the alley: a key sends the runner to that half, it stays there until the other key
       if (dir) this.lane2 = dir; else if (!this.lane2) this.lane2 = p.x < lc ? -1 : 1;
