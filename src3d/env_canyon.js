@@ -468,6 +468,13 @@ const NeonAvenue = {
           for (let z = ZF - 3; z > ZB + 1; z -= 6) P.push(Kit.box(w, 0.55, 0.3, xm, ym - 0.275, z, '#ffb347', { glow: true, rz }));
           P.push(Kit.box(w, 0.6, 0.35, xm, ym - 0.3, ZF, C.cyan, { glow: true, rz }), Kit.box(w, 0.6, 0.35, xm, ym - 0.3, ZB, C.pink, { glow: true, rz })); }
         const e = pt(t1); P.push(Kit.box(0.3, 0.3, ZG + 17.4, e[0], e[1] - 0.15, (ZG - 17.4) / 2, C.cyan, { glow: true }), Kit.box(0.35, e[1], 0.35, e[0] + 0.3, 0, ZG, C.cyan, { glow: true }));
+        if (NC.G2TN) { const ZA = -17.4, ZT = ZA - 9, M = 12, tA = Math.acos((NC.G2TX - CX) / RA), XL = NC.G2TX - 0.4, XR = NC.G2TX + 12.4, YT = 19.3, top = XR - XL, tot = top + YT - e[1], S = [[], []], rim = [];      // (the user: "fit the square tunnel's corner to the vault's angle": a hood runs from the back arch of the vault down onto the tunnel's roof and outer wall)
+          const sq = f => { const d = f * tot; return d < top ? [XL + d, YT, ZT] : [XR, YT - (d - top), ZT]; }, ar = f => { const p = pt(tA + (t1 - tA) * f); return [p[0], p[1], ZA]; };
+          const tri = (T, color, glow) => { const g = new THREE.BufferGeometry(), F = []; for (const t of T) F.push(...t[0], ...t[1], ...t[2], ...t[0], ...t[2], ...t[1]); g.setAttribute('position', new THREE.Float32BufferAttribute(F, 3)); g.computeVertexNormals(); return { geo: g, color, glow: !!glow }; };
+          for (let i = 0; i < M; i++) { const a0 = ar(i / M), a1 = ar((i + 1) / M), b0 = sq(i / M), b1 = sq((i + 1) / M); S[i % 2].push([a0, a1, b1], [a0, b1, b0]);
+            const up = p => [p[0], p[1] + 0.12, p[2]]; rim.push([b0, b1, up(b1)], [b0, up(b1), up(b0)]); }
+          S[0].push([ar(0), [XL, YT, ZA], sq(0)]);                                                                                                     // (its inner end, closed)
+          P.push(tri(S[0], '#221b46'), tri(S[1], '#1b1638'), tri(rim, C.pink, true)); }
         return Kit.merge(P); };
       if (NC.G2TN && typeof STTUNNEL_ASSETS !== 'undefined') for (let k = 0; k < NC.G2TN; k++) props['sgTun' + k] = () => { const XL = NC.G2TX, WD = 12, XR = XL + WD, XM = XL + WD / 2, Y = 6.9, HT = WD, YC = Y + HT, P = [], sk = [], T = STTUNNEL_ASSETS, Q = NeonAvenue.quad, zf = k % 2 ? 6 : -6, zn = -zf, wall = '#141a5c', lite = '#9ff4ff', green = '#35ff2e', B = (w, h, d, x, y, z, c, o) => Kit.box(w, h, d, XL + x, y, z, c, o);
         P.push(B(WD + 0.8, 0.4, 12, WD / 2, Y - 0.4, 0, '#0a0a14'), B(0.4, HT + 0.8, 12, -0.2, Y - 0.4, 0, wall), B(0.4, HT + 0.8, 12, WD + 0.2, Y - 0.4, 0, wall), B(WD + 0.8, 0.4, 12, WD / 2, YC, 0, wall));      // the shell
