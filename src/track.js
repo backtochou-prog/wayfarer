@@ -161,9 +161,14 @@ const NEON_CORNER = {
   // passes it on its right and runs BIKE_OUT metres beyond the back road, straight on (scenery from the fork on: no way back to the circuit yet). bikeM(qf): its offset.
   BIKE_M: 4.3, BIKE_OUT: 4.6, BIKE_EVERY: 10,
   bikeEntry(r) { return r >= 0 && (r % this.BIKE_EVERY <= 1 || r >= this.ART - this.PIN - 2); },
+  // (2026-11-21, the user's red line: before the fork the lane swings BIKE_SW m further right, round the two fork signs' posts, and is back in line under the bridge, between its
+  // pillars. RIDEABLE all the way now: a runner on it at the fork takes the side road's detour and keeps the lane, by the roundabout and along the back road; BIKE_RET slots before the
+  // avenue's end a link brings it back beside the side road (entrances there), while the strip itself goes on straight, as scenery.)
+  BIKE_SW: 2.9, BIKE_RET: 62, BIKE_END: 69,
   bikeM(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.SIDE_M + this.BIKE_M, R = this.NRC + 16.5, B = this.NRX + this.BIKE_OUT, q0 = this.SIN - this.PIN;
-    if (qf < q0) return this.sideM(qf) + this.BIKE_M;
-    return a + (R - a) * e(c((qf - q0) / (this.NRQ + 0.5 - q0))) + (B - R) * e(c((qf - this.NRQ - 0.5) / 2)); },
+    if (qf < q0) return this.sideM(qf) + this.BIKE_M + this.BIKE_SW * e(c((qf + 9.5) / 3)) * (1 - e(c((qf + 3) / 2.5)));
+    const m = a + (R - a) * e(c((qf - q0) / (this.NRQ + 0.5 - q0))) + (B - R) * e(c((qf - this.NRQ - 0.5) / 2)), t = e(c((qf - this.BIKE_RET) / 5));
+    return m * (1 - t) + (this.sideM(qf) + this.BIKE_M) * t; },
   glass2W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.SPARK_M + 2.2, back = e(c((qf - 58) / 3));
     if (qf >= this.G2R) return (this.GM - 1) * (1 - e(c((qf - this.G2R) / this.G2OUT)));
     return a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) + this.G2X * e(c((qf - this.G2Q) / 4)) * (1 - back) - back; },

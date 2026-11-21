@@ -242,8 +242,9 @@ class Game {
   // cached layout of the biome at that slot), single road only, the biome well in.
   bikeLane(z) {
     const w = this.world; if (!this.r || !this.r.layoutFor) return null; const bands = w.bandsAt(z); if (bands.length !== 1) return null; const b = bands[0];
-    if (this.detour && !this.detour.up && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.bikeEntry) { const C = NEON_CORNER, r = Math.floor((z - this.detour.z0) / C.SLOT) - C.STREET - C.TUNNEL;      // ART CITY's bike lane (NEON_CORNER.BIKE_M): open to everyone, on foot too
-      if (r >= 0 && r < C.ART - C.PIN) return { edge: b.hi - 0.12, c: b.hi + 0.31, entry: C.bikeEntry(r), any: true }; }
+    if (this.detour && !this.detour.up && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.bikeEntry) { const C = NEON_CORNER, rf = (z - this.detour.z0) / C.SLOT - C.STREET - C.TUNNEL, r = Math.floor(rf), qf = rf - C.ART, U = 2.2 / 0.62;      // ART CITY's bike lane (NEON_CORNER.bikeM): open to everyone, on foot too
+      if (r >= 0 && r < C.ART - C.PIN) return { edge: b.hi - 0.12, c: b.hi + 0.31 + (C.bikeM(qf) - C.BIKE_M) / U, entry: C.bikeEntry(r), any: true };
+      if (r >= 0 && this.detour.side && !this.detour.glass && qf < C.BIKE_END) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) - C.sideM(qf)) / U, entry: qf < C.SIN - C.PIN || qf >= C.BIKE_RET + 5, any: true }; }      // (beyond the fork, on the side road's detour: by the roundabout and the back road)
     if (!(b.t > 0.6) || !/^coast/.test(b.to) || !this.r.envs || !this.r.envs[b.to] || !this.r.layouts[b.to]) return null;
     const i = Math.floor(z * U3.Z / SEG_LEN); if (!this.r.layoutFor(b.to, i).some(q => q.prop === 'coastBike')) return null;
     const m = ((i % 20) + 20) % 20; return { edge: b.hi - 0.12, c: b.hi + 0.31, entry: m <= 1 };
@@ -310,7 +311,8 @@ class Game {
     const pb = w.playerBand(p.z, p.x);
     const jump = this.prevTgt - pb.c;
     this.camErr = (this.camErr + (Math.abs(jump) > 0.2 ? jump : 0)) * Math.exp(-6 * dt); this.prevTgt = pb.c;
-    this.camRel += ((p.x - pb.c) * 0.5 - this.camRel) * Math.min(1, dt * 5);
+    const dxc = p.x - pb.c, far = Math.abs(dxc) > 1.6;                                   // (far from the road, on the bike lane by the roundabout: the camera goes with the runner)
+    this.camRel += ((far ? dxc - Math.sign(dxc) * Math.max(0.25, 0.8 - (Math.abs(dxc) - 1.6) * 0.5) : dxc * 0.5) - this.camRel) * Math.min(1, dt * (far ? 8 : 5));
     this.camX = pb.c + this.camErr + this.camRel;
     this.camOff = pb.off;
 
@@ -434,7 +436,7 @@ class Game {
           w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.emit('corner'); }
       }
     }
-    if (this.detour && this.detour.side && !this.detour.asked2 && typeof NEON_CORNER.glassM === 'function') {      // THE GLASS BRANCH of the side road: at the park's end its right lane climbs the glass ramp between the towers (NEON_CORNER.glassW)
+    if (this.detour && this.detour.side && !this.detour.asked2 && !this.onLane && typeof NEON_CORNER.glassM === 'function') {      // THE GLASS BRANCH of the side road: at the park's end its right lane climbs the glass ramp between the towers (NEON_CORNER.glassW)
       const C = NEON_CORNER, zC = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART + C.GQ) * C.SLOT;
       if (prevZ < zC && p.z >= zC) {
         const dx = p.x - w.playerBand(zC, p.x).c, glass = dx > LANE_W * 0.3 || (dx > 0 && (this.keys.right || this.tright));

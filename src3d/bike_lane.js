@@ -35,17 +35,27 @@
       if (i % 3 === 1) p.push(Kit.box(0.07, 0.01, 1.0, x, y + 0.03, z, '#f4efe2', { ry })); }
     return Kit.merge(p); };
   P.artBike = strip(0.03); P.bkStrip = strip(0.12); if (!P.laneEntry) P.laneEntry = ENV3D.coast && ENV3D.coast.props.laneEntry;
-  for (let k = 0; k < PN; k++) P['bkBA' + k] = bent(k - PN, 0.05);
-  const QB = C.NRQ + 3; for (let q = 0; q < QB; q++) P['bkB' + q] = bent(q, 0.12);
-  const baseA = ArtCity.layout, baseN = NeonAvenue.layout;
-  ArtCity.layout = (r, rnd, det, liftM = 0) => { const out = baseA(r, rnd, det, liftM), up = !!(det && det.up), add = [];
-    if (r < N - PN) { add.push({ prop: 'artBike', x: C.BIKE_M, dist: 6 });
-      if (C.bikeEntry(r)) { for (let n = out.length - 1; n >= 0; n--) if (out[n].prop === 'artRail' && out[n].x > 0) out.splice(n, 1); if (P.laneEntry) add.push({ prop: 'laneEntry', x: 3.45, dist: 6 }); } }
-    else if (!(det && det.park)) add.push({ prop: 'bkBA' + (r - (N - PN)), x: C.bikeM(r - N + 0.5), dist: 6 });
+  const SW = PN + 6, QB = C.NRQ + 3, RT = C.BIKE_RET, RE = C.BIKE_END;                     // (the swing round the signs starts 6 slots before the fork)
+  for (let k = 0; k < SW; k++) P['bkBA' + k] = bent(k - SW, 0.05);
+  for (let q = 0; q < QB; q++) P['bkB' + q] = bent(q, 0.12);
+  for (let q = RT; q < RE; q++) P['bkBR' + (q - RT)] = bent(q, 0.12);
+  const baseA = ArtCity.layout, baseN = NeonAvenue.layout, BLD = /^art(Graffiti|Run|Wavy|News|CollageB|Prism)/;
+  ArtCity.layout = (r, rnd, det, liftM = 0) => { const out = baseA(r, rnd, det, liftM), up = !!(det && det.up), add = [], X = C.bikeM(r - N + 0.5);
+    if (r < N - SW) add.push({ prop: 'artBike', x: C.BIKE_M, dist: 6 });
+    else if (r < N - PN || !(det && det.park)) add.push({ prop: 'bkBA' + (r - (N - SW)), x: X, dist: 6 });
+    if (r < N - PN) { if (r >= N - SW) for (const o of out) if (o.x > 4 && BLD.test(o.prop)) o.x += C.BIKE_SW + 0.6;      // (the buildings step back where the lane swings out)
+      for (const o of out) if (o.x > 3.9 && o.x < 5.2 && !/^art(Rail|Floor)|^sdSign/.test(o.prop)) o.x = X + 1.5;            // (whatever was parked on the lane's line stands beside it)
+      if (C.bikeEntry(r)) { for (let n = out.length - 1; n >= 0; n--) if (out[n].prop === 'artRail' && out[n].x > 0) out.splice(n, 1); if (P.laneEntry && r < N - SW) add.push({ prop: 'laneEntry', x: 3.45, dist: 6 }); } }
     if (up && r >= N - U) for (const a of add) { a.x += NeonAvenue.shift((r - (N - U) + 0.5) / U); a.dy = -liftM; }
     else if (det && det.side && r >= N - PN) { const s0 = C.sideM(r - N), s1 = C.sideM(r - N + 1); for (const a of add) { a.x -= (s0 + s1) / 2; a.rotY = Math.atan((s1 - s0) / 12); } }
     for (const a of add) { a.solo = true; out.push(a); } return out; };
   NeonAvenue.layout = (q, rnd, liftM) => { const out = baseN(q, rnd, liftM);
-    if (liftM > 3 && q >= 0 && q < C.CANYON) out.push({ prop: q < QB ? 'bkB' + q : 'bkStrip', x: C.bikeM(q + 0.5) + NeonAvenue.D, dist: 6, dy: -liftM, solo: true });
+    if (liftM > 3 && q > RT && q < RT + 5) for (let n = out.length - 1; n >= 0; n--) if (/^ft/.test(out[n].prop) && out[n].x - NeonAvenue.D > 26 && out[n].x - NeonAvenue.D < 62) out.splice(n, 1);      // (the towers make room for the link back to the side road)
+    if (liftM > 3 && q > RT && q < RT + 5) for (let n = out.length - 1; n >= 0; n--) if (/^ftStation/.test(out[n].prop)) out.splice(n, 1);      // (... and the stations with them: their lifts and legs stood on the link)
+    if (liftM > 3 && q >= 0 && q < C.CANYON) for (let n = out.length - 1; n >= 0; n--) if (out[n].prop === 'cnPlanter' && Math.abs(out[n].x - NeonAvenue.D - C.bikeM(q + 0.5)) < 3) out.splice(n, 1);      // (no planter on the lane)
+    if (liftM > 3 && q >= 0 && q < C.CANYON) { const it = (prop, x) => out.push({ prop, x: x + NeonAvenue.D, dist: 6, dy: -liftM, solo: true });
+      if (q < QB) it('bkB' + q, C.bikeM(q + 0.5)); else if (q < RT) it('bkStrip', C.bikeM(q + 0.5)); else { it('bkStrip', C.NRX + C.BIKE_OUT); if (q < RE) it('bkBR' + (q - RT), C.bikeM(q + 0.5)); } }
     return out; };
+  // (the link comes in under the two-floor street: there the street stands open to the right, no pillar and no pylon on the lane)
+  const baseS = NeonAvenue.side; if (baseS) NeonAvenue.side = (q, rnd, glass) => { const o = baseS(q, rnd, glass); if (q > RT + 3 && q < RT + 6) for (const p of o) if (/^(sdStreet|sdStreetL|ftStreet)$/.test(p.prop)) p.prop = 'sdStreetO'; return o; };
 })();
