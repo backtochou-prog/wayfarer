@@ -464,8 +464,8 @@ class Game {
           w.items = w.items.filter(it => !(it.z >= zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2))));
           w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; p.x -= dx; this.camRel -= dx; this.onLane = false; this._bkT = null;      // (the road's centre is the ramp's line from here: the runner and the camera stay where they are)
           this.banner = { t: 1.6, text: 'GLASS RAMP' }; this.emit('corner'); } }
-      else if (this.detour.glass === 3 && prevZ < zE && p.z >= zE) { const d = Object.assign({}, this.detour, { glass: null }), dx = (C.glass3M(C.G3E) - C.sideM(C.G3E)) / U;      // (landed, on the lane's link: the side road's detour again, the runner on the lane)
-        w.extraLift = null; w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; p.x += dx; this.camRel += dx; this.onLane = true; this._bkT = null; }
+      else if (this.detour.glass === 3 && prevZ < zE && p.z >= zE) { const d = Object.assign({}, this.detour, { glass: null }), dx = (C.glass3M(C.G3E) - C.sideM(C.G3E)) / U;      // (out of the hall and back on the circuit: the side road's detour again)
+        w.extraLift = null; w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; p.x += dx; this.camRel += dx; this._bkT = null; }
     }
     if (this.detour && this.detour.decided && (this.detourSweep = (this.detourSweep || 0) + 1) % 20 === 0) {      // (items the world builds later along the glass route or the underground tunnel: the same rule as at the choice)
       const C = NEON_CORNER, up = this.detour.up, a = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART - C.UP) * C.SLOT + (up ? 0 : (C.UP - (this.detour.park || this.detour.side ? C.PIN : 0)) * C.SLOT), b2 = this.detour.park || this.detour.side ? this.detour.zG : this.detour.z1;      // (the car park's way: the circuit on the ground keeps its obstacles after the slip road)

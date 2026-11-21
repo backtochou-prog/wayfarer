@@ -180,15 +180,21 @@ const NEON_CORNER = {
   // THE WALLED RAMP of the back road (the user, 2026-11-21, a red line along the road's left edge: "a glass ramp, 2 m high, which climbs little by little", starting just after the
   // roundabout, "and the square station tunnel wider, so that this ramp passes INSIDE it"; rideable): G3Q slots after the mouth, a runner on the back road's LEFT place leaves it to the
   // left, onto a one-lane glass ramp with glass walls 2 m high, straight, G3X m out (the dark ground between the far towers and the road). It climbs slowly (G3UP slots) to G3H (7 m: the
-  // square tunnel's floor), crosses the tunnel beyond the station's train (the back road and the lane pass under it there), and comes down to the ground by slot G3LAND, left of the road,
-  // where the lane's link back to the side road arrives: its runner goes on along that link (G3E: where the detour is the side road's again, the runner on the lane).
+  // square tunnel's floor), crosses the tunnel beyond the station's train (the back road and the lane pass under it there), and goes on as said below.
   // glass3W: where it stands; glass3M: its runner's line; glass3H: its height;
   // glass3O: the road's centre for that detour at any slot (one straight slot to and from the side road's own line, before G3Q and after G3E: Game moves the runner by the difference).
-  G3Q: 17, G3X: 73, G3H: 70, G3E: 65, G3UP: 34, G3LAND: 63,
-  glass3W(qf) { return this.G3X; },
-  glass3M(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), W = this.glass3W(qf), m = W + (this.backM(this.G3Q) - 1.9 - W) * (1 - e(c((qf - this.G3Q) / 2)));
-    return m + (this.bikeM(qf) + this.BIKE_G - m) * e(c((qf - this.G3LAND + 0.2) / (this.G3E - this.G3LAND + 0.2))); },
-  glass3H(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)); return this.G3H * e(c((qf - this.G3Q - 2) / this.G3UP)) * (1 - e(c((qf - 58.5) / (this.G3LAND - 58.5)))); },
+  // (the user, 2026-11-21: "out of the square tunnel it climbs little by little, turns left, climbs again until it is above the rails, goes straight on across the circuits below to the
+  // buildings on the left of the tiled zone, and stops there, up high: it enters the building"; "it gives access to the new constructions we shall add later"): from G3T it runs to the
+  // left (to G3BX m, by G3D: the hall's door) and climbs to G3H2 (19 m: over the glass tracks, the street, the rail and the glass avenue); inside the hall a corridor comes down to the
+  // ground (G3OUT: the hall's far door), and a strip leads back to the circuit (G3E).
+  // (the user, 2026-11-22, a red ring left of the picture towers and the CENTRAL DISTRICT picture: "crossing, and entering this"): the hall stands beyond the picture towers, its face is that picture.
+  G3Q: 17, G3X: 73, G3H: 70, G3UP: 34, G3T: 58, G3D: 67, G3BX: -60, G3H2: 190, G3HQ: 62, G3OUT: 71, G3E: 76,
+  glass3W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = 0.2, t = c((qf - this.G3T) / (this.G3D - this.G3T));
+    const g = t < a ? t * t / (2 * a * (1 - a)) : t > 1 - a ? 1 - (1 - t) * (1 - t) / (2 * a * (1 - a)) : (t - a / 2) / (1 - a);
+    return (this.G3X + (this.G3BX - this.G3X) * g) * (1 - e(c((qf - this.G3OUT) / (this.G3E - this.G3OUT)))); },
+  glass3M(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), W = this.glass3W(qf); return W + (this.backM(this.G3Q) - 1.9 - W) * (1 - e(c((qf - this.G3Q) / 2))); },
+  glass3H(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), d = c((qf - this.G3D - 0.3) / (this.G3OUT - this.G3D - 0.5));
+    return (this.G3H * e(c((qf - this.G3Q - 2) / this.G3UP)) + (this.G3H2 - this.G3H) * e(c((qf - this.G3T) / (this.G3HQ - this.G3T)))) * (1 - (d + e(d)) / 2); },
   glass3O(qf) { const A = this.G3Q, B = this.G3E; if (qf <= A - 1 || qf >= B + 1) return this.sideM(qf);
     if (qf < A) return this.sideM(A - 1) + (this.glass3M(A) - this.sideM(A - 1)) * (qf - A + 1);
     if (qf > B) return this.glass3M(B) + (this.sideM(B + 1) - this.glass3M(B)) * (qf - B);
