@@ -242,6 +242,8 @@ class Game {
   // cached layout of the biome at that slot), single road only, the biome well in.
   bikeLane(z) {
     const w = this.world; if (!this.r || !this.r.layoutFor) return null; const bands = w.bandsAt(z); if (bands.length !== 1) return null; const b = bands[0];
+    if (this.detour && !this.detour.up && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.bikeEntry) { const C = NEON_CORNER, r = Math.floor((z - this.detour.z0) / C.SLOT) - C.STREET - C.TUNNEL;      // ART CITY's bike lane (NEON_CORNER.BIKE_M): open to everyone, on foot too
+      if (r >= 0 && r < C.ART - C.PIN) return { edge: b.hi - 0.12, c: b.hi + 0.31, entry: C.bikeEntry(r), any: true }; }
     if (!(b.t > 0.6) || !/^coast/.test(b.to) || !this.r.envs || !this.r.envs[b.to] || !this.r.layouts[b.to]) return null;
     const i = Math.floor(z * U3.Z / SEG_LEN); if (!this.r.layoutFor(b.to, i).some(q => q.prop === 'coastBike')) return null;
     const m = ((i % 20) + 20) % 20; return { edge: b.hi - 0.12, c: b.hi + 0.31, entry: m <= 1 };
@@ -570,7 +572,7 @@ class Game {
     // THE BIKE LANE (the user, 2026-11-18): where the road has a bike lane on its right (the coast, the island: the coastBike strip of the scenery), a runner on the e-bike or the scooter can ride
     // it, but only gets on (or off) it at an ENTRANCE (a lowered kerb every 240 m, 24 m long): a missed entrance waits for the next one; on foot or on the skateboard, never. The lane is clear.
     const BL = this.bikeLane(p.z), onVeh = this.riding && (this.vehicle === 'bike' || this.vehicle === 'scooter');
-    if (BL && onVeh && (this.onLane || BL.entry)) {
+    if (BL && (onVeh || BL.any) && (this.onLane || BL.entry)) {
       const b = w.bandsAt(p.z)[0], lo = BL.entry ? b.lo + 0.12 : BL.c - 0.05, hi = BL.c + 0.05;     // at an entrance: anywhere from the road to the lane; between two: kept in the lane
       cx = Math.min(hi, Math.max(lo, p.x));
       const was = this.onLane; this.onLane = cx > BL.edge + 0.08; if (this.onLane !== was) { this.banner = { t: 1.4, text: this.onLane ? 'BIKE LANE' : 'BACK ON THE ROAD' }; this.emit('choose'); }

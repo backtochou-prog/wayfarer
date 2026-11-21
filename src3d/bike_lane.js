@@ -20,3 +20,32 @@
   }
 })();
 // (loaded after every env_*.js, so the coast and island biomes are there to wrap; the prop is named laneEntry, not bike*, which the renderer would offer as a vehicle)
+
+// THE BIKE LANE OF ART CITY (the user, 2026-11-21; its line and entrances: NEON_CORNER.bikeM / bikeEntry, the rule: Game.bikeLane): a green strip right of the circuit's right rail all along
+// the district; at each entrance the rail is open over two slots (the same green ramp and sign as on the coast). From the side road's fork on it is scenery: it follows the slip, crosses
+// the open ground to the roundabout, passes it on the right and runs beyond the back road, straight on. Added by wrapping ArtCity.layout and NeonAvenue.layout.
+(function () {
+  if (typeof ArtCity === 'undefined' || typeof NeonAvenue === 'undefined' || typeof NEON_CORNER === 'undefined' || !NEON_CORNER.bikeM || !ENV3D.neon || !ENV3D.neon.props) return;
+  const C = NEON_CORNER, GREEN = '#1fae6a', P = ENV3D.neon.props, N = C.ART, PN = C.PIN, U = C.UP;
+  const strip = y => () => { const p = [Kit.box(1.2, 0.03, 12.25, 0, y, 0, GREEN), Kit.box(0.06, 0.02, 12.25, -0.57, y + 0.02, 0, '#9ff4ff', { glow: true }), Kit.box(0.06, 0.02, 12.25, 0.57, y + 0.02, 0, '#9ff4ff', { glow: true })];
+    for (const z of [-4, 0, 4]) p.push(Kit.box(0.07, 0.01, 1.0, 0, y + 0.03, z, '#f4efe2')); return Kit.merge(p); };
+  const bent = (q0, y) => () => { const p = [], n = 8, f = t => C.bikeM(q0 + t), xm = f(0.5);
+    for (let i = 0; i < n; i++) { const x0 = f(i / n) - xm, x1 = f((i + 1) / n) - xm, dz = 12 / n, len = Math.hypot(x1 - x0, dz) + 0.06, ry = -Math.atan((x1 - x0) / dz), x = (x0 + x1) / 2, z = 6 - dz * (i + 0.5);
+      p.push(Kit.box(1.2, 0.03, len, x, y, z, GREEN, { ry }), Kit.box(0.06, 0.02, len, x - 0.57 * Math.cos(ry), y + 0.02, z + 0.57 * Math.sin(ry), '#9ff4ff', { glow: true, ry }), Kit.box(0.06, 0.02, len, x + 0.57 * Math.cos(ry), y + 0.02, z - 0.57 * Math.sin(ry), '#9ff4ff', { glow: true, ry }));
+      if (i % 3 === 1) p.push(Kit.box(0.07, 0.01, 1.0, x, y + 0.03, z, '#f4efe2', { ry })); }
+    return Kit.merge(p); };
+  P.artBike = strip(0.03); P.bkStrip = strip(0.12); if (!P.laneEntry) P.laneEntry = ENV3D.coast && ENV3D.coast.props.laneEntry;
+  for (let k = 0; k < PN; k++) P['bkBA' + k] = bent(k - PN, 0.05);
+  const QB = C.NRQ + 3; for (let q = 0; q < QB; q++) P['bkB' + q] = bent(q, 0.12);
+  const baseA = ArtCity.layout, baseN = NeonAvenue.layout;
+  ArtCity.layout = (r, rnd, det, liftM = 0) => { const out = baseA(r, rnd, det, liftM), up = !!(det && det.up), add = [];
+    if (r < N - PN) { add.push({ prop: 'artBike', x: C.BIKE_M, dist: 6 });
+      if (C.bikeEntry(r)) { for (let n = out.length - 1; n >= 0; n--) if (out[n].prop === 'artRail' && out[n].x > 0) out.splice(n, 1); if (P.laneEntry) add.push({ prop: 'laneEntry', x: 3.45, dist: 6 }); } }
+    else if (!(det && det.park)) add.push({ prop: 'bkBA' + (r - (N - PN)), x: C.bikeM(r - N + 0.5), dist: 6 });
+    if (up && r >= N - U) for (const a of add) { a.x += NeonAvenue.shift((r - (N - U) + 0.5) / U); a.dy = -liftM; }
+    else if (det && det.side && r >= N - PN) { const s0 = C.sideM(r - N), s1 = C.sideM(r - N + 1); for (const a of add) { a.x -= (s0 + s1) / 2; a.rotY = Math.atan((s1 - s0) / 12); } }
+    for (const a of add) { a.solo = true; out.push(a); } return out; };
+  NeonAvenue.layout = (q, rnd, liftM) => { const out = baseN(q, rnd, liftM);
+    if (liftM > 3 && q >= 0 && q < C.CANYON) out.push({ prop: q < QB ? 'bkB' + q : 'bkStrip', x: C.bikeM(q + 0.5) + NeonAvenue.D, dist: 6, dy: -liftM, solo: true });
+    return out; };
+})();

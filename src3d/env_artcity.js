@@ -65,10 +65,10 @@ const ArtCity = {
       return art(parts, [ArtCity.quad('round', [0, 0, R], [0, 0, -R], [0, H, -R], [0, H, R])]); },
     artWavy: slim('wavy', 4.5, 20, '#4ae0ff'), artPrism: slim('prism', 4.5, 24, '#c05aff'),
     // THE GANTRY over the road: ART CITY in white on a blue-violet beam, high over the road (a name sign, not an obstacle: 6.8 m up)
-    artGantry: () => { const p = [Kit.box(0.5, 7.6, 0.5, 0, 0, -0.0, A.rail)], q = [Kit.box(0.5, 7.6, 0.5, -9.2, 0, 0, A.rail), Kit.box(9.7, 1.2, 0.5, -4.6, 6.8, 0, A.post), Kit.box(9.7, 0.1, 0.55, -4.6, 6.8, 0, A.railGlow, { glow: true }), Kit.box(9.7, 0.1, 0.55, -4.6, 8.0, 0, A.railGlow, { glow: true })];
+    artGantry: () => { const p = [Kit.box(0.5, 7.6, 0.5, 1.2, 0, -0.0, A.rail), Kit.box(1.5, 1.2, 0.5, 0.7, 6.8, 0, A.post)]      /* (its right post stands beyond the bike lane) */, q = [Kit.box(0.5, 7.6, 0.5, -9.2, 0, 0, A.rail), Kit.box(9.7, 1.2, 0.5, -4.6, 6.8, 0, A.post), Kit.box(9.7, 0.1, 0.55, -4.6, 6.8, 0, A.railGlow, { glow: true }), Kit.box(9.7, 0.1, 0.55, -4.6, 8.0, 0, A.railGlow, { glow: true })];
       return { merged: Kit.merge(p.concat(q)), sprite: ArtCity.gantrySign(), material: () => ArtCity.signMaterial() }; },
     // the green arch over the road (the four views), the red beanbag (the neon-quarter picture)
-    artArch: () => Kit.merge([Kit.box(1.4, 9, 2.4, -9.6, 0, 0, A.green), Kit.box(1.4, 9, 2.4, 0.4, 0, 0, A.green), Kit.box(11.4, 2.2, 2.4, -4.6, 9, 0, A.green), Kit.box(11.6, 0.15, 2.5, -4.6, 8.95, 0, '#7cff6a', { glow: true })]),
+    artArch: () => Kit.merge([Kit.box(1.4, 9, 2.4, -9.6, 0, 0, A.green), Kit.box(1.4, 9, 2.4, 1.6, 0, 0, A.green), Kit.box(1.3, 2.2, 2.4, 1.65, 9, 0, A.green), Kit.box(11.4, 2.2, 2.4, -4.6, 9, 0, A.green), Kit.box(11.6, 0.15, 2.5, -4.6, 8.95, 0, '#7cff6a', { glow: true })]),
     // THE MAGNETIC SCOOTER parked on ART CITY's painted floor (the user: offered there too; the game offers any prop named scooter*: Renderer3D spots)
     scooterMag: () => Kit.merge(RunnerSprite.magScooterParts(0, 0, 0.35, 0)),
     bikeSport: () => typeof BIKE_ART !== 'undefined' ? RunnerSprite.bikeCardProp() : RunnerSprite.bikeStatic(0.25),      // THE SPORT E-BIKE (the user: the main vehicle of ART CITY and the neon quarter), parked

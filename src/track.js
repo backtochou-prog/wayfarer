@@ -155,6 +155,15 @@ const NEON_CORNER = {
   // stands it comes in to NRIN m and passes under the square tunnel's station, then goes out again. backM(qf): its offset.
   NRQ: 8, NRC: 66, NRX: 74, NRIN: 65,
   backM(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)); return this.NRX + (this.NRIN - this.NRX) * e(c((qf - 51) / 3)) * (1 - e(c((qf - 58) / 3))); },
+  // THE BIKE LANE (the user, 2026-11-21: "an active bike road with an entrance at the start and several entrances; it runs all along the tarmac, reaches the roundabout, goes on beside the
+  // street behind the buildings and continues straight"): BIKE_M metres right of the circuit all along ART CITY (rideable there by anyone, on foot too: Game.bikeLane; an entrance over
+  // the first two slots, then every BIKE_EVERY slots, and where it ends before the side road's fork); then it follows the side road's slip, crosses the open ground to the roundabout,
+  // passes it on its right and runs BIKE_OUT metres beyond the back road, straight on (scenery from the fork on: no way back to the circuit yet). bikeM(qf): its offset.
+  BIKE_M: 4.3, BIKE_OUT: 4.6, BIKE_EVERY: 10,
+  bikeEntry(r) { return r >= 0 && (r % this.BIKE_EVERY <= 1 || r >= this.ART - this.PIN - 2); },
+  bikeM(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.SIDE_M + this.BIKE_M, R = this.NRC + 16.5, B = this.NRX + this.BIKE_OUT, q0 = this.SIN - this.PIN;
+    if (qf < q0) return this.sideM(qf) + this.BIKE_M;
+    return a + (R - a) * e(c((qf - q0) / (this.NRQ + 0.5 - q0))) + (B - R) * e(c((qf - this.NRQ - 0.5) / 2)); },
   glass2W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.SPARK_M + 2.2, back = e(c((qf - 58) / 3));
     if (qf >= this.G2R) return (this.GM - 1) * (1 - e(c((qf - this.G2R) / this.G2OUT)));
     return a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) + this.G2X * e(c((qf - this.G2Q) / 4)) * (1 - back) - back; },
