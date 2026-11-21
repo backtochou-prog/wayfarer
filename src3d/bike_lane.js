@@ -43,6 +43,17 @@
     for (const z of [-4, 0, 4]) p.push(Kit.box(0.08, 0.02, 0.5, 0.1, 0.06, z, '#ffffff', { ry: 0.6 }), Kit.box(0.08, 0.02, 0.5, 0.1, 0.06, z + 0.3, '#ffffff', { ry: -0.6 }));
     p.push(Kit.cyl(0.05, 0.05, 2.2, px, 0, -5, '#3a3f48'), Kit.box(0.06, 0.6, 0.6, px, 2.0, -5, '#2a6ad8'), Kit.box(0.07, 0.36, 0.36, px - 0.04, 2.12, -5, '#ffffff'), Kit.box(0.08, 0.06, 0.4, px, 2.65, -5, '#2fbf5a', { glow: true })); return Kit.merge(p); };
   P.artBike = strip(0.03); P.bkStrip = strip(0.12);
+  // A PARK along the lane's far side, by the back road (the user's red marks, 2026-11-21: that side was a black void up to the horizon): a lawn, a hedge by the lane, trees, a path lamp.
+  const tree = (p, x, z, h, r, c) => { p.push(Kit.cyl(0.16, 0.22, h, x, 0.1, z, '#5a3b2e', { seg: 6 }), Kit.ico(r, x, h + r * 0.55, z, c, { sy: 0.9 }), Kit.ico(r * 0.7, x + r * 0.55, h + r * 0.2, z + 0.4, '#2f7d4f', { sy: 0.85 })); };
+  const park = v => () => { const p = [Kit.box(18, 0.1, 12.25, 0, 0, 0, '#1f6b45'), Kit.box(0.5, 0.55, 12.25, -8.6, 0.1, 0, '#2a8a52')];
+    if (v) { tree(p, -4.5, 3, 3.2, 2.0, '#3aa863'); tree(p, 2.5, -3.5, 4.2, 2.6, '#2f9358'); tree(p, 6.5, 2, 2.8, 1.8, '#3aa863'); }
+    else { tree(p, -5.5, -2.5, 3.8, 2.3, '#2f9358'); tree(p, 0.5, 3.5, 3.0, 1.9, '#3aa863'); tree(p, 5.5, -1, 4.6, 2.8, '#2f9358');
+      p.push(Kit.cyl(0.05, 0.05, 2.6, -7.9, 0.1, 0, '#3a3f48'), Kit.box(0.3, 0.12, 0.3, -7.9, 2.7, 0, '#ffe9a8', { glow: true })); }
+    return Kit.merge(p); };
+  P.bkParkA = park(0); P.bkParkB = park(1);
+  // NEO METROPOLIS (the user's blueprint, 2026-11-21: "construire ces immeubles sur les traits, éloignés de la voie vélo d'à peu près 24 mètres"): the building of src3d/metropolis_art.js,
+  // its front to the lane, 24 m beyond it (the park between the two), one every METRO_EVERY slots along the back road.
+  const METRO_EVERY = 6; if (typeof NeoMetroArt !== 'undefined') P.bkMetro = () => ({ sprite: NeoMetroArt.building(), material: () => NeoMetroArt.material() });
   const SW = PN + 6, RT = C.BIKE_RET, RE = C.BIKE_END, bend = q => Math.abs(C.bikeM(q + 1) - C.bikeM(q)) > 0.01 || Math.abs(C.bikeM(q + 0.5) - C.bikeM(q)) > 0.01;      // (the swing round the signs starts 6 slots before the fork)
   for (let k = 0; k < SW; k++) P['bkBA' + k] = bent(k - SW, 0.05);
   for (let q = 0; q < RE; q++) P['bkB' + q] = bent(q, 0.12);
@@ -61,7 +72,7 @@
     if (liftM > 3 && q > RT && q < RT + 5) for (let n = out.length - 1; n >= 0; n--) if (/^ftStation/.test(out[n].prop)) out.splice(n, 1);      // (... and the stations with them: their lifts and legs stood on the link)
     if (liftM > 3 && q >= 0 && q < C.CANYON) for (let n = out.length - 1; n >= 0; n--) if (out[n].prop === 'cnPlanter' && Math.abs(out[n].x - NeonAvenue.D - C.bikeM(q + 0.5)) < 3) out.splice(n, 1);      // (no planter on the lane)
     if (liftM > 3 && q >= 0 && q < C.CANYON) { const it = (prop, x) => out.push({ prop, x: x + NeonAvenue.D, dist: 6, dy: -liftM, solo: true });
-      if (q >= RT) it('bkStrip', C.NRX + C.BIKE_OUT); if (q < RE) it(bend(q) ? 'bkB' + q : 'bkStrip', C.bikeM(q + 0.5)); }
+      if (q >= RT) it('bkStrip', C.NRX + C.BIKE_OUT); if (P.bkMetro && q >= C.NRQ + 5 && (q - C.NRQ - 5) % METRO_EVERY === 0) out.push({ prop: 'bkMetro', x: C.NRX + C.BIKE_OUT + H + 24 + 21 + NeonAvenue.D, dist: 6, dy: -liftM, solo: true, rotY: -Math.PI / 2 }); if (q >= C.NRQ + 3) it(q % 2 ? 'bkParkB' : 'bkParkA', (q >= RT ? C.NRX + C.BIKE_OUT : Math.max(C.bikeM(q), C.bikeM(q + 0.5), C.bikeM(q + 1))) + H + 9.4); if (q < RE) it(bend(q) ? 'bkB' + q : 'bkStrip', C.bikeM(q + 0.5)); }
     return out; };
   // (the link comes in under the two-floor street: there the street stands open to the right, no pillar and no pylon on the lane)
   const baseS = NeonAvenue.side; if (baseS) NeonAvenue.side = (q, rnd, glass) => { const o = baseS(q, rnd, glass); if (q > RT + 3 && q < RT + 6) for (const p of o) if (/^(sdStreet|sdStreetL|ftStreet)$/.test(p.prop)) p.prop = 'sdStreetO';

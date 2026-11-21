@@ -391,7 +391,7 @@ const NeonAvenue = {
       props.sdRoad = road(12.3); props.sdRoadC = road(13.6);
       // THE BACK ROAD and its ROUNDABOUT (NEON_CORNER.backM): the same neon asphalt; the roundabout a ring 7 m wide round a green island (grass, trees, flowers, a lit column), a spur
       // joining it to the side road
-      props.nrRoad = road(12.3); props.nrRoadC = road(13.6);
+      props.nrRoad = road(12.3); props.nrRoadC = road(14);
       props.nrRound = () => { const P = [], N = 36, RO = 15, RI = 8, RM = (RO + RI) / 2, ex = Math.PI - Math.asin((NC.NRX - NC.NRC) / RM), near = (a, b, w) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) < w;
         for (let k = 0; k < N; k++) { const a = (k + 0.5) / N * Math.PI * 2, sx = Math.sin(a), cz = Math.cos(a), ry = a - Math.PI / 2;
           P.push(Kit.box(RO - RI, 0.08, 2 * Math.PI * RO / N + 0.1, RM * sx, 0, RM * cz, AS, { ry }));
