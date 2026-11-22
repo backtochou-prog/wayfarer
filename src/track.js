@@ -190,7 +190,12 @@ const NEON_CORNER = {
   // (the user, 2026-11-22, a red ring left of the picture towers and the CENTRAL DISTRICT picture: "crossing, and entering this"): the hall stands beyond the picture towers, its face is that picture.
   // (the user, later that day: "not a door: a ramp, which comes from the right high over the rails, passes between two of these buildings and begins to come down little by little"): no
   // hall: past the picture towers (G3D) the ramp runs on behind them and comes down slowly to the ground (G3OUT), turning back to the circuit from G3R (G3E).
-  G3Q: 17, G3X: 73, G3H: 70, G3UP: 34, G3T: 58, G3D: 66, G3BX: -56, G3H2: 190, G3HQ: 62, G3OUT: 74.5, G3R: 70.5, G3E: 76,
+  // (the user, 2026-11-22, a white stroke on the map: the ramp turns much EARLIER, about the middle of the avenue, and ends up high in a T along the new land's road; "two towers, one at
+  // each end of the T; before it a small green roundabout where the ramp splits, one branch to the right tower, one to the left; the ramp passes through the top of each tower like a
+  // station"): it crosses from G3T to G3C (at 7 m by G3T: G3UP; at 19 m by G3HQ), reaches the east side of a small ROUNDABOUT up there (centre G3RQ slots, on the line G3BX; its lane
+  // G3RR m from the centre), rides a quarter of it and goes on straight (the T's right arm) through the right tower's station (slot G3TB, two slots long), then down to the district as
+  // before (G3D). The T's left arm runs back from the roundabout to the left tower's station (slot G3TA): scenery (a runner cannot run back down the piece).
+  G3Q: 17, G3X: 73, G3H: 70, G3UP: 13, G3T: 32, G3C: 40, G3D: 66, G3BX: -56, G3H2: 190, G3HQ: 36, G3OUT: 74.5, G3R: 70.5, G3E: 76, G3RQ: 40.15, G3RR: 7, G3TA: 26, G3TB: 52,
   // THE CENTRAL DISTRICT (the user, 2026-11-22, a plan of 2 km2 "behind the buildings", entered "from the two buildings on the left": src3d/env_district.js): the walled ramp no longer turns
   // back to the circuit: where it lands (G3E) the district's main avenue begins, DN slots straight on (1404 m: the plan at 0.7); Game lengthens the neon piece by as much (World.stretch).
   DN: 117,
@@ -201,9 +206,9 @@ const NEON_CORNER = {
   LQ: -11, LRX: -20, LRQ: -7.5, LRO: 9, LRI: 4, LX: -60.8,
   landM(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.LRX + (this.LRO + this.LRI) / 2;
     return a * e(c((qf - this.LQ) / (this.LRQ - this.LQ))) + (this.LX - a) * e(c((qf - this.LRQ - 0.2) / 4.8)) + (this.G3BX - this.LX) * e(c(qf - this.G3E + 1)); },
-  glass3W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = 0.2, t = c((qf - this.G3T) / (this.G3D - this.G3T));
+  glass3W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = 0.2, t = c((qf - this.G3T) / (this.G3C - this.G3T));
     const g = t < a ? t * t / (2 * a * (1 - a)) : t > 1 - a ? 1 - (1 - t) * (1 - t) / (2 * a * (1 - a)) : (t - a / 2) / (1 - a);
-    return this.G3X + (this.G3BX - this.G3X) * g; },
+    return this.G3X + (this.G3BX + this.G3RR - this.G3X) * g - this.G3RR * e(c(qf - this.G3C)); },      // (- G3RR: the quarter of the roundabout, from its east side to its north side)
   glass3M(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), W = this.glass3W(qf); return W + (this.backM(this.G3Q) - 1.9 - W) * (1 - e(c((qf - this.G3Q) / 2))); },
   glass3H(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), d = c((qf - this.G3D - 0.3) / (this.G3OUT - this.G3D - 0.5));
     return (this.G3H * e(c((qf - this.G3Q - 2) / this.G3UP)) + (this.G3H2 - this.G3H) * e(c((qf - this.G3T) / (this.G3HQ - this.G3T)))) * (1 - (d + e(d)) / 2); },
