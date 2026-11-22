@@ -224,7 +224,7 @@ const NEON_CORNER = {
   // right one (glass 5) to TH (the trucks' car park, 14 m). From MF (the portal's face) both cross to the left under the avenue (to MXC m, by MC1), come up side by side in an open trench like the entrance's, the wall
   // between them again (the user: "la sortie sera pareille que l'entrée mais de l'autre côté; la route monte peu à peu"), inside the sunken court (MCY: 1.5 m under the ground; its right wall at MCX), leave it by its far gate (MG), climb to the ground and join the new land's road (ML1).
   // mallO(g, qf): the road's centre; mallH(g, qf): its height (negative).
-  MQ: 31, MD: 35, MF: 36.8, MW: 7.2, MA: 15, MXC: -110, MC1: 56.2, MH: 65, TH: 140, MCY: 15, MCX: -82, MG: 59.6, ML0: 61.1, ML1: 66.1,      // (the user, of the first one: "il passe trop vite au souterrain, on ne voit presque rien": the halls are three times as long, 19.4 slots, and Game walks there)
+  MQ: 31, MD: 35, MF: 36.8, MW: 7.2, MA: 15, MXC: -110, MC1: 56.2, MH: 65, TH: 140, MCY: 15, MCX: -82, MG: 59.6, ML0: 61.1, ML1: 66.1,      // (the user, of the first one: "il passe trop vite au souterrain, on ne voit presque rien": the halls are three times as long, 19.4 slots; the running speed is unchanged: the user chose the length alone)
   mallCore(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = 0.2, t = c((qf - this.MF) / (this.MC1 - this.MF));
     const g = t < a ? t * t / (2 * a * (1 - a)) : t > 1 - a ? 1 - (1 - t) * (1 - t) / (2 * a * (1 - a)) : (t - a / 2) / (1 - a);
     return this.MA + (this.MXC - this.MA) * g + (this.LX - this.MXC) * e(c((qf - this.ML0) / (this.ML1 - this.ML0))); },
