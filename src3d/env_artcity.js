@@ -130,6 +130,12 @@ const ArtCity = {
       if (k < 0) out.push({ prop: 'cnRailF' + (k + 10), x: x0, dist: 6 });
       else out.push({ prop: 'cnRail', x: x0 + (up ? NeonAvenue.shift((k + 0.5) / U) : 0), dist: 6, dy: -liftM });
     }
+    if (!up && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.landM && typeof NeonAvenue !== 'undefined' && NeonAvenue.props.ldRound) { const C = NEON_CORNER, f = r - N;      // THE NEW LAND's entrance (the user: at the ramp's pillars, a small roundabout): its slip road leaves the circuit to the left
+      if (f === C.LQ - 3 || f === C.LQ - 1) out.push({ prop: 'ldSign', x: -5.3, dist: 6 });
+      if (f >= C.LQ) { out.push({ prop: 'ldSlip' + (f - C.LQ), x: 0.001, dist: 6 }); if (f === Math.floor(C.LRQ)) out.push({ prop: 'ldRound', x: C.LRX, dist: 6 });
+        for (let n = out.length - 1; n >= 0; n--) { const o = out[n], bl = o.x < -4 && (BLD.includes(o.prop) || o.prop === 'artSkyline');
+          if ((o.prop === 'artRail' && o.x < 0 && f < C.LQ + 4) || (bl && f >= C.LRQ - 0.5)) out.splice(n, 1);      // (the left rail opens; the pictures on its way are not built)
+          else if (bl && f < N - U - 2 - N) o.x -= NeonAvenue.D + 6; } } }                                          // (the ones before step back, like those beside the ramp)
     const PN = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER.PIN : 0;
     if (!up && PN && r >= N - PN && typeof NeonAvenue !== 'undefined' && NeonAvenue.psh) {                    // THE CAR PARK'S SLIP ROAD (the user: a real tube beside the tunnel): it leaves the circuit to the left over the last PIN slots
       const k = r - (N - PN);

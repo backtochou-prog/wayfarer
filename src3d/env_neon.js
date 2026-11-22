@@ -243,10 +243,14 @@ window.ENV3D = window.ENV3D || {};
     layout(i, rnd) {
       { const g = GAME(), det = g && g.detour, C = NEON_CORNER, r = detRel(i) - PIC_N - TUN_N, NA = C.ART, liftM = det && det.up ? C.lift(det, i * 120 + 60) / 10 : 0;   // ART CITY (src3d/env_artcity.js), the glass ramp and
         if (r >= 0 && r < NA && typeof ArtCity !== 'undefined') {                                                                                                             // the NEON AVENUE (src3d/env_canyon.js), the short tunnel back
+          if (det && det.land && C.landM) { const o = ArtCity.layout(r, rnd, Object.assign({}, det, { side: false }), 0), f = r - NA;      // THE NEW LAND: everything stays where it stands, the road leaves to the left (NEON_CORNER.landM)
+            if (f >= C.LQ) { o.push({ prop: 'pkMainRoad', x: 0.001, dist: 6, solo: true }); const s0 = C.landM(f), s1 = C.landM(f + 1), rot = Math.atan((s1 - s0) / 12);
+              for (const p of o) { const nx = p.x - (s0 + (s1 - s0) * p.dist / 12); if ((p.x < 0) !== (nx < 0)) p.rotY = (p.rotY || 0) + Math.PI; p.x = nx || 0.001; p.rotY = (p.rotY || 0) + rot; } }
+            return o; }
           const o = ArtCity.layout(r, rnd, det, liftM); if (det && det.up && r >= NA - C.UP && typeof NeonAvenue !== 'undefined') o.push({ prop: 'cnGlassU' + (r - (NA - C.UP)), x: 0.001, dist: 6, solo: true }); return o; }
         let q = r - NA;
         if (det && det.up && typeof NeonAvenue !== 'undefined') { if (q >= 0 && q < C.CANYON + C.DOWN) return NeonAvenue.layout(q, rnd, liftM); q -= C.CANYON + C.DOWN; }
-        if (det && det.side && typeof NeonAvenue !== 'undefined' && NeonAvenue.side) { if (q >= 0 && q < C.CANYON + C.DOWN) return NeonAvenue.side(q, rnd, det.glass); q -= C.CANYON + C.DOWN;
+        if (det && det.side && typeof NeonAvenue !== 'undefined' && NeonAvenue.side) { if (q >= 0 && q < C.CANYON + C.DOWN) return NeonAvenue.side(q, rnd, det.glass, det.land); q -= C.CANYON + C.DOWN;
           if (det.glass === 3 && C.DN && typeof NeoDistrict !== 'undefined' && q >= 0) { if (q < C.DN) return NeoDistrict.layout(q, rnd); q += C.EXIT - C.DN; } }      // THE CENTRAL DISTRICT (src3d/env_district.js): straight on from the walled ramp; then the neon street again      // THE SIDE ROAD: beyond the rail, along the buildings, through the park, back on the circuit
         if (det && det.park && typeof NeonAvenue !== 'undefined' && NeonAvenue.park) {                                                                                        // THE CAR PARK's way: the same way down, the car park, its ramp, the circuit under the avenue
           if (q >= 0 && q < C.DIVE) { const o = [{ prop: 'pkTubeDv' + q, x: 0, dist: 6, solo: true }]; if (q === 0) o.push({ prop: 'pkTubeMouth', x: 0, dist: 6, solo: true });      // (its own tube; the big one stays beside it, to the right)

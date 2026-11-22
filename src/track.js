@@ -194,6 +194,13 @@ const NEON_CORNER = {
   // THE CENTRAL DISTRICT (the user, 2026-11-22, a plan of 2 km2 "behind the buildings", entered "from the two buildings on the left": src3d/env_district.js): the walled ramp no longer turns
   // back to the circuit: where it lands (G3E) the district's main avenue begins, DN slots straight on (1404 m: the plan at 0.7); Game lengthens the neon piece by as much (World.stretch).
   DN: 117,
+  // THE NEW LAND (the user, 2026-11-22, a red arc on the map from ART CITY's end round the left side to the Central District's entry: "nous allons construire cette terre ?"; the entrance
+  // "2 E": at the glass ramp's pillars, just before the tunnel; "un petit rond": a small ROUNDABOUT there): LQ slots from the tunnel's mouth (11 before it) a runner in the LEFT lane who
+  // holds LEFT leaves the circuit to the left, passes the roundabout (centre LRX m, LRQ slots; ring LRI..LRO m) by its right side, swings out behind the left picture towers and runs on
+  // the ground LX m left of the circuit, to the Central District's entry (G3E, the walled ramp's line: G3BX). landM(qf): the road's centre.
+  LQ: -11, LRX: -20, LRQ: -7.5, LRO: 9, LRI: 4, LX: -60.8,
+  landM(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.LRX + (this.LRO + this.LRI) / 2;
+    return a * e(c((qf - this.LQ) / (this.LRQ - this.LQ))) + (this.LX - a) * e(c((qf - this.LRQ - 0.2) / 4.8)) + (this.G3BX - this.LX) * e(c(qf - this.G3E + 1)); },
   glass3W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = 0.2, t = c((qf - this.G3T) / (this.G3D - this.G3T));
     const g = t < a ? t * t / (2 * a * (1 - a)) : t > 1 - a ? 1 - (1 - t) * (1 - t) / (2 * a * (1 - a)) : (t - a / 2) / (1 - a);
     return this.G3X + (this.G3BX - this.G3X) * g; },
@@ -207,7 +214,7 @@ const NEON_CORNER = {
   // SHIFT_M metres to the left by the top (the circuit stays where it is, to the right), back by the end of the way down. Lateral units are U3.X = 2.2 / 0.62 metres.
   SHIFT_M: 17,
   off(d, z) {
-    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.glass === 3 ? this.glass3O(qf) : d.glass && qf >= this.GQ ? this.gM(d.glass, qf) : this.sideM(qf)) / (2.2 / 0.62); }
+    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.land ? this.landM(qf) : d.glass === 3 ? this.glass3O(qf) : d.glass && qf >= this.GQ ? this.gM(d.glass, qf) : this.sideM(qf)) / (2.2 / 0.62); }
     if (d && d.park) { const S = this.SLOT, zT = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zP = zT - this.PIN * S, zR = zT + S, zQ = zT + this.DIVE * S, e = t => t * t * (3 - 2 * t), D = this.PTUBE_M / (2.2 / 0.62);      // (straight beside the big tube for one slot, then back)
       return z <= zP || z >= zQ ? 0 : -D * (z < zT ? e((z - zP) / (zT - zP)) : z < zR ? 1 : 1 - e((z - zR) / (zQ - zR))); }
     if (!d || !d.up) return 0;
@@ -216,6 +223,7 @@ const NEON_CORNER = {
   },
   // the height of the road (units of run) at z for a detour that took the glass ramp (positive), or the underground tunnel (negative)
   lift(d, z) {
+    if (d && d.land) return 0;
     if (d && d.glass) return this.gH(d.glass, (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART));
     if (d && (d.down || d.park)) { const S = this.SLOT, z0 = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zA = z0 + this.DIVE * S, zB = zA + (d.park ? this.PARK : this.UNDER) * S, zC = zB + (d.park ? this.PRISE : this.RISE) * S, e = t => t * t * (3 - 2 * t);
       return z <= z0 || z >= zC ? 0 : -this.DEPTH * (z < zA ? e((z - z0) / (zA - z0)) : z < zB ? 1 : 1 - e((z - zB) / (zC - zB))); }

@@ -152,7 +152,7 @@
       if (q >= 2 && q <= ND_Q0 && (ND_Q0 - q) % 8 === 0) it('ndC' + (ND_Q0 - q) / 8, ND_X); if (q >= 3) it(q % 2 ? 'ndWalkB' : 'ndWalkA', ND_X - 37); }
     return out; };
   // (the link comes in under the two-floor street: there the street stands open to the right, no pillar and no pylon on the lane)
-  const baseS = NeonAvenue.side; if (baseS) NeonAvenue.side = (q, rnd, glass) => { const o = baseS(q, rnd, glass); if (q > RT + 3 && q < RT + 6) for (const p of o) if (/^(sdStreet|sdStreetL|ftStreet)$/.test(p.prop)) p.prop = 'sdStreetO';
+  const baseS = NeonAvenue.side; if (baseS) NeonAvenue.side = (q, rnd, glass, land) => { const o = baseS(q, rnd, glass, land); if (q > RT + 3 && q < RT + 6) for (const p of o) if (/^(sdStreet|sdStreetL|ftStreet)$/.test(p.prop)) p.prop = 'sdStreetO';
     { const mid = Math.floor((15 + C.CANYON) / 2); if ((q >= mid - 9 && q <= mid - 5) || (q >= mid + 5 && q <= mid + 9)) for (const p of o) if (/^ft(Green|Plain)/.test(p.prop)) p.x -= 5; }      // (the towers that stepped back where the side road swings to the park stood on the back road's edge: 4 m nearer)
     return o; };
 })();

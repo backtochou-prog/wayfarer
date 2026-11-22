@@ -243,6 +243,7 @@ class Game {
   bikeLane(z) {
     const w = this.world; if (!this.r || !this.r.layoutFor) return null; const bands = w.bandsAt(z); if (bands.length !== 1) return null; const b = bands[0];
     if (this.detour && !this.detour.up && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.bikeEntry) { const C = NEON_CORNER, rf = (z - this.detour.z0) / C.SLOT - C.STREET - C.TUNNEL, r = Math.floor(rf), qf = rf - C.ART, U = 2.2 / 0.62;      // ART CITY's bike lane (NEON_CORNER.bikeM): open to everyone, on foot too
+      if (this.detour.land) return null;
       if (r >= 0 && r < C.ART - C.PIN) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) + C.BIKE_G) / U, entry: C.bikeEntry(r), any: true };
       if (r >= 0 && this.detour.side && !this.detour.glass && qf < C.BIKE_END) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) + C.BIKE_G - C.sideM(qf)) / U, entry: qf < C.SIN - C.PIN || qf >= C.BIKE_RET + 5.15, any: true,
         road: qf >= C.NRQ + 3 && qf < C.BIKE_RET ? (b.lo + b.hi) / 2 + (C.backM(qf) - 1.9 + 1.2 * C.dipK(qf) - C.sideM(qf)) / U : null,
@@ -410,6 +411,17 @@ class Game {
       const zJ = NEON_CORNER.junction(w, prevZ + 1);
       if (zJ !== null && prevZ < zJ && p.z >= zJ && p.x - w.playerBand(zJ, p.x).c < -LANE_W * 0.5) { p.z = zJ; this.corner = { t: 0, z0: zJ }; this.emit('corner'); return; }
     }
+    if (this.detour && !this.detour.decided && typeof NEON_CORNER.landM === 'function') {      // THE NEW LAND (NEON_CORNER.landM): 11 slots before the tunnel, the LEFT lane with LEFT held leaves by the small roundabout, to the road behind the picture towers
+      const C = NEON_CORNER, zQ = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT, zL = zQ + C.LQ * C.SLOT;
+      if (p.z > zL - 4 * C.SLOT && p.z < zL) { if ((this.keys.left || this.tleft) && p.x - w.playerBand(p.z, p.x).c < -LANE_W * 0.3) this.detour.wantL = true; else if (this.keys.right || this.tright) this.detour.wantL = false; }
+      if (prevZ < zL && p.z >= zL && this.detour.wantL) { const zE = zQ + C.G3E * C.SLOT;
+        const d = Object.assign({}, this.detour, { decided: true, up: false, down: false, asked: true, asked2: true, asked4: true, side: true, glass: 3, land: true, zC: zL, zE3: zL, zG: zQ, zLE: zE - 2 * C.SLOT });      // (glass 3: the walled ramp's way into the Central District, here on the ground all along)
+        d.z1 = zQ + (C.CANYON + C.DOWN + C.EXIT) * C.SLOT;
+        if (C.DN) { const P = w.pieceAt(p.z), add = C.DN * C.SLOT, old = w.stretch(P, add); if (old !== null) { if (this.portal && this.portal.shift) this.portal.shift(old, add); d.z1 = zQ + (C.CANYON + C.DOWN + C.DN) * C.SLOT; } }
+        w.noRoad = z => z > zL && z < zE;      // (its own asphalt: props, from the circuit's edge to the district)
+        w.items = w.items.filter(it => !((OBST[it.kind] || it.kind === 'raceGate') && it.z >= zL - 40 && it.z <= zQ));
+        w.extraLift = null; w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.banner = { t: 1.6, text: 'NEW LAND' }; this.emit('corner'); }
+    }
     if (this.detour && !this.detour.decided) {                                              // THE GLASS RAMP near the end of ART CITY: the left lane climbs it (NEON_CORNER.UP), the others go on to the tunnel
       const C = NEON_CORNER, zD = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART - C.UP) * C.SLOT;
       if (prevZ < zD && p.z >= zD) {
@@ -554,7 +566,7 @@ class Game {
     const w = this.world, p = this.p;
     const dir = (this.keys.right || this.tright ? 1 : 0) - (this.keys.left || this.tleft ? 1 : 0);
     const vp = w.pieceAt(p.z); let lanes = 0, lc = 0;
-    if ((w.extraLift && w.extraLift(p.z) > 1) || (this.detour && this.detour.glass === 3)) { lanes = 1; lc = w.playerBand(p.z, p.x).c; }      // THE GLASS RAMPS (up and down, NEON_CORNER): one lane, narrower than the circuit, like the ramps of a motorway
+    if ((w.extraLift && w.extraLift(p.z) > 1) || (this.detour && this.detour.glass === 3 && !(this.detour.land && p.z < this.detour.zLE))) { lanes = 1; lc = w.playerBand(p.z, p.x).c; }      // THE GLASS RAMPS (up and down, NEON_CORNER): one lane, narrower than the circuit, like the ramps of a motorway
     else if (vp && vp.type === 'seg') lanes = vp.seg.lanes || 0; else if (vp && vp.type === 'fork' && vp.choice) { lanes = w.track.segments[vp.fork[vp.choice].route].lanes || 0; lc = w.playerBand(p.z, p.x).c; }       // (on a chosen road of a junction the places are those of that road)
     if (lanes) {                                   // VIC, the narrow streets: only TWO places, the left half and the right half of the street (lane +-0.28), or ONE in the alley: a key sends the runner to that half, it stays there until the other key
       if (dir) this.lane2 = dir; else if (!this.lane2) this.lane2 = p.x < lc ? -1 : 1;

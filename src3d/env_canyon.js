@@ -415,6 +415,49 @@ const NeonAvenue = {
           if (xm - 3.6 > 4.0) P.push(Kit.box(0.16, 0.05, len, xm - 3.6, 0.07, zm, C.cyan, { glow: true, ry }));
           if (a % 4 === 1) for (const x of [-1.1, 1.1]) if (xm + x > 4.0) P.push(Kit.box(0.12, 0.02, len * 1.4, xm + x, 0.07, zm, '#9ff4ff', { glow: true, ry })); }
         return Kit.merge(P); }; }
+    // THE NEW LAND (the user, 2026-11-22: "nous allons construire cette terre", the entrance at the glass ramp's pillars, "un petit rond": NEON_CORNER.landM). In the CIRCUIT's frame:
+    // ldSlip k: the slip road's slots from the circuit's left edge (lawn and trees beside it once clear of the roundabout); ldRound: the small roundabout (a ring 5 m wide round a green
+    // island: grass, flowers, one tree, a lit post); ldSign: a green panel, a white ring and an arrow to the left. In the ROAD's frame: ldLand A/B/R/L/0: a slot of the land beside the
+    // road behind the picture towers (lawn on both sides, trees, a pale footpath, flowers, a lamp; R: only its right side, L: only its left, where the ramp or the hall stand close).
+    if (NC.landM) { const AS = '#1d2550', LQ = NC.LQ, RO = NC.LRO, RI = NC.LRI, RM = (RO + RI) / 2, GR = '#2fae4a', GR2 = '#3fd060', zOf = f => -(f - NC.LRQ) * 12;
+      const tr = (x, z, hh, k) => [Kit.cyl(0.16, 0.24, hh, x, 0.1, z, '#6a4a2e', { seg: 6 }), Kit.ico(1.7, x, hh + 1.0, z, k % 2 ? GR2 : GR, { detail: 1 }), Kit.ico(1.1, x + 0.7, hh + 2.0, z - 0.4, '#35c456', { detail: 1 })];
+      for (let k = 0; k < -LQ; k++) props['ldSlip' + k] = () => { const P = [], n = 8;
+        for (let a = 0; a < n; a++) { const f0 = a / n, f1 = (a + 1) / n, x0 = NC.landM(LQ + k + f0), x1 = NC.landM(LQ + k + f1), z0 = 6.1 - f0 * 12.2, z1 = 6.1 - f1 * 12.2, xm = (x0 + x1) / 2, zm = (z0 + z1) / 2, len = Math.hypot(x1 - x0, z1 - z0) + 0.06, ry = Math.atan2(x0 - x1, z0 - z1);
+          const hw = 3.75 / Math.max(0.5, Math.cos(ry)), xl = xm - hw, xr = Math.min(xm + hw, -3.62), inR = Math.hypot(xm - NC.LRX, zOf(LQ + k + (f0 + f1) / 2)) < RO + 1.2;
+          if (xm + hw < -3.62) P.push(Kit.box(7.5, 0.04, len + 0.5, xm, 0.03, zm, AS, { ry })); else if (xr > xl + 0.2) P.push(Kit.box(xr - xl, 0.04, 12.2 / n + 0.06, (xl + xr) / 2, 0.03, zm, AS));
+          if (!inR) for (const sd of [1, -1]) { if (sd < 0 && xm + hw >= -4.0) continue; const E = f => { const g = LQ + k + f, tx = NC.landM(g + 0.01) - NC.landM(g - 0.01), tz = -0.244, h = Math.hypot(tx, tz); return [NC.landM(g) + sd * 3.6 * tz / h, 6.1 - f * 12.2 - sd * 3.6 * tx / h]; }, e0 = E(f0), e1 = E(f1);      // (the edge lights, from point to point of the curve)
+            P.push(Kit.box(0.16, 0.05, Math.hypot(e1[0] - e0[0], e1[1] - e0[1]) + 0.03, (e0[0] + e1[0]) / 2, 0.07, (e0[1] + e1[1]) / 2, sd > 0 ? C.cyan : C.pink, { glow: true, ry: Math.atan2(e0[0] - e1[0], e0[1] - e1[1]) })); }
+          if (a % 4 === 1 && !inR) for (const x of [-1.1, 1.1]) if (xm + x < -4.0) P.push(Kit.box(0.12, 0.02, len * 1.4, xm + x, 0.07, zm, '#9ff4ff', { glow: true, ry }));
+          if (k >= 5 && !inR) { const cs = Math.max(0.5, Math.cos(ry)); P.push(Kit.box(5, 0.04, len + 0.9, xm - 6.3 / cs, 0.02, zm, GR, { ry })); if (xm + hw < -8) P.push(Kit.box(4, 0.04, len + 0.9, xm + 5.8 / cs, 0.02, zm, '#2aa244', { ry })); } }
+        if (k >= 5) { const xa = NC.landM(LQ + k + 0.5), sl = Math.abs(NC.landM(LQ + k + 0.6) - NC.landM(LQ + k + 0.4)) / 2.4, hw = 3.75 * Math.hypot(1, sl); P.push(...tr(xa - hw - 3.2, 0, 3.0 + (k % 3) * 0.6, k)); if (k >= 7) P.push(...tr(xa + hw + 2.6, 2, 2.8, k + 1)); }
+        return Kit.merge(P); };
+      props.ldRound = () => { const P = [], N = 28;
+        for (let k = 0; k < N; k++) { const a = (k + 0.5) / N * Math.PI * 2, sx = Math.sin(a), cz = Math.cos(a), ry = a - Math.PI / 2;
+          P.push(Kit.box(RO - RI, 0.08, 2 * Math.PI * RO / N + 0.1, RM * sx, 0, RM * cz, AS, { ry }));
+          if (a > 3.0 || a < 0.45) P.push(Kit.box(0.16, 0.05, 2 * Math.PI * RO / N + 0.05, (RO - 0.1) * sx, 0.08, (RO - 0.1) * cz, C.cyan, { glow: true, ry }));
+          P.push(Kit.box(0.16, 0.05, 2 * Math.PI * RI / N + 0.05, (RI + 0.1) * sx, 0.08, (RI + 0.1) * cz, C.pink, { glow: true, ry }));
+          if (k % 2 === 0) P.push(Kit.box(0.12, 0.02, 1.3, RM * sx, 0.08, RM * cz, '#9ff4ff', { glow: true, ry })); }
+        P.push(Kit.cyl(RI - 0.2, RI, 0.4, 0, 0, 0, '#8a8a90', { seg: 20 }), Kit.cyl(RI - 0.4, RI - 0.4, 0.1, 0, 0.4, 0, GR, { seg: 20 }));                                           // the island: a kerb, the grass
+        P.push(Kit.cyl(0.2, 0.3, 3.4, 0, 0.45, 0, '#6a4a2e', { seg: 6 }), Kit.ico(2.1, 0, 4.9, 0, GR, { detail: 1 }), Kit.ico(1.5, 1.0, 5.9, -0.5, GR2, { detail: 1 }), Kit.ico(1.3, -0.9, 5.6, 0.6, '#35c456', { detail: 1 }));      // its tree
+        for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2; P.push(Kit.box(0.32, 0.28, 0.32, 2.7 * Math.sin(a), 0.5, 2.7 * Math.cos(a), ['#ff4fa0', '#ffd23a', '#ffffff', '#b06bff'][k % 4])); }      // its flowers
+        P.push(Kit.cyl(0.1, 0.14, 2.6, -2.2, 0.45, 2.2, '#23285e', { seg: 6 }), Kit.ico(0.3, -2.2, 3.2, 2.2, C.cyan, { glow: true }));
+        P.push(Kit.box(6.2, 0.06, 15, 12.6, 0.02, 0, GR), ...tr(12.4, -4.5, 2.6, 0), ...tr(12.8, 4.5, 3.0, 1));      // (a lawn and two trees between the circuit and the ring)
+        return Kit.merge(P); };
+      props.ldSign = () => { const P = [Kit.box(0.14, 3.2, 0.14, 0, 0, 0, '#c9d2e0'), Kit.box(2.3, 2.3, 0.1, 0, 3.2, 0, '#0f3a22')];
+        for (const s of [1, -1]) { P.push(Kit.box(2.1, 2.1, 0.02, 0, 3.3, s * 0.06, '#17804a', { glow: true }));
+          for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2; P.push(Kit.box(0.2, 0.2, 0.02, s * (0.35 + 0.42 * Math.cos(a)), 4.7 + 0.42 * Math.sin(a), s * 0.09, '#ffffff', { glow: true })); }      // (the ring)
+          for (const [w, h, x, y, rz] of [[1.3, 0.16, 0.05, 3.8, 0], [0.16, 0.6, -0.42, 3.92, -0.8], [0.16, 0.6, -0.42, 3.64, 0.8]]) P.push(Kit.box(w, h, 0.02, s * x, y, s * 0.09, '#ffffff', { glow: true, rz: s * rz })); }      // (the arrow to the left)
+        return Kit.merge(P); };
+      const land = (v, R, L) => () => { const P = [];
+        if (L) { P.push(Kit.box(11, 0.06, 12.3, -9.6, 0.02, 0, v ? GR : '#2aa244'), Kit.box(1.5, 0.03, 12.3, -6.2, 0.08, 0, '#d8cfb8'));      // (the lawn, the footpath)
+          P.push(...tr(-11.5, v ? 2.5 : -2.5, 3.2 + v * 0.8, v), ...tr(-13.6, v ? -3.5 : 3.5, 2.6, v + 1));
+          for (let k = 0; k < 5; k++) P.push(Kit.box(0.3, 0.26, 0.3, -8.4 - (k % 2) * 0.6, 0.08, -5 + k * 2.5, ['#ff4fa0', '#ffd23a', '#ffffff', '#b06bff'][(k + v) % 4]));
+          if (v) P.push(Kit.box(1.6, 0.08, 0.4, -7.6, 0.45, 0, '#c9d2e0'), Kit.box(0.1, 0.4, 0.3, -8.2, 0.08, 0, '#8a8a90'), Kit.box(0.1, 0.4, 0.3, -7.0, 0.08, 0, '#8a8a90')); }      // (a bench)
+        if (R) { P.push(Kit.box(3.6, 0.06, 12.3, 5.9, 0.02, 0, v ? '#2aa244' : GR));
+          if (v) P.push(Kit.ico(0.7, 6.2, 0.5, -3, GR2, { detail: 1 }), Kit.ico(0.6, 5.6, 0.45, 3.2, '#35c456', { detail: 1 }));
+          else P.push(Kit.cyl(0.08, 0.12, 4.6, 4.5, 0, 0, '#23285e', { seg: 6 }), Kit.box(0.9, 0.08, 0.2, 4.1, 4.6, 0, '#23285e'), Kit.box(0.5, 0.06, 0.24, 3.8, 4.54, 0, '#fff2c8', { glow: true })); }      // (a lamp over the road)
+        return Kit.merge(P); };
+      props.ldLandA = land(0, 1, 1); props.ldLandB = land(1, 1, 1); props.ldLandLA = land(0, 0, 1); props.ldLandLB = land(1, 0, 1); props.ldLandRA = land(0, 1, 0); }
     // THE GLASS BRANCH of the side road (the user: "a glass ramp that passes through the centre of these towers"), NEON_CORNER.glassW / glassH: slot k of it in the CIRCUIT's frame, at its
     // true heights (it stands there whoever rides it): a glass deck one lane wide, glass skirts, a pink light along each edge and a cyan one under it, a pillar every other slot
     if (NC.glassW) { const G0 = NC.GQ, GN = NC.CANYON + NC.DOWN - G0;
@@ -588,7 +631,7 @@ const NeonAvenue = {
       const k = q - CN, Hk = d => HM * (1 - e(Math.max(0, Math.min(1, (k + d / 12) / DN)))), sh = d => NeonAvenue.shift(1 - (k + d / 12) / DN);      // the avenue's way down, seen from the circuit it comes down to
       return solo(NeonAvenue.layout(q, rnd, Hk(6)).map(p => { if (/^cnGlassD/.test(p.prop)) p.prop = 'pkGlassD' + k; if (/^cnMainRoadD/.test(p.prop)) return { prop: 'cnMainRoadBare', x: 0.001, dist: 6 }; return Object.assign(p, { x: p.x - sh(p.dist), dy: (p.dy || 0) + Hk(p.dist) }); })); };
     // slot q of THE SIDE ROAD's way (the runner's road is NEON_CORNER.sideM metres to the right of the circuit on the ground; everything else stands where it stood)
-    NeonAvenue.side = (q, rnd, glass) => { const CN = NC.CANYON, DN = NC.DOWN, PT = NC.PTUBE_M || 12, g3 = glass === 3 && !!NC.glass3O, gl = g3 ? q >= NC.G3Q - 1 && q <= NC.G3E : !!(glass && NC.glassM && q >= NC.GQ), S = f => g3 ? NC.glass3O(f) : gl ? NC.gM(glass, f) : NC.sideM(f), s0 = S(q), s1 = S(q + 1), bend = Math.abs(s1 - s0) > 0.01; let o;
+    NeonAvenue.side = (q, rnd, glass, land) => { if (land) glass = false; const CN = NC.CANYON, DN = NC.DOWN, PT = NC.PTUBE_M || 12, g3 = glass === 3 && !!NC.glass3O, gl = g3 ? q >= NC.G3Q - 1 && q <= NC.G3E : !!(glass && NC.glassM && q >= NC.GQ), S = f => land ? NC.landM(f) : g3 ? NC.glass3O(f) : gl ? NC.gM(glass, f) : NC.sideM(f), s0 = S(q), s1 = S(q + 1), bend = Math.abs(s1 - s0) > 0.01; let o;
       if (q < CN) o = NeonAvenue.layout(q, rnd, HM).map(p => Object.assign(p, { x: p.x - D, dy: (p.dy || 0) + HM }));
       else { const k = q - CN, Hk = d => HM * (1 - e(Math.max(0, Math.min(1, (k + d / 12) / DN)))), sh = d => NeonAvenue.shift(1 - (k + d / 12) / DN);
         o = NeonAvenue.layout(q, rnd, Hk(6)).map(p => { if (/^cnGlassD/.test(p.prop)) p.prop = 'pkGlassD' + k; if (/^cnMainRoadD/.test(p.prop)) return { prop: 'cnMainRoadBare', x: 0.001, dist: 6 }; return Object.assign(p, { x: p.x - sh(p.dist), dy: (p.dy || 0) + Hk(p.dist) }); });
@@ -616,10 +659,11 @@ const NeonAvenue = {
       if (NC.glass2W && q === NC.G2Q + 3 && props.sgTri) o.push({ prop: 'sgTri', x: 0.001, dist: 6 });                                              // THE TRIANGLE GARDEN in the wedge between the two glass ramps                                          // THE HIGH BRANCH (7 m)
       if (NC.G2TN && q >= NC.G2T && q < NC.G2T + NC.G2TN && props['sgTun' + (q - NC.G2T)]) o = o.filter(p => !/^ftStation/.test(p.prop));      // (the far stations' halls would stand in the square tunnel)
       if (NC.G2TN && q >= NC.G2T && q < NC.G2T + NC.G2TN && props['sgTun' + (q - NC.G2T)]) o.push({ prop: 'sgTun' + (q - NC.G2T), x: 0.001, dist: 6 });      // THE SQUARE TUNNEL the high branch crosses
-      if (gl) { const a0 = NC.sideM(q), a1 = NC.sideM(q + 1); o.push({ prop: Math.abs(a1 - a0) > 0.01 ? 'sdRoadC' : 'sdRoad', x: (a0 + a1) / 2 || 0.001, dist: 6, rotY: -Math.atan((a1 - a0) / 12) });      // (from the glass, the side road stays below)
-        for (const p of o) p.dy = (p.dy || 0) - NC.gH(glass, q + p.dist / 12) / 10; }
+      if (gl || land) { const a0 = NC.sideM(q), a1 = NC.sideM(q + 1); o.push({ prop: Math.abs(a1 - a0) > 0.01 ? 'sdRoadC' : 'sdRoad', x: (a0 + a1) / 2 || 0.001, dist: 6, rotY: -Math.atan((a1 - a0) / 12) });      // (from the glass, and from the new land, the side road stays where it is)
+        if (gl) for (const p of o) p.dy = (p.dy || 0) - NC.gH(glass, q + p.dist / 12) / 10; }
       for (const p of o) { const nx = p.x - (s0 + (s1 - s0) * p.dist / 12); if ((p.x < 0) !== (nx < 0)) p.rotY = (p.rotY || 0) + Math.PI; p.x = nx || 0.001; p.rotY = (p.rotY || 0) + Math.atan((s1 - s0) / 12); }
       if (!gl) o.push({ prop: bend ? 'sdRoadC' : 'sdRoad', x: 0.001, dist: 6 });
+      if (land) { const R = q < 63, L = q < 72; if (R || L) o.push({ prop: 'ldLand' + (R && L ? '' : L ? 'L' : 'R') + (q % 2 && (L || !R) ? 'B' : 'A'), x: 0.001, dist: 6 }); }      // THE NEW LAND's green beside its road
       if (q === 68) for (let i = o.length - 1; i >= 0; i--) if (o[i].prop === 'ftPlainB') o.splice(i, 1);      // (the user, a red mark on it: "enlever": the plain twin tower that stood ahead of the walled ramp, removed)
       for (const p of o) p.solo = true; return o; };
   }
