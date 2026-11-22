@@ -132,7 +132,7 @@
   const METRO_EVERY = 6, PLOT = { 0: 'bkMetro', 1: 'bkGarden', 2: 'bkGarden', 3: 'bkMetro', 4: 'bkSkate', 5: 'bkSkate', 6: 'bkMetro', 7: 'bkMetro' }; if (typeof NeoMetroArt !== 'undefined') P.bkMetro = () => ({ sprite: NeoMetroArt.building(), material: () => NeoMetroArt.material() });
   const SW = PN + 6, RT = C.BIKE_RET, RE = C.BIKE_END, bend = q => Math.abs(C.bikeM(q + 1) - C.bikeM(q)) > 0.01 || Math.abs(C.bikeM(q + 0.5) - C.bikeM(q)) > 0.01;      // (the swing round the signs starts 6 slots before the fork)
   for (let k = 0; k < SW; k++) P['bkBA' + k] = bent(k - SW, 0.05);
-  for (let q = 0; q < RE; q++) P['bkB' + q] = bent(q, 0.12);
+  for (let q = 0; q < (C.BIKE_FAR || RE); q++) P['bkB' + q] = bent(q, 0.12);
   const baseA = ArtCity.layout, baseN = NeonAvenue.layout, BLD = /^art(Graffiti|Run|Wavy|News|CollageB|Prism)/;
   ArtCity.layout = (r, rnd, det, liftM = 0) => { const out = baseA(r, rnd, det, liftM), up = !!(det && det.up), add = [], X = C.bikeM(r - N + 0.5);
     if (r < N - SW) add.push({ prop: 'artBike', x: C.BIKE_M, dist: 6 });
@@ -147,8 +147,9 @@
     if (liftM > 3 && q > RT && q < RT + 5) for (let n = out.length - 1; n >= 0; n--) if (/^ft/.test(out[n].prop) && out[n].x - NeonAvenue.D > 26 && out[n].x - NeonAvenue.D < 62) out.splice(n, 1);      // (the towers make room for the link back to the side road)
     if (liftM > 3 && q > RT && q < RT + 5) for (let n = out.length - 1; n >= 0; n--) if (/^ftStation/.test(out[n].prop)) out.splice(n, 1);      // (... and the stations with them: their lifts and legs stood on the link)
     if (liftM > 3 && q >= 0 && q < C.CANYON) for (let n = out.length - 1; n >= 0; n--) if (out[n].prop === 'cnPlanter' && Math.abs(out[n].x - NeonAvenue.D - C.bikeM(q + 0.5)) < 3) out.splice(n, 1);      // (no planter on the lane)
+    if (liftM > 3 && NeonAvenue.far && q >= C.CANYON && q < C.BIKE_FAR) out.push({ prop: bend(q) ? 'bkB' + q : 'bkStrip', x: C.bikeM(q + 0.5) + NeonAvenue.D, dist: 6, dy: -liftM, solo: true });      // (on to the district's lane)
     if (liftM > 3 && q >= 0 && q < C.CANYON) { const it = (prop, x) => out.push({ prop, x: x + NeonAvenue.D, dist: 6, dy: -liftM, solo: true });
-      if (q >= RT) it('bkStrip', C.NRX + C.BIKE_OUT); if (P.bkMetro && q >= C.NRQ + 5 && (q - C.NRQ - 5) % METRO_EVERY === 0) { const pl = PLOT[(q - C.NRQ - 5) / METRO_EVERY]; if (pl) out.push({ prop: pl, x: C.NRX + C.BIKE_OUT + H + 24 + 21 + NeonAvenue.D, dist: 6, dy: -liftM, solo: true, rotY: pl === 'bkMetro' ? -Math.PI / 2 : 0 }); } if (q >= C.NRQ + 3) it(q % 2 ? 'bkParkB' : 'bkParkA', (q >= RT ? C.NRX + C.BIKE_OUT : Math.max(C.bikeM(q), C.bikeM(q + 0.5), C.bikeM(q + 1))) + H + 9.4 + (C.glass3W && q >= 53 && q <= 58 ? 3.5 : 0)); if (q < RE) it(bend(q) ? 'bkB' + q : 'bkStrip', C.bikeM(q + 0.5));      // (the park steps back from the widened square tunnel)
+      if (q >= RT) it('bkStrip', C.NRX + C.BIKE_OUT); if (P.bkMetro && q >= C.NRQ + 5 && (q - C.NRQ - 5) % METRO_EVERY === 0) { const pl = PLOT[(q - C.NRQ - 5) / METRO_EVERY]; if (pl) out.push({ prop: pl, x: C.NRX + C.BIKE_OUT + H + 24 + 21 + NeonAvenue.D, dist: 6, dy: -liftM, solo: true, rotY: pl === 'bkMetro' ? -Math.PI / 2 : 0 }); } if (q >= C.NRQ + 3) it(q % 2 ? 'bkParkB' : 'bkParkA', (q >= RT ? C.NRX + C.BIKE_OUT : Math.max(C.bikeM(q), C.bikeM(q + 0.5), C.bikeM(q + 1))) + H + 9.4 + (C.glass3W && q >= 53 && q <= 58 ? 3.5 : 0)); if (q < RE || NeonAvenue.far) it(bend(q) ? 'bkB' + q : 'bkStrip', C.bikeM(q + 0.5));      // (the park steps back from the widened square tunnel)
       if (q >= 2 && q <= ND_Q0 && (ND_Q0 - q) % 8 === 0) it('ndC' + (ND_Q0 - q) / 8, ND_X); if (q >= 3) it(q % 2 ? 'ndWalkB' : 'ndWalkA', ND_X - 37); }
     return out; };
   // (the link comes in under the two-floor street: there the street stands open to the right, no pillar and no pylon on the lane)

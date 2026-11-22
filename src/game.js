@@ -244,8 +244,10 @@ class Game {
     const w = this.world; if (!this.r || !this.r.layoutFor) return null; const bands = w.bandsAt(z); if (bands.length !== 1) return null; const b = bands[0];
     if (this.detour && !this.detour.up && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.bikeEntry) { const C = NEON_CORNER, rf = (z - this.detour.z0) / C.SLOT - C.STREET - C.TUNNEL, r = Math.floor(rf), qf = rf - C.ART, U = 2.2 / 0.62;      // ART CITY's bike lane (NEON_CORNER.bikeM): open to everyone, on foot too
       if (this.detour.land) return null;
+      if (this.detour.dist && !this.detour.glass && z >= this.detour.zS) { const f = (z - this.detour.zS) / C.SLOT;      // THE CENTRAL DISTRICT's own lane (src3d/env_district.js), BIKE_DX right of its avenue: ART CITY's lane runs into it
+        return f < C.DN - 14 / 12 ? { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.BIKE_DX + C.BIKE_G) / U, entry: C.BIKE_IN.some(([i, j]) => f >= i && f < j), any: true } : null; }
       if (r >= 0 && r < C.ART - C.PIN) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) + C.BIKE_G) / U, entry: C.bikeEntry(r), any: true };
-      if (r >= 0 && this.detour.side && !this.detour.glass && qf < C.BIKE_END) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) + C.BIKE_G - C.sideM(qf)) / U, entry: qf < C.SIN - C.PIN || qf >= C.BIKE_RET + 5.15, any: true,
+      if (r >= 0 && this.detour.side && !this.detour.glass && qf < (C.far(this.detour) ? C.BIKE_FAR : C.BIKE_END)) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) + C.BIKE_G - C.sideM(qf)) / U, entry: qf < C.SIN - C.PIN || (qf >= C.BIKE_RET + 5.15 && qf < 72), any: true,
         road: qf >= C.NRQ + 3 && qf < C.BIKE_RET ? (b.lo + b.hi) / 2 + (C.backM(qf) - 1.9 + 1.2 * C.dipK(qf) - C.sideM(qf)) / U : null,
         roadHi: C.dipK(qf) > 0.02 || C.dipK(qf + 1) > 0.02 || C.dipK(qf - 1) > 0.02 ? (b.lo + b.hi) / 2 + (C.backM(qf) + 1.9 - C.sideM(qf)) / U : null }; }      // (road: along the BACK ROAD the runner may leave the lane to the left and run the road itself, its two sides)      // (beyond the fork, on the side road's detour: by the roundabout and the back road)
     if (!(b.t > 0.6) || !/^coast/.test(b.to) || !this.r.envs || !this.r.envs[b.to] || !this.r.layouts[b.to]) return null;
@@ -500,13 +502,13 @@ class Game {
       const C = NEON_CORNER, zS = this.detour.z1 - C.EXIT * C.SLOT;
       if (p.z >= zS - 20 * C.SLOT && p.z < zS) { const P = w.pieceAt(p.z), add = C.DN * C.SLOT, old = w.stretch(P, add);
         if (old !== null) { if (this.portal && this.portal.shift) this.portal.shift(old, add); const d = Object.assign({}, this.detour, { dist: true, zS, z1: zS + add }); if (w.extraOff) w.extraOff = z => C.off(d, z); if (w.extraLift) w.extraLift = z => C.lift(d, z); w.ver++; this.detour = d; }
-        else this.detour.distNo = true; }
+        else { this.detour.distNo = true; w.ver++; } }
     }
     if (this.detour && this.detour.decided && (this.detourSweep = (this.detourSweep || 0) + 1) % 20 === 0) {      // (items the world builds later along the glass route or the underground tunnel: the same rule as at the choice)
-      const C = NEON_CORNER, up = this.detour.up, a = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART - C.UP) * C.SLOT + (up ? 0 : (C.UP - (this.detour.park || this.detour.side ? C.PIN : 0)) * C.SLOT), b2 = this.detour.park || this.detour.side ? this.detour.zG : this.detour.dist ? this.detour.zS : this.detour.z1;      // (the car park's way: the circuit on the ground keeps its obstacles after the slip road)
+      const C = NEON_CORNER, up = this.detour.up, a = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART - C.UP) * C.SLOT + (up ? 0 : (C.UP - (this.detour.park || this.detour.side ? C.PIN : 0)) * C.SLOT), b2 = this.detour.park || this.detour.side ? this.detour.zG : this.detour.z1;      // (the car park's way: the circuit on the ground keeps its obstacles after the slip road)
       const gone = it => it.z >= a && it.z <= b2 && (OBST[it.kind] || it.kind === 'raceGate' || (up && it.kind === 'coin' && Math.abs(it.x) > 0.2));
       if (w.items.some(gone)) w.items = w.items.filter(it => !gone(it));
-      if (this.detour.glass) { const zC = this.detour.zC, zE = this.detour.glass === 3 ? this.detour.zE3 : this.detour.dist ? this.detour.zS : this.detour.z1 - C.EXIT * C.SLOT, g2 = it => it.z >= zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2)); if (w.items.some(g2)) w.items = w.items.filter(it => !g2(it)); }
+      if (this.detour.glass) { const zC = this.detour.zC, zE = this.detour.glass === 3 ? this.detour.zE3 : this.detour.dist ? this.detour.z1 : this.detour.z1 - C.EXIT * C.SLOT, g2 = it => it.z >= zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2)); if (w.items.some(g2)) w.items = w.items.filter(it => !g2(it)); }
     }
     if (this.detour && p.z > this.detour.z1) { this.detour = null; w.extraLift = null; w.noRoad = null; if (w.extraOff) { w.extraOff = null; w.ver++; } }      // out of the tunnel: back on the neon street
     this.steer(dt);

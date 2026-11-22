@@ -165,18 +165,35 @@ const NEON_CORNER = {
   // pillars. RIDEABLE all the way now: a runner on it at the fork takes the side road's detour and keeps the lane, by the roundabout and along the back road; BIKE_RET slots before the
   // avenue's end a link brings it back beside the side road (entrances there), while the strip itself goes on straight, as scenery.)
   BIKE_SW: 2.9, BIKE_RET: 62, BIKE_END: 69,
+  // (2026-11-23, the user: "raccorder les voie vélo avec celle de district": where the ways go on into the CENTRAL DISTRICT (far) the lane no longer ends at BIKE_END: it follows the side
+  // road to the district's gate, BIKE_FAR, swinging out from BIKE_M to BIKE_DX, the line of the district's own lane, which is rideable too: entrances from its avenue at the slots BIKE_IN)
+  BIKE_FAR: 76, BIKE_DX: 10.3, BIKE_IN: [[40, 42], [80, 82]],
   dipK(qf) { return (this.NRX - this.backM(qf)) / (this.NRX - this.NRIN); },      // (1 where the back road is in under the square tunnel's station: there the lane passes outside the station's legs)
   bikeM(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.SIDE_M + this.BIKE_M, R = this.NRC + 17.3, B = this.backM(qf) + this.BIKE_OUT + 2.8 * this.dipK(qf), q0 = this.SIN - this.PIN;
     if (qf < q0) return this.sideM(qf) + this.BIKE_M + this.BIKE_SW * e(c((qf + 9.5) / 3)) * (1 - e(c((qf + 3) / 2.5)));
     const m = a + (R - a) * e(c((qf - q0) / (this.NRQ + 0.5 - q0))) + (B - R) * e(c((qf - this.NRQ - 0.5) / 2)), t = e(c((qf - this.BIKE_RET - 0.15) / 5));
-    return (m - 9 * e(c((qf - this.BIKE_RET + 0.4) / 2.2))) * (1 - t) + (this.sideM(qf) + this.BIKE_M) * t; },      // (- 9: the link keeps the line it had before the road moved 9 m out, between the ramp's pillars)
+    return (m - 9 * e(c((qf - this.BIKE_RET + 0.4) / 2.2))) * (1 - t) + (this.sideM(qf) + this.BIKE_M + (this.BIKE_DX - this.BIKE_M) * e(c((qf - 72) / 4))) * t; },      // (- 9: the link keeps the line it had before the road moved 9 m out, between the ramp's pillars)
   glass2W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.SPARK_M + 2.2, back = e(c((qf - 58) / 3));
     if (qf >= this.G2R) return (this.GM - 1) * (1 - e(c((qf - this.G2R) / this.G2OUT)));
     return a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) + this.G2X * e(c((qf - this.G2Q) / 4)) * (1 - back) - back; },
   glass2H(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), h = this.GH * e(c((qf - this.GQ) / this.GUP));
     return (h + (this.G2H - h) * e(c((qf - this.G2Q) / this.G2UP))) * (1 - e(c((qf - 68) / 7))); },
-  gM(g, qf) { return g >= 4 ? this.mallO(g, qf) : g === 3 ? this.glass3O(qf) : g === 2 && qf >= this.G2Q ? this.glass2W(qf) : this.glassM(qf); },
-  gH(g, qf) { return g >= 4 ? this.mallH(g, qf) : g === 3 ? this.glass3H(qf) : g === 2 && qf >= this.G2Q ? this.glass2H(qf) : this.glassH(qf); },
+  gM(g, qf, far) { return far && this.farOn(g, qf) ? this.farX(g, qf) : g >= 4 ? this.mallO(g, qf) : g === 3 ? this.glass3O(qf) : g === 2 && qf >= this.G2Q ? this.glass2W(qf) : this.glassM(qf); },
+  gH(g, qf, far) { return far && this.farOn(g, qf) ? this.farH(g, qf) : g >= 4 ? this.mallH(g, qf) : g === 3 ? this.glass3H(qf) : g === 2 && qf >= this.G2Q ? this.glass2H(qf) : this.glassH(qf); },
+  // THE RAMPS GO ON TO THE DISTRICT'S END (the user, 2026-11-22: "lie juste les routes goudronnées avec des goudronnées; allonger les rampes jusqu'à la fin du district en gardant leur
+  // hauteur et les écartant graduellement dans le district"): when the Central District follows (far(d)), the three glass ramps no longer come down onto the tarmac before it. The glass
+  // avenue (g 0: 14 m), the glass ramp (g true: 2.8 m) and the high ramp (g 2: 7 m) keep their height, enter the district side by side and spread apart in it (the avenue to the left,
+  // over the canal's bank; the two ramps to the right of the bike lane, 8 m apart), and come down onto the district's avenue only at its north end, one after the other.
+  // farX(g, qf): the ramp's centre line, metres right of the circuit (f = slots into the district); farH(g, qf): its height (it lands at 15 cm and slides onto the avenue's axis).
+  FQB: 66, FQC: 68,
+  far(d) { return !!(d && this.DN && !d.distNo && !d.land && !(d.glass >= 3)); },
+  farOn(g, qf) { return g === 2 ? qf >= this.FQC : g === true && qf >= this.FQB; },
+  farX(g, qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), f = qf - this.CANYON - this.DOWN; let x;
+    if (!g) { x = -this.SHIFT_M - 5.5 * e(c(f / 3)) - 3.5 * e(c((f - 3) / 9)); x -= (x + 8.7) * e(c((f - 102.5) / 4.2)); return x * (1 - e(c((f - 112.7) / 3.1))); }
+    if (g === 2) { x = 24.5 + 27 * (1 - e(c((qf - 68.5) / 5.2))) + 4.3 * e(c((f - 1) / 7)); x -= (x - 6.9) * e(c((f - 105.2) / 4)); return x * (1 - e(c((f - 114.2) / 2))); }
+    x = 20.6 + 31.9 * (1 - e(c((qf - 66) / 7.2))) + 3.8 * e(c((f - 51.7) / 5)) * (1 - e(c((f - 60.3) / 5))); x -= (x - 6.9) * e(c((f - 95.8) / 4.2)); return x * (1 - e(c((f - 103) / 2.5))); },
+  farH(g, qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), f = qf - this.CANYON - this.DOWN, d = (H, f0, n, f1) => (1.5 + (H - 1.5) * (1 - e(c((f - f0) / n)))) * (1 - e(c((f - f1) / 0.6)));
+    return !g ? d(this.H, 106.7, 6, 115.8) : g === 2 ? d(this.G2H, 109.2, 5, 116.2) : d(this.GH, 100, 3, 105.5); },
   // THE WALLED RAMP of the back road (the user, 2026-11-21, a red line along the road's left edge: "a glass ramp, 2 m high, which climbs little by little", starting just after the
   // roundabout, "and the square station tunnel wider, so that this ramp passes INSIDE it"; rideable): G3Q slots after the mouth, a runner on the back road's LEFT place leaves it to the
   // left, onto a one-lane glass ramp with glass walls 2 m high, straight, G3X m out (the dark ground between the far towers and the road). It climbs slowly (G3UP slots) to G3H (7 m: the
@@ -238,21 +255,23 @@ const NEON_CORNER = {
   // SHIFT_M metres to the left by the top (the circuit stays where it is, to the right), back by the end of the way down. Lateral units are U3.X = 2.2 / 0.62 metres.
   SHIFT_M: 17,
   off(d, z) {
-    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.land ? this.landM(qf) : d.glass === 3 ? this.glass3O(qf) : d.glass >= 4 ? this.mallO(d.glass, qf) : d.glass && qf >= this.GQ ? this.gM(d.glass, qf) : this.sideM(qf)) / (2.2 / 0.62); }
+    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.land ? this.landM(qf) : d.glass === 3 ? this.glass3O(qf) : d.glass >= 4 ? this.mallO(d.glass, qf) : d.glass && qf >= this.GQ ? this.gM(d.glass, qf, this.far(d)) : this.sideM(qf)) / (2.2 / 0.62); }
     if (d && d.park) { const S = this.SLOT, zT = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zP = zT - this.PIN * S, zR = zT + S, zQ = zT + this.DIVE * S, e = t => t * t * (3 - 2 * t), D = this.PTUBE_M / (2.2 / 0.62);      // (straight beside the big tube for one slot, then back)
       return z <= zP || z >= zQ ? 0 : -D * (z < zT ? e((z - zP) / (zT - zP)) : z < zR ? 1 : 1 - e((z - zR) / (zQ - zR))); }
     if (!d || !d.up) return 0;
     const S = this.SLOT, z0 = d.z0 + (this.STREET + this.TUNNEL + this.ART - this.UP) * S, zA = z0 + this.UP * S, zB = zA + this.CANYON * S, zC = zB + this.DOWN * S, e = t => t * t * (3 - 2 * t), D = this.SHIFT_M / (2.2 / 0.62);
+    if (z >= zB && this.far(d)) return this.farX(0, (z - zA) / S) / (2.2 / 0.62);      // (straight on at its height, into the district)
     return z <= z0 || z >= zC ? 0 : -D * (z < zA ? e((z - z0) / (zA - z0)) : z < zB ? 1 : 1 - e((z - zB) / (zC - zB)));
   },
   // the height of the road (units of run) at z for a detour that took the glass ramp (positive), or the underground tunnel (negative)
   lift(d, z) {
     if (d && d.land) return 0;
-    if (d && d.glass) return this.gH(d.glass, (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART));
+    if (d && d.glass) return this.gH(d.glass, (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART), this.far(d));
     if (d && (d.down || d.park)) { const S = this.SLOT, z0 = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zA = z0 + this.DIVE * S, zB = zA + (d.park ? this.PARK : this.UNDER) * S, zC = zB + (d.park ? this.PRISE : this.RISE) * S, e = t => t * t * (3 - 2 * t);
       return z <= z0 || z >= zC ? 0 : -this.DEPTH * (z < zA ? e((z - z0) / (zA - z0)) : z < zB ? 1 : 1 - e((z - zB) / (zC - zB))); }
     if (!d || !d.up) return 0;
     const S = this.SLOT, z0 = d.z0 + (this.STREET + this.TUNNEL + this.ART - this.UP) * S, zA = z0 + this.UP * S, zB = zA + this.CANYON * S, zC = zB + this.DOWN * S, e = t => t * t * (3 - 2 * t);
+    if (z >= zB && this.far(d)) return this.farH(0, (z - zA) / S);
     return z <= z0 || z >= zC ? 0 : z < zA ? this.H * e((z - z0) / (zA - z0)) : z < zB ? this.H : this.H * (1 - e((z - zB) / (zC - zB)));
   },
   // the junction (track units, a slot boundary) of the neon stretch holding z, or null

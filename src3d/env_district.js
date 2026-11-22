@@ -16,6 +16,7 @@ const NeoDistrict = { props: {}, layout() { return []; } };
   const rr = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
   const anchorSlot = b => Math.min(DN, (b + 1) * BAND) - 1, anchorZ = b => anchorSlot(b) * 12 + 6;
   let bands = null;
+  const BIKE_IN = (NC.BIKE_IN || []).map(([a, b]) => [a * 12, b * 12]);      // (the bike lane's entrances, metres)
   const gen = () => {
     bands = Array.from({ length: NB }, () => ({ parts: [], glass: [], pic: [] }));
     const bOf = zFar => Math.max(0, Math.min(NB - 1, Math.floor(zFar / (BAND * 12))));
@@ -34,18 +35,21 @@ const NeoDistrict = { props: {}, layout() { return []; } };
     const tree = (X, Z, r, k) => { cyl(r * 0.1, r * 0.16, r * 1.3, X, 0, Z, C.trunk); ico(r * 0.62, X, r * 1.75, Z, [C.leaf, C.leafD, C.leafL][k % 3]); ico(r * 0.44, X + r * 0.4 * (k % 2 ? 1 : -1), r * 1.42, Z + r * 0.25, [C.leafD, C.leafL, C.leaf][k % 3]); };
     const lamp = (X, Z, col) => { cyl(0.1, 0.15, 6, X, 0, Z, C.navy2); box(1.5, 0.12, 0.12, X - Math.sign(X) * 0.7, 5.9, Z, C.navy2); box(0.9, 0.16, 0.34, X - Math.sign(X) * 1.2, 5.74, Z, col, { glow: true }); };
 
-    const X1 = 350, X2 = 1050, GAPS = [[X1 - 6, X1 + 6], [X2 - 6, X2 + 6], [HUB0, HUB1]], GAPX = [[X1 - 6, X1 + 6], [X2 - 6, X2 + 6]], Z0 = 14, Z1 = L - 14;
+    const PLAT_R = [208, 470, 930, 1100, 1262], X1 = 350, X2 = 1050, GAPS = [[X1 - 6, X1 + 6], [X2 - 6, X2 + 6], [HUB0, HUB1]], GAPX = [[X1 - 6, X1 + 6], [X2 - 6, X2 + 6]], Z0 = 14, Z1 = L - 14;
     // ---- THE AVENUE's sides: lawns, the canal (left), the bike lane (right)
     strip(-12, -6.4, 0.04, Z0, Z1, C.lawn, GAPX); strip(6.4, 8.7, 0.04, Z0, Z1, C.lawn, GAPX); strip(11.9, 19.5, 0.04, Z0, Z1, C.lawnD, GAPX);
     strip(-23, -13, 0.07, Z0 + 20, Z1 - 20, C.water, [[HUB0 + 40, HUB1 - 40]]);                                                             // the canal along the avenue (it meets the Centre's ring basin)
     for (const X of [-12.75, -23.25]) { strip(X - 0.25, X + 0.25, 0.5, Z0 + 20, Z1 - 20, C.slab, GAPS); strip(X - 0.12, X + 0.12, 0.56, Z0 + 20, Z1 - 20, C.cyan, GAPS, { glow: true }); }
-    strip(9, 11.6, 0.1, Z0, Z1, C.bike);                                                                                                    // THE BIKE LANE: two ways, all along
-    for (const X of [9.06, 11.54]) strip(X - 0.06, X + 0.06, 0.13, Z0, Z1, C.white, null, { glow: true });
+    strip(9, 11.6, 0.1, 0, Z1, C.bike);      // (from the very first metre: ART CITY's lane comes in there, NEON_CORNER.bikeM / BIKE_FAR)                                                                                                    // THE BIKE LANE: two ways, all along
+    for (const X of [9.06, 11.54]) strip(X - 0.06, X + 0.06, 0.13, 0, Z1, C.white, null, { glow: true });
+    for (const [a, b] of BIKE_IN) { box(4.2, 0.1, b - a, 6.9, -0.03, (a + b) / 2, '#2fbf5a'); for (const z of [a + 0.1, b - 0.1]) box(4.2, 0.05, 0.14, 6.9, 0.07, z, C.white, { glow: true }); for (let z = a + 3; z < b; z += 6) for (const s of [-1, 1]) box(0.1, 0.03, 0.9, 6.9 + s * 0.3, 0.07, z, C.white, { ry: s * 0.6 }); }      // the lane's ENTRANCES from the avenue (Game.bikeLane)
     for (let z = Z0 + 2; z < Z1 - 3; z += 6) box(0.1, 0.1, 2.2, 10.3, 0.03, z + 1.1, C.lime, { glow: true });
     for (let z = 24, k = 0; z < Z1; z += 12, k++) { const hub = z > HUB0 + 60 && z < HUB1 - 60, cross = Math.abs(z - X1) < 9 || Math.abs(z - X2) < 9; if (cross) continue;
-      tree(-9.2, z + 3, 2.3 + rr(k) * 0.7, k); tree(7.5, z + 9, 1.7 + rr(k + 50) * 0.4, k + 1); if (k % 2 === 0 && !hub) tree(15.6 + rr(k + 9) * 1.6, z, 3.2 + rr(k + 90) * 1.1, k + 2);
-      if (k % 2 === 1) { lamp(-6.1, z, k % 4 === 1 ? C.cyan : C.mag); lamp(6.1, z + 6, k % 4 === 1 ? C.mag : C.cyan); if (!hub) lamp(-24.6, z + 6, C.gold); }
-      if (k % 6 === 3 && !hub) { box(2.4, 0.14, 0.7, 13.6, 0.5, z + 5, C.slab); box(0.2, 0.5, 0.6, 12.6, 0, z + 5, C.navy2); box(0.2, 0.5, 0.6, 14.6, 0, z + 5, C.navy2); } }      // (benches by the lane)
+      const inZ = (v, a, b) => v > a && v < b, ent = v => BIKE_IN.some(([a, b]) => v > a - 2 && v < b + 2), stem = PLAT_R.some(p => Math.abs(z - p) < 13);      // (kept clear: where the three glass ways come down, NEON_CORNER.farX, and round the platforms' stems)
+      if (!inZ(z + 3, 1265, 1404)) tree(-9.2, z + 3, 2.3 + rr(k) * 0.7, k); if (!inZ(z + 9, 1160, 1250) && !inZ(z + 9, 1290, 1404) && !ent(z + 9)) tree(7.5, z + 9, 1.7 + rr(k + 50) * 0.4, k + 1);
+      if (k % 2 === 0 && !hub && !stem && !inZ(z, 1140, 1215) && !inZ(z, 1255, 1320)) tree(14.4 + rr(k + 9) * 0.8, z, 2.8 + rr(k + 90) * 0.8, k + 2);
+      if (k % 2 === 1) { if (!inZ(z, 1265, 1404)) lamp(-6.1, z, k % 4 === 1 ? C.cyan : C.mag); if (!inZ(z + 6, 1170, 1275) && !inZ(z + 6, 1290, 1404) && !ent(z + 6)) lamp(6.1, z + 6, k % 4 === 1 ? C.mag : C.cyan); if (!hub) lamp(-24.6, z + 6, C.gold); }
+      if (k % 6 === 3 && !hub && !PLAT_R.some(p => Math.abs(z + 5 - p) < 6)) { box(2.4, 0.14, 0.7, 13.6, 0.5, z + 5, C.slab); box(0.2, 0.5, 0.6, 12.6, 0, z + 5, C.navy2); box(0.2, 0.5, 0.6, 14.6, 0, z + 5, C.navy2); } }      // (benches by the lane)
 
     // ---- THE TWO CANALS ACROSS (the avenue and the lane cross them on the level, between lit parapets)
     for (const zc of [X1, X2]) { for (const s of [-1, 1]) { box(244.5, 0.1, 10, s * 127.75, -0.03, zc, C.water); for (const e of [-5.2, 5.2]) { box(244.5, 0.5, 0.4, s * 127.75, 0, zc + e, C.slab); box(244.5, 0.07, 0.2, s * 127.75, 0.5, zc + e, C.cyan, { glow: true }); } }
@@ -103,27 +107,27 @@ const NeoDistrict = { props: {}, layout() { return []; } };
       for (const e of [-9, 9]) { box(3, 30, 3, s * 78, 0, cz + e, C.navy2); box(0.5, 30, 0.5, s * 76.4, 0, cz + e, A, { glow: true }); } box(3, 2, 21, s * 78, 28, cz, C.slab); box(3.2, 0.5, 21, s * 78, 30, cz, A, { glow: true });   // its gate on the avenue's side, over the canal
       for (const h of [-1, 1]) { strip(s > 0 ? 46 : -58, s > 0 ? 58 : -46, 0.04, h < 0 ? cz - 140 : cz + 9, h < 0 ? cz - 9 : cz + 140, C.lawn); for (let d = 22; d < 140; d += 24) tree(s * 52, cz + h * d, 2.6 + rr(qi * 5 + d) * 0.8, d / 24 + qi | 0); }   // a garden along the open frontage
       cyl(7, 7, vh + 7, s * 200, 0.12, cz, C.navy2, { seg: 10 }); cyl(8.5, 8.5, 0.8, s * 200, vh + 7.1, cz, A, { seg: 10, glow: true }); };                                                                     // the terminal where the viaduct arrives
-    [[QX, X1, C.cyan, C.white, 0, 21], [-QX, X1, C.mag, C.gold, 1, 21], [-QX, X2, C.gold, C.cyan, 2, 13], [QX, X2, C.lime, C.mag, 3, 13]].forEach((q, i) => quarter(...q, i));
+    [[QX, X1, C.cyan, C.white, 0, 21], [-QX, X1, C.mag, C.gold, 1, 21], [-QX, X2, C.gold, C.cyan, 2, 21], [QX, X2, C.lime, C.mag, 3, 21]].forEach((q, i) => quarter(...q, i));
 
 
     // ---- AERIAL WALKWAYS (glass tubes across the avenue, tower to tower) and GREEN PLATFORMS on stems
     [[122, 26], [262, 34], [432, 28], [958, 30], [1128, 36], [1296, 26]].forEach(([z, h], k) => { const col = k % 2 ? C.mag : C.cyan;
       box(120, 0.8, 5, 0, h, z, C.slab); for (const e of [-2.5, 2.5]) box(120, 0.2, 0.2, 0, h - 0.1, z + e, col, { glow: true }); box(120, 0.2, 5.2, 0, h + 3.4, z, C.slab);
-      for (const X of [-27, 27]) { cyl(1.1, 1.6, h, X, 0, z, C.navy2, { seg: 8 }); box(4, 0.4, 6, X, h - 0.4, z, col, { glow: true }); }
+      for (const X of [-32, 24.7]) { cyl(1.1, 1.6, h, X, 0, z, C.navy2, { seg: 8 }); /* (between the glass ways) */ box(4, 0.4, 6, X, h - 0.4, z, col, { glow: true }); }
       for (const e of [-2.5, 2.5]) glass(z + 3, [-60, h + 0.8, z + e], [60, h + 0.8, z + e], [60, h + 3.4, z + e], [-60, h + 3.4, z + e]); });
     const platform = (X, Z, h, k) => { cyl(1.3, 2.4, h, X, 0, Z, C.navy2, { seg: 8 }); cyl(9.5, 6.5, 1.8, X, h, Z, C.slab, { seg: 12 }); cyl(9, 9, 0.4, X, h + 1.8, Z, C.lawn, { seg: 12 }); cyl(9.8, 9.8, 0.25, X, h + 1.2, Z, k % 2 ? C.lime : C.cyan, { seg: 12, glow: true });
       for (let i = 0; i < 3; i++) { const a = i * 2.1 + k, tx = X + 5 * Math.sin(a), tz = Z + 5 * Math.cos(a), r = 1.8 + rr(k * 3 + i) * 0.8; cyl(r * 0.1, r * 0.16, r * 1.3, tx, h + 2.2, tz, C.trunk); ico(r * 0.62, tx, h + 2.2 + r * 1.75, tz, [C.leaf, C.leafL, C.leafD][i]); } };
-    [[-33, 96, 16], [29, 208, 22], [-34, 300, 26], [-33, 410, 18], [30, 470, 24], [-34, 905, 20], [30, 930, 26], [-33, 1010, 16], [29, 1100, 22], [-34, 1210, 26], [30, 1262, 18], [-33, 1330, 22]].forEach(([X, z, h], k) => platform(X, z, h, k));
+    [[-33, 96, 20], [15.5, 208, 22], [-34, 300, 26], [-33, 410, 20], [15.5, 470, 24], [-34, 905, 20], [15.5, 930, 26], [-33, 1010, 20], [15.5, 1100, 22], [-34, 1210, 26], [15.5, 1262, 18], [-33, 1330, 22]].forEach(([X, z, h], k) => platform(X, z, h, k));
 
     // ---- THE MAGLEV (above the first canal) and THE METRO (above the second), on viaducts across
-    [[X1, 21, C.cyan, C.white], [X2, 13, C.mag, C.gold]].forEach(([z, h, col, car], k) => { box(400, 1.2, 4.4, 0, h, z, C.slab); for (const e of [-2.2, 2.2]) box(400, 0.25, 0.25, 0, h - 0.3, z + e, col, { glow: true });
-      for (let X = -175; X <= 175; X += 50) { cyl(1, 1.5, h, X + (X === 25 || X === -25 ? 0 : 0), 0, z, C.navy2, { seg: 8 }); box(5, 0.9, 5, X, h - 0.9, z, C.navy3); }
+    [[X1, 21, C.cyan, C.white], [X2, 21, C.mag, C.gold]].forEach(([z, h, col, car], k) => { box(400, 1.2, 4.4, 0, h, z, C.slab); for (const e of [-2.2, 2.2]) box(400, 0.25, 0.25, 0, h - 0.3, z + e, col, { glow: true });
+      for (const X of [-175, -125, -75, -32, 24.7, 75, 125, 175]) { cyl(1, 1.5, h, X, 0, z, C.navy2, { seg: 8 }); box(5, 0.9, 5, X, h - 0.9, z, C.navy3); }
       for (let i = 0; i < 4; i++) { const X = (k ? 60 : -52) + i * 21; box(20, 3, 3.1, X, h + 1.5, z, car); box(18.6, 0.9, 3.2, X, h + 3, z, col, { glow: true }); } box(3, 2.4, 2.9, (k ? 60 : -52) + 73.5, h + 1.5, z, col, { glow: true }); });
 
     // ---- THE MOTORWAYS: three levels, south and north of the Centre
-    for (const z of [HUB0 - 28, HUB1 + 28]) { [12, 21, 30].forEach((h, i) => { const zz = z + (i - 1) * 3; box(400, 1, 9, 0, h, zz, C.asph); for (const e of [-4.5, 4.5]) box(400, 0.7, 0.3, 0, h + 1, zz + e, C.slab); box(400, 0.06, 0.25, 0, h + 1.02, zz, [C.cyan, C.mag, C.gold][i], { glow: true });
+    for (const z of [HUB0 - 28, HUB1 + 28]) { [20, 27, 34].forEach((h, i) => { const zz = z + (i - 1) * 3; box(400, 1, 9, 0, h, zz, C.asph); for (const e of [-4.5, 4.5]) box(400, 0.7, 0.3, 0, h + 1, zz + e, C.slab); box(400, 0.06, 0.25, 0, h + 1.02, zz, [C.cyan, C.mag, C.gold][i], { glow: true });
         for (let c = 0; c < 9; c++) { const X = -160 + c * 40 + rr(c * 7 + i * 3 + z) * 26, e = c % 2 ? 2.2 : -2.2; box(3.6, 1.1, 1.7, X, h + 1, zz + e, [C.white, C.navy2, C.slab][c % 3]); box(0.3, 0.4, 1.5, X + (c % 2 ? 1.9 : -1.9), h + 1.3, zz + e, c % 2 ? C.white : C.mag, { glow: true }); } });
-      for (const X of [-150, -100, -50, -14, 14, 50, 100, 150]) { cyl(1.2, 1.8, 31, X, 0, z, C.navy2, { seg: 8 }); } }
+      for (const X of [-150, -100, -50, -14, 14, 50, 100, 150]) { cyl(1.2, 1.8, 35, X, 0, z, C.navy2, { seg: 8 }); } }
 
     // ---- FLYING CARS
     for (let i = 0; i < 26; i++) { const z = 60 + i * 50 + rr(i * 3) * 30, X = (rr(i * 5) - 0.5) * 110, y = 34 + rr(i * 9) * 70; if (z > L - 30) continue; box(1.9, 0.8, 4.2, X, y, z, i % 2 ? C.white : C.slab); box(1.5, 0.5, 1.8, X, y + 0.8, z, C.navy3); box(2.1, 0.12, 4.4, X, y - 0.14, z, i % 3 ? C.cyan : C.mag, { glow: true }); }
@@ -131,21 +135,21 @@ const NeoDistrict = { props: {}, layout() { return []; } };
     // ---- THE COURTS and the YOUTH GROUNDS (right of the lane)
     const lines = (X0, Xb, Za, Zb, y, col) => { box(Xb - X0, 0.06, 0.18, (X0 + Xb) / 2, y, Za, col, { glow: true }); box(Xb - X0, 0.06, 0.18, (X0 + Xb) / 2, y, Zb, col, { glow: true }); box(0.18, 0.06, Zb - Za, X0, y, (Za + Zb) / 2, col, { glow: true }); box(0.18, 0.06, Zb - Za, Xb, y, (Za + Zb) / 2, col, { glow: true }); box(Xb - X0, 0.06, 0.18, (X0 + Xb) / 2, y, (Za + Zb) / 2, col, { glow: true }); };
     const flood = (X, Z) => { cyl(0.16, 0.24, 11, X, 0, Z, C.navy2); box(2.2, 0.9, 0.3, X, 11, Z, C.white, { glow: true }); };
-    { const a = 148, b = 178, x0 = 24, x1 = 42; box(x1 - x0 + 4, 0.1, b - a + 4, (x0 + x1) / 2, -0.01, (a + b) / 2, C.court); lines(x0, x1, a, b, 0.1, C.white); ring(1.8, 10, 0.16, 0.06, 0.1, C.white, { glow: true }, 0, (a + b) / 2);      // BASKETBALL
-      for (const [z, s] of [[a - 0.4, 1], [b + 0.4, -1]]) { cyl(0.14, 0.18, 3.4, 33, 0, z, C.slab); box(1.8, 1.1, 0.1, 33, 2.9, z + s * 0.9, C.white, { glow: true }); box(0.6, 0.06, 0.6, 33, 3.0, z + s * 1.3, C.mag, { glow: true }); }
+    { const a = 148, b = 178, x0 = 27, x1 = 45; box(x1 - x0 + 4, 0.1, b - a + 4, (x0 + x1) / 2, -0.01, (a + b) / 2, C.court); lines(x0, x1, a, b, 0.1, C.white); ring(1.8, 10, 0.16, 0.06, 0.1, C.white, { glow: true }, 0, (a + b) / 2, (x0 + x1) / 2);      // BASKETBALL
+      for (const [z, s] of [[a - 0.4, 1], [b + 0.4, -1]]) { cyl(0.14, 0.18, 3.4, 36, 0, z, C.slab); box(1.8, 1.1, 0.1, 36, 2.9, z + s * 0.9, C.white, { glow: true }); box(0.6, 0.06, 0.6, 36, 3.0, z + s * 1.3, C.mag, { glow: true }); }
       for (const X of [x0 - 2, x1 + 2]) for (const z of [a - 2, b + 2]) flood(X, z); }
-    { const a = 980, b = 1038, x0 = 23, x1 = 45; box(x1 - x0 + 4, 0.1, b - a + 4, (x0 + x1) / 2, -0.01, (a + b) / 2, C.lawn); lines(x0, x1, a, b, 0.1, C.white); ring(4, 14, 0.18, 0.06, 0.1, C.white, { glow: true }, 0, (a + b) / 2);        // FIVE-A-SIDE
+    { const a = 980, b = 1038, x0 = 26, x1 = 48; box(x1 - x0 + 4, 0.1, b - a + 4, (x0 + x1) / 2, -0.01, (a + b) / 2, C.lawn); lines(x0, x1, a, b, 0.1, C.white); ring(4, 14, 0.18, 0.06, 0.1, C.white, { glow: true }, 0, (a + b) / 2, (x0 + x1) / 2);        // FIVE-A-SIDE
       for (let i = 0; i < 6; i++) if (i % 2) box(x1 - x0, 0.03, (b - a) / 6, (x0 + x1) / 2, 0.09, a + (i + 0.5) * (b - a) / 6, C.lawnD);
-      for (const z of [a, b]) { box(0.14, 2.2, 0.14, 31, 0, z, C.white, { glow: true }); box(0.14, 2.2, 0.14, 37, 0, z, C.white, { glow: true }); box(6.14, 0.14, 0.14, 34, 2.2, z, C.white, { glow: true }); }
-      for (const X of [x0 - 2, x1 + 2]) for (const z of [a - 2, (a + b) / 2, b + 2]) flood(X, z); }
-    { const a = 246, b = 276; box(22, 0.1, b - a, 33, -0.01, (a + b) / 2, C.paveL);                                                                 // SKATE SPOT
-      box(12, 0.2, 5, 33, 1.1, a + 2.2, C.mag, { rx: 0.42 }); box(12, 0.2, 5, 33, 1.1, b - 2.2, C.cyan, { rx: -0.42 }); box(12, 2.2, 0.4, 33, 0, a - 0.2, C.navy2); box(12, 2.2, 0.4, 33, 0, b + 0.2, C.navy2);
-      box(5, 0.7, 2.4, 28, 0, (a + b) / 2, C.slab); box(0.12, 0.12, 9, 38, 0.8, (a + b) / 2, C.gold, { glow: true }); box(0.12, 0.8, 0.12, 38, 0, (a + b) / 2 - 4, C.slab); box(0.12, 0.8, 0.12, 38, 0, (a + b) / 2 + 4, C.slab);
-      flood(22.5, a); flood(43.5, b); }
-    { const a = 1148, b = 1176, m = (a + b) / 2; box(22, 0.1, b - a, 33, -0.01, m, '#b8643c');                                                      // PLAYGROUND
-      for (const X of [27, 31]) { box(0.16, 3, 0.16, X, 0, a + 4, C.gold, { glow: true }); } box(4.2, 0.16, 0.16, 29, 3, a + 4, C.gold, { glow: true }); box(0.9, 0.08, 0.4, 28.2, 0.7, a + 4, C.mag); box(0.9, 0.08, 0.4, 29.9, 0.7, a + 4, C.cyan);
-      ico(3, 37, 0, m, C.lime, { glow: true }); ico(2.7, 37, 0, m, C.navy3, { detail: 1 }); box(1.2, 0.14, 6, 28, 1.4, b - 6, C.cyan, { rx: 0.4 }); box(1.6, 2.6, 1.6, 28, 0, b - 2.6, C.mag);
-      tree(41, a + 3, 2.6, 1); tree(41, b - 3, 2.8, 2); flood(22.5, b); flood(43.5, a); }
+      for (const z of [a, b]) { box(0.14, 2.2, 0.14, 34, 0, z, C.white, { glow: true }); box(0.14, 2.2, 0.14, 40, 0, z, C.white, { glow: true }); box(6.14, 0.14, 0.14, 37, 2.2, z, C.white, { glow: true }); }
+      for (const X of [x0 - 2, x1 + 0.6]) for (const z of [a - 2, (a + b) / 2, b + 2]) flood(X, z); }
+    { const a = 246, b = 276; box(22, 0.1, b - a, 36, -0.01, (a + b) / 2, C.paveL);                                                                 // SKATE SPOT
+      box(12, 0.2, 5, 36, 1.1, a + 2.2, C.mag, { rx: 0.42 }); box(12, 0.2, 5, 36, 1.1, b - 2.2, C.cyan, { rx: -0.42 }); box(12, 2.2, 0.4, 36, 0, a - 0.2, C.navy2); box(12, 2.2, 0.4, 36, 0, b + 0.2, C.navy2);
+      box(5, 0.7, 2.4, 31, 0, (a + b) / 2, C.slab); box(0.12, 0.12, 9, 41, 0.8, (a + b) / 2, C.gold, { glow: true }); box(0.12, 0.8, 0.12, 41, 0, (a + b) / 2 - 4, C.slab); box(0.12, 0.8, 0.12, 41, 0, (a + b) / 2 + 4, C.slab);
+      flood(25.5, a); flood(46.5, b); }
+    { const a = 1148, b = 1176, m = (a + b) / 2; box(22, 0.1, b - a, 36, -0.01, m, '#b8643c');                                                      // PLAYGROUND
+      for (const X of [30, 34]) { box(0.16, 3, 0.16, X, 0, a + 4, C.gold, { glow: true }); } box(4.2, 0.16, 0.16, 32, 3, a + 4, C.gold, { glow: true }); box(0.9, 0.08, 0.4, 31.2, 0.7, a + 4, C.mag); box(0.9, 0.08, 0.4, 32.9, 0.7, a + 4, C.cyan);
+      ico(3, 40, 0, m, C.lime, { glow: true }); ico(2.7, 40, 0, m, C.navy3, { detail: 1 }); box(1.2, 0.14, 6, 31, 1.4, b - 6, C.cyan, { rx: 0.4 }); box(1.6, 2.6, 1.6, 31, 0, b - 2.6, C.mag);
+      tree(44, a + 3, 2.6, 1); tree(44, b - 3, 2.8, 2); flood(25.5, b); flood(46.5, a); }
 
     // ---- THE GATES: south and north (no picture above the south one: the user had it removed)
     [[30, C.cyan, true], [L - 26, C.mag, false]].forEach(([z, col, pic]) => { for (const s of [-1, 1]) { box(4, 19, 4, s * 15, 0, z, C.navy2); box(4.3, 0.5, 4.3, s * 15, 19, z, col, { glow: true }); box(0.5, 19, 0.5, s * 12.8, 0, z + 2, col, { glow: true }); }
@@ -156,8 +160,8 @@ const NeoDistrict = { props: {}, layout() { return []; } };
     for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) { const R = 112, ph = Math.atan2(sx, sz); rbox(150, 0.1, 8, sx * R * Math.SQRT1_2, -0.03, ZC + sz * R * Math.SQRT1_2, C.paveL, Math.PI / 2 - ph); rbox(150, 0.05, 0.25, sx * R * Math.SQRT1_2, 0.07, ZC + sz * R * Math.SQRT1_2, C.gold, Math.PI / 2 - ph, { glow: true }); }
     ring(175, 60, 0.5, 0.1, 0.02, C.cyan, { glow: true }, 6); ring(120, 44, 0.4, 0.1, 0.02, C.mag, { glow: true }, 6); ring(58, 28, 0.4, 0.1, 0.02, C.white, { glow: true }, 6);
     ring(84, 36, 9, 0.1, -0.02, C.water, null, 7); ring(89, 36, 0.5, 0.5, 0, C.slab, null, 7); ring(79, 36, 0.5, 0.5, 0, C.slab, null, 7); ring(89, 36, 0.2, 0.08, 0.5, C.cyan, { glow: true }, 7);      // the ring basin
-    for (let i = 0; i < 16; i++) { const a = (i + 0.5) / 16 * Math.PI * 2, X = 42 * Math.sin(a), Z = ZC + 42 * Math.cos(a); if (Math.abs(X) < 14) continue; rbox(13, 0.1, 18, X, -0.04, Z, C.lawn, -a); tree(X, Z, 3 + rr(i) * 1.2, i); }
-    for (let i = 0; i < 24; i++) { const a = (i + 0.5) / 24 * Math.PI * 2, X = 104 * Math.sin(a), Z = ZC + 104 * Math.cos(a); if (Math.abs(X) < 16 || Math.abs(Z - ZC) < 12) continue; rbox(16, 0.1, 12, X, -0.04, Z, C.lawnD, -a); tree(X, Z, 3.4 + rr(i + 30) * 1.4, i + 1); }
+    for (let i = 0; i < 16; i++) { const a = (i + 0.5) / 16 * Math.PI * 2, X = 42 * Math.sin(a), Z = ZC + 42 * Math.cos(a); if (Math.abs(X) < 14) continue; rbox(13, 0.1, 18, X, -0.04, Z, C.lawn, -a); if (!(X > 15.5 && X < 33.5)) tree(X, Z, 3 + rr(i) * 1.2, i); }
+    for (let i = 0; i < 24; i++) { const a = (i + 0.5) / 24 * Math.PI * 2, X = 104 * Math.sin(a), Z = ZC + 104 * Math.cos(a); if (Math.abs(X) < 16 || Math.abs(Z - ZC) < 12) continue; rbox(16, 0.1, 12, X, -0.04, Z, C.lawnD, -a); if (!(X > 15.5 && X < 33.5)) tree(X, Z, 3.4 + rr(i + 30) * 1.4, i + 1); }
     for (let i = 0; i < 12; i++) { const a = (i + 0.5) / 12 * Math.PI * 2, X = 150 * Math.sin(a), Z = ZC + 150 * Math.cos(a); cyl(1.6, 2.6, 44, X, 0, Z, C.navy2, { seg: 8 }); ico(3, X, 46, Z, i % 2 ? C.cyan : C.mag, { glow: true }); }
     ring(150, 48, 1.2, 0.8, 43, C.slab); ring(150, 48, 0.4, 0.3, 42.6, C.cyan, { glow: true });
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) { box(9, 44, 9, sx * 17, 0, ZC + sz * 17, C.navy2); box(0.8, 44, 0.8, sx * 12.2, 0, ZC + sz * 12.2, C.cyan, { glow: true }); }
@@ -166,7 +170,32 @@ const NeoDistrict = { props: {}, layout() { return []; } };
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(1, 100, 1, sx * 18.2, 50, ZC + sz * 18.2, C.white, { glow: true }); cyl(0.5, 1.6, 40, 0, y, ZC, C.slab); ico(2.6, 0, y + 41, ZC, C.mag, { glow: true }); }
     ring(52, 32, 2.4, 1.2, 74, C.slab); ring(52, 32, 0.6, 0.5, 73.4, C.cyan, { glow: true }); ring(54.6, 32, 0.4, 0.4, 74.4, C.mag, { glow: true });
     for (let i = 0; i < 8; i++) { const a = (i + 0.5) / 8 * Math.PI * 2; rbox(0.6, 0.6, 34, 35 * Math.sin(a), 74.3, ZC + 35 * Math.cos(a), C.slab, a); }
+
+    // ---- THE THREE GLASS WAYS (the user, 2026-11-22: "allonger les rampes jusqu'à la fin du district en gardant leur hauteur et les écartant graduellement dans le district"): the glass
+    // avenue (14 m), the glass ramp (2.8 m) and the high ramp (7 m) run on through the whole district along NEON_CORNER.farX / farH and come down onto its avenue at the north end. Their
+    // own bands (dsR<n>), laid only where the circuit itself runs into the district; the last metres of each (the plate at 15 cm that slides onto the avenue's axis) only on its own way (dsM*).
+    const main = bands; bands = rampBands = Array.from({ length: NB }, () => ({ parts: [], glass: [], pic: [] }));
+    for (const w of WAYS) way(w.g, w.hw, w.sk, 0, w.land * 12, put, glass, true);
+    bands = main;
   };
+  // a glass way from Zd = zA to zB (district frame), in steps of 4 m: the deck, its skirts, a light along each edge, a pillar every 24 m where the ground is free
+  const F0 = NC.CANYON + NC.DOWN, WAYS = NC.farX ? [{ n: 'A', g: 0, hw: 3.45, sk: 1, land: 112.7, end: 116.4 }, { n: 'B', g: true, hw: 1.75, sk: 0.5, land: 103, end: 106.1 }, { n: 'C', g: 2, hw: 1.75, sk: 1, land: 114.2, end: 116.8 }] : [];
+  const freeAt = (g, X, Z) => { if (X > 0 && X < 12.4 && BIKE_IN.some(([a, b]) => Z > a - 2 && Z < b + 2)) return false; if (X > -24.2 && X < -11.8 && Z > 30 && Z < L - 30) return false; if (Math.abs(Z - 350) < 8 || Math.abs(Z - 1050) < 8 || Math.abs(Z - ZC) < 9) return false; const r = Math.hypot(X, Z - ZC); if (r > 77.5 && r < 90.5) return false;
+    if ((X > 8.4 && X < 12.2) || Math.abs(X) < 6.2) return false; if (X > 24.5 && [[144, 182], [244, 278], [976, 1042], [1146, 1178]].some(([a, b]) => Z > a && Z < b)) return false; return true; };
+  const way = (g, hw, SK, zA, zB, PUT, GL, pillars) => { const P = Z => [NC.farX(g, F0 + Z / 12), Math.max(0.03, NC.farH(g, F0 + Z / 12) / 10)];
+    for (let z = zA, i = 0; z < zB - 0.01; z += 4, i++) { const z1 = Math.min(z + 4, zB), [x0, y0] = P(z), [x1, y1] = P(z1), dz = z1 - z, len = Math.hypot(x1 - x0, y1 - y0, dz) + 0.04, rx = Math.atan2(y1 - y0, dz), ry = Math.atan2(x0 - x1, dz), xm = (x0 + x1) / 2, ym = (y0 + y1) / 2, zm = (z + z1) / 2, zf = z1 - 0.01, h0 = Math.min(SK, y0), h1 = Math.min(SK, y1);
+      GL(zf, [x0 - hw, y0, z], [x0 + hw, y0, z], [x1 + hw, y1, z1], [x1 - hw, y1, z1]);
+      for (const s of [-1, 1]) { if (ym > 0.3) GL(zf, [x0 + s * hw, y0, z], [x1 + s * hw, y1, z1], [x1 + s * hw, y1 - h1, z1], [x0 + s * hw, y0 - h0, z]);
+        PUT(zf, Kit.box(0.12, 0.12, len, xm + s * (hw + 0.1), ym - 0.02, -zm, s < 0 ? C.cyan : C.mag, { glow: true, rx, ry }));
+        if (ym > 1) PUT(zf, Kit.box(0.2, 0.6, len, xm + s * (hw + 0.2), ym - 0.3, -zm, '#2a2f6a', { rx, ry })); }
+      if (i % 2 === 0) PUT(zf, Kit.box(0.1, 0.03, len * 0.6, xm, ym + 0.01, -zm, C.cyan, { glow: true, rx, ry }));
+      if (pillars && z % 12 === 0 && z > 0) PUT(zf, Kit.box(2 * hw, 0.04, 0.06, x0, y0 - 0.01, -z - 0.04, '#9ff4ff', { glow: true, ry }));
+      if (pillars && z % 24 === 12 && y0 > 2.5 && freeAt(g, x0, z)) { const w = hw > 2 ? 1.5 : 1; PUT(z + 0.7, Kit.box(w, y0 - 0.4, w, x0, 0, -z, '#1c1f3a')); PUT(z + 0.7, Kit.box(2 * hw + 0.4, 0.4, 1.2, x0, y0 - 0.45, -z, '#1c1f3a')); PUT(z + 0.7, Kit.box(w + 0.1, 0.12, w + 0.1, x0, 1.2, -z, C.mag, { glow: true })); } } };
+  let rampBands = null;
+  const plate = w => () => { const B = { parts: [], glass: [], pic: [] }; way(w.g, w.hw, w.sk, w.land * 12, w.end * 12, (z, p) => B.parts.push(p), (z, a, b, c, d) => B.glass.push([a, b, c, d].map(p => [p[0], p[1], -p[2]])), false); return finish(B, Math.min(DN - 1, Math.floor(w.end)) * 12 + 6); };
+  const finish = (B, a) => { const mv = q => NeonAvenue.plain(...q.map(p => [p[0], p[1], p[2] + a])); for (const p of B.parts) p.geo.translate(0, 0, a);
+    return { merged: Kit.merge(B.parts.length ? B.parts : [Kit.box(0.05, 0.05, 0.05, 0, -60, 0, C.navy)]), sprite: NeonAvenue.merge(B.glass.length ? B.glass.map(mv) : [NeonAvenue.plain([0, -60, 0], [0.01, -60, 0], [0.01, -60.01, 0], [0, -60.01, 0])]), material: () => NeonAvenue.glassMaterial() }; };
+  const builtR = {}, rband = b => () => { if (!bands) gen(); return builtR[b] || (builtR[b] = finish(rampBands[b], anchorZ(b))); };
 
   const built = {};
   const band = b => () => { if (!bands) gen(); if (built[b]) return built[b]; const B = bands[b], a = anchorZ(b), mv = q => NeonAvenue.plain(...q.map(p => [p[0], p[1], p[2] + a]));
@@ -177,15 +206,24 @@ const NeoDistrict = { props: {}, layout() { return []; } };
     if (B.pic.length) o.extra = [{ sprite: NeonAvenue.merge(B.pic.map(mv)), material: () => NEOCENTRAL_ART.material() }];
     return (built[b] = o); };
   const props = {};
-  for (let b = 0; b < NB; b++) props['dsB' + b] = band(b);
+  for (let b = 0; b < NB; b++) { props['dsB' + b] = band(b); if (WAYS.length) props['dsR' + b] = rband(b); }
+  for (const w of WAYS) props['dsM' + w.n] = plate(w);
+  // the avenue's tarmac for the ways that ride above it (the road's own ribbon is not drawn under a raised runner)
+  props.dsRoad = () => { const P = [Kit.box(9.8, 0.1, 12.05, 0, -0.12, 0, C.asph)]; for (const x of [-1.77, 1.77]) for (const z of [-3, 3]) P.push(Kit.box(0.12, 0.02, 2.4, x, -0.02, z, '#9ff4ff', { glow: true })); return Kit.merge(P); };
   props.dsBase = () => Kit.merge([Kit.box(195, 0.1, 12.05, -102.4, -0.12, 0, C.pave), Kit.box(195, 0.1, 12.05, 102.4, -0.12, 0, C.pave), Kit.box(0.14, 0.05, 12.05, -5.2, -0.02, 0, C.cyan, { glow: true }), Kit.box(0.14, 0.05, 12.05, 5.2, -0.02, 0, C.cyan, { glow: true }),
     Kit.box(1.2, 0.03, 12.05, -30, -0.03, 0, C.paveL), Kit.box(1.2, 0.03, 12.05, 22, -0.03, 0, C.paveL)]);
   NeoDistrict.props = props;
   // slot k of the district (0 .. DN - 1): its ground, the band that ends there, and for the first two slots the circuit's own tunnel back, which stands where it stood (to the right)
-  NeoDistrict.layout = (k, rnd, own) => {      // (own: the circuit itself runs on into the district, Game's detour.dist: no tunnel back beside it)
+  NeoDistrict.layout = (k, rnd, own, det) => {      // (own: the circuit itself runs on into the district, Game's detour.dist: no tunnel back beside it; det: that detour)
     const o = [{ prop: 'dsBase', x: 0.001, dist: 6, solo: true }];
     for (let b = 0; b < NB; b++) if (anchorSlot(b) === k) o.push({ prop: 'dsB' + b, x: 0.001, dist: 6, solo: true });
     if (k < NC.EXIT && !own) { o.push({ prop: 'neonTunnel' + (k % 6), x: -NC.G3BX, dist: 6, solo: true }); if (k === 0) o.push({ prop: 'neonTunnelMouth', x: -NC.G3BX, dist: 6, solo: true }); }
+    if (own && det && WAYS.length && NC.far(det) && !det.down) { for (const w of WAYS) if (k === Math.min(DN - 1, Math.floor(w.end))) o.push({ prop: 'dsM' + w.n, x: 0.001, dist: 6, solo: true });      // (each way's last metres, down onto the avenue)      // THE THREE GLASS WAYS (not after the underground tunnel, which comes out at the district's gate: they would start in mid-air)
+      for (let b = 0; b < NB; b++) if (anchorSlot(b) === k) o.push({ prop: 'dsR' + b, x: 0.001, dist: 6, solo: true });
+      const w = det.up ? WAYS[0] : det.glass === true ? WAYS[1] : det.glass === 2 ? WAYS[2] : null;
+      if (w) { const g = w.g, F = F0 + k, s0 = NC.farX(g, F), s1 = NC.farX(g, F + 1), rot = Math.atan((s1 - s0) / 12);      // (on one of them: everything stands where it stands, the runner's way is farX metres aside and farH up)
+        if (NC.farH(g, F) > 1 || NC.farH(g, F + 1) > 1) o.push({ prop: 'dsRoad', x: 0.001, dist: 6, solo: true });
+        for (const p of o) { const nx = p.x - (s0 + (s1 - s0) * p.dist / 12); if ((p.x < 0) !== (nx < 0)) p.rotY = (p.rotY || 0) + Math.PI; p.x = nx || 0.001; p.rotY = (p.rotY || 0) + rot; p.dy = (p.dy || 0) - NC.farH(g, F + p.dist / 12) / 10; } } }
     return o; };
   if (ENV3D.neon) Object.assign(ENV3D.neon.props, props);
 })();
