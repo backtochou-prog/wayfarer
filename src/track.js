@@ -188,10 +188,12 @@ const NEON_CORNER = {
   // left (to G3BX m, by G3D: the hall's door) and climbs to G3H2 (19 m: over the glass tracks, the street, the rail and the glass avenue); inside the hall a corridor comes down to the
   // ground (G3OUT: the hall's far door), and a strip leads back to the circuit (G3E).
   // (the user, 2026-11-22, a red ring left of the picture towers and the CENTRAL DISTRICT picture: "crossing, and entering this"): the hall stands beyond the picture towers, its face is that picture.
-  G3Q: 17, G3X: 73, G3H: 70, G3UP: 34, G3T: 58, G3D: 67, G3BX: -60, G3H2: 190, G3HQ: 62, G3OUT: 71, G3E: 76,
+  // (the user, later that day: "not a door: a ramp, which comes from the right high over the rails, passes between two of these buildings and begins to come down little by little"): no
+  // hall: past the picture towers (G3D) the ramp runs on behind them and comes down slowly to the ground (G3OUT), turning back to the circuit from G3R (G3E).
+  G3Q: 17, G3X: 73, G3H: 70, G3UP: 34, G3T: 58, G3D: 66, G3BX: -56, G3H2: 190, G3HQ: 62, G3OUT: 74.5, G3R: 70.5, G3E: 76,
   glass3W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = 0.2, t = c((qf - this.G3T) / (this.G3D - this.G3T));
     const g = t < a ? t * t / (2 * a * (1 - a)) : t > 1 - a ? 1 - (1 - t) * (1 - t) / (2 * a * (1 - a)) : (t - a / 2) / (1 - a);
-    return (this.G3X + (this.G3BX - this.G3X) * g) * (1 - e(c((qf - this.G3OUT) / (this.G3E - this.G3OUT)))); },
+    return (this.G3X + (this.G3BX - this.G3X) * g) * (1 - e(c((qf - this.G3R) / (this.G3E - this.G3R)))); },
   glass3M(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), W = this.glass3W(qf); return W + (this.backM(this.G3Q) - 1.9 - W) * (1 - e(c((qf - this.G3Q) / 2))); },
   glass3H(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), d = c((qf - this.G3D - 0.3) / (this.G3OUT - this.G3D - 0.5));
     return (this.G3H * e(c((qf - this.G3Q - 2) / this.G3UP)) + (this.G3H2 - this.G3H) * e(c((qf - this.G3T) / (this.G3HQ - this.G3T)))) * (1 - (d + e(d)) / 2); },
