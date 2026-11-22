@@ -101,7 +101,7 @@ class Renderer3D {
       const props = envs[id].props; if (!props) continue;
       for (const name of Object.keys(props)) {
         if (this.props[name]) continue;
-        const m = props[name](), cap = /^house/.test(name) ? 26 : /^(pk(cn|ft|GlassD|Rise|Top|TubeDv|Slip)|sdSlip|sgRamp|sgHigh|sgTun|nrRound|sgTri|sgVault|sgWalk|sgHall|bkB|ndC|dsB\d)/.test(name) ? 3 : /^sign/.test(name) ? 4 : CAP[name] || 28, list = [];
+        const m = props[name](), cap = /^house/.test(name) ? 26 : /^(pk(cn|ft|GlassD|Rise|Top|TubeDv|Slip)|sdSlip|sgRamp|sgHigh|sgTun|nrRound|sgTri|sgVault|sgWalk|sgHall|bkB|ndC|dsB\d|mlA\d)/.test(name) ? 3 : /^sign/.test(name) ? 4 : CAP[name] || 28, list = [];
         for (let i = 0; i < cap; i++) {
           // textured panels (trees: TreeSprite; the neon billboard and tower facades: NeonArt) are a `sprite` geometry with its own material, optionally beside ordinary merged geometry (`merged`)
           let g;
@@ -374,6 +374,8 @@ class Renderer3D {
     { const rf = w.riseFork(p.z); this.groundPivot.position.y = -0.03 - (rf && rf.fork.rise && rf.choice === rf.fork.rise.side ? w.riseAt(rf, p.z) * U.Z : 0); }       // (on the raised road, the upper circuit of Utrecht, the ground is the level of the water: 3.45 m under the runner)
     if (w.extraLift) { const el = w.extraLift(p.z) * U.Z; this.groundPivot.position.y = -0.03 - el; this.groundBack.position.y = -0.03 - el; this.groundPivot.rotation.x = 0; }      // (the glass ramps of ART CITY and the underground tunnel: the ground stays flat at street level, under or over the road; it was reset by the line above)
     else this.groundBack.position.y = -0.03;
+    if (g.detour && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.mallO && typeof NeonMall !== 'undefined') { const C = NEON_CORNER, d = g.detour, qf = (p.z - d.z0) / C.SLOT - (C.STREET + C.TUNNEL + C.ART);      // THE UNDERGROUND MALL (src3d/env_mall.js): its trench and its walled court are holes in the ground: there the ground is made of slabs (props, NeonMall) and this plane lies under the trucks' level
+      if (d.glass >= 4 || (!d.down && qf >= (d.park ? 33.5 : 12) && qf < 50.5)) { this.groundPivot.position.y -= NeonMall.DEEP; this.groundBack.position.y -= NeonMall.DEEP; } }
     const under = !!(g.detour && (g.detour.park || g.detour.down) && w.extraLift && (w.extraLift(p.z) < -0.02 || w.extraLift(p.z + 600) < -0.02));      // (the underground tunnel, the car park and its open ramp are under the ground: the far ground, which stays at street level, would lie over the road)
     // under the sea: the coast road beside the tunnel is not seen once the runner is deep (hide = the side of the junction not drawn); the surface of the sea is a plane at the sea's own height over the tunnel, from mouth
     // to mouth, but only visible where the road under it is deep (its alpha follows the depth: the entrance and its surroundings stay dry), seen from above on the way down and up and from below in the deep

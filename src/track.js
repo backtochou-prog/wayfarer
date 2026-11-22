@@ -175,8 +175,8 @@ const NEON_CORNER = {
     return a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) + this.G2X * e(c((qf - this.G2Q) / 4)) * (1 - back) - back; },
   glass2H(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), h = this.GH * e(c((qf - this.GQ) / this.GUP));
     return (h + (this.G2H - h) * e(c((qf - this.G2Q) / this.G2UP))) * (1 - e(c((qf - 68) / 7))); },
-  gM(g, qf) { return g === 3 ? this.glass3O(qf) : g === 2 && qf >= this.G2Q ? this.glass2W(qf) : this.glassM(qf); },
-  gH(g, qf) { return g === 3 ? this.glass3H(qf) : g === 2 && qf >= this.G2Q ? this.glass2H(qf) : this.glassH(qf); },
+  gM(g, qf) { return g >= 4 ? this.mallO(g, qf) : g === 3 ? this.glass3O(qf) : g === 2 && qf >= this.G2Q ? this.glass2W(qf) : this.glassM(qf); },
+  gH(g, qf) { return g >= 4 ? this.mallH(g, qf) : g === 3 ? this.glass3H(qf) : g === 2 && qf >= this.G2Q ? this.glass2H(qf) : this.glassH(qf); },
   // THE WALLED RAMP of the back road (the user, 2026-11-21, a red line along the road's left edge: "a glass ramp, 2 m high, which climbs little by little", starting just after the
   // roundabout, "and the square station tunnel wider, so that this ramp passes INSIDE it"; rideable): G3Q slots after the mouth, a runner on the back road's LEFT place leaves it to the
   // left, onto a one-lane glass ramp with glass walls 2 m high, straight, G3X m out (the dark ground between the far towers and the road). It climbs slowly (G3UP slots) to G3H (7 m: the
@@ -215,11 +215,31 @@ const NEON_CORNER = {
   glass3O(qf) { const A = this.G3Q; if (qf <= A - 1) return this.sideM(qf);
     if (qf < A) return this.sideM(A - 1) + (this.glass3M(A) - this.sideM(A - 1)) * (qf - A + 1);
     return this.glass3M(qf); },      // (and straight on from where it lands: the Central District's avenue)
+  // THE UNDERGROUND MALL (the user, 2026-11-22, a red rectangle on the map over the tiled floor, a fat arrow where the side road swings out to the park: "un centre commercial sous le sol
+  // du carrelage et un parking des grands camions sous le sol du centre commercial; l'entrée sera vaste pour contenir 2 routes séparées au milieu avec un mur de 50 cm, chaque route
+  // contient une rampe à côté; la route descend pour entrer au centre commercial et la 2e route descend plus bas pour entrer au tunnel"; then a small square beyond the new land's road,
+  // an arrow out of it: "la sortie et la direction du nouveau circuit; la sortie en montée; là où on sort de la terre, le petit carré doit être plus bas de 1 m 50 que le reste,
+  // entouré d'un mur carré"): src3d/env_mall.js. MQ slots after the mouth, just before the side road swings right, its LEFT lane leaves to the left over a forecourt, to the entrance (MD: the way down begins; MF: the portal's
+  // face): two one-lane roads MW m apart with the wall between them (RIGHT on the forecourt takes the second one). The left road (glass 4) goes down to MH (the mall, 6.5 m under the tiles), the
+  // right one (glass 5) to TH (the trucks' car park, 14 m). From MF (the portal's face) both cross to the left under the avenue (to MXC m, by MC1), come up side by side in an open trench like the entrance's, the wall
+  // between them again (the user: "la sortie sera pareille que l'entrée mais de l'autre côté; la route monte peu à peu"), inside the sunken court (MCY: 1.5 m under the ground; its right wall at MCX), leave it by its far gate (MG), climb to the ground and join the new land's road (ML1).
+  // mallO(g, qf): the road's centre; mallH(g, qf): its height (negative).
+  MQ: 31, MD: 35, MF: 36.8, MW: 7.2, MA: 15, MXC: -110, MC1: 43.2, MH: 65, TH: 140, MCY: 15, MCX: -82, MG: 46.6, ML0: 48.1, ML1: 53.1,
+  mallCore(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = 0.2, t = c((qf - this.MF) / (this.MC1 - this.MF));
+    const g = t < a ? t * t / (2 * a * (1 - a)) : t > 1 - a ? 1 - (1 - t) * (1 - t) / (2 * a * (1 - a)) : (t - a / 2) / (1 - a);
+    return this.MA + (this.MXC - this.MA) * g + (this.LX - this.MXC) * e(c((qf - this.ML0) / (this.ML1 - this.ML0))); },
+  mallK(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)); return 1 - e(c((qf - this.MG) / 1.5)); },      // (1: the two roads apart; 0: one road again, beyond the court's gate)
+  mallO(g, qf) { if (qf <= this.MQ) return this.sideM(qf); const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), k = g === 5 ? this.mallK(qf) : 0, s = this.sideM(this.MQ);
+    return s + (this.mallCore(qf - k * this.MW / 12) + k * this.MW - s) * e(c((qf - this.MQ) / (this.MD - this.MQ))); },      // (MQ..MD: the forecourt, on the ground; MD: the way down begins)
+  mallQ(g, x) { let a = this.MF, b = this.MC1 + 1; for (let i = 0; i < 40; i++) { const m = (a + b) / 2; if (this.mallO(g, m) > x) a = m; else b = m; } return (a + b) / 2; },      // (where its way across passes x)
+  mallH(g, qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), D = g === 5 ? this.TH : this.MH;
+    if (!this._mq) this._mq = { 4: this.mallQ(4, this.MCX), 5: this.mallQ(5, this.MCX) };
+    return -D * e(c((qf - this.MD) / (g === 5 ? 5 : 2.8))) + (D - this.MCY) * e(c((qf - (g === 5 ? this._mq[5] : this.MC1)) / (g === 5 ? this.MG - 0.15 - this._mq[5] : this.MG - 0.2 - this.MC1))) + this.MCY * e(c((qf - this.MG) / 1.5)); },
   // THE RAMP BENDS LEFT (the user: seen from below it curves away, so riding it must curve the same way): the lateral offset of the road (lateral units) on the glass ramp, up and down:
   // SHIFT_M metres to the left by the top (the circuit stays where it is, to the right), back by the end of the way down. Lateral units are U3.X = 2.2 / 0.62 metres.
   SHIFT_M: 17,
   off(d, z) {
-    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.land ? this.landM(qf) : d.glass === 3 ? this.glass3O(qf) : d.glass && qf >= this.GQ ? this.gM(d.glass, qf) : this.sideM(qf)) / (2.2 / 0.62); }
+    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.land ? this.landM(qf) : d.glass === 3 ? this.glass3O(qf) : d.glass >= 4 ? this.mallO(d.glass, qf) : d.glass && qf >= this.GQ ? this.gM(d.glass, qf) : this.sideM(qf)) / (2.2 / 0.62); }
     if (d && d.park) { const S = this.SLOT, zT = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zP = zT - this.PIN * S, zR = zT + S, zQ = zT + this.DIVE * S, e = t => t * t * (3 - 2 * t), D = this.PTUBE_M / (2.2 / 0.62);      // (straight beside the big tube for one slot, then back)
       return z <= zP || z >= zQ ? 0 : -D * (z < zT ? e((z - zP) / (zT - zP)) : z < zR ? 1 : 1 - e((z - zR) / (zQ - zR))); }
     if (!d || !d.up) return 0;
