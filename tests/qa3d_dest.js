@@ -195,7 +195,7 @@ const res = []; const T = (n, ok, i = '') => { res.push(ok); console.log((ok ? '
     const key = c => g.onKey({ code: c, key: c === 'Space' ? ' ' : c, repeat: false, preventDefault() {} }, true);
     let zP = 0, cP = 0, scP = 0, camP = null, nFork = 0, nIsle = 0, want = null, lastUid = -1, f = 0; out.tunnel = 0; const seenUid = new Set();
     out.scenes = 0; let wasScene = false;
-    while (out.picks.length < 3 && f < 60 * 60 * 10 && (g.state === 'play' || g.state === 'scene')) {
+    while (out.picks.length < 3 && f < 60 * 60 * 14 && (g.state === 'play' || g.state === 'scene')) {
       if (g.state === 'scene') { if (!wasScene) out.scenes++; wasScene = true; g.advance(1 / 60); f++; zP = g.p.z; cP = g.coins; scP = g.score(); camP = null; if (f % 3 === 0) r.draw(g); continue; } wasScene = false;      /* the Gare du Midi cutscene: the bot lets it play (qa3d_gare checks it) */
       const p = g.p, w = g.world, F = w.openFork();
       if (F && F.uid !== lastUid && p.z > F.z0 - 600) { lastUid = F.uid; want = F.fork.tube ? (nIsle++ === 0 ? 'right' : 'left') : (F.fork.rise || F.fork.mergeHw) ? 'left' : wants[nFork++]; }      // the island junction of the beach: the first time the run takes the tunnel under the sea to the island, then the coast

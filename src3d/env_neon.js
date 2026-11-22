@@ -265,6 +265,7 @@ window.ENV3D = window.ENV3D || {};
           if (q >= C.DIVE && q < C.DIVE + C.UNDER) return [{ prop: 'neonTunnel' + ((q * 5) % 6), x: 0, dist: 6, solo: true }];
           if (q >= C.DIVE + C.UNDER && q < C.DIVE + C.UNDER + C.RISE) return [{ prop: 'neonTunnelRs' + (q - C.DIVE - C.UNDER), x: 0, dist: 6, solo: true }];
           q -= C.DIVE + C.UNDER + C.RISE; }
+        if (det && det.dist && C.DN && typeof NeoDistrict !== 'undefined' && q >= 0) { if (q < C.DN) return NeoDistrict.layout(q, rnd, true); q += C.EXIT - C.DN; }      // (the user, 2026-11-22: "la suite de toutes ces connexions va au district": every way that came back to the tunnel goes straight on into the CENTRAL DISTRICT instead; no tunnel back)
         if (q >= 0 && q < C.EXIT) { const o = [{ prop: 'neonTunnel' + (q % 6), x: 0, dist: 6, solo: true }]; if (q === 0) o.push({ prop: 'neonTunnelMouth', x: 0, dist: 6, solo: true });
           if (!(det && (det.up || det.side)) && C.sideM && q < 3 && typeof NeonAvenue !== 'undefined') o.push({ prop: 'sdSlip' + (C.PIN + q), x: 0.001, dist: 6, solo: true });
           if (!(det && (det.up || det.down || det.park))) { o.push({ prop: 'pkTubeDv' + q, x: -C.PTUBE_M, dist: 6, rotY: Math.PI, solo: true }); if (q === 0) o.push({ prop: 'pkTubeMouth', x: -C.PTUBE_M, dist: 6, rotY: Math.PI, solo: true }); }      // (before the choice: the car park's tube already stands beside it)

@@ -147,10 +147,9 @@ const NeoDistrict = { props: {}, layout() { return []; } };
       ico(3, 37, 0, m, C.lime, { glow: true }); ico(2.7, 37, 0, m, C.navy3, { detail: 1 }); box(1.2, 0.14, 6, 28, 1.4, b - 6, C.cyan, { rx: 0.4 }); box(1.6, 2.6, 1.6, 28, 0, b - 2.6, C.mag);
       tree(41, a + 3, 2.6, 1); tree(41, b - 3, 2.8, 2); flood(22.5, b); flood(43.5, a); }
 
-    // ---- THE GATES: south (the user's picture above it) and north
+    // ---- THE GATES: south and north (no picture above the south one: the user had it removed)
     [[30, C.cyan, true], [L - 26, C.mag, false]].forEach(([z, col, pic]) => { for (const s of [-1, 1]) { box(4, 19, 4, s * 15, 0, z, C.navy2); box(4.3, 0.5, 4.3, s * 15, 19, z, col, { glow: true }); box(0.5, 19, 0.5, s * 12.8, 0, z + 2, col, { glow: true }); }
-      box(34, 3, 4, 0, 19.5, z, C.navy3); box(34, 0.4, 4.2, 0, 19.1, z, col, { glow: true }); box(34, 0.4, 4.2, 0, 22.5, z, C.white, { glow: true });
-      if (pic && typeof NEOCENTRAL_ART !== 'undefined') { const W = 30, H = W * NEOCENTRAL_ART.h / NEOCENTRAL_ART.w; box(W + 1.2, H + 1.2, 0.6, 0, 23.2, z + 0.4, C.navy3); bands[bOf(z)].pic.push([[-W / 2, 23.8, -(z - 0.02)], [W / 2, 23.8, -(z - 0.02)], [W / 2, 23.8 + H, -(z - 0.02)], [-W / 2, 23.8 + H, -(z - 0.02)]]); } });
+      box(34, 3, 4, 0, 19.5, z, C.navy3); box(34, 0.4, 4.2, 0, 19.1, z, col, { glow: true }); box(34, 0.4, 4.2, 0, 22.5, z, C.white, { glow: true }); });
 
     // ---- THE CENTRE NEVRALGIQUE: the round plaza, the E-W avenue and the diagonals, the ring basin, lawns, the tower astride the road and its halo
     for (const s of [-1, 1]) { box(193, 0.1, 14, s * 102.5, -0.02, ZC, C.asph); box(193, 0.06, 0.2, s * 102.5, 0.08, ZC, C.cyan, { glow: true }); for (const e of [-7, 7]) box(193, 0.06, 0.2, s * 102.5, 0.08, ZC + e, C.mag, { glow: true }); }
@@ -183,9 +182,10 @@ const NeoDistrict = { props: {}, layout() { return []; } };
     Kit.box(1.2, 0.03, 12.05, -30, -0.03, 0, C.paveL), Kit.box(1.2, 0.03, 12.05, 22, -0.03, 0, C.paveL)]);
   NeoDistrict.props = props;
   // slot k of the district (0 .. DN - 1): its ground, the band that ends there, and for the first two slots the circuit's own tunnel back, which stands where it stood (to the right)
-  NeoDistrict.layout = k => { const o = [{ prop: 'dsBase', x: 0.001, dist: 6, solo: true }];
+  NeoDistrict.layout = (k, rnd, own) => {      // (own: the circuit itself runs on into the district, Game's detour.dist: no tunnel back beside it)
+    const o = [{ prop: 'dsBase', x: 0.001, dist: 6, solo: true }];
     for (let b = 0; b < NB; b++) if (anchorSlot(b) === k) o.push({ prop: 'dsB' + b, x: 0.001, dist: 6, solo: true });
-    if (k < NC.EXIT) { o.push({ prop: 'neonTunnel' + (k % 6), x: -NC.G3BX, dist: 6, solo: true }); if (k === 0) o.push({ prop: 'neonTunnelMouth', x: -NC.G3BX, dist: 6, solo: true }); }
+    if (k < NC.EXIT && !own) { o.push({ prop: 'neonTunnel' + (k % 6), x: -NC.G3BX, dist: 6, solo: true }); if (k === 0) o.push({ prop: 'neonTunnelMouth', x: -NC.G3BX, dist: 6, solo: true }); }
     return o; };
   if (ENV3D.neon) Object.assign(ENV3D.neon.props, props);
 })();

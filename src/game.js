@@ -496,11 +496,17 @@ class Game {
         if (C.DN) { const P = w.pieceAt(p.z), add = C.DN * C.SLOT, old = w.stretch(P, add); if (old !== null) { if (this.portal && this.portal.shift) this.portal.shift(old, add); d.z1 = zQ + (C.CANYON + C.DOWN + C.DN) * C.SLOT; } }
         w.noRoad = z => z > zL && z < zE; w.extraLift = null; w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; }
     }
+    if (this.detour && this.detour.decided && !this.detour.dist && !this.detour.distNo && !this.detour.land && !(this.detour.glass >= 3) && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.DN) {      // THE CENTRAL DISTRICT for every way (the user, 2026-11-22: "je veux que la suite de toutes ces connexions va au district 1400"): the glass avenue, the underground tunnel, the car park, the side road and its glass ramps no longer end in the short tunnel back: 20 slots before it (every choice is made by then) the district's avenue is laid straight on in its place
+      const C = NEON_CORNER, zS = this.detour.z1 - C.EXIT * C.SLOT;
+      if (p.z >= zS - 20 * C.SLOT && p.z < zS) { const P = w.pieceAt(p.z), add = C.DN * C.SLOT, old = w.stretch(P, add);
+        if (old !== null) { if (this.portal && this.portal.shift) this.portal.shift(old, add); const d = Object.assign({}, this.detour, { dist: true, zS, z1: zS + add }); if (w.extraOff) w.extraOff = z => C.off(d, z); if (w.extraLift) w.extraLift = z => C.lift(d, z); w.ver++; this.detour = d; }
+        else this.detour.distNo = true; }
+    }
     if (this.detour && this.detour.decided && (this.detourSweep = (this.detourSweep || 0) + 1) % 20 === 0) {      // (items the world builds later along the glass route or the underground tunnel: the same rule as at the choice)
-      const C = NEON_CORNER, up = this.detour.up, a = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART - C.UP) * C.SLOT + (up ? 0 : (C.UP - (this.detour.park || this.detour.side ? C.PIN : 0)) * C.SLOT), b2 = this.detour.park || this.detour.side ? this.detour.zG : this.detour.z1;      // (the car park's way: the circuit on the ground keeps its obstacles after the slip road)
+      const C = NEON_CORNER, up = this.detour.up, a = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART - C.UP) * C.SLOT + (up ? 0 : (C.UP - (this.detour.park || this.detour.side ? C.PIN : 0)) * C.SLOT), b2 = this.detour.park || this.detour.side ? this.detour.zG : this.detour.dist ? this.detour.zS : this.detour.z1;      // (the car park's way: the circuit on the ground keeps its obstacles after the slip road)
       const gone = it => it.z >= a && it.z <= b2 && (OBST[it.kind] || it.kind === 'raceGate' || (up && it.kind === 'coin' && Math.abs(it.x) > 0.2));
       if (w.items.some(gone)) w.items = w.items.filter(it => !gone(it));
-      if (this.detour.glass) { const zC = this.detour.zC, zE = this.detour.glass === 3 ? this.detour.zE3 : this.detour.z1 - C.EXIT * C.SLOT, g2 = it => it.z >= zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2)); if (w.items.some(g2)) w.items = w.items.filter(it => !g2(it)); }
+      if (this.detour.glass) { const zC = this.detour.zC, zE = this.detour.glass === 3 ? this.detour.zE3 : this.detour.dist ? this.detour.zS : this.detour.z1 - C.EXIT * C.SLOT, g2 = it => it.z >= zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2)); if (w.items.some(g2)) w.items = w.items.filter(it => !g2(it)); }
     }
     if (this.detour && p.z > this.detour.z1) { this.detour = null; w.extraLift = null; w.noRoad = null; if (w.extraOff) { w.extraOff = null; w.ver++; } }      // out of the tunnel: back on the neon street
     this.steer(dt);
