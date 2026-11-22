@@ -30,6 +30,9 @@ class Portal {
     if (added) this.list.sort((a, b) => a.zIn - b.zIn);
   }
 
+  // the track has been lengthened by `add` at `z` (World.stretch): the passages beyond move on with their pieces
+  shift(z, add) { for (const q of this.list) if (q.zIn >= z - 400) { q.zIn += add; q.zOut += add; } }
+
   // the doors that stand in the track range [za, zb): { z, kind: 'in' | 'out', q }
   gatesIn(za, zb) {
     const out = [];

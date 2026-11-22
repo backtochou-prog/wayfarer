@@ -191,16 +191,18 @@ const NEON_CORNER = {
   // (the user, later that day: "not a door: a ramp, which comes from the right high over the rails, passes between two of these buildings and begins to come down little by little"): no
   // hall: past the picture towers (G3D) the ramp runs on behind them and comes down slowly to the ground (G3OUT), turning back to the circuit from G3R (G3E).
   G3Q: 17, G3X: 73, G3H: 70, G3UP: 34, G3T: 58, G3D: 66, G3BX: -56, G3H2: 190, G3HQ: 62, G3OUT: 74.5, G3R: 70.5, G3E: 76,
+  // THE CENTRAL DISTRICT (the user, 2026-11-22, a plan of 2 km2 "behind the buildings", entered "from the two buildings on the left": src3d/env_district.js): the walled ramp no longer turns
+  // back to the circuit: where it lands (G3E) the district's main avenue begins, DN slots straight on (1404 m: the plan at 0.7); Game lengthens the neon piece by as much (World.stretch).
+  DN: 117,
   glass3W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = 0.2, t = c((qf - this.G3T) / (this.G3D - this.G3T));
     const g = t < a ? t * t / (2 * a * (1 - a)) : t > 1 - a ? 1 - (1 - t) * (1 - t) / (2 * a * (1 - a)) : (t - a / 2) / (1 - a);
-    return (this.G3X + (this.G3BX - this.G3X) * g) * (1 - e(c((qf - this.G3R) / (this.G3E - this.G3R)))); },
+    return this.G3X + (this.G3BX - this.G3X) * g; },
   glass3M(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), W = this.glass3W(qf); return W + (this.backM(this.G3Q) - 1.9 - W) * (1 - e(c((qf - this.G3Q) / 2))); },
   glass3H(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), d = c((qf - this.G3D - 0.3) / (this.G3OUT - this.G3D - 0.5));
     return (this.G3H * e(c((qf - this.G3Q - 2) / this.G3UP)) + (this.G3H2 - this.G3H) * e(c((qf - this.G3T) / (this.G3HQ - this.G3T)))) * (1 - (d + e(d)) / 2); },
-  glass3O(qf) { const A = this.G3Q, B = this.G3E; if (qf <= A - 1 || qf >= B + 1) return this.sideM(qf);
+  glass3O(qf) { const A = this.G3Q; if (qf <= A - 1) return this.sideM(qf);
     if (qf < A) return this.sideM(A - 1) + (this.glass3M(A) - this.sideM(A - 1)) * (qf - A + 1);
-    if (qf > B) return this.glass3M(B) + (this.sideM(B + 1) - this.glass3M(B)) * (qf - B);
-    return this.glass3M(qf); },
+    return this.glass3M(qf); },      // (and straight on from where it lands: the Central District's avenue)
   // THE RAMP BENDS LEFT (the user: seen from below it curves away, so riding it must curve the same way): the lateral offset of the road (lateral units) on the glass ramp, up and down:
   // SHIFT_M metres to the left by the top (the circuit stays where it is, to the right), back by the end of the way down. Lateral units are U3.X = 2.2 / 0.62 metres.
   SHIFT_M: 17,

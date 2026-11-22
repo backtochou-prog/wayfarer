@@ -442,7 +442,7 @@ const NeonAvenue = {
         const walk = q => () => { const n = 8, X = 1.75, LL = 12.25, WL = 2, parts = [], sk = [], Hm = f => Math.max(0.1, NC.glass3H(q + f) / 10);
           for (let a = 0; a < n; a++) { const f0 = a / n, f1 = (a + 1) / n, x0 = NC.glass3W(q + f0), x1 = NC.glass3W(q + f1), y0 = Hm(f0), y1 = Hm(f1), z0 = LL / 2 - f0 * LL, z1 = LL / 2 - f1 * LL, xm = (x0 + x1) / 2, ym = (y0 + y1) / 2, zm = (z0 + z1) / 2;
             if (q + f0 >= NC.G3OUT) { const len = Math.hypot(x1 - x0, z1 - z0) + 0.06, ry = Math.atan2(x0 - x1, z0 - z1);                 // (out of the hall, on the ground: a strip of neon asphalt back to the circuit)
-              if (q + f0 >= NC.G3E - 0.6) continue;
+              if (!NC.DN && q + f0 >= NC.G3E - 0.6) continue;
               parts.push(Kit.box(3.5, 0.04, len, xm, 0.085, zm, '#1b2050', { ry }), Kit.box(0.12, 0.04, len, xm - 1.7, 0.1, zm, C.cyan, { glow: true, ry }), Kit.box(0.12, 0.04, len, xm + 1.7, 0.1, zm, C.pink, { glow: true, ry }));
               if (a % 2 === 0) parts.push(Kit.box(0.1, 0.02, 0.9, xm - 0.3, 0.13, zm, '#9ff4ff', { glow: true, ry: ry + 0.6 }), Kit.box(0.1, 0.02, 0.9, xm + 0.3, 0.13, zm, '#9ff4ff', { glow: true, ry: ry - 0.6 }));
               continue; }

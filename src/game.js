@@ -461,10 +461,12 @@ class Game {
       if (!this.detour.glass && prevZ < zC && p.z >= zC) { const BL = this.bikeLane(zC);
         if (!(BL && BL.road != null && this.onLane && p.x < BL.road + 1.9 / U)) this.detour.asked4 = true;
         else { const d = Object.assign({}, this.detour, { asked2: true, asked4: true, glass: 3 }), dx = (C.glass3M(C.G3Q) - C.sideM(C.G3Q)) / U; d.zC = zC; d.zE3 = zE;
+          if (C.DN) { const P = w.pieceAt(p.z), add = C.DN * C.SLOT, old = w.stretch(P, add);      // THE CENTRAL DISTRICT (src3d/env_district.js): the ramp lands on its avenue, DN slots straight on, on a road of its own length
+            if (old !== null) { if (this.portal && this.portal.shift) this.portal.shift(old, add); d.z1 = zQ + (C.CANYON + C.DOWN + C.DN) * C.SLOT; w.noRoad = z => z > zQ && z < zE; } }
           w.items = w.items.filter(it => !(it.z >= zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2))));
           w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; p.x -= dx; this.camRel -= dx; this.onLane = false; this._bkT = null;      // (the road's centre is the ramp's line from here: the runner and the camera stay where they are)
           this.banner = { t: 1.6, text: 'GLASS RAMP' }; this.emit('corner'); } }
-      else if (this.detour.glass === 3 && prevZ < zE && p.z >= zE) { const d = Object.assign({}, this.detour, { glass: null }), dx = (C.glass3M(C.G3E) - C.sideM(C.G3E)) / U;      // (out of the hall and back on the circuit: the side road's detour again)
+      else if (this.detour.glass === 3 && !C.DN && prevZ < zE && p.z >= zE) { const d = Object.assign({}, this.detour, { glass: null }), dx = (C.glass3M(C.G3E) - C.sideM(C.G3E)) / U;      // (out of the hall and back on the circuit: the side road's detour again)
         w.extraLift = null; w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; p.x += dx; this.camRel += dx; this._bkT = null; }
     }
     if (this.detour && this.detour.decided && (this.detourSweep = (this.detourSweep || 0) + 1) % 20 === 0) {      // (items the world builds later along the glass route or the underground tunnel: the same rule as at the choice)

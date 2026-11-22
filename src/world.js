@@ -184,6 +184,18 @@ class World {
     if (this.extras) { const lt = P.uid + 'left', rt = P.uid + 'right'; this.lastPU.main = Math.max(this.lastPU[lt] === undefined ? -1e9 : this.lastPU[lt], this.lastPU[rt] === undefined ? -1e9 : this.lastPU[rt], this.lastPU.main === undefined ? -1e9 : this.lastPU.main); this.lastShard.main = Math.max(this.lastShard[lt] === undefined ? -1e9 : this.lastShard[lt], this.lastShard[rt] === undefined ? -1e9 : this.lastShard[rt], this.lastShard.main === undefined ? -1e9 : this.lastShard.main); }
   }
 
+  // Lengthen the segment P by `add` units (a multiple of the scenery slot), in the middle of a run: the pieces after it and their items move on by as much, its new end gets items
+  // of its own, its curve keeps the shape it had (P.zc). Returns the old end (the caller moves what else it holds beyond it: Portal.shift). The Central District (NEON_CORNER.DN).
+  stretch(P, add) {
+    const old = P.z1, i = this.pieces.indexOf(P); if (i < 0 || P.type !== 'seg' || !(add > 0)) return null;
+    P.zc = P.zc || old; P.z1 += add;
+    for (const Q of this.pieces.slice(i + 1)) { Q.z0 += add; Q.z1 += add; if (Q.zc) Q.zc += add; if (Q.type === 'fork') { Q.fe += add; Q.be += add; } delete Q.rg; delete Q.dropTab; }
+    for (const it of this.items) if (it.z >= old) it.z += add;
+    const n0 = this.items.length; this.genSegment(P.id, old, add, 'main', 0);
+    for (let k = this.items.length - 1; k >= n0; k--) if (this.items[k].kind === 'raceGate' || this.items[k].kind === 'prop') this.items.splice(k, 1);      // (one race gate and one set of fixed props per piece)
+    this.ver++; return old;
+  }
+
   pieceAt(z) { return this.pieces.find(p => z < p.z1) || this.pieces[this.pieces.length - 1]; }
 
   // blend 0..1 of a district segment at z: in over its first `district` units, out over its last (an `opening` one is already fully in at the start)
@@ -258,7 +270,7 @@ class World {
         t = clamp(1 - (z - pv.be) / (pv.fork.merge + 250), 0, 1);
       }
       const kn = z0 => z0.type === 'seg' && z0.seg.hw ? z0.seg.hw : z0.type === 'fork' && z0.fork.mergeHw ? z0.fork.mergeHw : 0.9, from = pv ? kn(pv) : 0.9, ws = (s.hw || 0.9), wk = ease(clamp((z - P.z0) / 400, 0, 1)), hwS = from === ws ? ws : from + (ws - from) * wk;      // (a narrow street opens and closes over its first 400 units: no jump of the road's width)
-      const b = { lo: -hwS, hi: hwS, side: 0, route: P.id, off: s.curve * bump((z - P.z0) / (P.z1 - P.z0)) + (this.extraOff ? this.extraOff(z) : 0), to, t, chosen: true };      // (extraOff: the glass ramp of ART CITY bends the road to the left, NEON_CORNER.off)
+      const b = { lo: -hwS, hi: hwS, side: 0, route: P.id, off: s.curve * bump((z - P.z0) / ((P.zc || P.z1) - P.z0)) + (this.extraOff ? this.extraOff(z) : 0), to, t, chosen: true };      // (extraOff: the glass ramp of ART CITY bends the road to the left, NEON_CORNER.off)
       b.eL = b.eR = { to, t };
       const F = this.pieces[this.pieces.indexOf(P) + 1];
       if (F && F.type === 'fork' && !F.fork.hold && z > F.z0 - APPROACH) { // edges lean toward the branch biomes (not at a `hold` junction: it keeps the look of this piece)
