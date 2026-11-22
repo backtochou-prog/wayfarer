@@ -353,6 +353,10 @@ class Renderer3D {
     const rz = p.z * U.Z, Lref = (g.camX + g.camOff) * U.X, SL = SEG_LEN;
     const SC = g.state === 'scene' ? g.scene : null;                                      // the Gare du Midi cutscene, if one is running
     { const tp = w.tubeFork(g.p.z); if (tp) this.applyAtmosphere('coastAqua', World.seaK(w.seaDepth(g.p.z)), tp.fork.tube.pre); else if (this.canyonK(g) > 0) this.applyAtmosphere('canyon', this.canyonK(g)); else if (this.artK(g) > 0) this.applyAtmosphere('artcity', this.artK(g)); else this.applyAtmosphere(g.bgTo, g.bgT); }       // in the tunnel under the sea the look follows the DEPTH: from the coast's own light to the deep, and back (never a cut)
+    { const d = g.detour; let k = 0;                                                                                              // THE CENTRAL DISTRICT's round quarters stand up to 420 m from the avenue: there the fog and the camera reach further (eased in and out, never a cut)
+      if (d && d.glass === 3 && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.DN) { const C = NEON_CORNER, zD = d.z0 + (C.STREET + C.TUNNEL + C.ART + C.CANYON + C.DOWN) * C.SLOT, s = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }; k = s((g.p.z - zD + 600) / 1500) * s((d.z1 - g.p.z) / 1500); }
+      if (k > 0) { this.scene.fog.near += 30 * k; this.scene.fog.far += 260 * k; }
+      const far = 400 + 340 * k; if (Math.abs(this.camera.far - far) > 0.5) { this.camera.far = far; this.camera.updateProjectionMatrix(); } }
     // the music's beat (g.sfx.beat(): pulse 1 on each kick, decaying), scaled by how loud the track is at that moment, drives the animation: the sun-side light, the glowing
     // neon parts (one shared material), the PLAY button, the avatar. Stronger in the neon quarter. Without sound (the pulse is a clock at the same tempo) it still moves.
     const bt = g.sfx ? g.sfx.beat() : null, nw = g.bgTo === 'neon' ? g.bgT : 0, pulse = bt ? bt.pulse * (0.4 + 0.6 * bt.energy) : 0;

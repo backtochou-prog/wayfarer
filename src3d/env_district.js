@@ -29,7 +29,7 @@ const NeoDistrict = { props: {}, layout() { return []; } };
     const strip = (X0, X1, top, Z0, Z1, col, gaps, o) => { const cuts = [[Z0, Z1]];
       for (const [a, b] of gaps || []) for (let i = cuts.length - 1; i >= 0; i--) { const [s, e] = cuts[i]; if (b <= s || a >= e) continue; cuts.splice(i, 1); if (a > s) cuts.push([s, a]); if (b < e) cuts.push([b, e]); }
       for (const [s, e] of cuts) for (let z = s; z < e - 0.01;) { const n = Math.min(e, (Math.floor(z / (BAND * 12) + 1e-6) + 1) * BAND * 12); box(X1 - X0, 0.1, n - z, (X0 + X1) / 2, top - 0.1, (z + n) / 2, col, o); z = n; } };
-    const ring = (R, n, w, h, Y, col, o, skipX, cz = ZC) => { for (let i = 0; i < n; i++) { const a = (i + 0.5) / n * Math.PI * 2, X = R * Math.sin(a), Z = cz + R * Math.cos(a); if (skipX && Math.abs(X) < skipX) continue;
+    const ring = (R, n, w, h, Y, col, o, skipX, cz = ZC, cx = 0, skipA) => { for (let i = 0; i < n; i++) { const a = (i + 0.5) / n * Math.PI * 2, X = cx + R * Math.sin(a), Z = cz + R * Math.cos(a); if (skipX && Math.abs(X) < skipX) continue; if (skipA && skipA(a)) continue;
       rbox(2 * R * Math.tan(Math.PI / n) + 0.06, h, w, X, Y, Z, col, -a, o); } };
     const tree = (X, Z, r, k) => { cyl(r * 0.1, r * 0.16, r * 1.3, X, 0, Z, C.trunk); ico(r * 0.62, X, r * 1.75, Z, [C.leaf, C.leafD, C.leafL][k % 3]); ico(r * 0.44, X + r * 0.4 * (k % 2 ? 1 : -1), r * 1.42, Z + r * 0.25, [C.leafD, C.leafL, C.leaf][k % 3]); };
     const lamp = (X, Z, col) => { cyl(0.1, 0.15, 6, X, 0, Z, C.navy2); box(1.5, 0.12, 0.12, X - Math.sign(X) * 0.7, 5.9, Z, C.navy2); box(0.9, 0.16, 0.34, X - Math.sign(X) * 1.2, 5.74, Z, col, { glow: true }); };
@@ -59,16 +59,52 @@ const NeoDistrict = { props: {}, layout() { return []; } };
       box(0.7, H * 0.86, 0.7, X - s * W / 2, 8, Z + D * 0.3, col, { glow: true }); box(0.7, H * 0.6, 0.7, X - s * W / 2, 8, Z - D * 0.3, C.white, { glow: true });
       box(W * 0.6, 7, D * 0.6, X, H, Z, C.navy3); box(W * 0.62, 0.6, D * 0.62, X, H + 7, Z, col, { glow: true }); cyl(0.25, 0.4, 16, X, H + 7.6, Z, C.slab); ico(0.9, X, H + 24, Z, C.mag, { glow: true });
       if (k % 2 === 0) { const h = 16 + rr(k + 7) * 22, tx = X - s * (W / 2 + 4); box(9, 0.9, D * 0.8, tx, h, Z, C.slab); box(8.4, 0.3, D * 0.8 - 0.6, tx, h + 0.9, Z, C.lawn); ico(1.8, tx, h + 2.4, Z - D * 0.2, C.leaf); ico(1.4, tx - s * 1.5, h + 2.1, Z + D * 0.22, C.leafL); box(9.2, 0.2, 0.2, tx, h - 0.2, Z + D * 0.4, C.lime, { glow: true }); } };
+    const QX = 232, QR = 170, inQ = (X, Z, m) => [X1, X2].some(zc => Math.hypot(Math.abs(X) - QX, Z - zc) < QR + m);                              // THE FOUR ROUND QUARTERS: centres (+-QX, X1 / X2), radius QR
     const SPORT = [[140, 186], [240, 282], [972, 1046], [1142, 1182]], inSport = z => SPORT.some(([a, b]) => z > a - 16 && z < b + 16);
-    for (let z = 58, k = 0; z < L - 40; z += 34, k++) { if (z > HUB0 - 16 && z < HUB1 + 16) continue; if (Math.abs(z - X1) < 20 || Math.abs(z - X2) < 20) continue;
+    for (let z = 58, k = 0; z < L - 40; z += 34, k++) { if (z > HUB0 - 16 && z < HUB1 + 16) continue; if (Math.abs(z - X1) < 146 || Math.abs(z - X2) < 146) continue;               // (no wall of towers in front of the quarters: they are seen from the avenue)
       const Wl = 20 + rr(k * 3) * 6, Wr = 20 + rr(k * 3 + 1) * 6;
       tower(-(40 + Wl / 2 + rr(k * 5) * 8), z, Wl, 22 + rr(k * 7) * 6, 70 + rr(k * 11) * 140, k); tower((inSport(z) ? 52 : 34) + Wr / 2 + rr(k * 5 + 2) * 8, z + 8, Wr, 22 + rr(k * 7 + 3) * 6, 70 + rr(k * 11 + 5) * 140, k + 2); }
-    for (let z = 76, k = 0; z < L - 40; z += 68, k++) for (const s of [-1, 1]) { if (z > HUB0 - 30 && z < HUB1 + 30) continue; const X = s * (104 + rr(k * 13 + s) * 12), H = 140 + rr(k * 17 + s) * 70, col = [C.cyan, C.mag, C.gold][(k + (s > 0 ? 1 : 0)) % 3];
+    for (let z = 76, k = 0; z < L - 40; z += 68, k++) for (const s of [-1, 1]) { if (z > HUB0 - 30 && z < HUB1 + 30) continue; const X = s * (104 + rr(k * 13 + s) * 12); if (inQ(X, z, 16)) continue; const H = 140 + rr(k * 17 + s) * 70, col = [C.cyan, C.mag, C.gold][(k + (s > 0 ? 1 : 0)) % 3];
       box(26, H, 26, X, 0, z, C.navy3); for (let i = 1; i <= 4; i++) box(26.3, 1.4, 26.3, X, H * i / 4.6, z, i % 2 ? col : C.slab, { glow: i % 2 === 1 }); box(0.8, H, 0.8, X - s * 13, 0, z, col, { glow: true }); }
     // ---- THE MAIN TOWERS (560-700 m)
     const mega = (X, Z, H, col) => { let w = 44, y = 0; for (let i = 0; i < 5; i++) { const h = H * [0.3, 0.24, 0.2, 0.15, 0.11][i]; box(w, h, w, X, y, Z, [C.navy, C.navy2][i % 2]); y += h; box(w + 0.6, 2.2, w + 0.6, X, y - 2.2, Z, col, { glow: true }); w -= 7; }
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(1.2, H * 0.54, 1.2, X + sx * 22, 0, Z + sz * 22, C.white, { glow: true }); cyl(0.6, 1.6, 50, X, y, Z, C.slab); ico(2.4, X, y + 51, Z, col, { glow: true }); };
-    [[-165, 190, 620, C.cyan], [170, 330, 560, C.mag], [-150, HUB0 + 30, 700, C.mag], [150, HUB0 + 40, 640, C.cyan], [-150, HUB1 - 40, 660, C.cyan], [150, HUB1 - 30, 700, C.gold], [-170, 1090, 580, C.gold], [165, 1240, 640, C.cyan]].forEach(m => mega(...m));
+    [[-150, 150, 620, C.cyan], [165, 168, 560, C.mag], [-150, HUB0 + 30, 700, C.mag], [150, HUB0 + 40, 640, C.cyan], [-150, HUB1 - 40, 660, C.cyan], [150, HUB1 - 30, 700, C.gold], [-150, 1255, 580, C.gold], [165, 1240, 640, C.cyan]].forEach(m => mega(...m));
+
+    // ---- THE FOUR ROUND QUARTERS of the plan (stage 2): a disc of QR m on each side of the two cross canals. Ring boulevards, eight radial streets, two rings of buildings that rise
+    // towards the middle, a park ring and pocket parks, and in the middle a round basin (the cross canal ends there) with the quarter's own hub tower. Each has its colour and its hub.
+    const quarter = (cx, cz, A, B, kind, vh, qi) => { const R = QR, s = Math.sign(cx), axis = s > 0 ? Math.PI * 1.5 : Math.PI * 0.5, P = (r, a) => [cx + r * Math.sin(a), cz + r * Math.cos(a)];
+      const off = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))), onCanal = a => off(a, axis) < 0.14;
+      for (const h of [-1, 1]) for (let d = 6; d < R - 0.01; d += 6) { const d1 = Math.min(d + 6, R), m = (d + d1) / 2, hc = Math.sqrt(R * R - m * m); box(2 * hc, 0.1, d1 - d, cx, 0.02, cz + h * m, C.paveL); }
+      box(R, 0.1, 12, cx + s * R / 2, 0.02, cz, C.paveL);                                                                                   // (the ground leaves the canal open on the avenue's side)
+      ring(R - 1, 48, 0.6, 1.3, 0.12, A, { glow: true }, 0, cz, cx, onCanal);                                                               // the rim: the round shape, seen from the avenue
+      [[R - 8, 48, 8], [108, 36, 7], [56, 24, 6]].forEach(([r, n, w], i) => { ring(r, n, w, 0.25, 0.15, C.asph, null, 0, cz, cx); ring(r, n, 0.3, 0.08, 0.4, i % 2 ? B : A, { glow: true }, 0, cz, cx); });
+      for (let i = 0; i < 8; i++) { const a = (i + 0.5) * Math.PI / 4, [X, Z] = P(107, a); rbox(6, 0.25, 98, X, 0.15, Z, C.asph, -a); rbox(0.3, 0.08, 98, X, 0.4, Z, B, -a, { glow: true }); }
+      const build = (r, a, W, D, H, col, k) => { const [X, Z] = P(r, a), n = Math.max(2, Math.round(H / 26)); rbox(W, H, D, X, 0, Z, [C.navy, C.navy2, C.navy3][k % 3], -a);
+        for (let i = 1; i <= n; i++) rbox(W + 0.3, i % 2 ? 1.3 : 0.7, D + 0.3, X, H * i / (n + 0.5), Z, i % 2 ? col : C.slab, -a, { glow: i % 2 === 1 });
+        if (k % 3 === 0) { rbox(W * 0.84, 0.4, D * 0.84, X, H, Z, C.lawn, -a); ico(2.6, X, H + 2, Z, C.leaf); ico(2, X + 3, H + 1.6, Z + 2, C.leafL); }
+        else { rbox(W * 0.5, 5, D * 0.5, X, H, Z, C.navy3, -a); rbox(W * 0.52, 0.5, D * 0.52, X, H + 5, Z, col, -a, { glow: true }); } };
+      for (let i = 0; i < 8; i++) { const c = i * Math.PI / 4, canal = off(c, axis) < 0.1;
+        for (const e of [-1, 1]) { const k = qi * 16 + i * 2 + (e > 0 ? 1 : 0);
+          build(82, c + e * 0.175, 16, 30, (k % 2 ? 150 : 96) + rr(k * 3.1) * 40, k % 2 ? A : B, k); build(134, c + e * 0.13, 22, 34, 44 + rr(k * 5.3) * 46, k % 2 ? B : A, k + 1); }
+        if (!canal) { const [X, Z] = P(134, c); rbox(8, 0.25, 34, X, 0.15, Z, C.lawn, -c); for (const r of [123, 134, 145]) { const [tx, tz] = P(r, c); tree(tx, tz, 3 + rr(qi * 9 + i + r) * 1.2, i + r); } } }
+      ring(41, 24, 20, 0.25, 0.15, C.lawn, null, 0, cz, cx, onCanal);                                                                       // the park ring round the basin
+      for (let i = 0; i < 16; i++) { const a = (i + 0.5) * Math.PI / 8; if (off(a, axis) < 0.3) continue; const [X, Z] = P(i % 2 ? 37 : 45, a); tree(X, Z, 3.4 + rr(qi * 7 + i) * 1.6, i + qi); }
+      cyl(26, 26, 0.1, cx, 0.2, cz, C.water, { seg: 24 }); ring(27, 24, 1.4, 0.9, 0.12, C.slab, null, 0, cz, cx); ring(27, 24, 0.5, 0.12, 1.02, A, { glow: true }, 0, cz, cx); cyl(10, 11, 1.4, cx, 0.2, cz, C.slab, { seg: 12 });
+      const halo = (r, y, col) => ring(r, 16, 1.2, 1.2, y, col, { glow: true }, 0, cz, cx);
+      if (kind === 0) { cyl(5, 8, 90, cx, 1.6, cz, C.navy2, { seg: 8 }); cyl(3, 5, 110, cx, 91.6, cz, C.navy, { seg: 8 }); cyl(1, 3, 90, cx, 201.6, cz, C.navy2, { seg: 8 }); cyl(0.3, 1, 40, cx, 291.6, cz, C.white, { seg: 6, glow: true });   // the needle
+        halo(13, 90, A); halo(9, 200, B); halo(5, 290, A); ico(3, cx, 333, cz, B, { glow: true }); }
+      else if (kind === 1) { cyl(9, 9, 230, cx, 1.6, cz, C.navy, { seg: 12 }); for (let y = 30; y < 230; y += 28) cyl(9.25, 9.25, 1.5, cx, y, cz, (y / 28 | 0) % 2 ? A : C.slab, { seg: 12, glow: (y / 28 | 0) % 2 === 1 });                           // the round tower and its three rings
+        halo(18, 80, B); halo(18, 150, A); halo(18, 220, B); ico(9, cx, 228, cz, C.slab, { detail: 1 }); cyl(0.3, 0.8, 36, cx, 236, cz, A, { seg: 6, glow: true }); }
+      else if (kind === 2) { let y = 1.6; [[12, 70], [10, 60], [8, 52], [6, 46], [4, 40]].forEach(([r, h], i) => { cyl(r, r, h, cx, y, cz, [C.navy2, C.navy][i % 2], { seg: 6 }); y += h; cyl(r + 0.4, r + 0.4, 1.6, cx, y - 1.6, cz, i % 2 ? B : A, { seg: 6, glow: true }); });   // the stepped hexagon
+        ico(5, cx, y + 4, cz, A, { glow: true, detail: 1 }); halo(16, 70, B); }
+      else { for (const e of [-8, 8]) { box(9, 250, 9, cx + e, 1.6, cz, e < 0 ? C.navy : C.navy2); box(9.3, 1.4, 9.3, cx + e, 250, cz, A, { glow: true }); box(0.7, 250, 0.7, cx + e * 1.56, 1.6, cz, B, { glow: true }); }                  // the twin towers and their bridges
+        for (const y of [70, 140, 210]) { box(8, 4, 5, cx, y, cz, C.slab); box(8, 0.5, 5.2, cx, y + 4, cz, A, { glow: true }); } ico(4.5, cx, 262, cz, B, { glow: true, detail: 1 }); halo(20, 110, A); }
+      for (const e of [-9, 9]) { box(3, 30, 3, s * 78, 0, cz + e, C.navy2); box(0.5, 30, 0.5, s * 76.4, 0, cz + e, A, { glow: true }); } box(3, 2, 21, s * 78, 28, cz, C.slab); box(3.2, 0.5, 21, s * 78, 30, cz, A, { glow: true });   // its gate on the avenue's side, over the canal
+      for (const h of [-1, 1]) { strip(s > 0 ? 46 : -58, s > 0 ? 58 : -46, 0.04, h < 0 ? cz - 140 : cz + 9, h < 0 ? cz - 9 : cz + 140, C.lawn); for (let d = 22; d < 140; d += 24) tree(s * 52, cz + h * d, 2.6 + rr(qi * 5 + d) * 0.8, d / 24 + qi | 0); }   // a garden along the open frontage
+      cyl(7, 7, vh + 7, s * 200, 0.12, cz, C.navy2, { seg: 10 }); cyl(8.5, 8.5, 0.8, s * 200, vh + 7.1, cz, A, { seg: 10, glow: true }); };                                                                     // the terminal where the viaduct arrives
+    [[QX, X1, C.cyan, C.white, 0, 21], [-QX, X1, C.mag, C.gold, 1, 21], [-QX, X2, C.gold, C.cyan, 2, 13], [QX, X2, C.lime, C.mag, 3, 13]].forEach((q, i) => quarter(...q, i));
+
 
     // ---- AERIAL WALKWAYS (glass tubes across the avenue, tower to tower) and GREEN PLATFORMS on stems
     [[122, 26], [262, 34], [432, 28], [958, 30], [1128, 36], [1296, 26]].forEach(([z, h], k) => { const col = k % 2 ? C.mag : C.cyan;
