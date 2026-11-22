@@ -224,7 +224,7 @@ const NEON_CORNER = {
   // right one (glass 5) to TH (the trucks' car park, 14 m). From MF (the portal's face) both cross to the left under the avenue (to MXC m, by MC1), come up side by side in an open trench like the entrance's, the wall
   // between them again (the user: "la sortie sera pareille que l'entrée mais de l'autre côté; la route monte peu à peu"), inside the sunken court (MCY: 1.5 m under the ground; its right wall at MCX), leave it by its far gate (MG), climb to the ground and join the new land's road (ML1).
   // mallO(g, qf): the road's centre; mallH(g, qf): its height (negative).
-  MQ: 31, MD: 35, MF: 36.8, MW: 7.2, MA: 15, MXC: -110, MC1: 43.2, MH: 65, TH: 140, MCY: 15, MCX: -82, MG: 46.6, ML0: 48.1, ML1: 53.1,
+  MQ: 31, MD: 35, MF: 36.8, MW: 7.2, MA: 15, MXC: -110, MC1: 56.2, MH: 65, TH: 140, MCY: 15, MCX: -82, MG: 59.6, ML0: 61.1, ML1: 66.1,      // (the user, of the first one: "il passe trop vite au souterrain, on ne voit presque rien": the halls are three times as long, 19.4 slots, and Game walks there)
   mallCore(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = 0.2, t = c((qf - this.MF) / (this.MC1 - this.MF));
     const g = t < a ? t * t / (2 * a * (1 - a)) : t > 1 - a ? 1 - (1 - t) * (1 - t) / (2 * a * (1 - a)) : (t - a / 2) / (1 - a);
     return this.MA + (this.MXC - this.MA) * g + (this.LX - this.MXC) * e(c((qf - this.ML0) / (this.ML1 - this.ML0))); },
@@ -233,8 +233,7 @@ const NEON_CORNER = {
     return s + (this.mallCore(qf - k * this.MW / 12) + k * this.MW - s) * e(c((qf - this.MQ) / (this.MD - this.MQ))); },      // (MQ..MD: the forecourt, on the ground; MD: the way down begins)
   mallQ(g, x) { let a = this.MF, b = this.MC1 + 1; for (let i = 0; i < 40; i++) { const m = (a + b) / 2; if (this.mallO(g, m) > x) a = m; else b = m; } return (a + b) / 2; },      // (where its way across passes x)
   mallH(g, qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), D = g === 5 ? this.TH : this.MH;
-    if (!this._mq) this._mq = { 4: this.mallQ(4, this.MCX), 5: this.mallQ(5, this.MCX) };
-    return -D * e(c((qf - this.MD) / (g === 5 ? 5 : 2.8))) + (D - this.MCY) * e(c((qf - (g === 5 ? this._mq[5] : this.MC1)) / (g === 5 ? this.MG - 0.15 - this._mq[5] : this.MG - 0.2 - this.MC1))) + this.MCY * e(c((qf - this.MG) / 1.5)); },
+    return -D * e(c((qf - this.MD) / (g === 5 ? 5 : 2.8))) + (D - this.MCY) * e(c((qf - (g === 5 ? this.MC1 - 0.9 : this.MC1)) / (g === 5 ? this.MG - 0.15 - (this.MC1 - 0.9) : this.MG - 0.2 - this.MC1))) + this.MCY * e(c((qf - this.MG) / 1.5)); },
   // THE RAMP BENDS LEFT (the user: seen from below it curves away, so riding it must curve the same way): the lateral offset of the road (lateral units) on the glass ramp, up and down:
   // SHIFT_M metres to the left by the top (the circuit stays where it is, to the right), back by the end of the way down. Lateral units are U3.X = 2.2 / 0.62 metres.
   SHIFT_M: 17,
