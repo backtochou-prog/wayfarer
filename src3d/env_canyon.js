@@ -674,18 +674,25 @@ const NeonAvenue = {
           // THE UPPER TUNNEL (the user, a red box drawn on the roof: "ajouter un autre tunnel station tout au dessus du 1er avec ses objets bien sûr mais les passages nous déciderons après"): a second
           // square tunnel standing on the first, the same shell and lights; a station with nothing passing yet: a platform in the middle, a train standing on its right, a free track on its left
           const Y3 = YC + 0.4, Y4 = Y3 + HT, PX = WD / 2, PW = 6.4;
-          P.push(B(0.4, HT + 0.4, 12, -0.2, Y3, 0, wall), B(0.4, HT + 0.4, 12, WD + 0.2, Y3, 0, wall), B(WD + 0.8, 0.4, 12, WD / 2, Y4, 0, wall), B(WD, 0.06, 12, WD / 2, Y3, 0, '#0a0a14'));
-          sk.push(Q(T, 'wallL', [XL + 0.03, Y3, zf], [XL + 0.03, Y3, zn], [XL + 0.03, Y4, zn], [XL + 0.03, Y4, zf]), Q(T, 'wallR', [XR - 0.03, Y3, zf], [XR - 0.03, Y3, zn], [XR - 0.03, Y4, zn], [XR - 0.03, Y4, zf]), Q(T, 'ceil', [XL, Y4 - 0.03, zn], [XR, Y4 - 0.03, zn], [XR, Y4 - 0.03, zf], [XL, Y4 - 0.03, zf]));
+          // its roof (the user: "le plafond, le rendre courbé et magnifique, d'un seul côté haut"): a quarter of an ellipse, high (RA above the old flat ceiling) on the avenue's side and coming down to the east wall,
+          // open at both mouths; lit ribs under it and lines of light along it
+          const RA = 9, RN = 10, mz = [k === 0 ? 6 : null, k === NC.G2TN - 1 ? -6 : null].filter(z => z !== null), rp = i => [WD * Math.sin(i / RN * Math.PI / 2), Y4 + RA * Math.cos(i / RN * Math.PI / 2)];
+          P.push(B(0.4, HT + 0.4 + RA, 12, -0.2, Y3, 0, wall), B(0.4, HT + 0.4, 12, WD + 0.2, Y3, 0, wall), B(WD, 0.06, 12, WD / 2, Y3, 0, '#0a0a14'), B(0.5, 0.3, 12, -0.2, Y4 + RA + 0.25, 0, lite, { glow: true }));
+          for (let i = 0; i < RN; i++) { const [x0, y0] = rp(i), [x1, y1] = rp(i + 1), L = Math.hypot(x1 - x0, y1 - y0), o = { rz: Math.atan2(y1 - y0, x1 - x0) }, g = Object.assign({ glow: true }, o), mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+            P.push(B(L + 0.2, 0.3, 12, mx, my, 0, wall, o), B(L + 0.1, 0.16, 0.24, mx, my - 0.2, 0, '#ffb52e', g), B(L + 0.1, 0.16, 0.24, mx, my - 0.2, 5.8, C.pink, g), B(L + 0.1, 0.16, 0.24, mx, my - 0.2, -5.8, C.pink, g));
+            for (const z of mz) P.push(B(L + 0.2, 0.34, 0.3, mx, my, z, lite, g));
+            if (i % 2 === 1) P.push(B(0.2, 0.12, 12, x1, y1 - 0.32, 0, [lite, green, C.cyan, lite, green][(i - 1) / 2], { glow: true })); }
+          sk.push(Q(T, 'wallL', [XL + 0.03, Y3, zf], [XL + 0.03, Y3, zn], [XL + 0.03, Y4, zn], [XL + 0.03, Y4, zf]), Q(T, 'wallR', [XR - 0.03, Y3, zf], [XR - 0.03, Y3, zn], [XR - 0.03, Y4, zn], [XR - 0.03, Y4, zf]));
           for (const x of [0.2, WD - 0.2]) P.push(B(0.3, 0.3, 12, x, Y4 - 0.36, 0, green, { glow: true }));
           P.push(B(PW, 0.3, 12, PX, Y3, 0, '#23285e')); for (const s of [-1, 1]) P.push(B(0.15, 0.04, 12, PX + s * (PW / 2 - 0.1), Y3 + 0.3, 0, lite, { glow: true }), B(0.3, 0.02, 12, PX + s * (PW / 2 - 0.45), Y3 + 0.3, 0, '#ffd23a'));
           for (const x of [PX - PW / 2 - 2.6, PX - PW / 2 - 1.2, PX + PW / 2 + 1.2, PX + PW / 2 + 2.6]) P.push(B(0.12, 0.14, 12, x, Y3, 0, '#8a94a8'));
           { const tx = PX + PW / 2 + 1.9; P.push(B(2.5, 3.0, 11.4, tx, Y3 + 0.3, 0, '#f2f5fa'), B(2.56, 1.0, 10.6, tx, Y3 + 1.6, 0, '#16233a'), B(2.2, 0.12, 10.9, tx, Y3 + 0.2, 0, C.cyan, { glow: true }), B(2.6, 0.2, 11.4, tx, Y3 + 3.3, 0, '#d6dce8')); for (const z of [-3.2, 3.2]) P.push(B(0.06, 1.9, 1.3, tx - 1.27, Y3 + 0.5, z, C.pink, { glow: true })); }
-          P.push(B(0.08, 4.4, 0.08, PX, Y4 - 4.8, 0, '#8a94a8'), B(2.0, 0.7, 0.12, PX, Y4 - 5.4, 0, C.cyan, { glow: true }));
+          P.push(B(0.08, 4.4 + RA * 0.86, 0.08, PX, Y4 - 4.8, 0, '#8a94a8'), B(2.0, 0.7, 0.12, PX, Y4 - 5.4, 0, C.cyan, { glow: true }));
           if (k % 2 === 0) { M(4.4, '#c22a3c', '#ff9aa8', PX + 0.5, Y3 + 0.3); M(3.0, '#1f58c9', '#9fd8ff', PX + 0.5, Y3 + 0.3);
             P.push(B(0.6, 0.4, 0.8, PX + 0.4, Y3 + 0.3, 1.6, '#d8a23a'), B(0.6, 0.4, 0.8, PX + 0.4, Y3 + 0.7, 1.6, '#3aa0d8'), B(0.45, 0.45, 1.8, PX - 0.8, Y3 + 0.3, -3, '#f2f5fa'), B(1.2, 0.5, 1.2, PX + 0.6, Y3 + 0.3, -4.6, '#8a8a90'), B(1.0, 0.8, 1.0, PX + 0.6, Y3 + 0.8, -4.6, '#2fae4a'), B(0.6, 0.5, 0.6, PX + 0.6, Y3 + 1.6, -4.6, '#3fd060')); }
           else P.push(B(1.2, 1.0, 3.0, PX, Y3 + 0.3, 3, '#2a2f6a'), B(1.3, 0.08, 3.1, PX, Y3 + 1.3, 3, C.pink, { glow: true }), B(1.6, 0.1, 3.4, PX, Y3 + 2.9, 3, '#ffd23a', { glow: true }), B(0.08, 1.6, 0.08, PX, Y3 + 1.3, 4.5, '#c9d2e0'), B(0.08, 1.6, 0.08, PX, Y3 + 1.3, 1.5, '#c9d2e0'),
             B(0.45, 0.45, 1.8, PX + 1.2, Y3 + 0.3, -2.5, '#f2f5fa'), B(0.45, 0.45, 1.8, PX - 1.2, Y3 + 0.3, -2.5, '#f2f5fa'), B(1.2, 0.5, 1.2, PX, Y3 + 0.3, -4.8, '#8a8a90'), B(1.0, 0.8, 1.0, PX, Y3 + 0.8, -4.8, '#2fae4a'), B(0.6, 0.5, 0.6, PX, Y3 + 1.6, -4.8, '#3fd060'));
-          for (const z of [k === 0 ? 6 : null, k === NC.G2TN - 1 ? -6 : null]) if (z !== null) { P.push(B(WD + 1.0, 0.3, 0.3, WD / 2, Y4 + 0.05, z, lite, { glow: true })); for (const x of [-0.2, WD + 0.2]) P.push(B(0.3, HT + 0.4, 0.3, x, Y3, z, lite, { glow: true })); } }
+          for (const z of mz) P.push(B(0.3, HT + 0.4 + RA, 0.3, -0.2, Y3, z, lite, { glow: true }), B(0.3, HT + 0.4, 0.3, WD + 0.2, Y3, z, lite, { glow: true })); }
         return tex(P, sk, () => NeonAvenue.tunnelMaterial()); };
       if (NC.G2TN) props.sgLift = () => { const cx = NC.G2TX + 7.9, y0 = 6.9 + 0.4, y1 = NeonAvenue.LOOP.TY + 2.5, r = 1.0, P = [], sk = [], pl = NeonAvenue.plain;      // THE GLASS LIFT of the square tunnel: from the circle up to the second floor
         for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) P.push(Kit.box(0.12, y1 - y0, 0.12, cx + a * r, y0, b * r, '#c9d2e0'));
