@@ -178,15 +178,15 @@ const NEON_CORNER = {
     return a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) + this.G2X * e(c((qf - this.G2Q) / 4)) * (1 - back) - back; },
   glass2H(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), h = this.GH * e(c((qf - this.GQ) / this.GUP));
     return (h + (this.G2H - h) * e(c((qf - this.G2Q) / this.G2UP))) * (1 - e(c((qf - 68) / 7))); },
-  gM(g, qf, far) { return far && this.farOn(g, qf) ? this.farX(g, qf) : g >= 4 ? this.mallO(g, qf) : g === 3 ? this.glass3O(qf) : g === 2 && qf >= this.G2Q ? this.glass2W(qf) : this.glassM(qf); },
-  gH(g, qf, far) { return far && this.farOn(g, qf) ? this.farH(g, qf) : g >= 4 ? this.mallH(g, qf) : g === 3 ? this.glass3H(qf) : g === 2 && qf >= this.G2Q ? this.glass2H(qf) : this.glassH(qf); },
+  gM(g, qf, far) { return g === 'L' ? this.LPX : far && this.farOn(g, qf) ? this.farX(g, qf) : g >= 4 ? this.mallO(g, qf) : g === 3 ? this.glass3O(qf) : g === 2 && qf >= this.G2Q ? this.glass2W(qf) : this.glassM(qf); },
+  gH(g, qf, far) { return g === 'L' ? this.LPH : far && this.farOn(g, qf) ? this.farH(g, qf) : g >= 4 ? this.mallH(g, qf) : g === 3 ? this.glass3H(qf) : g === 2 && qf >= this.G2Q ? this.glass2H(qf) : this.glassH(qf); },
   // THE RAMPS GO ON TO THE DISTRICT'S END (the user, 2026-11-22: "lie juste les routes goudronnées avec des goudronnées; allonger les rampes jusqu'à la fin du district en gardant leur
   // hauteur et les écartant graduellement dans le district"): when the Central District follows (far(d)), the three glass ramps no longer come down onto the tarmac before it. The glass
   // avenue (g 0: 14 m), the glass ramp (g true: 2.8 m) and the high ramp (g 2: 7 m) keep their height, enter the district side by side and spread apart in it (the avenue to the left,
   // over the canal's bank; the two ramps to the right of the bike lane, 8 m apart), and come down onto the district's avenue only at its north end, one after the other.
   // farX(g, qf): the ramp's centre line, metres right of the circuit (f = slots into the district); farH(g, qf): its height (it lands at 15 cm and slides onto the avenue's axis).
   FQB: 66, FQC: 68,
-  far(d) { return !!(d && this.DN && !d.distNo && !d.land && !(d.glass >= 3)); },
+  far(d) { return !!(d && this.DN && !d.distNo && !d.land && !(d.glass >= 3) && d.glass !== 'L'); },
   farOn(g, qf) { return g === 2 ? qf >= this.FQC : g === true && qf >= this.FQB; },
   farX(g, qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), f = qf - this.CANYON - this.DOWN; let x;
     if (!g) { x = -this.SHIFT_M - 5.5 * e(c(f / 3)) - 3.5 * e(c((f - 3) / 9)); x -= (x + 8.7) * e(c((f - 102.5) / 4.2)); return x * (1 - e(c((f - 112.7) / 3.1))); }
@@ -213,6 +213,12 @@ const NEON_CORNER = {
   // G3RR m from the centre), rides a quarter of it and goes on straight (the T's right arm) through the right tower's station (slot G3TB, two slots long), then down to the district as
   // before (G3D). The T's left arm runs back from the roundabout to the left tower's station (slot G3TA): scenery (a runner cannot run back down the piece).
   G3Q: 17, G3X: 73, G3H: 70, G3UP: 13, G3T: 32, G3C: 40, G3D: 66, G3BX: -56, G3H2: 190, G3HQ: 36, G3OUT: 74.5, G3R: 70.5, G3E: 76, G3RQ: 40.15, G3RR: 7, G3TA: 26, G3TB: 52,
+  // THE HIGH LOOP AS AN INTERCHANGE, stage 1 (the user, 2026-11-23: "pour basculer aux autres routes, rampes et voies a cote, en regardant plusieurs jardins, lieux, routes, maisons en
+  // jouant"): on the high branch, in the square tunnel, RIGHT before the circle (slot LPIN) takes the glass lift; the runner then runs the loop's WEST leg (NeonAvenue.LOOP: LPX m from the
+  // circuit, LPH units up), a detour whose `glass` is 'L'. The engine only runs forward: the lift ends in a fade and the run resumes at the leg's south end (LPS; Game moves the detour's
+  // frame by whole slots), and at the leg's north end (LPW) another fade starts the next tour. At the station LPOUT, RIGHT takes its lift down and the glass link, onto the walled ramp
+  // (glass 3) at LPY units: the one exit of stage 1.
+  LPX: -89, LPH: 275, LPS: 28.5, LPW: 46.3, LPIN: 55.5, LPOUT: 44.5, LPY: 190, LPLX: 3.9, LPLY: 61,      // (LPLX, LPLY: the tunnel's lift from the high branch's line, metres right, and its ride up, units)
   // THE CENTRAL DISTRICT (the user, 2026-11-22, a plan of 2 km2 "behind the buildings", entered "from the two buildings on the left": src3d/env_district.js): the walled ramp no longer turns
   // back to the circuit: where it lands (G3E) the district's main avenue begins, DN slots straight on (1404 m: the plan at 0.7); Game lengthens the neon piece by as much (World.stretch).
   DN: 117,
@@ -255,7 +261,7 @@ const NEON_CORNER = {
   // SHIFT_M metres to the left by the top (the circuit stays where it is, to the right), back by the end of the way down. Lateral units are U3.X = 2.2 / 0.62 metres.
   SHIFT_M: 17,
   off(d, z) {
-    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.land ? this.landM(qf) : d.glass === 3 ? this.glass3O(qf) : d.glass >= 4 ? this.mallO(d.glass, qf) : d.glass && qf >= this.GQ ? this.gM(d.glass, qf, this.far(d)) : this.sideM(qf)) / (2.2 / 0.62); }
+    if (d && d.side) { const qf = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART); return (d.land ? this.landM(qf) : d.glass === 'L' ? this.LPX : d.glass === 3 ? this.glass3O(qf) : d.glass >= 4 ? this.mallO(d.glass, qf) : d.glass && qf >= this.GQ ? this.gM(d.glass, qf, this.far(d)) : this.sideM(qf)) / (2.2 / 0.62); }
     if (d && d.park) { const S = this.SLOT, zT = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zP = zT - this.PIN * S, zR = zT + S, zQ = zT + this.DIVE * S, e = t => t * t * (3 - 2 * t), D = this.PTUBE_M / (2.2 / 0.62);      // (straight beside the big tube for one slot, then back)
       return z <= zP || z >= zQ ? 0 : -D * (z < zT ? e((z - zP) / (zT - zP)) : z < zR ? 1 : 1 - e((z - zR) / (zQ - zR))); }
     if (!d || !d.up) return 0;

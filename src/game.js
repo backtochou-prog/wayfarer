@@ -161,7 +161,7 @@ class Game {
     const ahead0 = this.world.playerBand(300, 0);                                    // the atmosphere starts as the road ahead looks (the run opens in the neon quarter), not eased in from the base look
     this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0; this.overDelay = 0.5;
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
-    this.scene = null; this.fadeIn = 0;                                                 // no cutscene running, no fade
+    this.scene = null; this.fadeIn = 0; this.ride = null; this.fadeOut = 0;                                                 // no cutscene running, no fade
     this.corner = null; this.detour = null; if (this.world) { this.world.extraLift = null; this.world.extraOff = null; this.world.noRoad = null; }                                             // the neon corner: no pivot running, not in the picture district (NEON_CORNER)
     this.onLane = false; this.trick = null; this.olliePop = null; this.ollieDone = false; this.combo = 0; this.stuntPts = 0; this.camFP = false; this.riding = false; this.vehicle = 'scooter';
     { const rm = typeof location !== 'undefined' && location.search.match(/[?&]ride=(scooter|bike)/); if (rm) { this.riding = true; this.vehicle = rm[1]; } }      // ?ride=scooter / ?ride=bike: the run starts on that vehicle (a link to try it) this.scooterHint = null; this.surf = false;                // on foot, no indicator, not on the water
@@ -394,6 +394,31 @@ class Game {
     }
   }
 
+  // THE HIGH LOOP's lifts (NEON_CORNER.LPX; the step above starts them): the run holds still, this.ride = { x, y } (metres) carries the runner and the camera through the scenery, which
+  // stays where it stands (Renderer3D). 'up': into the square tunnel's glass lift and up to its second floor, a fade, then the loop's west leg from its south end. 'out': down a
+  // station's lift to its glass link, along it onto the walled ramp, and the run goes on there (the detour's glass 3, as if taken from the back road).
+  rideStep(dt) {
+    const C = NEON_CORNER, r = this.ride, w = this.world, p = this.p, e = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }; r.t += dt;
+    if (r.kind === 'up') { r.x = C.LPLX * e(r.t / 0.7); r.y = C.LPLY / 10 * e((r.t - 0.6) / 1.8); this.fadeOut = Math.max(0, Math.min(1, (r.t - 1.7) / 0.6));
+      if (r.t >= 2.4) { this.ride = null; this.loopShift(27, { glass: 'L', askedL: true, wantL: false, wantX: false, tour: 1 }, 'LA BOUCLE'); } return; }
+    const DX = C.glass3O(C.LPOUT) - C.LPX, DY = (C.LPY - C.LPH) / 10; r.y = DY * e(r.t / 1.5); r.x = DX * e((r.t - 1.4) / 2.6);
+    if (r.t < 4.0) return;
+    const zQ = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT, zC = zQ + C.G3Q * C.SLOT, zE = zQ + C.G3E * C.SLOT, d = Object.assign({}, this.detour, { asked2: true, asked4: true, glass: 3, zC, zE3: zE, wantX: false });
+    if (C.DN && !d.dist) { const P = w.pieceAt(p.z), add = C.DN * C.SLOT, old = w.stretch(P, add); if (old !== null) { if (this.portal && this.portal.shift) this.portal.shift(old, add); d.z1 = zQ + (C.CANYON + C.DOWN + C.DN) * C.SLOT; } }
+    w.noRoad = z => z > zQ && z < zE; w.items = w.items.filter(it => !(it.z >= zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2))));
+    w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.ride = null; this.onLane = false; this._bkT = null; this.banner = { t: 1.8, text: 'GLASS RAMP - 19 M' };
+  }
+  // (the detour's frame moves on by n whole slots, the piece grows by as much: the runner, who has not moved, is n slots earlier along the avenue; done under a fade)
+  loopShift(n, extra, text) {
+    const C = NEON_CORNER, w = this.world, p = this.p, add = n * C.SLOT, old = w.stretch(w.pieceAt(p.z), add); this.fadeOut = 0;
+    if (old === null) { this.detour.askedL = true; return; }
+    if (this.portal && this.portal.shift) this.portal.shift(old, add);
+    const d = Object.assign({}, this.detour, extra); for (const k of ['z0', 'z1', 'zG', 'zS', 'zE3', 'zLE']) if (typeof d[k] === 'number') d[k] += add;
+    d.zC = p.z - C.SLOT; const zT = d.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT, zE = d.z1 - C.EXIT * C.SLOT;
+    w.noRoad = z => z > zT && z < zE; w.items = w.items.filter(it => !(it.z >= d.zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2))));
+    w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.fadeIn = 1; this.banner = { t: 2, text }; this.emit('corner');
+  }
+
   // the pivot at the neon corner: the run holds still for NEON_CORNER.T seconds while the camera and the runner turn 90 degrees left (Renderer3D), then the run goes on in the picture district:
   // its street and tunnel take the next 28 slots (the scenery reads g.detour), its hazards are cleared, the runner stands in the middle of its road
   cornerStep(dt) {
@@ -406,6 +431,7 @@ class Game {
 
   step(dt) {
     const w = this.world, p = this.p, prevZ = p.z, pk = this.pk;
+    if (this.ride) { this.rideStep(dt); return; }                                  // (in a lift of the high loop: the run holds still)
     p.speed = Math.min(MAX_SPEED, p.speed + ACCEL * dt);
     if (pk) pk.update(dt);                                                         // power-up timers, mission distance, toasts: only ever advance here, so a pause or a cutscene freezes them
     p.z += p.speed * (pk ? pk.speedMul : 1) * (this.riding && this.vehicle === 'bike' ? 1.12 : 1) * dt;      // (the sport e-bike is 12 % faster)                                  // the dash: a forward boost on top of the run's own speed ramp
@@ -498,7 +524,21 @@ class Game {
         if (C.DN) { const P = w.pieceAt(p.z), add = C.DN * C.SLOT, old = w.stretch(P, add); if (old !== null) { if (this.portal && this.portal.shift) this.portal.shift(old, add); d.z1 = zQ + (C.CANYON + C.DOWN + C.DN) * C.SLOT; } }
         w.noRoad = z => z > zL && z < zE; w.extraLift = null; w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; }
     }
-    if (this.detour && this.detour.decided && !this.detour.dist && !this.detour.distNo && !this.detour.land && !(this.detour.glass >= 3) && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.DN) {      // THE CENTRAL DISTRICT for every way (the user, 2026-11-22: "je veux que la suite de toutes ces connexions va au district 1400"): the glass avenue, the underground tunnel, the car park, the side road and its glass ramps no longer end in the short tunnel back: 20 slots before it (every choice is made by then) the district's avenue is laid straight on in its place
+    if (this.detour && this.detour.side && (this.detour.glass === 2 || this.detour.glass === 'L') && typeof NEON_CORNER.LPX === 'number') {      // THE HIGH LOOP as an interchange, stage 1 (NEON_CORNER.LPX): the lift of the square tunnel up to it, its west leg, the exit at one station, the next tour
+      const C = NEON_CORNER, d0 = this.detour, zQ = d0.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT, R = this.keys.right || this.tright, L = this.keys.left || this.tleft, at = q => zQ + q * C.SLOT, cross = q => prevZ < at(q) && p.z >= at(q);
+      if (d0.glass === 2 && !d0.askedL) {
+        if (cross(C.LPIN - 3)) this.banner = { t: 2.4, text: 'ASCENSEUR : DROITE' };
+        if (p.z > at(C.LPIN - 3) && p.z < at(C.LPIN)) { if (R) { if (!d0.wantL) this.banner = { t: 1.4, text: 'ASCENSEUR' }; d0.wantL = true; } else if (L) d0.wantL = false; }
+        if (cross(C.LPIN)) { if (!d0.wantL) d0.askedL = true; else { p.z = at(C.LPIN); this.ride = { kind: 'up', t: 0, x: 0, y: 0 }; this.emit('corner'); } }
+      } else if (d0.glass === 'L') {
+        if (cross(C.LPOUT - 3)) this.banner = { t: 2.4, text: 'SORTIE : DROITE' };
+        if (p.z > at(C.LPOUT - 3) && p.z < at(C.LPOUT)) { if (R) { if (!d0.wantX) this.banner = { t: 1.4, text: 'SORTIE - RAMPE 19 M' }; d0.wantX = true; } else if (L) d0.wantX = false; }
+        if (cross(C.LPOUT) && d0.wantX) { p.z = at(C.LPOUT); this.ride = { kind: 'out', t: 0, x: 0, y: 0 }; this.emit('corner'); }
+        else { this.fadeOut = Math.max(0, Math.min(1, (p.z - at(C.LPW - 0.7)) / (0.7 * C.SLOT)));      // (the leg's north end: a fade, and the next tour from its south end)
+          if (p.z >= at(C.LPW)) { const n = (d0.tour || 1) + 1; this.loopShift(18, { tour: n, wantX: false }, 'TOUR ' + n); } }
+      }
+    }
+    if (this.detour && this.detour.decided && !this.detour.dist && !this.detour.distNo && !this.detour.land && !(this.detour.glass >= 3) && this.detour.glass !== 'L' && !this.ride && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.DN) {      // THE CENTRAL DISTRICT for every way (the user, 2026-11-22: "je veux que la suite de toutes ces connexions va au district 1400"): the glass avenue, the underground tunnel, the car park, the side road and its glass ramps no longer end in the short tunnel back: 20 slots before it (every choice is made by then) the district's avenue is laid straight on in its place
       const C = NEON_CORNER, zS = this.detour.z1 - C.EXIT * C.SLOT;
       if (p.z >= zS - 20 * C.SLOT && p.z < zS) { const P = w.pieceAt(p.z), add = C.DN * C.SLOT, old = w.stretch(P, add);
         if (old !== null) { if (this.portal && this.portal.shift) this.portal.shift(old, add); const d = Object.assign({}, this.detour, { dist: true, zS, z1: zS + add }); if (w.extraOff) w.extraOff = z => C.off(d, z); if (w.extraLift) w.extraLift = z => C.lift(d, z); w.ver++; this.detour = d; }

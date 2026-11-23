@@ -597,6 +597,7 @@ class Renderer3D {
       const a = 1 - Math.exp(-5 * dt); this.scCam.x += (tx - this.scCam.x) * a; this.scCam.y += (ty - this.scCam.y) * a; this.scCam.z += (tz - this.scCam.z) * a; this.scLook.x += (lx - this.scLook.x) * a; this.scLook.y += (ly - this.scLook.y) * a; this.scLook.z += (lz - this.scLook.z) * a;
       this.cam.lerp(this.scCam, k); this.look.lerp(this.scLook, k);
     }
+    if (g.ride && (g.ride.x || g.ride.y)) { const rx = g.ride.x, ry = g.ride.y, gp = this.runner.group, sh = this.runner.shadow; this.cam.x += rx; this.cam.y += ry; this.look.x += rx; this.look.y += ry; gp.position.x += rx; gp.position.y += ry; sh.position.x += rx; sh.position.y += ry; }      // THE HIGH LOOP's lifts (Game.rideStep): the runner and the camera ride through the scenery
     let eye = this.camera.position;
     if (XRP) { this.xr.applyMain(this.cam, this.look, dt); eye = this.xr.eyeWorld(this._eye || (this._eye = new THREE.Vector3())); }
     else { this.camera.position.copy(this.cam); this.camera.lookAt(this.look); }

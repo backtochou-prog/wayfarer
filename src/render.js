@@ -116,7 +116,7 @@ class Renderer {
     if (g.state !== 'title') this.drawHud(g);
     this.drawTouch(g);
     if (g.state === 'play' && !g.vr) this.drawScooterHint(g);
-    if (g.scene || g.fadeIn > 0) this.drawSceneOverlay(g);
+    if (g.scene || g.fadeIn > 0 || g.fadeOut > 0) this.drawSceneOverlay(g);
     if (g.state === 'title') this.drawTitle(g);
     else if (g.state === 'pause') this.drawPause(g);
     else if (g.state === 'over' && g.overT > g.overDelay) this.drawOver(g);
@@ -472,7 +472,7 @@ class Renderer {
       c.fillStyle = C.amber; c.fillRect(0, bar, VW, 1); c.fillRect(0, VH - bar - 1, VW, 1); }
       if (S.caption) { const w2 = textW(S.caption, 2) + 14, x = Math.round((VW - w2) / 2); c.globalAlpha = 0.9; c.fillStyle = C.ink; c.fillRect(x - 1, 28, w2 + 2, 20); c.fillStyle = C.plum; c.fillRect(x, 29, w2, 18); c.fillStyle = C.amberD; c.fillRect(x, 29, w2, 1); c.fillRect(x, 46, w2, 1); c.globalAlpha = 1; this.ctr(S.caption, 33, C.amberL, 2); }
     }
-    const a = Math.max(S ? S.fade : 0, g.fadeIn > 0 ? g.fadeIn * g.fadeIn : 0);
+    const a = Math.max(S ? S.fade : 0, g.fadeIn > 0 ? g.fadeIn * g.fadeIn : 0, g.fadeOut || 0);      // (g.fadeOut: the lifts and the tours of the high loop)
     if (a > 0.003 && !g.vr) { c.globalAlpha = Math.min(1, a); c.fillStyle = '#000'; c.fillRect(0, 0, VW, VH); c.globalAlpha = 1; }
   }
 
