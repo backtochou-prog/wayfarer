@@ -180,10 +180,13 @@ const NEON_CORNER = {
   // runner's line, metres right of the circuit (Game.bikeLane; the scenery: src3d/bike_lane.js wkT*, src3d/env_district.js).
   WALK_Q: 14.8, WALK_X: 162.8, WALK_OUT: 57.8, WALK_DX: 17.5, WALK_END: 94.5,
   // THE WALK'S SURFACE (metres above the street) under the runner at qf: the dirt track is 0.24 m thick, the paved walk 0.12, the sand strip 0.2, the district's bike lane 0.1; without it
+  // THE BIKE LANE'S SURFACE (metres above the street) at qf: its strip is laid a little above the ground (src3d/bike_lane.js: artBike, bkBA, bkStrip / bkB; the district's lane, env_district.js);
+  // the runner and the wheels of what they ride stand on it (the user, 2026-11-23: "les pieds, le bas des roues du vélo encore submergés"). Renderer3D, the runner's lift.
+  laneH(qf) { return qf < -(this.PIN + 6) ? 0.07 : qf < 0 ? 0.09 : qf < this.CANYON + this.DOWN ? 0.16 : 0.11; },
   // the runner's feet were sunk in them (the user, 2026-11-23: "le joueur est submergé presque à genoux"). The renderer eases between them (Renderer3D, the runner's lift).
   walkH(qf) { if (qf < this.WALK_Q) return 0; const x = this.walkM(qf), f = qf - (this.CANYON + this.DOWN);
     if (f >= this.WALK_END + 1) return 0; if (f >= 0) return x < this.BIKE_DX + this.BIKE_G + 1.9 ? 0.1 : 0.2;
-    return x > 157.4 ? 0.12 : qf < 30 && x < 89.8 ? 0.05 : qf > 30 && x > 78.6 && x < 89.4 ? 0.1 : 0.24; },
+    return x > 157.4 ? 0.12 : qf < 30 && x < 89.8 ? 0.16 : qf > 30 && x > 78.6 && x < 89.4 ? 0.1 : 0.24; },
   walkM(qf) { const r = 0.22, s = 1 / (1 - r), h = t => t <= 0 ? 0 : t >= 1 ? 1 : t < r ? s * t * t / (2 * r) : t <= 1 - r ? s * (t - r / 2) : 1 - s * (1 - t) * (1 - t) / (2 * r), f = qf - this.CANYON - this.DOWN, L = this.BIKE_DX + this.BIKE_G;      // (h: a straight diagonal with rounded ends)
     if (qf < this.WALK_Q + 7.6) { const a = this.bikeM(qf) + this.BIKE_G; return a + (this.WALK_X - a) * h((qf - this.WALK_Q) / 7.6); }
     if (f < 4) return this.WALK_X + (this.WALK_DX - this.WALK_X) * h((qf - this.WALK_OUT) / 22.2);
