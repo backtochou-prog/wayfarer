@@ -528,7 +528,9 @@ class Renderer3D {
 
     // ---- runner (absolute lateral on its road, jump height in metres)
     const pb = w.playerBand(p.z, p.x), relX = (p.x + pb.off) * U.X - Lref;
-    const lift = SC ? 0.85 * Math.max(0, Math.min(1, ((p.x + pb.off) * U.X - 6.6) / 0.8)) : 0;       // in the cutscene the runner steps up onto the platform (0.85 m)
+    { const NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : null, d = g.detour, h = NC && NC.walkH && d && d.walk ? NC.walkH((p.z - d.z0) / NC.SLOT - (NC.STREET + NC.TUNNEL + NC.ART)) : 0;      // (THE WALK: the runner stands ON its dirt, paving and sand, not sunk in them)
+      this._wkH = (this._wkH || 0) + (h - (this._wkH || 0)) * Math.min(1, dt * 8); if (Math.abs(this._wkH - h) < 0.002) this._wkH = h; }
+    const lift = (SC ? 0.85 * Math.max(0, Math.min(1, ((p.x + pb.off) * U.X - 6.6) / 0.8)) : 0) + this._wkH;       // in the cutscene the runner steps up onto the platform (0.85 m)
     this.runner.group.position.set(relX, p.jy * U.Y + lift, 0); this.runner.group.visible = !(SC && SC.boarded);
     // THE VORTEX ABSORBS THE RUNNER (a crate ended the run): for 0.8 s the runner is pulled to the middle of the disc, turning faster and faster, shrinking, sinking into the spiral (the disc is solid, so the part below its
     // top is hidden: it goes down the hole); the disc spins up and its funnel swells. Absorbing means `absK` > 0; otherwise the runner is as ever.
