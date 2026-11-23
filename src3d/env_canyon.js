@@ -318,7 +318,7 @@ const NeonAvenue = {
       const prop = l === 12 ? 'lpGlass' : 'lpP' + l * 4; sizes[prop] = l; add(q, { prop, x, dist: (z0 + z1) / 2 - q * 12 }); }
     cross.forEach(([z, x0, x1], i) => { const q = Math.floor(z / 12); sizes['lpX' + i] = x1 - x0 - 2 * W; add(q, { prop: 'lpX' + i, x: (x0 + x1) / 2, dist: z - q * 12, rotY: Math.PI / 2 }); });
     for (const [x, q] of lifts) add(q, { prop: 'lpLift', x, dist: 6 });
-    return { H, W, slots, sizes }; })();
+    return { H, W, slots, sizes, clear: [Math.floor(N / 12), Math.floor(S / 12)] }; })();
   NeonAvenue.layout = (q, rnd, liftM) => {
     const CN0 = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER.CANYON : 40, FAR = q >= CN0 && !!NeonAvenue.far, out = [{ prop: q >= CN0 && !FAR ? 'cnGlassD' + (q - CN0) : 'cnGlass', x: 0.001, dist: 6 }], CN = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER.CANYON : 40, DN = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER.DOWN : 6;      // (FAR: the Central District follows, the glass avenue goes straight on at its height, NEON_CORNER.far)
     if (q >= CN && !FAR) {                                                                     // THE WAY DOWN, a glass ramp too (the user): it comes down from the left onto the circuit, which runs below on the right and meets it
@@ -333,6 +333,7 @@ const NeonAvenue = {
     for (const s of [-1, 1]) {
       const k = mod(q * 3 + (s > 0 ? 5 : 0) + Math.floor(rnd(q * 2 + (s > 0 ? 1 : 0), 41) * 4), TW.length);
       const far = s > 0 ? 14 : 0;                                                    // (the user: the buildings on the right step back, so the ground down there is wide and seen from the road)
+      if (liftM > 3 && NeonAvenue.LOOP.clear.includes(q)) continue;      // (the user: no tower of the picture where the high loop crosses)
       if (s < 0) out.push({ prop: TW[k], x: s * (11 + far + rnd(q * 2 + (s > 0 ? 1 : 0), 42) * 9), dist: 6, dy: -liftM });      // (the user: a very large open space first on the right, for the joint to come; then (choice A) no tower on the right at all: the monorail city is seen whole)
       if (mod(q, 3) === 1 && s < 0) out.push({ prop: TW[mod(k + 3, TW.length)], x: s * (24 + far + rnd(q, 43 + s) * 8), dist: 2, dy: -liftM });      // (the user: no second row on the right: free ground behind the first, kept for the material to come)
     }
