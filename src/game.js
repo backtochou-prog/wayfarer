@@ -244,6 +244,7 @@ class Game {
     const w = this.world; if (!this.r || !this.r.layoutFor) return null; const bands = w.bandsAt(z); if (bands.length !== 1) return null; const b = bands[0];
     if (this.detour && !this.detour.up && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.bikeEntry) { const C = NEON_CORNER, rf = (z - this.detour.z0) / C.SLOT - C.STREET - C.TUNNEL, r = Math.floor(rf), qf = rf - C.ART, U = 2.2 / 0.62;      // ART CITY's bike lane (NEON_CORNER.bikeM): open to everyone, on foot too
       if (this.detour.land) return null;
+      if (this.detour.walk && C.walkM && C.far(this.detour) && qf < C.CANYON + C.DOWN + C.WALK_END) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.walkM(qf) - C.sideM(qf)) / U, entry: false, any: true };      // THE WALK (NEON_CORNER.walkM): the dirt track to the paved walk, its sand strip in the district; no way off it before it ends in the district's lane
       if (this.detour.dist && !this.detour.glass && z >= this.detour.zS) { const f = (z - this.detour.zS) / C.SLOT;      // THE CENTRAL DISTRICT's own lane (src3d/env_district.js), BIKE_DX right of its avenue: ART CITY's lane runs into it
         return f < C.DN - 14 / 12 ? { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.BIKE_DX + C.BIKE_G) / U, entry: C.BIKE_IN.some(([i, j]) => f >= i && f < j), any: true } : null; }
       if (r >= 0 && r < C.ART - C.PIN) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) + C.BIKE_G) / U, entry: C.bikeEntry(r), any: true };
@@ -505,6 +506,12 @@ class Game {
         if (!this.detour.want2) this.detour.asked3 = true;
         else { const d = Object.assign({}, this.detour, { asked3: true, glass: 2 }); w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.emit('corner'); }
       }
+    }
+    if (this.detour && this.detour.side && !this.detour.glass && !this.detour.land && !this.detour.askedW && typeof NEON_CORNER.walkM === 'function' && NEON_CORNER.far(this.detour)) {      // THE WALK: RIGHT pressed on the bike lane just after the roundabout takes the dirt track (NEON_CORNER.walkM)
+      const C = NEON_CORNER, zW = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART + C.WALK_Q) * C.SLOT, BW = p.z > zW - 3.5 * C.SLOT && prevZ < zW ? this.bikeLane(p.z) : null, on = !!(BW && this.onLane && Math.abs(p.x - BW.c) < 0.3);
+      if (on && p.z < zW) { if (!this.detour.hintW) { this.detour.hintW = true; this.banner = { t: 2.4, text: 'DIRT TRACK: PRESS RIGHT' }; }
+        if (this.keys.right || this.tright) this.detour.wantW = true; else if (this.keys.left || this.tleft) this.detour.wantW = false; }
+      if (prevZ < zW && p.z >= zW) { this.detour.askedW = true; if (this.detour.wantW && on) { this.detour.walk = true; this.banner = { t: 2, text: 'THE WALK' }; this.emit('corner'); } }
     }
     if (this.detour && this.detour.side && (this.detour.glass === 3 || (!this.detour.glass && !this.detour.asked4)) && typeof NEON_CORNER.glass3M === 'function') {      // THE WALLED RAMP of the back road (NEON_CORNER.glass3W): its LEFT place climbs it, just after the roundabout, through the square tunnel
       const C = NEON_CORNER, U = 2.2 / 0.62, zQ = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT, zC = zQ + C.G3Q * C.SLOT, zE = zQ + C.G3E * C.SLOT;

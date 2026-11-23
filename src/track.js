@@ -173,6 +173,16 @@ const NEON_CORNER = {
     if (qf < q0) return this.sideM(qf) + this.BIKE_M + this.BIKE_SW * e(c((qf + 9.5) / 3)) * (1 - e(c((qf + 3) / 2.5)));
     const m = a + (R - a) * e(c((qf - q0) / (this.NRQ + 0.5 - q0))) + (B - R) * e(c((qf - this.NRQ - 0.5) / 2)), t = e(c((qf - this.BIKE_RET - 0.15) / 5));
     return (m - 9 * e(c((qf - this.BIKE_RET + 0.4) / 2.2))) * (1 - t) + (this.sideM(qf) + this.BIKE_M + (this.BIKE_DX - this.BIKE_M) * e(c((qf - 72) / 4))) * t; },      // (- 9: the link keeps the line it had before the road moved 9 m out, between the ramp's pillars)
+  // THE WALK (the user's red line, 2026-11-23: "une piste non goudronnée qui mène à cette piste ... en serrant à gauche doucement ... une pareille au district, couleur et thème différents,
+  // comme dessus du trottoir"): from the bike lane, just after the roundabout (WALK_Q), a DIRT TRACK crosses the park and the second plot's garden to the paved walk in front of NEO
+  // METROPOLIS (WALK_X m right of the circuit); from WALK_OUT it eases left, a long gentle diagonal, passes under the two glass ways and runs on its own sand strip in the CENTRAL DISTRICT,
+  // WALK_DX right of its avenue (it shares the bike lane through the Centre's ring, the towers' legs stand on its line) and ends in the district's lane WALK_END slots in. walkM(qf): the
+  // runner's line, metres right of the circuit (Game.bikeLane; the scenery: src3d/bike_lane.js wkT*, src3d/env_district.js).
+  WALK_Q: 14.8, WALK_X: 162.8, WALK_OUT: 57.8, WALK_DX: 17.5, WALK_END: 94.5,
+  walkM(qf) { const r = 0.22, s = 1 / (1 - r), h = t => t <= 0 ? 0 : t >= 1 ? 1 : t < r ? s * t * t / (2 * r) : t <= 1 - r ? s * (t - r / 2) : 1 - s * (1 - t) * (1 - t) / (2 * r), f = qf - this.CANYON - this.DOWN, L = this.BIKE_DX + this.BIKE_G;      // (h: a straight diagonal with rounded ends)
+    if (qf < this.WALK_Q + 7.6) { const a = this.bikeM(qf) + this.BIKE_G; return a + (this.WALK_X - a) * h((qf - this.WALK_Q) / 7.6); }
+    if (f < 4) return this.WALK_X + (this.WALK_DX - this.WALK_X) * h((qf - this.WALK_OUT) / 22.2);
+    return this.WALK_DX + (L - this.WALK_DX) * (h((f - 48) / 2.4) - h((f - 66.6) / 2.4) + h((f - 92) / 2.5)); },
   glass2W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.SPARK_M + 2.2, back = e(c((qf - 58) / 3));
     if (qf >= this.G2R) return (this.GM - 1) * (1 - e(c((qf - this.G2R) / this.G2OUT)));
     return a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) + this.G2X * e(c((qf - this.G2Q) / 4)) * (1 - back) - back; },
