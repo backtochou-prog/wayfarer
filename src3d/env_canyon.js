@@ -306,6 +306,7 @@ const NeonAvenue = {
     if (!NeonAvenue._skyMat) { const tex = new THREE.Texture(SKYLINE_ART.img); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; const m = new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, fog: false });
       const up = () => { tex.needsUpdate = true; m.visible = true; }; if (SKYLINE_ART.img.complete && SKYLINE_ART.img.naturalWidth) up(); else { m.visible = false; SKYLINE_ART.img.addEventListener('load', up); } NeonAvenue._skyMat = m; }
     const mesh = new THREE.Mesh(G, NeonAvenue._skyMat); mesh.rotation.y = -0.4; mesh.scale.setScalar(NeonAvenue.SKY_S); mesh.visible = false; return mesh; };
+  NeonAvenue.WEST = [30, 47, 86];      // the west row: first slot, last slot, its line's distance to the left of the circuit (m)
   NeonAvenue.layout = (q, rnd, liftM) => {
     const CN0 = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER.CANYON : 40, FAR = q >= CN0 && !!NeonAvenue.far, out = [{ prop: q >= CN0 && !FAR ? 'cnGlassD' + (q - CN0) : 'cnGlass', x: 0.001, dist: 6 }], CN = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER.CANYON : 40, DN = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER.DOWN : 6;      // (FAR: the Central District follows, the glass avenue goes straight on at its height, NEON_CORNER.far)
     if (q >= CN && !FAR) {                                                                     // THE WAY DOWN, a glass ramp too (the user): it comes down from the left onto the circuit, which runs below on the right and meets it
@@ -345,6 +346,11 @@ const NeonAvenue = {
       out.push({ prop: 'ftStreet', x: 42, dist: 6, dy: -liftM }); if (q % 9 === 2) out.push({ prop: 'ftHangTrain', x: 42, dist: 6, dy: -liftM });
       if (inPark) out.push({ prop: q % 2 ? 'ftParkA' : 'ftParkB', x: 68, dist: 6, dy: -liftM });
       else if (!sky) out.push({ prop: q % 3 === 2 ? (q % 2 ? 'ftPlainA' : 'ftPlainB') : ['ftGreenA', 'ftGreenB', 'ftGreenC'][(Math.floor(q / 3) + q % 3) % 3], x: q % 2 ? 72 : 52, dist: 6, dy: -liftM }, { prop: q % 2 ? 'ftStationF' : 'ftStationN', x: 42, dist: 6, dy: -liftM }); }      // (the user: the train stays, with its rail; the city picture (cnMetroView) is removed)                       // THE PROTECTION WALL on the left (the user): from the ground up to 2 m over the glass road, 2 m from its edge
+    // THE WEST ROW (the user, a red mark on the empty ground west of the new land's road: "copier coller les bâtiments avec seulement leur station vitre"): the same towers with only their glass
+    // station (no street, no rail, no train), turned to the land's road; their line 86 m to the left of the circuit, from slot 30 to the mall's wing under the ground (wv*: the ft* props under
+    // names of their own, so that what moves or removes the right row leaves them alone)
+    if (liftM > 3 && q >= NeonAvenue.WEST[0] && q <= NeonAvenue.WEST[1]) { const wx = NeonAvenue.D - NeonAvenue.WEST[2];
+      out.push({ prop: q % 3 === 2 ? (q % 2 ? 'wvPlainA' : 'wvPlainB') : ['wvGreenA', 'wvGreenB', 'wvGreenC'][(Math.floor(q / 3) + q % 3) % 3], x: wx - (q % 2 ? 30 : 10), dist: 6, dy: -liftM }, { prop: q % 2 ? 'wvStationF' : 'wvStationN', x: wx, dist: 6, dy: -liftM }); }
     if (liftM > 3 && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.backM && q < CN) { const N2 = NEON_CORNER, D2 = NeonAvenue.D;      // THE BACK ROAD behind the towers, from its roundabout
       if (q === N2.NRQ) out.push({ prop: 'nrRound', x: N2.NRC + D2, dist: 6, dy: -liftM });
       if (q > N2.NRQ) { const a0 = N2.backM(q), a1 = N2.backM(q + 1), bd = Math.abs(a1 - a0) > 0.01; out.push({ prop: bd ? 'nrRoadC' : 'nrRoad', x: (a0 + a1) / 2 + D2, dist: 6, dy: -liftM, rotY: -Math.atan((a1 - a0) / 12) });
@@ -737,6 +743,7 @@ const NeonAvenue = {
       if (q === 68) for (let i = o.length - 1; i >= 0; i--) if (o[i].prop === 'ftPlainB') o.splice(i, 1);      // (the user, a red mark on it: "enlever": the plain twin tower that stood ahead of the walled ramp, removed)
       for (const p of o) p.solo = true; return o; };
   }
+  for (const n of ['GreenA', 'GreenB', 'GreenC', 'PlainA', 'PlainB', 'StationN', 'StationF']) props['wv' + n] = props['ft' + n];      // (the west row's copies)
   NeonAvenue.props = props;
   if (ENV3D.neon) Object.assign(ENV3D.neon.props, props);
 
