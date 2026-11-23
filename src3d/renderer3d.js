@@ -75,7 +75,7 @@ class Renderer3D {
     this.road = new Road3D(this.scene, envs, this.baseId);
 
     // scenery: one shared geometry per prop name (first biome that defines it wins), a bounded pool per name
-    const CAP = { artRail: 60, artFloor: 60, cnGlass: 40, cnFloor0: 20, cnFloor1: 20, cnFloor2: 20, cnFloor3: 20, cnFloor4: 20, cnWall: 30, cnRail: 30, lamp: 100,      // (ART CITY's rails and floor: both sides of every slot in view)
+    const CAP = { lpGlass: 64, lpLift: 8, artRail: 60, artFloor: 60, cnGlass: 40, cnFloor0: 20, cnFloor1: 20, cnFloor2: 20, cnFloor3: 20, cnFloor4: 20, cnWall: 30, cnRail: 30, lamp: 100,      // (ART CITY's rails and floor: both sides of every slot in view)
        tree: 120, bench: 50, planter: 130, bush: 60, stall: 40, stallB: 40, pine: 110, pineTall: 90, oak: 90, birch: 70, fbush: 80, rock: 60, log: 40, fence: 60, gore: 4,
                   wall: 70, cafe: 40, bollard: 40, barrel: 40, boulder: 30, stump: 30, flowers: 40,                       // street furniture and roadside details
                   fountain: 6, clockTower: 6, statue: 6, cabin: 6, giantOak: 8, standingStones: 6, marketHall: 6, bigTent: 6,   // landmarks: at most one per stretch and side
@@ -101,7 +101,7 @@ class Renderer3D {
       const props = envs[id].props; if (!props) continue;
       for (const name of Object.keys(props)) {
         if (this.props[name]) continue;
-        const m = props[name](), cap = /^house/.test(name) ? 26 : /^(pk(cn|ft|GlassD|Rise|Top|TubeDv|Slip)|sdSlip|sgRamp|sgHigh|sgTun|nrRound|sgTri|sgVault|sgWalk|sgHall|bkB|ndC|dsB\d|dsR\d|dsM|mlA\d)/.test(name) ? 3 : /^sign/.test(name) ? 4 : CAP[name] || 28, list = [];
+        const m = props[name](), cap = /^house/.test(name) ? 26 : /^(pk(cn|ft|GlassD|Rise|Top|TubeDv|Slip)|sdSlip|sgRamp|sgHigh|sgTun|nrRound|sgTri|sgVault|sgWalk|sgHall|lpP|lpX|bkB|ndC|dsB\d|dsR\d|dsM|mlA\d)/.test(name) ? 3 : /^sign/.test(name) ? 4 : CAP[name] || 28, list = [];
         for (let i = 0; i < cap; i++) {
           // textured panels (trees: TreeSprite; the neon billboard and tower facades: NeonArt) are a `sprite` geometry with its own material, optionally beside ordinary merged geometry (`merged`)
           let g;
