@@ -546,7 +546,7 @@ class Renderer {
   drawHud(g) {
     const w = g.world, p = g.p, T = w.track, pulse = g.coinPulse > 0, pk = g.pk, dy = pk ? 9 : 0;        // pk: the 3D build's power-ups, shards and missions (null in the classic game: nothing below changes)
     this.plate(3, 3, 62, pk ? 33 : 24);
-    this.txt('DIST ' + Math.floor(p.z / 10) + ' M', 7, 6, C.bone);
+    this.txt('DIST ' + Math.floor((p.z + (g.distAdd || 0)) / 10) + ' M', 7, 6, C.bone);
     if (this.menu3d) {                                      // the 3D coin's rings, small: lilac rim, pink, green, cream, lime, mint core
       const cx = 11, cy = pulse ? 18 : 19;
       [[5, '#d9baff'], [4.4, '#ff2a8a'], [3.8, '#62d444'], [2.8, '#e9f7a8'], [2.1, '#8dff1f'], [1.4, '#52ff2e'], [0.7, '#c8ffb8']].forEach(([r, col]) => { this.ctx.fillStyle = col; this.ctx.beginPath(); this.ctx.arc(cx, cy, r, 0, 6.2832); this.ctx.fill(); });
@@ -681,7 +681,7 @@ class Renderer {
     if (g.pk) {                                                                    // the 3D build: a taller panel with what this run earned and what is saved
       const pk = g.pk; this.panel(80, 14, 160, 128);
       this.ctr('GAME OVER', 20, C.burgL, 3, C.ink);
-      this.ctr('DIST ' + Math.floor(g.p.z / 10) + ' M', 44, C.bone);
+      this.ctr('DIST ' + Math.floor((g.p.z + (g.distAdd || 0)) / 10) + ' M', 44, C.bone);
       this.ctr('COINS ' + g.coins, 53, C.amberL);
       this.ctr('SCORE ' + g.score(), 62, C.bone);
       this.ctr('BEST ' + g.best, 71, C.tealL);
@@ -691,7 +691,7 @@ class Renderer {
     } else {
     this.panel(80, 30, 160, 112);
     this.ctr('GAME OVER', 38, C.burgL, 3, C.ink);
-    this.ctr('DIST ' + Math.floor(g.p.z / 10) + ' M', 64, C.bone);
+    this.ctr('DIST ' + Math.floor((g.p.z + (g.distAdd || 0)) / 10) + ' M', 64, C.bone);
     this.ctr('COINS ' + g.coins, 74, C.amberL);
     this.ctr('SCORE ' + g.score(), 86, C.bone);
     this.ctr('BEST ' + g.best, 96, C.tealL);

@@ -161,7 +161,7 @@ class Game {
     const ahead0 = this.world.playerBand(300, 0);                                    // the atmosphere starts as the road ahead looks (the run opens in the neon quarter), not eased in from the base look
     this.bgT = ahead0.t; this.bgTo = ahead0.t > 0 ? ahead0.to : this.world.baseBiome; this.canopy = 0; this.flash = 0; this.overT = 0; this.overDelay = 0.5;
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
-    this.scene = null; this.fadeIn = 0; this.ride = null; this.fadeOut = 0; if (typeof NEON_CORNER !== 'undefined') NEON_CORNER.arm = null;                                                 // no cutscene running, no fade
+    this.scene = null; this.fadeIn = 0; this.ride = null; this.fadeOut = 0; this.distAdd = 0;                                                  // no cutscene running, no fade
     this.corner = null; this.detour = null; if (this.world) { this.world.extraLift = null; this.world.extraOff = null; this.world.noRoad = null; }                                             // the neon corner: no pivot running, not in the picture district (NEON_CORNER)
     this.onLane = false; this.trick = null; this.olliePop = null; this.ollieDone = false; this.combo = 0; this.stuntPts = 0; this.camFP = false; this.riding = false; this.vehicle = 'scooter';
     { const rm = typeof location !== 'undefined' && location.search.match(/[?&]ride=(scooter|bike)/); if (rm) { this.riding = true; this.vehicle = rm[1]; } }      // ?ride=scooter / ?ride=bike: the run starts on that vehicle (a link to try it) this.scooterHint = null; this.surf = false;                // on foot, no indicator, not on the water
@@ -206,7 +206,7 @@ class Game {
     if (p.x < -0.25) return 'left';
     return 'right';
   }
-  score() { return Math.floor(this.p.z / 10) + this.coins * 10 + (this.pk ? this.pk.bonus : 0) + (this.stuntPts || 0) * 10; }
+  score() { return Math.floor((this.p.z + (this.distAdd || 0)) / 10) + this.coins * 10 + (this.pk ? this.pk.bonus : 0) + (this.stuntPts || 0) * 10; }
 
   jump() { this.jumpBuf = 0.12; } // buffered: a press just before landing still jumps
   // down: fast-fall in the air; on the ground start a slide (a slide already under way is not restarted, so taps can't chain)
@@ -394,29 +394,39 @@ class Game {
     }
   }
 
-  // THE HIGH LOOP's lifts (NEON_CORNER.LPX; the step above starts them): the run holds still, this.ride = { x, y } (metres) carries the runner and the camera through the scenery, which
-  // stays where it stands (Renderer3D). 'up': into the square tunnel's glass lift and up to its second floor, a fade, then the loop's west leg from its south end. 'out': down a
-  // station's lift to its glass link, along it onto the walled ramp, and the run goes on there (the detour's glass 3, as if taken from the back road).
+  // THE HIGH LOOP (NEON_CORNER.TOUR; the step above starts it): the run holds still, this.ride = { x, y, z, yaw } (metres, radians) carries the runner and the camera through the scenery,
+  // which stays where it stands (Renderer3D). 'up': into the square tunnel's glass lift and up to its second floor, a fade. 'tour': the grand tour of the loop, on rails at the run's
+  // speed, a quarter turn at every corner; it ends on the glass ramp down to the 11 m track (the detour's glass 'N'), where the run goes on.
   rideStep(dt) {
-    const C = NEON_CORNER, r = this.ride, w = this.world, p = this.p, e = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }; r.t += dt;
-    if (r.kind === 'up') { r.x = C.LPLX * e(r.t / 0.7); r.y = C.LPLY / 10 * e((r.t - 0.6) / 1.8); this.fadeOut = Math.max(0, Math.min(1, (r.t - 1.7) / 0.6));
-      if (r.t >= 2.4) { this.ride = null; this.loopShift(27, { glass: 'L', askedL: true, wantL: false, wantX: false, tour: 1 }, 'LA BOUCLE'); } return; }
-    const Q = r.q || C.LPOUT, DX = C.armO(Q, Q) - C.LPX, DY = (C.LPY - C.LPH) / 10; r.y = DY * e(r.t / 1.5); r.x = DX * e((r.t - 1.4) / 2.6);
-    if (r.t < 4.0) return;
-    const zQ = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT, zC = zQ + C.G3Q * C.SLOT, zE = zQ + C.G3E * C.SLOT, d = Object.assign({}, this.detour, { asked2: true, asked4: true, glass: 3, zC, zE3: zE, wantX: false, arm: Q }); C.arm = Q;
-    if (C.DN && !d.dist) { const P = w.pieceAt(p.z), add = C.DN * C.SLOT, old = w.stretch(P, add); if (old !== null) { if (this.portal && this.portal.shift) this.portal.shift(old, add); d.z1 = zQ + (C.CANYON + C.DOWN + C.DN) * C.SLOT; } }
-    w.noRoad = z => z > zQ && z < zE; w.items = w.items.filter(it => !(it.z >= zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2))));
-    w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.ride = null; this.onLane = false; this._bkT = null; this.banner = { t: 1.8, text: 'GLASS RAMP - 19 M' };
+    const C = NEON_CORNER, r = this.ride, e = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }; r.t += dt;
+    if (r.kind === 'up') { r.x = C.LPLX * e(r.t / 0.7); r.y = C.LPLY / 10 * e((r.t - 0.6) / 1.8); this.fadeOut = Math.max(0, Math.min(1, (r.t - 1.7) / 0.6)); if (r.t >= 2.4) this.tourStart(); return; }
+    this.tourStep(dt);
   }
-  // (the detour's frame moves on by n whole slots, the piece grows by as much: the runner, who has not moved, is n slots earlier along the avenue; done under a fade)
-  loopShift(n, extra, text) {
-    const C = NEON_CORNER, w = this.world, p = this.p, add = n * C.SLOT, old = w.stretch(w.pieceAt(p.z), add); this.fadeOut = 0;
-    if (old === null) { this.detour.askedL = true; return; }
-    if (this.portal && this.portal.shift) this.portal.shift(old, add);
-    const d = Object.assign({}, this.detour, extra); for (const k of ['z0', 'z1', 'zG', 'zS', 'zE3', 'zLE']) if (typeof d[k] === 'number') d[k] += add;
-    d.zC = p.z - C.SLOT; const zT = d.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT, zE = d.z1 - C.EXIT * C.SLOT;
-    w.noRoad = z => z > zT && z < zE; w.items = w.items.filter(it => !(it.z >= d.zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2))));
-    w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.fadeIn = 1; this.banner = { t: 2, text }; this.emit('corner');
+  tourStart() {
+    const C = NEON_CORNER, w = this.world, p = this.p, d = Object.assign({}, this.detour, { glass: 'L', askedL: true, wantL: false });
+    w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.fadeOut = 0; this.fadeIn = 1; p.jy = 0; p.vy = 0; p.slide = 0; this.onLane = false; this._bkT = null;
+    this.ride = { kind: 'tour', t: 0, x: 0, y: 0, z: 0, yaw: Math.PI, i: 0, s: 0, run: 0, d0: p.z + (this.distAdd || 0), turn: null };
+    this.banner = { t: 2.4, text: 'LA BOUCLE - GRAND TOUR' }; this.emit('corner'); this.tourStep(0);
+  }
+  // (the scenery is laid for a few slots behind the run's place and some twenty ahead of it: the run's place is kept that far "ahead" of the runner the way it looks: 19 slots back
+  //  when it runs south, half of that across; DIST goes on counting the way run, distAdd)
+  tourStep(dt) {
+    const C = NEON_CORNER, w = this.world, p = this.p, r = this.ride, T = C.TOUR, e = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }, yawOf = (a, b) => Math.atan2(a[0] - b[0], b[1] - a[1]);
+    p.speed = Math.min(MAX_SPEED, p.speed + ACCEL * dt); if (this.pk) this.pk.update(dt);      // (the power-ups' timers and the toasts go on: the tour is part of the run)
+    if (r.turn) { r.turn.t += dt; r.yaw = r.turn.a + r.turn.d * e(r.turn.t / C.TOUR_T); if (r.turn.t >= C.TOUR_T) { r.yaw = r.turn.a + r.turn.d; r.turn = null; } }
+    else if (r.i < T.length - 1) { const a = T[r.i], b = T[r.i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]), ds = p.speed * dt / 10; r.s += ds; r.run += ds;
+      if (r.s >= L) { r.run -= r.s - L; r.s = 0; r.i++; let dd = (r.i < T.length - 1 ? yawOf(T[r.i], T[r.i + 1]) : 0) - r.yaw; dd -= Math.round(dd / (2 * Math.PI)) * 2 * Math.PI; r.turn = { t: 0, a: r.yaw, d: dd }; this.emit('corner'); } }
+    const a = T[r.i], b = T[Math.min(T.length - 1, r.i + 1)], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, k = r.s / L, X = a[0] + (b[0] - a[0]) * k, Z = a[1] + (b[1] - a[1]) * k;
+    const ofs = 9.5 * (1 - Math.cos(r.yaw)), zQ = this.detour.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT;
+    p.z = zQ + Z * 10 - ofs * C.SLOT; r.z = ofs * C.SLOT / 10; r.x = X - C.LPX; r.y = 0;
+    p.x = w.playerBand(p.z, 0).c; this.camRel = 0; this.camErr = 0; this.prevTgt = p.x; this.distAdd = r.d0 + r.run * 10 - p.z;
+    if (r.i >= T.length - 1 && !r.turn) this.tourEnd();
+  }
+  tourEnd() {
+    const C = NEON_CORNER, w = this.world, p = this.p, d = Object.assign({}, this.detour, { glass: 'N', zC: p.z }), zE = d.z1 - C.EXIT * C.SLOT;
+    w.items = w.items.filter(it => !(it.z >= d.zC && it.z <= zE && (OBST[it.kind] || it.kind === 'raceGate' || (it.kind === 'coin' && Math.abs(it.x) > 0.2))));
+    w.extraLift = z => C.lift(d, z); w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; this.ride = null;
+    p.x = w.playerBand(p.z, 0).c; this.camRel = 0; this.camErr = 0; this.prevTgt = p.x; this.onLane = false; this._bkT = null; this.banner = { t: 2.2, text: 'RAMPE VITREE - 11 M' };
   }
 
   // the pivot at the neon corner: the run holds still for NEON_CORNER.T seconds while the camera and the runner turn 90 degrees left (Renderer3D), then the run goes on in the picture district:
@@ -431,8 +441,7 @@ class Game {
 
   step(dt) {
     const w = this.world, p = this.p, prevZ = p.z, pk = this.pk;
-    if (NEON_CORNER.arm != null && !(this.detour && this.detour.arm != null)) NEON_CORNER.arm = null;      // (the loop's exit taken belongs to its detour)
-    if (this.ride) { this.rideStep(dt); return; }                                  // (in a lift of the high loop: the run holds still)
+    if (this.ride) { this.rideStep(dt); return; }                                  // (in the lift of the high loop, and on its grand tour: the run holds still)
     p.speed = Math.min(MAX_SPEED, p.speed + ACCEL * dt);
     if (pk) pk.update(dt);                                                         // power-up timers, mission distance, toasts: only ever advance here, so a pause or a cutscene freezes them
     p.z += p.speed * (pk ? pk.speedMul : 1) * (this.riding && this.vehicle === 'bike' ? 1.12 : 1) * dt;      // (the sport e-bike is 12 % faster)                                  // the dash: a forward boost on top of the run's own speed ramp
@@ -525,20 +534,13 @@ class Game {
         if (C.DN) { const P = w.pieceAt(p.z), add = C.DN * C.SLOT, old = w.stretch(P, add); if (old !== null) { if (this.portal && this.portal.shift) this.portal.shift(old, add); d.z1 = zQ + (C.CANYON + C.DOWN + C.DN) * C.SLOT; } }
         w.noRoad = z => z > zL && z < zE; w.extraLift = null; w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; }
     }
-    if (this.detour && this.detour.side && (this.detour.glass === 2 || this.detour.glass === 'L') && typeof NEON_CORNER.LPX === 'number') {      // THE HIGH LOOP as an interchange, stage 1 (NEON_CORNER.LPX): the lift of the square tunnel up to it, its west leg, the exit at one station, the next tour
+    if (this.detour && this.detour.side && (this.detour.glass === 2 || this.detour.glass === 'N') && typeof NEON_CORNER.LPX === 'number') {      // THE HIGH LOOP (NEON_CORNER.TOUR): the lift of the square tunnel up to it and its grand tour (rideStep); then the 11 m glass track, down to the circuit
       const C = NEON_CORNER, d0 = this.detour, zQ = d0.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT, R = this.keys.right || this.tright, L = this.keys.left || this.tleft, at = q => zQ + q * C.SLOT, cross = q => prevZ < at(q) && p.z >= at(q);
       if (d0.glass === 2 && !d0.askedL) {
         if (cross(C.LPIN - 3)) this.banner = { t: 2.4, text: 'ASCENSEUR : DROITE' };
         if (p.z > at(C.LPIN - 3) && p.z < at(C.LPIN)) { if (R) { if (!d0.wantL) this.banner = { t: 1.4, text: 'ASCENSEUR' }; d0.wantL = true; } else if (L) d0.wantL = false; }
         if (cross(C.LPIN)) { if (!d0.wantL) d0.askedL = true; else { p.z = at(C.LPIN); this.ride = { kind: 'up', t: 0, x: 0, y: 0 }; this.emit('corner'); } }
-      } else if (d0.glass === 'L') {
-        const s = (C.LPST || [C.LPOUT]).find(q => prevZ < at(q));      // the next station: each of the four has its exit
-        if (s !== undefined && cross(s - 2)) this.banner = { t: 2.0, text: 'SORTIE : DROITE' };
-        if (s !== undefined && p.z > at(s - 2) && p.z < at(s)) { if (R) { if (!d0.wantX) this.banner = { t: 1.4, text: 'SORTIE - RAMPE 19 M' }; d0.wantX = true; } else if (L) d0.wantX = false; }
-        if (s !== undefined && cross(s) && d0.wantX) { p.z = at(s); this.ride = { kind: 'out', q: s, t: 0, x: 0, y: 0 }; this.emit('corner'); }
-        else { this.fadeOut = Math.max(0, Math.min(1, (p.z - at(C.LPW - 0.7)) / (0.7 * C.SLOT)));      // (the leg's north end: a fade, and the next tour from its south end)
-          if (p.z >= at(C.LPW)) { const n = (d0.tour || 1) + 1; this.loopShift(18, { tour: n, wantX: false }, 'TOUR ' + n); } }
-      }
+      } else if (d0.glass === 'N' && p.z >= at(C.NEND)) { const d = Object.assign({}, d0, { glass: null }); w.extraLift = null; w.extraOff = z => C.off(d, z); w.ver++; this.detour = d; }      // (on the circuit again: the side road's detour from here)
     }
     if (this.detour && this.detour.decided && !this.detour.dist && !this.detour.distNo && !this.detour.land && !(this.detour.glass >= 3) && this.detour.glass !== 'L' && !this.ride && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.DN) {      // THE CENTRAL DISTRICT for every way (the user, 2026-11-22: "je veux que la suite de toutes ces connexions va au district 1400"): the glass avenue, the underground tunnel, the car park, the side road and its glass ramps no longer end in the short tunnel back: 20 slots before it (every choice is made by then) the district's avenue is laid straight on in its place
       const C = NEON_CORNER, zS = this.detour.z1 - C.EXIT * C.SLOT;

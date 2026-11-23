@@ -552,8 +552,9 @@ class Renderer3D {
     this.heading += (-Math.atan(slope) - this.heading) * (1 - Math.exp(-10 * dt));
     const trk = g.trick, trkA = trk ? Math.min(1, trk.t / trk.dur) : 0, ease = x => x * x * (3 - 2 * x);      // THE STUNTS (Game.stunt): SPIN turns the rider and the vehicle a full turn (here), FLIP turns the vehicle (RunnerSprite)
     let cornerA = 0; if (g.corner && !(this.xr && this.xr.presenting)) { const k = Math.min(1, g.corner.t / NEON_CORNER.T); cornerA = Math.PI / 2 * k * k * (3 - 2 * k); }   // THE NEON CORNER's pivot angle
-    this.runner.group.rotation.y = Math.PI * mm + this.heading * (1 - mm) + cornerA + (trk && trk.kind === 'spin' ? Math.PI * 2 * ease(trkA) : 0);
-    this.runner.update(dt, { beat: pulse, faceYaw: Math.atan2(this.cam.x - relX, this.cam.z) + cornerA, time: g.time, runRate: 2.3 + p.speed / 340 * 1.1, airborne: p.jy > 0, vy: p.vy, sliding: p.slide > 0,
+    const rideA = g.ride && g.ride.yaw || 0;                                             // (on the high loop's grand tour the runner is turned the way it runs, Game.tourStep)
+    this.runner.group.rotation.y = Math.PI * mm + this.heading * (1 - mm) + cornerA + rideA + (trk && trk.kind === 'spin' ? Math.PI * 2 * ease(trkA) : 0);
+    this.runner.update(dt, { beat: pulse, faceYaw: (rideA && this.faceBase != null ? this.faceBase + rideA : Math.atan2(this.cam.x - relX, this.cam.z)) + cornerA, time: g.time, runRate: 2.3 + p.speed / 340 * 1.1, airborne: p.jy > 0, vy: p.vy, sliding: p.slide > 0,
                              absorb: absK, absorbSpin: absSpin, lean: Math.max(-1, Math.min(1, p.vx / STEER)), state: g.state, scooter: this.riding(g) || !!g.surf, vehicle: g.surf ? 'surf' : g.vehicle || 'scooter', kmh: Math.round(p.speed * 0.36 * (g.pk ? g.pk.speedMul : 1)), flip: trk && trk.kind === 'flip' ? Math.PI * 2 * ease(trkA) : 0, pop: g.olliePop ? Math.sin(Math.min(1, g.olliePop.t / 0.45) * Math.PI) : 0 });      // (on the e-bike the flip is a tailwhip: RunnerSprite turns its frame about the vertical)
     if (absK && !(this.runner instanceof RunnerSprite)) this.runner.group.rotation.y += absSpin;      // (the 3D-model avatar has no card to turn: its group turns)
 
@@ -597,7 +598,10 @@ class Renderer3D {
       const a = 1 - Math.exp(-5 * dt); this.scCam.x += (tx - this.scCam.x) * a; this.scCam.y += (ty - this.scCam.y) * a; this.scCam.z += (tz - this.scCam.z) * a; this.scLook.x += (lx - this.scLook.x) * a; this.scLook.y += (ly - this.scLook.y) * a; this.scLook.z += (lz - this.scLook.z) * a;
       this.cam.lerp(this.scCam, k); this.look.lerp(this.scLook, k);
     }
-    if (g.ride && (g.ride.x || g.ride.y)) { const rx = g.ride.x, ry = g.ride.y, gp = this.runner.group, sh = this.runner.shadow; this.cam.x += rx; this.cam.y += ry; this.look.x += rx; this.look.y += ry; gp.position.x += rx; gp.position.y += ry; sh.position.x += rx; sh.position.y += ry; }      // THE HIGH LOOP's lifts (Game.rideStep): the runner and the camera ride through the scenery
+    this.faceBase = Math.atan2(this.cam.x - relX, this.cam.z);                           // (where the camera stands round the runner, before the ride below carries both away: the runner's card is turned to it)
+    if (g.ride && (g.ride.x || g.ride.y || g.ride.z || g.ride.yaw)) { const R = g.ride, rx = R.x, ry = R.y, rz = -(R.z || 0), ya = R.yaw || 0, gp = this.runner.group, sh = this.runner.shadow;      // THE HIGH LOOP (Game.rideStep): the runner and the camera ride through the scenery, which stays; on its grand tour they are turned too (yaw) and carried along it (z, metres ahead)
+      if (ya) { const ca = Math.cos(ya), sa = Math.sin(ya); for (const v of [this.cam, this.look]) { const dx = v.x - relX, dz = v.z; v.x = relX + dx * ca + dz * sa; v.z = -dx * sa + dz * ca; } }
+      for (const v of [this.cam, this.look, gp.position, sh.position, this.perk && this.perk.bubble && this.perk.bubble.position]) if (v) { v.x += rx; v.y += ry; v.z += rz; } }
     let eye = this.camera.position;
     if (XRP) { this.xr.applyMain(this.cam, this.look, dt); eye = this.xr.eyeWorld(this._eye || (this._eye = new THREE.Vector3())); }
     else { this.camera.position.copy(this.cam); this.camera.lookAt(this.look); }
