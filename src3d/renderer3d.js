@@ -505,6 +505,14 @@ class Renderer3D {
       if (it.kind === 'prop') { this.place(it.spr, x, WALK_Y + iy, zr, 0); continue; }
       if (it.kind === 'coin' || this.items.extraSet[it.kind]) this.items.place(it.kind, x, it.h * U.Y + iy, zr); else { const pg = this.items.place(it.street && this.items.pool[it.kind + 'S'] ? it.kind === 'barrier' && Math.floor(it.z / 100) % 2 ? 'barrierB' : it.kind + 'S' : it.wet && this.items.pool[it.kind + 'W'] ? it.kind + 'W' : it.kind, x, iy, zr, /^vic/.test(it.kind) && it.x < 0 ? Math.PI : 0); /* (the street's hazards stand against a wall: their models are built for the right-hand one) */ if (killer && it === killer.it && pg) this.kill = { x, y: iy, z: zr, g: pg }; }   // coins and the collectibles hang at their height; the hazard that ended the run is remembered (the vortex that absorbs the runner)
     }
+    // THE GRIND's LOW WALLS (Game.ledgeAt): beside the bike lane, a dark wall 0.5 m high with a glowing rail on top, in 4 m pieces that follow the lane
+    if (g.ledgeAt && g.bikeLane) { if (!this.ledgeP) { this.ledgeP = []; const gB = new THREE.BoxGeometry(0.5, 0.5, 4.02), gR = new THREE.BoxGeometry(0.2, 0.07, 4.02), gE = new THREE.BoxGeometry(0.56, 0.1, 4.02), mB = new THREE.MeshBasicMaterial({ color: 0x5a3fc0 }), mR = new THREE.MeshBasicMaterial({ color: 0x35e6ff }), mE = new THREE.MeshBasicMaterial({ color: 0xff5ad6 });
+        for (let n = 0; n < 40; n++) { const G3 = new THREE.Group(), b3 = new THREE.Mesh(gB, mB), r3 = new THREE.Mesh(gR, mR), e3 = new THREE.Mesh(gE, mE); b3.position.y = 0.25; r3.position.y = 0.535; e3.position.y = 0.05; G3.add(b3, r3, e3); G3.visible = false; this.scene.add(G3); this.ledgeP.push(G3); } }
+      let n = 0; const NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : null, d = g.detour;
+      for (let zq = Math.floor((p.z - 140) / 40) * 40; zq < p.z + 1500 && n < 40; zq += 40) { const L = g.ledgeAt(zq + 20); if (!L) { const nx = (Math.floor(zq / 120 / 12) * 12 + (Math.floor(zq / 120) % 12 >= 8 ? 16 : 4)) * 120; if (nx > zq + 40) zq = nx - 40; continue; }
+        const B = g.bikeLane(zq + 20); if (!B) continue; const X = B.c + L.off, bn = w.bandNear(zq + 20, X), qf = NC && d ? (zq + 20 - d.z0) / NC.SLOT - (NC.STREET + NC.TUNNEL + NC.ART) : 0, o = this.ledgeP[n++];
+        o.position.set((X + bn.off) * U.X - Lref, dy(zq + 20) + (NC && d && NC.laneH ? NC.laneH(qf) : 0), -(zq + 20 - p.z) * U.Z); o.visible = true; }
+      for (; n < 40; n++) this.ledgeP[n].visible = false; }
     { const bt2 = g.sfx ? g.sfx.beat() : null, on = this.coastDance && bt2, pu = on ? bt2.pulse * (0.45 + 0.55 * bt2.energy) : 0, bb = on ? bt2.beat : 0;
       for (const name of ['coastParasol', 'buoy', 'boat', 'tuft', 'tuftBig']) { const pool = this.props[name]; if (!pool) continue;
         for (let n = 0; n < this.propUsed[name]; n++) { const o = pool[n], ph = n * 1.9;
@@ -527,11 +535,11 @@ class Renderer3D {
     }
 
     // ---- runner (absolute lateral on its road, jump height in metres)
-    const pb = w.playerBand(p.z, p.x), relX = (p.x + pb.off) * U.X - Lref;
+    const pb = w.playerBand(p.z, p.x), relX = (p.x + pb.off + (g.grindK || 0) * (g.grindOff || 0)) * U.X - Lref;      // (THE GRIND: over onto the low wall)
     { const NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : null, d = g.detour, qf = NC && d ? (p.z - d.z0) / NC.SLOT - (NC.STREET + NC.TUNNEL + NC.ART) : 0, h = !NC || !d || !NC.walkH ? 0 : d.walk && qf >= NC.WALK_Q && qf < NC.CANYON + NC.DOWN + NC.WALK_END ? NC.walkH(qf) : g.onLane && qf > -NC.ART && qf < NC.CANYON + NC.DOWN + 118 ? NC.laneH(qf) : 0;      // (THE WALK and ART CITY's BIKE LANE: the runner stands ON the dirt, the paving, the sand and the lane's strip, not sunk in them)
       this._wkH = (this._wkH || 0) + (h - (this._wkH || 0)) * Math.min(1, dt * 8); if (Math.abs(this._wkH - h) < 0.002) this._wkH = h; }
     const lift = (SC ? 0.85 * Math.max(0, Math.min(1, ((p.x + pb.off) * U.X - 6.6) / 0.8)) : 0) + this._wkH;       // in the cutscene the runner steps up onto the platform (0.85 m)
-    this.runner.group.position.set(relX, p.jy * U.Y + lift, 0); this.runner.group.visible = !(SC && SC.boarded);
+    this.runner.group.position.set(relX, p.jy * U.Y + lift + (g.grind ? g.grindY : 0), 0); this.runner.group.visible = !(SC && SC.boarded);
     // THE VORTEX ABSORBS THE RUNNER (a crate ended the run): for 0.8 s the runner is pulled to the middle of the disc, turning faster and faster, shrinking, sinking into the spiral (the disc is solid, so the part below its
     // top is hidden: it goes down the hole); the disc spins up and its funnel swells. Absorbing means `absK` > 0; otherwise the runner is as ever.
     let absK = 0, absSpin = 0, absAt = null; this.items.absorbing = null;

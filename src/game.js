@@ -84,14 +84,15 @@ class Game {
       if (!c && this.state === 'race' && this.race && this.race.honour && this.race.honour.ph === 'free' && this.mouse.y < 32) { this.honourExit = true; return; }      // (the honour lap: a tap on the top bar leaves)
       if (!c && this.state === 'race' && this.race && this.race.kart && this.mouse.y < 32) { this.kartCam = (this.kartCam || 0) ? 0 : 1; return; }      // a tap on the top of the screen (the progress bars) switches the kart camera                // a tap or click on the ring gets on the scooter (the touch buttons keep priority)
       if (!c && this.state === 'race' && this.race && this.race.kart && !this.race.menu && !(this.race.intro > 0) && this.mouse.y >= 32 && !(this.r && this.r.xr && this.r.xr.presenting)) { const L = this.look, now = performance.now(); if (now - (L.tap || 0) < 320) { L.yaw = L.pitch = 0; } L.tap = now; L.drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; L.last = now; return; }
-      if (c) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} this.hold(e.pointerId, c.id, true); if (this.state === 'race') this.laneQ = (this.laneQ || 0) + (c.id === 'right' ? 1 : c.id === 'left' ? -1 : 0); }
+      if (c) { try { cv.setPointerCapture(e.pointerId); } catch (err) {} if (c.id === 'ollie') { this.grindP = { id: e.pointerId, x: e.clientX }; this.grindDir = 0; } this.hold(e.pointerId, c.id, true); if (this.state === 'race') this.laneQ = (this.laneQ || 0) + (c.id === 'right' ? 1 : c.id === 'left' ? -1 : 0); }
     });
     addEventListener('pointermove', e => { const L = this.look; if (L.drag && L.drag.id === e.pointerId) { const dx = e.clientX - L.drag.x, dy = e.clientY - L.drag.y; L.drag.x = e.clientX; L.drag.y = e.clientY; L.yaw = Math.max(-Math.PI, Math.min(Math.PI, L.yaw - dx * 0.006)); L.pitch = Math.max(-1.2, Math.min(1.2, L.pitch - dy * 0.0045)); L.last = performance.now(); } });
+    addEventListener('pointermove', e => { const G = this.grindP; if (!G || G.id !== e.pointerId) return; const r = cv.getBoundingClientRect(), dx = (e.clientX - G.x) * VW / r.width; this.grindDir = dx < -5 ? -1 : dx > 5 ? 1 : 0; });      // THE GRIND: the HOP key held and dragged to the left or to the right (towards the low wall)
     addEventListener('pointermove', e => { // sliding a finger between left and right keeps steering
       if (this.held[e.pointerId] !== 'left' && this.held[e.pointerId] !== 'right') return;
       const c = zone(); this.hold(e.pointerId, c && (c.id === 'left' || c.id === 'right') ? c.id : null, false);
     });
-    const lift = e => { delete this.held[e.pointerId]; this.syncTouch(); if (this.look.drag && this.look.drag.id === e.pointerId) { this.look.drag = null; this.look.last = performance.now(); } };
+    const lift = e => { delete this.held[e.pointerId]; this.syncTouch(); if (this.grindP && this.grindP.id === e.pointerId) { this.grindP = null; this.grindDir = 0; } if (this.look.drag && this.look.drag.id === e.pointerId) { this.look.drag = null; this.look.last = performance.now(); } };
     addEventListener('pointercancel', lift);
     addEventListener('pointerup', e => { // a click counts when released over the same button it started on
       lift(e);
@@ -163,7 +164,7 @@ class Game {
     this.fx = []; this.dustT = 0; this.shake = 0; this.coinPulse = 0; this.jumpBuf = 0;
     this.scene = null; this.fadeIn = 0; this.ride = null; this.fadeOut = 0; this.distAdd = 0;                                                  // no cutscene running, no fade
     this.corner = null; this.detour = null; if (this.world) { this.world.extraLift = null; this.world.extraOff = null; this.world.noRoad = null; }                                             // the neon corner: no pivot running, not in the picture district (NEON_CORNER)
-    this.onLane = false; this.trick = null; this.olliePop = null; this.ollieDone = false; this.combo = 0; this.stuntPts = 0; this.camFP = false; this.riding = false; this.vehicle = 'scooter';
+    this.onLane = false; this.trick = null; this.olliePop = null; this.ollieDone = false; this.combo = 0; this.stuntPts = 0; this.camFP = false; this.riding = false; this.vehicle = 'scooter'; this.grind = null; this.grindK = 0; this.grindY = 0; this.grindDir = 0; this.grindHint = 0; this._ldg = null;
     { const rm = typeof location !== 'undefined' && location.search.match(/[?&]ride=(scooter|bike)/); if (rm) { this.riding = true; this.vehicle = rm[1]; } }      // ?ride=scooter / ?ride=bike: the run starts on that vehicle (a link to try it) this.scooterHint = null; this.surf = false;                // on foot, no indicator, not on the water
     this.carryC = 0; this.lane2 = 0; this.lean = 0; this.kick = null; this.sway = 0; this.prompt = null; this.banner = null;
     if (this.r.onReset) this.r.onReset(this);
@@ -244,7 +245,7 @@ class Game {
     const w = this.world; if (!this.r || !this.r.layoutFor) return null; const bands = w.bandsAt(z); if (bands.length !== 1) return null; const b = bands[0];
     if (this.detour && !this.detour.up && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.bikeEntry) { const C = NEON_CORNER, rf = (z - this.detour.z0) / C.SLOT - C.STREET - C.TUNNEL, r = Math.floor(rf), qf = rf - C.ART, U = 2.2 / 0.62;      // ART CITY's bike lane (NEON_CORNER.bikeM): open to everyone, on foot too
       if (this.detour.land) return null;
-      if (this.detour.walk && C.walkM && C.far(this.detour) && qf < C.CANYON + C.DOWN + C.WALK_END) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.walkM(qf) - C.sideM(qf)) / U, entry: false, any: true };      // THE WALK (NEON_CORNER.walkM): the dirt track to the paved walk, its sand strip in the district; no way off it before it ends in the district's lane
+      if (this.detour.walk && C.walkM && C.far(this.detour) && qf < C.CANYON + C.DOWN + C.WALK_END) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.walkM(qf) - C.sideM(qf)) / U, entry: false, any: true, walk: true };      // THE WALK (NEON_CORNER.walkM): the dirt track to the paved walk, its sand strip in the district; no way off it before it ends in the district's lane
       if (this.detour.dist && !this.detour.glass && z >= this.detour.zS) { const f = (z - this.detour.zS) / C.SLOT;      // THE CENTRAL DISTRICT's own lane (src3d/env_district.js), BIKE_DX right of its avenue: ART CITY's lane runs into it
         return f < C.DN - 14 / 12 ? { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.BIKE_DX + C.BIKE_G) / U, entry: C.BIKE_IN.some(([i, j]) => f >= i && f < j), any: true } : null; }
       if (r >= 0 && r < C.ART - C.PIN) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) + C.BIKE_G) / U, entry: C.bikeEntry(r), any: true };
@@ -255,9 +256,25 @@ class Game {
     const i = Math.floor(z * U3.Z / SEG_LEN); if (!this.r.layoutFor(b.to, i).some(q => q.prop === 'coastBike')) return null;
     const m = ((i % 20) + 20) % 20; return { edge: b.hi - 0.12, c: b.hi + 0.31, entry: m <= 1 };
   }
+  // THE GRIND (the user, 2026-11-24: "quand le joueur est a cote d'un petit mur ... la bouton doit contenir un geste de slide ... en maintenant appuye et en glissant la bouton a la direction du mur
+  // ... en relachant, revenir a la piste"): low walls stand beside the bike lanes, four slots (48 m) in every twelve, on the left or on the right. On the bike or the scooter, beside one, the
+  // HOP key shows a slide tab on the wall's side: the key held and dragged that way puts the rider on the wall, sliding along it (points all the way); letting go, or the wall's end, brings the rider back to the lane.
+  // ledgeAt(z): { side: -1 | 1, z0, z1, off: the wall's distance from the rider's line (lateral units) } or null
+  ledgeAt(z) { const S = 120, n = Math.floor(z / S), blk = Math.floor(n / 12), k = n - blk * 12; if (k < 4 || k >= 8) return null;
+    if (!this._ldg || this._ldg.size > 40) this._ldg = new Map(); let L = this._ldg.get(blk); if (!L || this.time - L.at > 0.5 || this.time < L.at) { const z0 = (blk * 12 + 4) * S, z1 = (blk * 12 + 8) * S, w = this.world, rel = q => { const B = this.bikeLane(q), b = w.bandsAt(q)[0]; return B && B.any && !B.walk && !B.entry && b ? B.c - (b.lo + b.hi) / 2 : null; };
+      const a = [z0, z0 + S, (z0 + z1) / 2, z1 - S, z1].map(rel), ok = a.every(v => v != null) && Math.max(...a) - Math.min(...a) < 0.02, side = (blk * 7 + 3) % 5 < 2 ? 1 : -1;
+      this._ldg.set(blk, L = { blk, at: this.time, v: ok ? { side, z0, z1, off: side * (side > 0 ? 0.75 : 1.75) * 0.62 / 2.2 } : null }); }
+    return L.v; }
+  grindStep(dt) { const p = this.p, onVeh = this.riding && (this.vehicle === 'bike' || this.vehicle === 'scooter'), BL0 = onVeh && this.onLane ? this.bikeLane(p.z) : null, near = !!BL0 && Math.abs(p.x - BL0.c) < 0.07, L = near ? this.ledgeAt(p.z) : null, A = near && !L ? this.ledgeAt(p.z + 260) : null;
+    this.grindHint = L ? L.side : A ? A.side : 0;
+    const can = !!L && this.grindDir === L.side && this.state === 'play';
+    if (can && !this.grind) { this.grind = { side: L.side, off: L.off, t: 0, y0: p.jy / 10, pts: 0 }; this.trick = null; this.ollieDone = false; this.emit('land'); }
+    else if (!can && this.grind) { const G = this.grind, pts = Math.floor(G.pts); if (pts > 0) { this.stuntPts = (this.stuntPts || 0) + pts; this.banner = { t: 1.4, text: 'SLIDE! +' + pts }; this.emit('coin'); } this.grind = null; p.jy = this.grindY * 10; p.vy = 0; this.grindY = 0; }
+    const G = this.grind; this.grindK = Math.max(0, Math.min(1, this.grindK + (G ? 1 : -1) * dt * 6));
+    if (G) { G.t += dt; G.pts += dt * (this.vehicle === 'bike' ? 5 : 4); p.jy = 0; p.vy = 0; p.slide = 0; const e = Math.min(1, G.t * 6); this.grindY = G.y0 + (0.57 - G.y0) * e; this.grindSide = G.side; this.grindOff = G.off; } }
   touchSet() { return !this.riding ? TOUCH : this.vehicle !== 'board' && !this.camFP && typeof MAG_PAD_ART !== 'undefined' ? TOUCH_MAG : TOUCH_RIDE; }      // (on foot / the scooter with its LCD / any vehicle without, or in the rider's eyes)      // (the magnetic scooter's controller while riding it)
   syncTouch() { const h = Object.values(this.held); this.tleft = h.includes('left'); this.tright = h.includes('right'); }
-  releaseTouch() { this.held = {}; this.syncTouch(); }
+  releaseTouch() { this.held = {}; this.grindP = null; this.grindDir = 0; this.syncTouch(); }
   goFullscreen() { // hides the browser bars and asks for landscape (Android Chrome); silently ignored elsewhere
     try {
       const de = document.documentElement;
@@ -568,6 +585,7 @@ class Game {
       if (p.jy === 0) { p.slide = 0; p.vy = JUMP_V * (this.riding && this.vehicle === 'bike' ? 0.92 : 1); p.jy = 0.01; this.jumpBuf = 0; this.emit('jump'); }      // (the e-bike is heavier: a lower jump)
     }
     if (p.jy > 0) { p.vy -= GRAV * dt; p.jy += p.vy * dt; if (p.jy <= 0) { p.jy = 0; p.vy = 0; this.emit('land'); this.landTrick(); } }
+    this.grindStep(dt);
     if (this.trick) this.trick.t += dt; if (this.olliePop) { this.olliePop.t += dt; if (this.olliePop.t > 0.5) this.olliePop = null; }
     if (p.slide > 0) p.slide = Math.max(0, p.slide - dt);
     this.dust(dt);

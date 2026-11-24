@@ -362,6 +362,14 @@ class Renderer {
     rr(x - 1, y - 1, w + 2, h + 2, 6); c.fillStyle = p > 0.5 ? '#35e6ff' : '#7a3fd0'; c.fill();                                          // the rim: violet, cyan when held
     rr(x + 1, y + 1, w - 2, h - 2, 5); c.fillStyle = p > 0.5 ? '#2a1d44' : '#0d0b16'; c.fill();                                          // the glossy black key
     c.globalAlpha = 0.22 * fade; rr(x + 3, y + 2, w - 6, h * 0.35, 3); c.fillStyle = '#ffffff'; c.fill(); c.globalAlpha = 0.9 * fade;          // its shine (and the arrow stays clear)
+    if (t.id === 'ollie' && t.grind) {                                          // THE GRIND's tab (a low wall is there, on that side): an arrow to drag the key that way, a board on a rail, SLIDE; cyan while sliding
+      const tw = 16, tx = t.grind < 0 ? x - tw - 1 : x + w + 1, mx = tx + tw / 2, col = t.grinding ? '#35e6ff' : '#ff5ad6', a0 = c.globalAlpha;
+      c.globalAlpha = (t.grinding ? 0.9 : 0.7) * fade; rr(tx, y, tw, h, 5); c.fillStyle = col; c.fill(); rr(tx + 1.2, y + 1.2, tw - 2.4, h - 2.4, 4); c.fillStyle = '#0d0b16'; c.fill(); c.globalAlpha = 0.95 * fade;
+      c.strokeStyle = t.grinding ? '#ffffff' : col; c.lineWidth = 1.6; c.lineCap = 'round'; c.lineJoin = 'round';
+      c.beginPath(); c.moveTo(mx - t.grind * 2, y + 3.5); c.lineTo(mx + t.grind * 2.5, y + 6.5); c.lineTo(mx - t.grind * 2, y + 9.5); c.stroke();      // the arrow
+      c.lineWidth = 1.2; c.beginPath(); c.moveTo(tx + 3, y + 14); c.lineTo(tx + tw - 3, y + 14); c.stroke(); c.beginPath(); c.moveTo(mx - 4, y + 12.6); c.lineTo(mx + 4, y + 11.4); c.stroke();      // the rail, the board on it
+      c.fillStyle = c.strokeStyle; c.font = 'bold 4px sans-serif'; c.textAlign = 'center'; c.fillText('SLIDE', mx, y + h - 2); c.globalAlpha = a0;
+    }
     if (t.id === 'ollie') {                                                     // OLLIE: a board popping up (a tilted line, a little arc over it) and its name
       c.strokeStyle = p > 0.5 ? '#ffffff' : '#9ff4ff'; c.lineWidth = 1.8; c.lineCap = 'round'; c.beginPath(); c.moveTo(cx - 7, cy + 1); c.lineTo(cx + 5, cy - 4); c.stroke();
       c.beginPath(); c.arc(cx - 1, cy + 1, 7, 3.6, 5.8); c.stroke(); c.fillStyle = c.strokeStyle; c.font = 'bold 5px sans-serif'; c.textAlign = 'center'; c.fillText(t.label || 'OLLIE', cx, y + h - 2);
@@ -403,7 +411,7 @@ class Renderer {
       const dt = sm.t === null ? 1 : Math.max(0, Math.min(0.1, g.time - sm.t)); sm.t = g.time; this._fade = 1 - (g.fadeIn > 0 ? Math.min(1, g.fadeIn * g.fadeIn) : 0);
       for (const id of ['left', 'right', 'slide', 'jump', 'pause', 'spin', 'flip', 'ollie']) { const target = Object.values(g.held).includes(id) ? 1 : 0, p = sm.press[id] || 0; sm.press[id] = p + (target - p) * (1 - Math.exp(-18 * dt)); }
       // PERFORMANCE: the layer is cleared and redrawn only when something on it changed (a button easing in or out, the fade, a resize), not on every frame: a still layer costs nothing
-      const set = g.touchSet ? g.touchSet() : TOUCH, sig = ['left', 'right', 'slide', 'jump', 'pause', 'spin', 'flip', 'ollie'].map(id => (sm.press[id] || 0).toFixed(2)).join() + '|' + this._fade.toFixed(2) + '|' + sm.cv.width + 'x' + sm.cv.height + '|' + (set === TOUCH ? 'ring' : 'mag' + this.padState(g) + (set.lcd ? 'L' : '') + (g.trick ? 'T' : '') + (g.vehicle || '') + (g.camFP ? 'E' : '') + (Object.values(g.held).includes('scooter') ? 'O' : '') + (typeof RIDE_BTN_ART !== 'undefined' && RIDE_BTN_ART.camImg.complete && RIDE_BTN_ART.offImg.complete ? 'R' : ''));
+      const set = g.touchSet ? g.touchSet() : TOUCH, sig = ['left', 'right', 'slide', 'jump', 'pause', 'spin', 'flip', 'ollie'].map(id => (sm.press[id] || 0).toFixed(2)).join() + '|' + this._fade.toFixed(2) + '|' + sm.cv.width + 'x' + sm.cv.height + '|' + (set === TOUCH ? 'ring' : 'mag' + this.padState(g) + (set.lcd ? 'L' : '') + (g.trick ? 'T' : '') + (g.vehicle || '') + 'g' + (g.grindHint || 0) + (g.grind ? 'G' : '') + (g.camFP ? 'E' : '') + (Object.values(g.held).includes('scooter') ? 'O' : '') + (typeof RIDE_BTN_ART !== 'undefined' && RIDE_BTN_ART.camImg.complete && RIDE_BTN_ART.offImg.complete ? 'R' : ''));
       sm.redraw = sig !== sm.sig; sm.sig = sig;
       if (sm.redraw) { sm.ctx.setTransform(1, 0, 0, 1, 0, 0); sm.ctx.clearRect(0, 0, sm.cv.width, sm.cv.height); sm.dirty = true; sm.draws = (sm.draws || 0) + 1; }
     }
@@ -435,7 +443,7 @@ class Renderer {
         c.fillStyle = C.amberD; c.fillRect(t.x, t.y, t.w, 1); c.fillRect(t.x, t.y + t.h - 1, t.w, 1); c.globalAlpha = 1;
         this.scooterGlyph(t.x + 4, t.y + 5, C.bone); this.txt('HOP OFF', t.x + 20, t.y + 8, C.bone, 1); continue;
       }
-      if (t.mag) { const sh = this.padShake(g), t2 = Object.assign({}, t, { x: t.x + sh[0], y: t.y + sh[1], label: g.vehicle === 'bike' ? { spin: '360', flip: 'WHIP', ollie: 'HOP' }[t.id] : null }); if (sm) { if (sm.redraw) this.magButton(sm.ctx, t2, sm.press[t.id] || 0, this._fade, sm.cv.width / (VW + 2 * TOUCH_OUT)); } else this.magButton(c, t2, on.has(t.id) ? 1 : 0, 1, 0); continue; }
+      if (t.mag) { const sh = this.padShake(g), t2 = Object.assign({}, t, { x: t.x + sh[0], y: t.y + sh[1], label: g.vehicle === 'bike' ? { spin: '360', flip: 'WHIP', ollie: 'HOP' }[t.id] : null, grind: t.id === 'ollie' && g.vehicle !== 'board' ? g.grindHint || 0 : 0, grinding: !!g.grind }); if (sm) { if (sm.redraw) this.magButton(sm.ctx, t2, sm.press[t.id] || 0, this._fade, sm.cv.width / (VW + 2 * TOUCH_OUT)); } else this.magButton(c, t2, on.has(t.id) ? 1 : 0, 1, 0); continue; }
       if (sm) { if (sm.redraw) this.smoothButton(sm, g, t, sm.press[t.id] || 0, this._fade); continue; }
       const hot = on.has(t.id), cx = t.x + (t.w >> 1), cy = t.y + (t.h >> 1);
       if (art) {
