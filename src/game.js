@@ -257,13 +257,13 @@ class Game {
     const m = ((i % 20) + 20) % 20; return { edge: b.hi - 0.12, c: b.hi + 0.31, entry: m <= 1 };
   }
   // THE GRIND (the user, 2026-11-24: "quand le joueur est a cote d'un petit mur ... la bouton doit contenir un geste de slide ... en maintenant appuye et en glissant la bouton a la direction du mur
-  // ... en relachant, revenir a la piste"): low walls stand beside the bike lanes, four slots (48 m) in every twelve, on the left or on the right. On the bike or the scooter, beside one, the
+  // ... en relachant, revenir a la piste"): low walls stand beside the bike lanes, five slots (60 m) in every six, on the left or on the right. On the bike or the scooter, beside one, the
   // HOP key shows a slide tab on the wall's side: the key held and dragged that way puts the rider on the wall, sliding along it (points all the way); letting go, or the wall's end, brings the rider back to the lane.
   // ledgeAt(z): { side: -1 | 1, z0, z1, off: the wall's distance from the rider's line (lateral units) } or null
-  ledgeAt(z) { const S = 120, n = Math.floor(z / S), blk = Math.floor(n / 12), k = n - blk * 12; if (k < 4 || k >= 8) return null;
-    if (!this._ldg || this._ldg.size > 40) this._ldg = new Map(); let L = this._ldg.get(blk); if (!L || this.time - L.at > 0.5 || this.time < L.at) { const z0 = (blk * 12 + 4) * S, z1 = (blk * 12 + 8) * S, w = this.world, rel = q => { const B = this.bikeLane(q), b = w.bandsAt(q)[0]; return B && B.any && !B.walk && !B.entry && b ? B.c - (b.lo + b.hi) / 2 : null; };
-      const a = [z0, z0 + S, (z0 + z1) / 2, z1 - S, z1].map(rel), ok = a.every(v => v != null) && Math.max(...a) - Math.min(...a) < 0.02, side = (blk * 7 + 3) % 5 < 2 ? 1 : -1;
-      this._ldg.set(blk, L = { blk, at: this.time, v: ok ? { side, z0, z1, off: side * (side > 0 ? 0.75 : 1.75) * 0.62 / 2.2 } : null }); }
+  ledgeAt(z) { const S = 120, n = Math.floor(z / S), blk = Math.floor(n / 6), k = n - blk * 6; if (k < 1) return null;      // (2026-11-24, later: walls nearly all along, five slots in every six, in the gentle bends too, open at the lane's entrances: they were too rare to find)
+    if (!this._ldg || this._ldg.size > 400) this._ldg = new Map(); let L = this._ldg.get(n); if (!L || this.time - L.at > 0.5 || this.time < L.at) { const w = this.world, rel = q => { const B = this.bikeLane(q), b = w.bandsAt(q)[0]; return B && B.any && !B.walk && !B.entry && b ? B.c - (b.lo + b.hi) / 2 : null; };
+      const a = [n * S + 1, n * S + 60, n * S + 119].map(rel), ok = a.every(v => v != null) && Math.abs(a[2] - a[0]) < 0.35, side = (blk * 7 + 3) % 5 < 2 ? 1 : -1;
+      this._ldg.set(n, L = { at: this.time, v: ok ? { side, z0: n * S, z1: (n + 1) * S, off: side * (side > 0 ? 0.75 : 1.75) * 0.62 / 2.2 } : null }); }
     return L.v; }
   grindStep(dt) { const p = this.p, onVeh = this.riding && (this.vehicle === 'bike' || this.vehicle === 'scooter'), BL0 = onVeh && this.onLane ? this.bikeLane(p.z) : null, near = !!BL0 && Math.abs(p.x - BL0.c) < 0.07, L = near ? this.ledgeAt(p.z) : null, A = near && !L ? this.ledgeAt(p.z + 260) : null;
     this.grindHint = L ? L.side : A ? A.side : 0;

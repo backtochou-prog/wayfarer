@@ -509,9 +509,10 @@ class Renderer3D {
     if (g.ledgeAt && g.bikeLane) { if (!this.ledgeP) { this.ledgeP = []; const gB = new THREE.BoxGeometry(0.5, 0.5, 4.02), gR = new THREE.BoxGeometry(0.2, 0.07, 4.02), gE = new THREE.BoxGeometry(0.56, 0.1, 4.02), mB = new THREE.MeshBasicMaterial({ color: 0x5a3fc0 }), mR = new THREE.MeshBasicMaterial({ color: 0x35e6ff }), mE = new THREE.MeshBasicMaterial({ color: 0xff5ad6 });
         for (let n = 0; n < 40; n++) { const G3 = new THREE.Group(), b3 = new THREE.Mesh(gB, mB), r3 = new THREE.Mesh(gR, mR), e3 = new THREE.Mesh(gE, mE); b3.position.y = 0.25; r3.position.y = 0.535; e3.position.y = 0.05; G3.add(b3, r3, e3); G3.visible = false; this.scene.add(G3); this.ledgeP.push(G3); } }
       let n = 0; const NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : null, d = g.detour;
-      for (let zq = Math.floor((p.z - 140) / 40) * 40; zq < p.z + 1500 && n < 40; zq += 40) { const L = g.ledgeAt(zq + 20); if (!L) { const nx = (Math.floor(zq / 120 / 12) * 12 + (Math.floor(zq / 120) % 12 >= 8 ? 16 : 4)) * 120; if (nx > zq + 40) zq = nx - 40; continue; }
+      for (let zq = Math.floor((p.z - 140) / 40) * 40; zq < p.z + 1500 && n < 40; zq += 40) { const L = g.ledgeAt(zq + 20); if (!L) continue;
         const B = g.bikeLane(zq + 20); if (!B) continue; const X = B.c + L.off, bn = w.bandNear(zq + 20, X), qf = NC && d ? (zq + 20 - d.z0) / NC.SLOT - (NC.STREET + NC.TUNNEL + NC.ART) : 0, o = this.ledgeP[n++];
-        o.position.set((X + bn.off) * U.X - Lref, dy(zq + 20) + (NC && d && NC.laneH ? NC.laneH(qf) : 0), -(zq + 20 - p.z) * U.Z); o.visible = true; }
+        o.position.set((X + bn.off) * U.X - Lref, dy(zq + 20) + (NC && d && NC.laneH ? NC.laneH(qf) : 0), -(zq + 20 - p.z) * U.Z); o.visible = true;
+        const B2 = g.bikeLane(zq + 40), B1 = g.bikeLane(zq); o.rotation.y = B1 && B2 ? Math.atan2(-((B2.c + w.bandNear(zq + 40, B2.c).off) - (B1.c + w.bandNear(zq, B1.c).off)) * U.X, 40 * U.Z) : 0; }      // (turned along the lane in its bends)
       for (; n < 40; n++) this.ledgeP[n].visible = false; }
     { const bt2 = g.sfx ? g.sfx.beat() : null, on = this.coastDance && bt2, pu = on ? bt2.pulse * (0.45 + 0.55 * bt2.energy) : 0, bb = on ? bt2.beat : 0;
       for (const name of ['coastParasol', 'buoy', 'boat', 'tuft', 'tuftBig']) { const pool = this.props[name]; if (!pool) continue;
