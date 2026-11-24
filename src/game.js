@@ -34,8 +34,8 @@ const rideKeys = (ux) => [
   { id: 'jump',  x: ux, y: 112, w: 30, h: 26, mag: true },
   { id: 'slide', x: ux, y: 146, w: 30, h: 26, mag: true },
   { id: 'pause', x: 145, y: 2,   w: 30, h: 18 },
-  { id: 'cam', x: 132, y: 132, w: 56, h: 18 },
-  { id: 'scooter', x: 132, y: 154, w: 56, h: 20 },
+  { id: 'cam', x: -15, y: 57, w: 32, h: 32, round: true },      // (the user, 2026-11-24: the camera and get-off buttons wear their own round pictures, RIDE_BTN_ART, and stand at the left, over the other keys)
+  { id: 'scooter', x: 18, y: 57, w: 32, h: 32, round: true },
 ];
 const TOUCH_MAG = rideKeys(230);
 TOUCH_MAG.lcd = { x: 265, y: 108, w: 70, h: 59 };

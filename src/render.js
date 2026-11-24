@@ -403,7 +403,7 @@ class Renderer {
       const dt = sm.t === null ? 1 : Math.max(0, Math.min(0.1, g.time - sm.t)); sm.t = g.time; this._fade = 1 - (g.fadeIn > 0 ? Math.min(1, g.fadeIn * g.fadeIn) : 0);
       for (const id of ['left', 'right', 'slide', 'jump', 'pause', 'spin', 'flip', 'ollie']) { const target = Object.values(g.held).includes(id) ? 1 : 0, p = sm.press[id] || 0; sm.press[id] = p + (target - p) * (1 - Math.exp(-18 * dt)); }
       // PERFORMANCE: the layer is cleared and redrawn only when something on it changed (a button easing in or out, the fade, a resize), not on every frame: a still layer costs nothing
-      const set = g.touchSet ? g.touchSet() : TOUCH, sig = ['left', 'right', 'slide', 'jump', 'pause', 'spin', 'flip', 'ollie'].map(id => (sm.press[id] || 0).toFixed(2)).join() + '|' + this._fade.toFixed(2) + '|' + sm.cv.width + 'x' + sm.cv.height + '|' + (set === TOUCH ? 'ring' : 'mag' + this.padState(g) + (set.lcd ? 'L' : '') + (g.trick ? 'T' : '') + (g.vehicle || ''));
+      const set = g.touchSet ? g.touchSet() : TOUCH, sig = ['left', 'right', 'slide', 'jump', 'pause', 'spin', 'flip', 'ollie'].map(id => (sm.press[id] || 0).toFixed(2)).join() + '|' + this._fade.toFixed(2) + '|' + sm.cv.width + 'x' + sm.cv.height + '|' + (set === TOUCH ? 'ring' : 'mag' + this.padState(g) + (set.lcd ? 'L' : '') + (g.trick ? 'T' : '') + (g.vehicle || '') + (g.camFP ? 'E' : '') + (Object.values(g.held).includes('scooter') ? 'O' : '') + (typeof RIDE_BTN_ART !== 'undefined' && RIDE_BTN_ART.camImg.complete && RIDE_BTN_ART.offImg.complete ? 'R' : ''));
       sm.redraw = sig !== sm.sig; sm.sig = sig;
       if (sm.redraw) { sm.ctx.setTransform(1, 0, 0, 1, 0, 0); sm.ctx.clearRect(0, 0, sm.cv.width, sm.cv.height); sm.dirty = true; sm.draws = (sm.draws || 0) + 1; }
     }
@@ -417,6 +417,12 @@ class Renderer {
         else { c.globalAlpha = 0.95; this.padLcd(c, im, L2); this.padSpeed(c, g, L2, 1); c.globalAlpha = 1; } }
     }
     for (const t of set) {
+      if (t.round && (t.id === 'cam' || t.id === 'scooter') && typeof RIDE_BTN_ART !== 'undefined' && RIDE_BTN_ART.camImg.naturalWidth && RIDE_BTN_ART.offImg.naturalWidth) {      // the user's round pictures (2026-11-24): the camera switch and get off, only while riding; brighter while on / held
+        if (!g.riding) continue; const im = t.id === 'cam' ? RIDE_BTN_ART.camImg : RIDE_BTN_ART.offImg, lit = t.id === 'cam' ? g.camFP : on.has('scooter');
+        if (sm) { if (sm.redraw) { const k = sm.cv.width / (VW + 2 * TOUCH_OUT); sm.ctx.setTransform(k, 0, 0, k, TOUCH_OUT * k, 0); sm.ctx.imageSmoothingEnabled = true; sm.ctx.imageSmoothingQuality = 'high'; sm.ctx.globalAlpha = (lit ? 1 : 0.85) * this._fade; sm.ctx.drawImage(im, t.x, t.y, t.w, t.h); sm.ctx.globalAlpha = 1; } }
+        else { c.globalAlpha = lit ? 1 : 0.85; c.drawImage(im, t.x, t.y, t.w, t.h); c.globalAlpha = 1; }
+        continue;
+      }
       if (t.id === 'cam') {                                                      // the second camera's switch: only while riding
         if (!g.riding) continue;
         c.globalAlpha = 0.85; c.fillStyle = C.ink; c.fillRect(t.x - 1, t.y - 1, t.w + 2, t.h + 2); c.fillStyle = g.camFP ? '#3a2a66' : C.plum; c.fillRect(t.x, t.y, t.w, t.h);
