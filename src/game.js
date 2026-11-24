@@ -674,6 +674,13 @@ class Game {
     let cx = w.clampX(p.x, p.z); const pc = w.pieceAt(p.z);
     // THE BIKE LANE (the user, 2026-11-18): where the road has a bike lane on its right (the coast, the island: the coastBike strip of the scenery), a runner on the e-bike or the scooter can ride
     // it, but only gets on (or off) it at an ENTRANCE (a lowered kerb every 240 m, 24 m long): a missed entrance waits for the next one; on foot or on the skateboard, never. The lane is clear.
+    if (this.detour && this.detour.walk && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.WALK_J0) {      // THE WALK's PROMENADE (2026-11-24): coins all along, now and then a low barrier to jump or a banner to slide under (the deck is one place wide: no way round). Laid 170 m ahead of the runner, on the deck (it.wk: its height, metres)
+      const C = NEON_CORNER, d = this.detour, q0 = d.z0 + (C.STREET + C.TUNNEL + C.ART) * C.SLOT, zE = q0 + (C.CANYON + C.DOWN + C.WALK_J0 - 1) * C.SLOT; if (d.wkZ == null) { d.wkZ = Math.max(p.z + 600, q0 + (C.CANYON + 1.5) * C.SLOT); d.wkN = 0; }
+      while (d.wkZ < zE && d.wkZ < p.z + 1700) { const z = d.wkZ, n = d.wkN, B = this.bikeLane(z + 160); if (!B) break; const at = (kind, dz, h) => { const b = this.bikeLane(z + dz); if (b) w.items.push({ kind, z: z + dz, x: b.c, h, tag: 'walk', wk: C.walkH((z + dz - q0) / C.SLOT) }); };
+        if (n % 6 === 2) { at('barrier', 160, 12); for (const [dz, h] of [[80, 12], [125, 22], [160, 30], [195, 22], [240, 12]]) at('coin', dz, h); }
+        else if (n % 6 === 5) { at('over', 160, 12); for (const dz of [0, 80, 240, 320]) at('coin', dz, 12); }
+        else for (let i = 0; i < 5; i++) at('coin', i * 40, 12);
+        d.wkZ += 3 * C.SLOT; d.wkN++; } }
     const BL = this.bikeLane(p.z), onVeh = this.riding && (this.vehicle === 'bike' || this.vehicle === 'scooter');
     if (BL && (onVeh || BL.any) && (this.onLane || BL.entry)) {
       const b = w.bandsAt(p.z)[0]; let lo = BL.entry ? b.lo + 0.12 : BL.road != null ? BL.road : BL.c - 0.05, hi = BL.c + 0.05;

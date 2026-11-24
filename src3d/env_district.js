@@ -32,7 +32,8 @@ const NeoDistrict = { props: {}, layout() { return []; } };
       for (const [s, e] of cuts) for (let z = s; z < e - 0.01;) { const n = Math.min(e, (Math.floor(z / (BAND * 12) + 1e-6) + 1) * BAND * 12); box(X1 - X0, 0.1, n - z, (X0 + X1) / 2, top - 0.1, (z + n) / 2, col, o); z = n; } };
     const ring = (R, n, w, h, Y, col, o, skipX, cz = ZC, cx = 0, skipA) => { for (let i = 0; i < n; i++) { const a = (i + 0.5) / n * Math.PI * 2, X = cx + R * Math.sin(a), Z = cz + R * Math.cos(a); if (skipX && Math.abs(X) < skipX) continue; if (skipA && skipA(a)) continue;
       rbox(2 * R * Math.tan(Math.PI / n) + 0.06, h, w, X, Y, Z, col, -a, o); } };
-    const tree = (X, Z, r, k) => { cyl(r * 0.1, r * 0.16, r * 1.3, X, 0, Z, C.trunk); ico(r * 0.62, X, r * 1.75, Z, [C.leaf, C.leafD, C.leafL][k % 3]); ico(r * 0.44, X + r * 0.4 * (k % 2 ? 1 : -1), r * 1.42, Z + r * 0.25, [C.leafD, C.leafL, C.leaf][k % 3]); };
+    const wx = Z => NC.walkM ? NC.walkM(F0 + Z / 12) : -999, WZ = NC.walkM ? NC.WALK_END * 12 : 0; let own = false;      // (THE WALK's line, NEON_CORNER.walkM: nothing else stands on it)
+    const tree = (X, Z, r, k) => { if (!own && Z < WZ && Math.abs(X - wx(Z)) < 3.4) return; cyl(r * 0.1, r * 0.16, r * 1.3, X, 0, Z, C.trunk); ico(r * 0.62, X, r * 1.75, Z, [C.leaf, C.leafD, C.leafL][k % 3]); ico(r * 0.44, X + r * 0.4 * (k % 2 ? 1 : -1), r * 1.42, Z + r * 0.25, [C.leafD, C.leafL, C.leaf][k % 3]); };
     const lamp = (X, Z, col) => { cyl(0.1, 0.15, 6, X, 0, Z, C.navy2); box(1.5, 0.12, 0.12, X - Math.sign(X) * 0.7, 5.9, Z, C.navy2); box(0.9, 0.16, 0.34, X - Math.sign(X) * 1.2, 5.74, Z, col, { glow: true }); };
 
     const PLAT_R = [208, 470, 930, 1100, 1262], X1 = 350, X2 = 1050, GAPS = [[X1 - 6, X1 + 6], [X2 - 6, X2 + 6], [HUB0, HUB1]], GAPX = [[X1 - 6, X1 + 6], [X2 - 6, X2 + 6]], Z0 = 14, Z1 = L - 14;
@@ -44,14 +45,6 @@ const NeoDistrict = { props: {}, layout() { return []; } };
     for (const X of [9.06, 11.54]) strip(X - 0.06, X + 0.06, 0.13, 0, Z1, C.white, null, { glow: true });
     for (const [a, b] of BIKE_IN) { box(4.2, 0.1, b - a, 6.9, -0.03, (a + b) / 2, '#2fbf5a'); for (const z of [a + 0.1, b - 0.1]) box(4.2, 0.05, 0.14, 6.9, 0.07, z, C.white, { glow: true }); for (let z = a + 3; z < b; z += 6) for (const s of [-1, 1]) box(0.1, 0.03, 0.9, 6.9 + s * 0.3, 0.07, z, C.white, { ry: s * 0.6 }); }      // the lane's ENTRANCES from the avenue (Game.bikeLane)
     for (let z = Z0 + 2; z < Z1 - 3; z += 6) box(0.1, 0.1, 2.2, 10.3, 0.03, z + 1.1, C.lime, { glow: true });
-    // THE WALK's strip (the user, 2026-11-23: "une pareille au district, couleur et thème différents, comme dessus du trottoir"; its line: NEON_CORNER.walkM): the dirt track comes in
-    // from the right under the glass ways, then a raised SAND strip with gold edges on the lawn, WALK_DX right of the avenue; it joins the bike lane through the Centre and at its end
-    if (NC.walkM) { const wx = Z => NC.walkM(F0 + Z / 12), LN = NC.BIKE_DX + NC.BIKE_G, ZS = 40;
-      for (let z = 0; z < NC.WALK_END * 12; z += 4) { const x0 = wx(z), x1 = wx(z + 4), xm = (x0 + x1) / 2, zm = z + 2, len = Math.hypot(x1 - x0, 4) + 0.12, ry = Math.atan2(x0 - x1, 4), cs = Math.cos(ry), sn = Math.sin(ry); if (xm < LN + 1.9) continue;      // (in the lane there)
-        if (z < ZS) { if (xm > 19.8) rbox(7, 0.14, len, xm, 0, zm, C.lawnD, ry); rbox(2.4, 0.2, len, xm, 0, zm, '#b98a4e', ry); for (const s of [-1, 1]) rbox(0.3, 0.02, len, xm + s * 0.55 * cs, 0.2, zm + s * 0.55 * sn, '#96703c', ry); continue; }
-        rbox(2.4, 0.2, len, xm, 0, zm, '#e0bf7a', ry); for (const s of [-1, 1]) rbox(0.12, 0.04, len, xm + s * 1.14 * cs, 0.2, zm + s * 1.14 * sn, C.gold, ry, { glow: true });
-        if (z % 12 === 0) { rbox(1.5, 0.02, 0.16, xm, 0.2, zm, '#c79a4e', ry); if (Math.abs(x1 - x0) < 0.01 && Math.abs(zm - X1) > 9 && Math.abs(zm - X2) > 9) { cyl(0.1, 0.13, 0.55, xm - 1.5, 0, zm, '#7a5230', { seg: 6 }); box(0.22, 0.07, 0.22, xm - 1.5, 0.55, zm, C.gold, { glow: true }); } } }
-      for (const zc of [X1, X2]) { box(3.4, 0.14, 11, NC.WALK_DX, 0, zc, '#7a5230'); for (const s of [-1, 1]) { box(0.12, 0.7, 11, NC.WALK_DX + s * 1.6, 0.14, zc, '#7a5230'); box(0.14, 0.05, 11, NC.WALK_DX + s * 1.6, 0.84, zc, C.gold, { glow: true }); } } }      // (two wooden footbridges over the cross canals)
     for (let z = 24, k = 0; z < Z1; z += 12, k++) { const hub = z > HUB0 + 60 && z < HUB1 - 60, cross = Math.abs(z - X1) < 9 || Math.abs(z - X2) < 9; if (cross) continue;
       const inZ = (v, a, b) => v > a && v < b, ent = v => BIKE_IN.some(([a, b]) => v > a - 2 && v < b + 2), stem = PLAT_R.some(p => Math.abs(z - p) < 13);      // (kept clear: where the three glass ways come down, NEON_CORNER.farX, and round the platforms' stems)
       if (!inZ(z + 3, 1265, 1404)) tree(-9.2, z + 3, 2.3 + rr(k) * 0.7, k); if (!inZ(z + 9, 1160, 1250) && !inZ(z + 9, 1290, 1404) && !ent(z + 9)) tree(7.5, z + 9, 1.7 + rr(k + 50) * 0.4, k + 1);
@@ -60,7 +53,7 @@ const NeoDistrict = { props: {}, layout() { return []; } };
       if (k % 6 === 3 && !hub && !PLAT_R.some(p => Math.abs(z + 5 - p) < 6)) { box(2.4, 0.14, 0.7, 13.6, 0.5, z + 5, C.slab); box(0.2, 0.5, 0.6, 12.6, 0, z + 5, C.navy2); box(0.2, 0.5, 0.6, 14.6, 0, z + 5, C.navy2); } }      // (benches by the lane)
 
     // ---- THE TWO CANALS ACROSS (the avenue and the lane cross them on the level, between lit parapets)
-    for (const zc of [X1, X2]) { for (const s of [-1, 1]) { box(244.5, 0.1, 10, s * 127.75, -0.03, zc, C.water); for (const e of [-5.2, 5.2]) { box(244.5, 0.5, 0.4, s * 127.75, 0, zc + e, C.slab); box(244.5, 0.07, 0.2, s * 127.75, 0.5, zc + e, C.cyan, { glow: true }); } }
+    for (const zc of [X1, X2]) { for (const s of [-1, 1]) { box(244.5, 0.1, 10, s * 127.75, -0.03, zc, C.water); for (const e of [-5.2, 5.2]) for (const [a, b] of s > 0 && WZ > zc ? [[5.5, wx(zc) - 1.9], [wx(zc) + 1.9, 250]] : [[5.5, 250]]) { box(b - a, 0.5, 0.4, s * (a + b) / 2, 0, zc + e, C.slab); box(b - a, 0.07, 0.2, s * (a + b) / 2, 0.5, zc + e, C.cyan, { glow: true }); } }      // (the parapets open where THE WALK's promenade crosses)
       for (const X of [-5.4, 5.4, 12]) { box(0.25, 1.1, 11, X, 0, zc, C.slab); box(0.3, 0.1, 11, X, 1.1, zc, C.mag, { glow: true }); }
       box(7, 0.1, 10, 8.6, -0.02, zc, C.paveL); }
 
@@ -81,7 +74,7 @@ const NeoDistrict = { props: {}, layout() { return []; } };
     // ---- THE MAIN TOWERS (560-700 m)
     const mega = (X, Z, H, col) => { let w = 44, y = 0; for (let i = 0; i < 5; i++) { const h = H * [0.3, 0.24, 0.2, 0.15, 0.11][i]; box(w, h, w, X, y, Z, [C.navy, C.navy2][i % 2]); y += h; box(w + 0.6, 2.2, w + 0.6, X, y - 2.2, Z, col, { glow: true }); w -= 7; }
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(1.2, H * 0.54, 1.2, X + sx * 22, 0, Z + sz * 22, C.white, { glow: true }); cyl(0.6, 1.6, 50, X, y, Z, C.slab); ico(2.4, X, y + 51, Z, col, { glow: true }); };
-    [[-150, 150, 620, C.cyan], [165, 168, 560, C.mag], [-150, HUB0 + 30, 700, C.mag], [150, HUB0 + 40, 640, C.cyan], [-150, HUB1 - 40, 660, C.cyan], [150, HUB1 - 30, 700, C.gold], [-150, 1255, 580, C.gold], [165, 1240, 640, C.cyan]].forEach(m => mega(...m));
+    [[-150, 150, 620, C.cyan], [212, 150, 560, C.mag], [-150, HUB0 + 30, 700, C.mag], [212, HUB0 + 40, 640, C.cyan], [-150, HUB1 - 40, 660, C.cyan], [150, HUB1 - 30, 700, C.gold], [-150, 1255, 580, C.gold], [165, 1240, 640, C.cyan]].forEach(m => mega(...m));      // (two of them stood on THE WALK's line: 47 and 62 m further right now)
 
     // ---- THE FOUR ROUND QUARTERS of the plan (stage 2): a disc of QR m on each side of the two cross canals. Ring boulevards, eight radial streets, two rings of buildings that rise
     // towards the middle, a park ring and pocket parks, and in the middle a round basin (the cross canal ends there) with the quarter's own hub tower. Each has its colour and its hub.
@@ -89,10 +82,13 @@ const NeoDistrict = { props: {}, layout() { return []; } };
       const off = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))), onCanal = a => off(a, axis) < 0.14;
       for (const h of [-1, 1]) for (let d = 6; d < R - 0.01; d += 6) { const d1 = Math.min(d + 6, R), m = (d + d1) / 2, hc = Math.sqrt(R * R - m * m); box(2 * hc, 0.1, d1 - d, cx, 0.02, cz + h * m, C.paveL); }
       box(R, 0.1, 12, cx + s * R / 2, 0.02, cz, C.paveL);                                                                                   // (the ground leaves the canal open on the avenue's side)
-      ring(R - 1, 48, 0.6, 1.3, 0.12, A, { glow: true }, 0, cz, cx, onCanal);                                                               // the rim: the round shape, seen from the avenue
+      const onWalk = a => { const X = cx + (R - 1) * Math.sin(a), Z = cz + (R - 1) * Math.cos(a); return Z < WZ && Math.abs(X - wx(Z)) < 12; };      // (THE WALK's promenade passes through the quarter: its rim opens there, a gate on each side)
+      ring(R - 1, 48, 0.6, 1.3, 0.12, A, { glow: true }, 0, cz, cx, a => onCanal(a) || onWalk(a));
+      if (cz < WZ && Math.abs(wx(cz) - cx) < R - 1) for (const h of [-1, 1]) { const Zg = cz + h * Math.sqrt((R - 1) * (R - 1) - (wx(cz) - cx) * (wx(cz) - cx)), Xg = wx(Zg); for (const e of [-1, 1]) { box(1.4, 9, 1.4, Xg + e * 5, 0, Zg, C.navy2); box(0.4, 9, 0.4, Xg + e * 4.1, 0, Zg, A, { glow: true }); } box(11.4, 0.8, 1.4, Xg, 9, Zg, C.slab); box(11.6, 0.3, 1.5, Xg, 9.8, Zg, B, { glow: true }); }                                                               // the rim: the round shape, seen from the avenue
       [[R - 8, 48, 8], [108, 36, 7], [56, 24, 6]].forEach(([r, n, w], i) => { ring(r, n, w, 0.25, 0.15, C.asph, null, 0, cz, cx); ring(r, n, 0.3, 0.08, 0.4, i % 2 ? B : A, { glow: true }, 0, cz, cx); });
       for (let i = 0; i < 8; i++) { const a = (i + 0.5) * Math.PI / 4, [X, Z] = P(107, a); rbox(6, 0.25, 98, X, 0.15, Z, C.asph, -a); rbox(0.3, 0.08, 98, X, 0.4, Z, B, -a, { glow: true }); }
-      const build = (r, a, W, D, H, col, k) => { const [X, Z] = P(r, a), n = Math.max(2, Math.round(H / 26)); rbox(W, H, D, X, 0, Z, [C.navy, C.navy2, C.navy3][k % 3], -a);
+      const build = (r, a, W, D, H, col, k) => { const [X, Z] = P(r, a), n = Math.max(2, Math.round(H / 26));
+        for (let z = Z - 30; z <= Z + 30 && z < WZ; z += 1.5) { const px = wx(z) - X, pz = z - Z; if (Math.abs(px * Math.cos(a) - pz * Math.sin(a)) < W / 2 + 4.5 && Math.abs(px * Math.sin(a) + pz * Math.cos(a)) < D / 2 + 4.5) return; }      // (no building on THE WALK's line) rbox(W, H, D, X, 0, Z, [C.navy, C.navy2, C.navy3][k % 3], -a);
         for (let i = 1; i <= n; i++) rbox(W + 0.3, i % 2 ? 1.3 : 0.7, D + 0.3, X, H * i / (n + 0.5), Z, i % 2 ? col : C.slab, -a, { glow: i % 2 === 1 });
         if (k % 3 === 0) { rbox(W * 0.84, 0.4, D * 0.84, X, H, Z, C.lawn, -a); ico(2.6, X, H + 2, Z, C.leaf); ico(2, X + 3, H + 1.6, Z + 2, C.leafL); }
         else { rbox(W * 0.5, 5, D * 0.5, X, H, Z, C.navy3, -a); rbox(W * 0.52, 0.5, D * 0.52, X, H + 5, Z, col, -a, { glow: true }); } };
@@ -117,6 +113,20 @@ const NeoDistrict = { props: {}, layout() { return []; } };
       cyl(7, 7, vh + 7, s * 200, 0.12, cz, C.navy2, { seg: 10 }); cyl(8.5, 8.5, 0.8, s * 200, vh + 7.1, cz, A, { seg: 10, glow: true }); };                                                                     // the terminal where the viaduct arrives
     [[QX, X1, C.cyan, C.white, 0, 21], [-QX, X1, C.mag, C.gold, 1, 21], [-QX, X2, C.gold, C.cyan, 2, 21], [QX, X2, C.lime, C.mag, 3, 21]].forEach((q, i) => quarter(...q, i));
 
+    // ---- THE WALK's PROMENADE (the user's red line, 2026-11-24: "continuer sur une piste que tu construiras dans district 1400 ... tout droit pour un bon moment"; its line: NEON_CORNER.walkM,
+    // its height: walkH): a raised wooden deck with a sand top and gold edges, 2.4 m wide, straight on from NEO METROPOLIS through the first right quarter (over its ring roads and its
+    // canal), past the Centre, a diagonal to the garden by the second right quarter, and down into the bike lane. A green verge and a tree every 24 m on each side where the ground is free.
+    if (NC.walkM) { const LN = NC.BIKE_DX + NC.BIKE_G, WOOD = '#7a5230', inQ1 = (X, Z, m) => [X1, X2].some(zc => Math.hypot(X - QX, Z - zc) < QR + m);
+      const okTree = (X, Z) => !(Math.abs(Z - X1) < 9 || Math.abs(Z - X2) < 9 || Math.abs(Z - ZC) < 10 || inQ1(X, Z, 4) || X < 21 || Math.abs(X - 52) < 3.2 || (X < 51 && SPORT.some(([a, b]) => Z > a - 4 && Z < b + 4)) || Math.abs(Math.hypot(X, Z - ZC) - 150) < 5);
+      for (let z = 0, k = 0; z < WZ; z += 4, k++) { const x0 = wx(z), x1 = wx(z + 4), xm = (x0 + x1) / 2, zm = z + 2, len = Math.hypot(x1 - x0, 4) + 0.12, ry = Math.atan2(x0 - x1, 4), cs = Math.cos(ry), sn = Math.sin(ry), T = NC.walkH(F0 + zm / 12); if (xm < LN + 1.9) continue;      // (in the lane there)
+        const cross = Math.abs(zm - X1) < 7 || Math.abs(zm - X2) < 7, q = inQ1(xm, zm, 2);
+        if (!cross && !q && xm > 24) rbox(8, 0.14, len, xm, 0, zm, C.lawnD, ry);
+        rbox(2.7, T - 0.06, len, xm, 0, zm, WOOD, ry); rbox(2.4, 0.06, len, xm, T - 0.06, zm, '#e0bf7a', ry);
+        for (const s of [-1, 1]) rbox(0.12, 0.04, len, xm + s * 1.14 * cs, T, zm + s * 1.14 * sn, C.gold, ry, { glow: true });
+        if (k % 3 === 0) rbox(1.5, 0.02, 0.16, xm, T, zm, '#c79a4e', ry);
+        if (cross) for (const s of [-1, 1]) { rbox(0.1, 0.8, len, xm + s * 1.3 * cs, T - 0.06, zm + s * 1.3 * sn, WOOD, ry); rbox(0.14, 0.05, len, xm + s * 1.3 * cs, T + 0.74, zm + s * 1.3 * sn, C.gold, ry, { glow: true }); }      // (a railing over the cross canals)
+        else if (k % 6 === 3) for (const s of [-1, 1]) { const X = xm + s * 4.3 * cs, Z = zm + s * 4.3 * sn; if (okTree(X, Z)) { own = true; tree(X, Z, 2.6 + rr(k + s) * 0.9, k + (s > 0 ? 1 : 0)); own = false; } }
+        else if (k % 6 === 0 && !q) { cyl(0.1, 0.13, T + 0.5, xm - 1.6 * cs, 0, zm - 1.6 * sn, WOOD, { seg: 6 }); box(0.22, 0.07, 0.22, xm - 1.6 * cs, T + 0.5, zm - 1.6 * sn, C.gold, { glow: true }); } } }
 
     // ---- AERIAL WALKWAYS (glass tubes across the avenue, tower to tower) and GREEN PLATFORMS on stems
     [[122, 26], [262, 34], [432, 28], [958, 30], [1128, 36], [1296, 26]].forEach(([z, h], k) => { const col = k % 2 ? C.mag : C.cyan;
@@ -218,7 +228,7 @@ const NeoDistrict = { props: {}, layout() { return []; } };
   for (const w of WAYS) props['dsM' + w.n] = plate(w);
   // the avenue's tarmac for the ways that ride above it (the road's own ribbon is not drawn under a raised runner)
   props.dsRoad = () => { const P = [Kit.box(9.8, 0.1, 12.05, 0, -0.12, 0, C.asph)]; for (const x of [-1.77, 1.77]) for (const z of [-3, 3]) P.push(Kit.box(0.12, 0.02, 2.4, x, -0.02, z, '#9ff4ff', { glow: true })); return Kit.merge(P); };
-  props.dsBase = () => Kit.merge([Kit.box(195, 0.1, 12.05, -102.4, -0.12, 0, C.pave), Kit.box(195, 0.1, 12.05, 102.4, -0.12, 0, C.pave), Kit.box(0.14, 0.05, 12.05, -5.2, -0.02, 0, C.cyan, { glow: true }), Kit.box(0.14, 0.05, 12.05, 5.2, -0.02, 0, C.cyan, { glow: true }),
+  props.dsBase = () => Kit.merge([Kit.box(195, 0.1, 12.05, -102.4, -0.12, 0, C.pave), Kit.box(305, 0.1, 12.05, 157.4, -0.12, 0, C.pave), Kit.box(0.14, 0.05, 12.05, -5.2, -0.02, 0, C.cyan, { glow: true }), Kit.box(0.14, 0.05, 12.05, 5.2, -0.02, 0, C.cyan, { glow: true }),
     Kit.box(1.2, 0.03, 12.05, -30, -0.03, 0, C.paveL), Kit.box(1.2, 0.03, 12.05, 22, -0.03, 0, C.paveL)]);
   NeoDistrict.props = props;
   // slot k of the district (0 .. DN - 1): its ground, the band that ends there, and for the first two slots the circuit's own tunnel back, which stands where it stood (to the right)

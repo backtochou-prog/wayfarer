@@ -141,8 +141,8 @@
   for (let k = 0; k < SW; k++) P['bkBA' + k] = bent(k - SW, 0.05);
   for (let q = 0; q < (C.BIKE_FAR || RE); q++) P['bkB' + q] = bent(q, 0.12);
   // THE WALK's DIRT TRACK (the user's red line, 2026-11-23; its line: NEON_CORNER.walkM): 2.4 m of beaten earth, two ruts, a green verge, wooden posts; from the bike lane to the paved
-  // walk (slots WK0..), and from the walk down to the district's gate (WK1.. BIKE_FAR). Nothing on the paved walk itself, nor across the back road and the lane's strip.
-  const WK0 = Math.floor(C.WALK_Q), WKA = WK0 + 7, WK1 = Math.floor(C.WALK_OUT) + 1, PARK_X = C.NRX + C.BIKE_OUT + H + 9.4, PLOT_X = C.NRX + C.BIKE_OUT + H + 24 + 21, wkSlot = q => (q >= WK0 && q <= WKA) || (q >= WK1 && q < C.BIKE_FAR);
+  // walk (slots WK0..), (since 2026-11-24 the walk goes straight on from there: wkDk*). Nothing on the paved walk itself, nor across the back road and the lane's strip.
+  const WK0 = Math.floor(C.WALK_Q), WKA = WK0 + 7, WK1 = C.BIKE_FAR, PARK_X = C.NRX + C.BIKE_OUT + H + 9.4, PLOT_X = C.NRX + C.BIKE_OUT + H + 24 + 21, wkSlot = q => (q >= WK0 && q <= WKA) || (q >= WK1 && q < C.BIKE_FAR);
   const trail = q0 => () => { const p = [], n = 8, f = t => C.walkM(q0 + t), xm = f(0.5), DIRT = '#b98a4e', RUT = '#96703c', wild = (q0 >= 61 && q0 <= 65) || (q0 >= 70 && q0 <= 75);
     for (let i = 0; i < n; i++) { const X0 = f(i / n), X1 = f((i + 1) / n), XM = (X0 + X1) / 2, dz = 12 / n, len = Math.hypot(X1 - X0, dz) + 0.3, ry = -Math.atan((X1 - X0) / dz), x = XM - xm, z = 6 - dz * (i + 0.5);
       if (XM > 157.4 || (q0 < 30 && XM < 89.8) || (q0 > 30 && XM > 78.6 && XM < 89.4)) continue;
@@ -153,6 +153,13 @@
       if (wild && i % 4 === 1) for (const s of [-1, 1]) { const [ox, oz] = rot(s * 3.6, 0, ry); p.push(Kit.ico(0.8, x + ox, 0.5, z + oz, '#3fae5a', { sy: 0.7 })); } }
     return Kit.merge(p.length ? p : [Kit.box(0.05, 0.05, 0.05, 0, -60, 0, '#2a8a52')]); };
   for (let q = WK0; q < C.BIKE_FAR; q++) if (wkSlot(q)) { P['wkT' + q] = trail(q); P['bkParkW' + q] = park(q % 2, q, PARK_X); P['ndWalkW' + q] = walk(q % 2, q, ND_X - 37); }
+  // THE WALK's PROMENADE begins (2026-11-24): where NEO METROPOLIS's paved walk ends the walk goes STRAIGHT ON to the district (its deck there: src3d/env_district.js): the ground, a green
+  // verge, the raised deck (a ramp up over the first slot, NEON_CORNER.walkH) and a tree on each side, for the slots CANYON .. BIKE_FAR
+  const deck = q => () => { const p = [Kit.box(84, 0.1, 12.05, -4, -0.1, 0, '#1b2244'), Kit.box(8, 0.14, 12.05, 0, 0, 0, '#17703c')];
+    for (let i = 0; i < 8; i++) { const z = 6 - 1.5 * (i + 0.5), h = C.walkH(q + (i + 0.5) / 8); p.push(Kit.box(2.7, h - 0.06, 1.52, 0, 0, z, '#7a5230'), Kit.box(2.4, 0.06, 1.52, 0, h - 0.06, z, '#e0bf7a')); for (const s of [-1, 1]) p.push(Kit.box(0.12, 0.04, 1.52, s * 1.14, h, z, '#ffd27a', { glow: true })); }
+    for (const s of [-1, 1]) tree(p, s * 4.3, s * 2, 3 + (q % 3) * 0.6, 1.9 + (q % 2) * 0.4, (q + (s > 0 ? 1 : 0)) % 2 ? '#3aa863' : '#2f9358');
+    return Kit.merge(p); };
+  for (let q = C.CANYON; q < C.BIKE_FAR; q++) P['wkDk' + q] = deck(q);
   P.bkGardenW = garden(C.NRQ + 5 + METRO_EVERY, PLOT_X);
   const baseA = ArtCity.layout, baseN = NeonAvenue.layout, BLD = /^art(Graffiti|Run|Wavy|News|CollageB|Prism)/;
   ArtCity.layout = (r, rnd, det, liftM = 0) => { const out = baseA(r, rnd, det, liftM), up = !!(det && det.up), add = [], X = C.bikeM(r - N + 0.5);
@@ -173,7 +180,7 @@
       if (q >= RT) it('bkStrip', C.NRX + C.BIKE_OUT); if (P.bkMetro && q >= C.NRQ + 5 && (q - C.NRQ - 5) % METRO_EVERY === 0) { const pl = PLOT[(q - C.NRQ - 5) / METRO_EVERY]; if (pl) out.push({ prop: pl === 'bkGarden' && wkSlot(q) ? 'bkGardenW' : pl, x: C.NRX + C.BIKE_OUT + H + 24 + 21 + NeonAvenue.D, dist: 6, dy: -liftM, solo: true, rotY: pl === 'bkMetro' ? -Math.PI / 2 : 0 }); } if (q >= C.NRQ + 3) it(wkSlot(q) && P['bkParkW' + q] ? 'bkParkW' + q : q % 2 ? 'bkParkB' : 'bkParkA', (q >= RT ? C.NRX + C.BIKE_OUT : Math.max(C.bikeM(q), C.bikeM(q + 0.5), C.bikeM(q + 1))) + H + 9.4 + (C.glass3W && q >= 53 && q <= 58 ? 3.5 : 0)); if (q < RE || NeonAvenue.far) it(bend(q) ? 'bkB' + q : 'bkStrip', C.bikeM(q + 0.5));      // (the park steps back from the widened square tunnel)
       if (q >= 2 && q <= ND_Q0 && (ND_Q0 - q) % 8 === 0) it('ndC' + (ND_Q0 - q) / 8, ND_X); if (q >= 3) it(wkSlot(q) ? 'ndWalkW' + q : q % 2 ? 'ndWalkB' : 'ndWalkA', ND_X - 37);
       if (wkSlot(q) && (q <= WKA || NeonAvenue.far)) { it('wkT' + q, C.walkM(q + 0.5)); for (let n = out.length - 1; n >= 0; n--) if (out[n].prop === 'cnPlanter' && Math.abs(out[n].x - NeonAvenue.D - C.walkM(q + 0.5)) < 7) out.splice(n, 1); } }
-    if (liftM > 3 && NeonAvenue.far && q >= C.CANYON && q < C.BIKE_FAR && wkSlot(q)) out.push({ prop: 'wkT' + q, x: C.walkM(q + 0.5) + NeonAvenue.D, dist: 6, dy: -liftM, solo: true });
+    if (liftM > 3 && NeonAvenue.far && q >= C.CANYON && q < C.BIKE_FAR && P['wkDk' + q]) out.push({ prop: 'wkDk' + q, x: C.WALK_X + NeonAvenue.D, dist: 6, dy: -liftM, solo: true });
     return out; };
   // (the link comes in under the two-floor street: there the street stands open to the right, no pillar and no pylon on the lane)
   const baseS = NeonAvenue.side; if (baseS) NeonAvenue.side = (q, rnd, glass, land) => { const o = baseS(q, rnd, glass, land); if (q > RT + 3 && q < RT + 6) for (const p of o) if (/^(sdStreet|sdStreetL|ftStreet)$/.test(p.prop)) p.prop = 'sdStreetO';

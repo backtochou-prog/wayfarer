@@ -178,19 +178,23 @@ const NEON_CORNER = {
   // METROPOLIS (WALK_X m right of the circuit); from WALK_OUT it eases left, a long gentle diagonal, passes under the two glass ways and runs on its own sand strip in the CENTRAL DISTRICT,
   // WALK_DX right of its avenue (it shares the bike lane through the Centre's ring, the towers' legs stand on its line) and ends in the district's lane WALK_END slots in. walkM(qf): the
   // runner's line, metres right of the circuit (Game.bikeLane; the scenery: src3d/bike_lane.js wkT*, src3d/env_district.js).
-  WALK_Q: 14.8, WALK_X: 162.8, WALK_OUT: 57.8, WALK_DX: 17.5, WALK_END: 94.5,
+  // (2026-11-24, the user's red line on the map: "tirer la piste jusqu'à district 1400 et continuer sur une piste que tu construiras dans district 1400 ... tout droit pour un bon moment":
+  // the walk no longer leaves NEO METROPOLIS by a diagonal: it runs STRAIGHT ON into the district, WALK_X right of its avenue, on a raised promenade through the first right quarter and
+  // past the Centre; from WALK_D0 to WALK_D1 (district slots) a diagonal brings it to WALK_DX, the garden between the avenue and the second right quarter; from WALK_J0 to WALK_J1 it
+  // comes down into the district's lane, where it ends at WALK_END.)
+  WALK_Q: 14.8, WALK_X: 162.8, WALK_DX: 56.5, WALK_D0: 62, WALK_D1: 76, WALK_J0: 89, WALK_J1: 95, WALK_END: 96, WALK_TOP: 0.5,
   // THE WALK'S SURFACE (metres above the street) under the runner at qf: the dirt track is 0.24 m thick, the paved walk 0.12, the sand strip 0.2, the district's bike lane 0.1; without it
   // THE BIKE LANE'S SURFACE (metres above the street) at qf: its strip is laid a little above the ground (src3d/bike_lane.js: artBike, bkBA, bkStrip / bkB; the district's lane, env_district.js);
   // the runner and the wheels of what they ride stand on it (the user, 2026-11-23: "les pieds, le bas des roues du vélo encore submergés"). Renderer3D, the runner's lift.
   laneH(qf) { return qf < -(this.PIN + 6) ? 0.07 : qf < 0 ? 0.09 : qf < this.CANYON + this.DOWN ? 0.16 : 0.11; },
   // the runner's feet were sunk in them (the user, 2026-11-23: "le joueur est submergé presque à genoux"). The renderer eases between them (Renderer3D, the runner's lift).
   walkH(qf) { if (qf < this.WALK_Q) return 0; const x = this.walkM(qf), f = qf - (this.CANYON + this.DOWN);
-    if (f >= this.WALK_END + 1) return 0; if (f >= 0) return x < this.BIKE_DX + this.BIKE_G + 1.9 ? 0.1 : 0.2;
+    if (f >= this.WALK_END + 1) return 0; if (f >= 0) return 0.1 + (this.WALK_TOP - 0.1) * Math.max(0, Math.min(1, (x - this.BIKE_DX - this.BIKE_G - 1.9) / 6));      // (the promenade comes down to the lane's level where it joins it)
+    if (qf >= this.CANYON) return 0.12 + (this.WALK_TOP - 0.12) * Math.min(1, qf - this.CANYON);      // (the promenade starts where NEO METROPOLIS's paved walk ends: a ramp of one slot)
     return x > 157.4 ? 0.12 : qf < 30 && x < 89.8 ? 0.16 : qf > 30 && x > 78.6 && x < 89.4 ? 0.1 : 0.24; },
   walkM(qf) { const r = 0.22, s = 1 / (1 - r), h = t => t <= 0 ? 0 : t >= 1 ? 1 : t < r ? s * t * t / (2 * r) : t <= 1 - r ? s * (t - r / 2) : 1 - s * (1 - t) * (1 - t) / (2 * r), f = qf - this.CANYON - this.DOWN, L = this.BIKE_DX + this.BIKE_G;      // (h: a straight diagonal with rounded ends)
     if (qf < this.WALK_Q + 7.6) { const a = this.bikeM(qf) + this.BIKE_G; return a + (this.WALK_X - a) * h((qf - this.WALK_Q) / 7.6); }
-    if (f < 4) return this.WALK_X + (this.WALK_DX - this.WALK_X) * h((qf - this.WALK_OUT) / 22.2);
-    return this.WALK_DX + (L - this.WALK_DX) * (h((f - 48) / 2.4) - h((f - 66.6) / 2.4) + h((f - 92) / 2.5)); },
+    return this.WALK_X + (this.WALK_DX - this.WALK_X) * h((f - this.WALK_D0) / (this.WALK_D1 - this.WALK_D0)) + (L - this.WALK_DX) * h((f - this.WALK_J0) / (this.WALK_J1 - this.WALK_J0)); },
   glass2W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.SPARK_M + 2.2, back = e(c((qf - 58) / 3));
     if (qf >= this.G2R) return (this.GM - 1) * (1 - e(c((qf - this.G2R) / this.G2OUT)));
     return a + (this.GM - a) * e(c((qf - this.GQ) / this.GUP)) + this.G2X * e(c((qf - this.G2Q) / 4)) * (1 - back) - back; },
