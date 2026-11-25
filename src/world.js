@@ -21,7 +21,7 @@ class World {
   constructor(track) { this.track = track; this.extras = false; this.reset(); }       // extras: the 3D build's extra items and patterns (power-ups, shards, waymarks, skill patterns); off for the classic 2D game
 
   reset() {
-    this.pieces = []; this.items = []; this.cursor = {}; this.lastPat = {}; this.seqIdx = 0; this.seqCount = 0; this.picked = {}; this.pickLap = {}; this.pickLast = {}; this.lastPU = {}; this.lastShard = {}; this.puKind = ''; this.uid = 0; this.ver = (this.ver || 0) + 1;   // ver only ever increases; it changes whenever bandsAt() results could change (pieces added/dropped, a route chosen)
+    this.pieces = []; this.items = []; this.cursor = {}; this.lastPat = {}; this.seqIdx = 0; this.seqCount = 0; this.picked = {}; this.pickLap = {}; this.pickLast = {}; this.lastPU = {}; this.lastShard = {}; this.puKind = ''; this.uid = 0; this.inject = []; this.ver = (this.ver || 0) + 1;   // ver only ever increases; it changes whenever bandsAt() results could change (pieces added/dropped, a route chosen)
     this.baseBiome = this.track.base || this.track.segments[this.track.sequence[0].seg].biome;
     this.extend(0);
   }
@@ -48,8 +48,15 @@ class World {
     this.pickLap[sp.pick] = lap + 1; this.pickLast[sp.pick] = k;
     return (this.picked[key] = { fork: opts[k] });
   }
-  nextSpec() { this.seqCount = this.seqIdx; const sp = this.specAt(this.seqIdx); this.seqIdx++; return sp; }
-  peekSpec() { this.seqCount = this.seqIdx; return this.specAt(this.seqIdx); }
+  nextSpec() { if (this.inject.length) { this.seqCount = -1; return this.inject.shift(); } this.seqCount = this.seqIdx; const sp = this.specAt(this.seqIdx); this.seqIdx++; return sp; }
+  peekSpec() { if (this.inject.length) return this.inject[0]; this.seqCount = this.seqIdx; return this.specAt(this.seqIdx); }
+  // A WAY OUT OF THE SEQUENCE (the lift of the Central District, Game.liftEnd): the pieces laid beyond the one holding z are dropped; the track goes on with the pieces `inject`
+  // (specs, in order), then with the sequence from its next `toSeg` segment on. Returns the first new piece (it starts where the piece holding z ends).
+  reroute(z, inject, toSeg) {
+    const i = this.pieces.findIndex(p => z < p.z1); if (i < 0) return null; const P = this.pieces[i], T = this.track, n = T.sequence.length, at = k => T.sequence[k >= n ? T.loopFrom + ((k - n) % (n - T.loopFrom)) : k];
+    let k = (P.si == null ? this.seqIdx : P.si + 1), lim = k + 2 * n; while (k < lim && at(k).seg !== toSeg) k++; if (k >= lim) return null;
+    this.pieces.length = i + 1; this.items = this.items.filter(it => it.z < P.z1); this.inject = (inject || []).slice(); this.seqIdx = k; this.ver++; this.extend(P.z1 + 600); return this.pieces[i + 1] || null;
+  }
 
   extend(z) {
     for (;;) {
@@ -61,7 +68,7 @@ class World {
 
   addPiece() {
     const spec = this.nextSpec(), T = this.track, prev = this.pieces[this.pieces.length - 1] || null;
-    const z0 = prev ? prev.z1 : 0, uid = this.uid++;
+    const z0 = prev ? prev.z1 : 0, uid = this.uid++, si = this.seqCount;
     let P;
     if (spec.seg) {
       const seg = T.segments[spec.seg], nx = this.peekSpec();
@@ -72,6 +79,7 @@ class World {
       P = { type: 'fork', fork: f, uid, z0, fe, be, z1: be + f.merge, choice: null, prev };
       this.genFork(P);
     }
+    if (si >= 0) P.si = si; else P.si = prev && prev.si != null ? prev.si : null;
     this.pieces.push(P); this.ver++;
   }
 

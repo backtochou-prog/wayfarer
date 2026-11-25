@@ -183,6 +183,17 @@ const NEON_CORNER = {
   // past the Centre; from WALK_D0 to WALK_D1 (district slots) a diagonal brings it to WALK_DX, the garden between the avenue and the second right quarter; from WALK_J0 to WALK_J1 it
   // comes down into the district's lane, where it ends at WALK_END.)
   WALK_Q: 14.8, WALK_X: 162.8, WALK_DX: 56.5, WALK_D0: 62, WALK_D1: 76, WALK_J0: 89, WALK_J1: 95, WALK_END: 96, WALK_TOP: 0.5,
+  // THE LIFT TRACK (the user, 2026-11-25: "district 1400 ... un centre de distribution des circuits ... des petites pistes qui te ramenent a une construction ronde, tu descends l'ascenseur
+  // pour continuer sur l'un des tunnels souterrains"): the district is the HUB of the circuits; each of its round quarters is a door to another one. The first: from the district's lane,
+  // LIFT_F0 slots in (RIGHT pressed), a small track crosses the gardens and THE WALK's promenade to the first right quarter and ends at its needle (LIFT_X m right of the avenue, at slot
+  // LIFT_F1), whose lift goes down to the underground (Game: the ride 'down', liftEnd; scenery: src3d/env_district.js). liftM(f): the track's line, metres right of the avenue, at the
+  // district's slot f; liftH(f): its surface (metres): it climbs onto the promenade's deck where it crosses it, and onto the bridge over the needle's basin. LIFT_STOP: where the runner
+  // stops, metres before the needle's axis.
+  LIFT_F0: 4, LIFT_F1: 350 / 12, LIFT_X: 232, LIFT_STOP: 12.5,
+  liftM(f) { const r = 0.12, s = 1 / (1 - r), t = (f - this.LIFT_F0) / (this.LIFT_F1 - this.LIFT_F0), L = this.BIKE_DX + this.BIKE_G;
+    return L + (this.LIFT_X - L) * (t <= 0 ? 0 : t >= 1 ? 1 : t < r ? s * t * t / (2 * r) : t <= 1 - r ? s * (t - r / 2) : 1 - s * (1 - t) * (1 - t) / (2 * r)); },
+  liftH(f) { const c = v => Math.max(0, Math.min(1, v)), e = t => t * t * (3 - 2 * t), R = (this.LIFT_F1 - f) * 12, dX = Math.abs(this.liftM(f) - this.WALK_X);      // (metres: the lane's 0.1 up to a 0.45 raised track, over the promenade's deck, then the plinth's 1.6)
+    return 0.1 + 0.35 * e(c((f - this.LIFT_F0) / 2.5)) + 0.17 * e(c((6 - dX) / 4.4)) + 1.15 * e(c((36 - R) / 9)); },
   // THE WALK'S SURFACE (metres above the street) under the runner at qf: the dirt track is 0.24 m thick, the paved walk 0.12, the sand strip 0.2, the district's bike lane 0.1; without it
   // THE BIKE LANE'S SURFACE (metres above the street) at qf: its strip is laid a little above the ground (src3d/bike_lane.js: artBike, bkBA, bkStrip / bkB; the district's lane, env_district.js);
   // the runner and the wheels of what they ride stand on it (the user, 2026-11-23: "les pieds, le bas des roues du vélo encore submergés"). Renderer3D, the runner's lift.

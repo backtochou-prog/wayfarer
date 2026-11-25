@@ -33,7 +33,9 @@ const NeoDistrict = { props: {}, layout() { return []; } };
     const ring = (R, n, w, h, Y, col, o, skipX, cz = ZC, cx = 0, skipA) => { for (let i = 0; i < n; i++) { const a = (i + 0.5) / n * Math.PI * 2, X = cx + R * Math.sin(a), Z = cz + R * Math.cos(a); if (skipX && Math.abs(X) < skipX) continue; if (skipA && skipA(a)) continue;
       rbox(2 * R * Math.tan(Math.PI / n) + 0.06, h, w, X, Y, Z, col, -a, o); } };
     const wx = Z => NC.walkM ? NC.walkM(F0 + Z / 12) : -999, WZ = NC.walkM ? NC.WALK_END * 12 : 0; let own = false;      // (THE WALK's line, NEON_CORNER.walkM: nothing else stands on it)
-    const tree = (X, Z, r, k) => { if (!own && Z < WZ && Math.abs(X - wx(Z)) < 3.4) return; cyl(r * 0.1, r * 0.16, r * 1.3, X, 0, Z, C.trunk); ico(r * 0.62, X, r * 1.75, Z, [C.leaf, C.leafD, C.leafL][k % 3]); ico(r * 0.44, X + r * 0.4 * (k % 2 ? 1 : -1), r * 1.42, Z + r * 0.25, [C.leafD, C.leafL, C.leaf][k % 3]); };
+    // THE LIFT TRACK (NEON_CORNER.liftM): from the bike lane to the first right quarter's needle. lx(Z): its line (metres right of the avenue); onLift: a point within m of it; nothing else stands there.
+    const LZ0 = NC.liftM ? NC.LIFT_F0 * 12 : 1e9, LZ1 = NC.liftM ? NC.LIFT_F1 * 12 : -1e9, onLiftZ = Z => Z >= LZ0 - 6 && Z <= LZ1 + 2, lx = Z => NC.liftM(Math.max(NC.LIFT_F0, Math.min(NC.LIFT_F1, Z / 12))), onLift = (X, Z, m) => onLiftZ(Z) && Math.abs(X - lx(Z)) < m;
+    const tree = (X, Z, r, k) => { if (!own && Z < WZ && Math.abs(X - wx(Z)) < 3.4) return; if (!own && onLift(X, Z, 5.2)) return; cyl(r * 0.1, r * 0.16, r * 1.3, X, 0, Z, C.trunk); ico(r * 0.62, X, r * 1.75, Z, [C.leaf, C.leafD, C.leafL][k % 3]); ico(r * 0.44, X + r * 0.4 * (k % 2 ? 1 : -1), r * 1.42, Z + r * 0.25, [C.leafD, C.leafL, C.leaf][k % 3]); };
     const lamp = (X, Z, col) => { cyl(0.1, 0.15, 6, X, 0, Z, C.navy2); box(1.5, 0.12, 0.12, X - Math.sign(X) * 0.7, 5.9, Z, C.navy2); box(0.9, 0.16, 0.34, X - Math.sign(X) * 1.2, 5.74, Z, col, { glow: true }); };
 
     const PLAT_R = [208, 470, 930, 1100, 1262], X1 = 350, X2 = 1050, GAPS = [[X1 - 6, X1 + 6], [X2 - 6, X2 + 6], [HUB0, HUB1]], GAPX = [[X1 - 6, X1 + 6], [X2 - 6, X2 + 6]], Z0 = 14, Z1 = L - 14;
@@ -68,8 +70,8 @@ const NeoDistrict = { props: {}, layout() { return []; } };
     const SPORT = [[140, 186], [240, 282], [972, 1046], [1142, 1182]], inSport = z => SPORT.some(([a, b]) => z > a - 16 && z < b + 16);
     for (let z = 58, k = 0; z < L - 40; z += 34, k++) { if (z > HUB0 - 16 && z < HUB1 + 16) continue; if (Math.abs(z - X1) < 146 || Math.abs(z - X2) < 146) continue;               // (no wall of towers in front of the quarters: they are seen from the avenue)
       const Wl = 20 + rr(k * 3) * 6, Wr = 20 + rr(k * 3 + 1) * 6;
-      tower(-(40 + Wl / 2 + rr(k * 5) * 8), z, Wl, 22 + rr(k * 7) * 6, 70 + rr(k * 11) * 140, k); tower((inSport(z) ? 52 : 34) + Wr / 2 + rr(k * 5 + 2) * 8, z + 8, Wr, 22 + rr(k * 7 + 3) * 6, 70 + rr(k * 11 + 5) * 140, k + 2); }
-    for (let z = 76, k = 0; z < L - 40; z += 68, k++) for (const s of [-1, 1]) { if (z > HUB0 - 30 && z < HUB1 + 30) continue; const X = s * (104 + rr(k * 13 + s) * 12); if (inQ(X, z, 16)) continue; const H = 140 + rr(k * 17 + s) * 70, col = [C.cyan, C.mag, C.gold][(k + (s > 0 ? 1 : 0)) % 3];
+      tower(-(40 + Wl / 2 + rr(k * 5) * 8), z, Wl, 22 + rr(k * 7) * 6, 70 + rr(k * 11) * 140, k); { const XR = (inSport(z) ? 52 : 34) + Wr / 2 + rr(k * 5 + 2) * 8; if (![z - 8, z + 8, z + 24].some(zz => onLift(XR, zz, Wr / 2 + 9))) tower(XR, z + 8, Wr, 22 + rr(k * 7 + 3) * 6, 70 + rr(k * 11 + 5) * 140, k + 2); } }
+    for (let z = 76, k = 0; z < L - 40; z += 68, k++) for (const s of [-1, 1]) { if (z > HUB0 - 30 && z < HUB1 + 30) continue; const X = s * (104 + rr(k * 13 + s) * 12); if (inQ(X, z, 16)) continue; if ([z - 14, z, z + 14].some(zz => onLift(X, zz, 24))) continue; const H = 140 + rr(k * 17 + s) * 70, col = [C.cyan, C.mag, C.gold][(k + (s > 0 ? 1 : 0)) % 3];
       box(26, H, 26, X, 0, z, C.navy3); for (let i = 1; i <= 4; i++) box(26.3, 1.4, 26.3, X, H * i / 4.6, z, i % 2 ? col : C.slab, { glow: i % 2 === 1 }); box(0.8, H, 0.8, X - s * 13, 0, z, col, { glow: true }); }
     // ---- THE MAIN TOWERS (560-700 m)
     const mega = (X, Z, H, col) => { let w = 44, y = 0; for (let i = 0; i < 5; i++) { const h = H * [0.3, 0.24, 0.2, 0.15, 0.11][i]; box(w, h, w, X, y, Z, [C.navy, C.navy2][i % 2]); y += h; box(w + 0.6, 2.2, w + 0.6, X, y - 2.2, Z, col, { glow: true }); w -= 7; }
@@ -83,12 +85,15 @@ const NeoDistrict = { props: {}, layout() { return []; } };
       for (const h of [-1, 1]) for (let d = 6; d < R - 0.01; d += 6) { const d1 = Math.min(d + 6, R), m = (d + d1) / 2, hc = Math.sqrt(R * R - m * m); box(2 * hc, 0.1, d1 - d, cx, 0.02, cz + h * m, C.paveL); }
       box(R, 0.1, 12, cx + s * R / 2, 0.02, cz, C.paveL);                                                                                   // (the ground leaves the canal open on the avenue's side)
       const onWalk = a => { const X = cx + (R - 1) * Math.sin(a), Z = cz + (R - 1) * Math.cos(a); return Z < WZ && Math.abs(X - wx(Z)) < 12; };      // (THE WALK's promenade passes through the quarter: its rim opens there, a gate on each side)
-      ring(R - 1, 48, 0.6, 1.3, 0.12, A, { glow: true }, 0, cz, cx, a => onCanal(a) || onWalk(a));
+      const onLiftA = a => { const X = cx + (R - 1) * Math.sin(a), Z = cz + (R - 1) * Math.cos(a); return kind === 0 && onLift(X, Z, 11); };      // (THE LIFT TRACK's gate, in the first right quarter's rim)
+      ring(R - 1, 48, 0.6, 1.3, 0.12, A, { glow: true }, 0, cz, cx, a => onCanal(a) || onWalk(a) || onLiftA(a));
       if (cz < WZ && Math.abs(wx(cz) - cx) < R - 1) for (const h of [-1, 1]) { const Zg = cz + h * Math.sqrt((R - 1) * (R - 1) - (wx(cz) - cx) * (wx(cz) - cx)), Xg = wx(Zg); for (const e of [-1, 1]) { box(1.4, 9, 1.4, Xg + e * 5, 0, Zg, C.navy2); box(0.4, 9, 0.4, Xg + e * 4.1, 0, Zg, A, { glow: true }); } box(11.4, 0.8, 1.4, Xg, 9, Zg, C.slab); box(11.6, 0.3, 1.5, Xg, 9.8, Zg, B, { glow: true }); }                                                               // the rim: the round shape, seen from the avenue
       [[R - 8, 48, 8], [108, 36, 7], [56, 24, 6]].forEach(([r, n, w], i) => { ring(r, n, w, 0.25, 0.15, C.asph, null, 0, cz, cx); ring(r, n, 0.3, 0.08, 0.4, i % 2 ? B : A, { glow: true }, 0, cz, cx); });
       for (let i = 0; i < 8; i++) { const a = (i + 0.5) * Math.PI / 4, [X, Z] = P(107, a); rbox(6, 0.25, 98, X, 0.15, Z, C.asph, -a); rbox(0.3, 0.08, 98, X, 0.4, Z, B, -a, { glow: true }); }
       const build = (r, a, W, D, H, col, k) => { const [X, Z] = P(r, a), n = Math.max(2, Math.round(H / 26));
-        for (let z = Z - 30; z <= Z + 30 && z < WZ; z += 1.5) { const px = wx(z) - X, pz = z - Z; if (Math.abs(px * Math.cos(a) - pz * Math.sin(a)) < W / 2 + 4.5 && Math.abs(px * Math.sin(a) + pz * Math.cos(a)) < D / 2 + 4.5) return; }      // (no building on THE WALK's line) rbox(W, H, D, X, 0, Z, [C.navy, C.navy2, C.navy3][k % 3], -a);
+        for (let z = Z - 30; z <= Z + 30 && z < WZ; z += 1.5) { const px = wx(z) - X, pz = z - Z; if (Math.abs(px * Math.cos(a) - pz * Math.sin(a)) < W / 2 + 4.5 && Math.abs(px * Math.sin(a) + pz * Math.cos(a)) < D / 2 + 4.5) return; }      // (no building on THE WALK's line)
+        for (let z = Z - 30; z <= Z + 30; z += 1.5) { if (!onLiftZ(z)) continue; const px = lx(z) - X, pz = z - Z; if (Math.abs(px * Math.cos(a) - pz * Math.sin(a)) < W / 2 + 5 && Math.abs(px * Math.sin(a) + pz * Math.cos(a)) < D / 2 + 5) return; }      // (nor on the LIFT TRACK's)
+        rbox(W, H, D, X, 0, Z, [C.navy, C.navy2, C.navy3][k % 3], -a);
         for (let i = 1; i <= n; i++) rbox(W + 0.3, i % 2 ? 1.3 : 0.7, D + 0.3, X, H * i / (n + 0.5), Z, i % 2 ? col : C.slab, -a, { glow: i % 2 === 1 });
         if (k % 3 === 0) { rbox(W * 0.84, 0.4, D * 0.84, X, H, Z, C.lawn, -a); ico(2.6, X, H + 2, Z, C.leaf); ico(2, X + 3, H + 1.6, Z + 2, C.leafL); }
         else { rbox(W * 0.5, 5, D * 0.5, X, H, Z, C.navy3, -a); rbox(W * 0.52, 0.5, D * 0.52, X, H + 5, Z, col, -a, { glow: true }); } };
@@ -127,6 +132,32 @@ const NeoDistrict = { props: {}, layout() { return []; } };
         if (cross) for (const s of [-1, 1]) { rbox(0.1, 0.8, len, xm + s * 1.3 * cs, T - 0.06, zm + s * 1.3 * sn, WOOD, ry); rbox(0.14, 0.05, len, xm + s * 1.3 * cs, T + 0.74, zm + s * 1.3 * sn, C.gold, ry, { glow: true }); }      // (a railing over the cross canals)
         else if (k % 6 === 3) for (const s of [-1, 1]) { const X = xm + s * 4.3 * cs, Z = zm + s * 4.3 * sn; if (okTree(X, Z)) { own = true; tree(X, Z, 2.6 + rr(k + s) * 0.9, k + (s > 0 ? 1 : 0)); own = false; } }
         else if (k % 6 === 0 && !q) { cyl(0.1, 0.13, T + 0.5, xm - 1.6 * cs, 0, zm - 1.6 * sn, WOOD, { seg: 6 }); box(0.22, 0.07, 0.22, xm - 1.6 * cs, T + 0.5, zm - 1.6 * sn, C.gold, { glow: true }); } } }
+
+    // ---- THE LIFT TRACK (the user, 2026-11-25: the district is the HUB of the circuits, "des petites pistes qui te ramenent a une construction ronde, tu descends l'ascenseur"): a raised track, 3.2 m
+    // wide, from the bike lane (slot 4) straight across the gardens and over THE WALK's promenade to the first right quarter, through a gate in its rim, over its ring roads and park, and on a bridge over
+    // its basin to the LIFT ROTUNDA, a glass-banded drum round the needle's foot. NEON_CORNER.liftM is its line, liftH its height. A green verge and a tree every 24 m where the ground is free.
+    if (NC.liftM) { const ZB = NC.LIFT_F1 * 12 - NC.LIFT_STOP + 2.5, LH = Z => NC.liftH(Z / 12), TRK = '#262e6a', cx = NC.LIFT_X, cz = X1;
+      const okT = (X, Z) => !(Math.abs(Z - X1) < 30 || Math.abs(Z - ZC) < 10 || inQ(X, Z, 2) || X < 22 || Math.abs(X - NC.WALK_X) < 4 || SPORT.some(([a, b]) => X < 52 && Z > a - 4 && Z < b + 4) || Math.abs(Math.hypot(X, Z - ZC) - 150) < 5);
+      for (let z = LZ0, k = 0; z < ZB; z += 4, k++) { const z1 = Math.min(z + 4, ZB), x0 = lx(z), x1 = lx(z1), xm = (x0 + x1) / 2, zm = (z + z1) / 2, len = Math.hypot(x1 - x0, z1 - z) + 0.12, ry = Math.atan2(x0 - x1, z1 - z), cs = Math.cos(ry), sn = Math.sin(ry), T = LH(zm), bridge = zm > cz - 27 - 2;
+        if (xm > 22 && !inQ(xm, zm, 2) && Math.abs(xm - NC.WALK_X) > 9) rbox(9, 0.14, len, xm, 0, zm, C.lawnD, ry);
+        rbox(3.4, T - 0.05, len, xm, 0, zm, bridge ? C.slab : TRK, ry); rbox(3.1, 0.05, len, xm, T - 0.05, zm, '#3a4694', ry);
+        for (const s of [-1, 1]) rbox(0.14, 0.05, len, xm + s * 1.5 * cs, T, zm + s * 1.5 * sn, C.cyan, ry, { glow: true });
+        if (k % 2 === 0) rbox(0.18, 0.04, len * 0.5, xm, T, zm, C.lime, ry, { glow: true });
+        if (bridge) for (const s of [-1, 1]) { rbox(0.12, 0.9, len, xm + s * 1.65 * cs, T, zm + s * 1.65 * sn, C.slab, ry); rbox(0.16, 0.06, len, xm + s * 1.65 * cs, T + 0.9, zm + s * 1.65 * sn, C.cyan, ry, { glow: true }); }
+        if (k % 6 === 3 && zm > 20) for (const s of [-1, 1]) { const X = xm + s * 5 * cs, Z = zm + s * 5 * sn; if (okT(X, Z)) { own = true; tree(X, Z, 2.4 + rr(k * 3 + s) * 0.9, k + (s > 0 ? 1 : 0)); own = false; } }
+        else if (k % 12 === 9 && okT(xm, zm) && xm > 24) lamp(xm + 2.6 * cs, zm + 2.6 * sn, k % 24 === 9 ? C.cyan : C.mag); }
+      // the gate in the quarter's rim, where the track enters it
+      { let zg = LZ0; while (zg < ZB && Math.hypot(lx(zg) - cx, zg - cz) > QR - 1) zg += 0.5; const xg = lx(zg), a = Math.atan2(xg - lx(zg - 1), 1);
+        for (const e of [-1, 1]) { box(1.5, 9, 1.5, xg + e * 5.6, 0, zg, C.navy2); box(0.4, 9, 0.4, xg + e * 4.7, 0, zg, C.cyan, { glow: true }); } box(12.4, 0.8, 1.5, xg, 9, zg, C.slab); box(12.6, 0.3, 1.6, xg, 9.8, zg, C.white, { glow: true }); rbox(5, 0.5, 0.3, xg, 10.4, zg, C.gold, a, { glow: true }); }
+      // the LIFT ROTUNDA: a drum of 12 m round the needle's foot, a glowing band, a roof ring, and its door on the south side (where the track ends), a LIFT panel over it
+      { const RD = 12, openA = a => Math.abs(Math.atan2(Math.sin(a - Math.PI), Math.cos(a - Math.PI))) < 0.2;
+        for (let i = 0; i < 24; i++) { const a = (i + 0.5) / 24 * Math.PI * 2, X = cx + RD * Math.sin(a), Z = cz + RD * Math.cos(a), w = 2 * RD * Math.tan(Math.PI / 24) + 0.08, dr = openA(a);
+          if (!dr) { rbox(w, 7, 0.9, X, 1.6, Z, C.navy3, -a); rbox(w + 0.04, 0.5, 1.1, X, 1.6, Z, C.slab, -a); rbox(w - 0.4, 1.7, 0.95, X, 3.3, Z, C.cyan, -a, { glow: true }); rbox(w - 0.4, 1.1, 0.95, X, 5.6, Z, '#7ee8ff', -a, { glow: true }); }
+          rbox(w + 0.04, 0.7, 1.2, X, 8.6, Z, C.slab, -a); rbox(w + 0.04, 0.3, 1.3, X, 9.3, Z, C.cyan, -a, { glow: true }); }
+        for (const e of [-1, 1]) { box(0.9, 7.6, 1.2, cx + e * 3.4, 1.6, cz - RD, C.slab); box(0.3, 7.6, 0.4, cx + e * 2.8, 1.6, cz - RD - 0.5, C.lime, { glow: true }); }
+        box(7.4, 1.3, 1.4, cx, 8.6, cz - RD, C.navy3); box(5.6, 0.7, 0.2, cx, 8.9, cz - RD - 0.75, C.lime, { glow: true }); box(0.15, 5.4, 0.15, cx, 3.2, cz - RD + 0.2, C.cyan, { glow: true });
+        cyl(13.6, 13.6, 1.4, cx, 0.2, cz, C.slab, { seg: 24 }); cyl(RD - 1, RD - 1, 0.25, cx, 1.6, cz, C.paveL, { seg: 24 }); cyl(2.6, 2.6, 0.12, cx, 1.85, cz, C.lime, { seg: 16, glow: true }); }
+    }
 
     // ---- AERIAL WALKWAYS (glass tubes across the avenue, tower to tower) and GREEN PLATFORMS on stems
     [[122, 26], [262, 34], [432, 28], [958, 30], [1128, 36], [1296, 26]].forEach(([z, h], k) => { const col = k % 2 ? C.mag : C.cyan;

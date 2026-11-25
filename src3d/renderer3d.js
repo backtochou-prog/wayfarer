@@ -537,7 +537,7 @@ class Renderer3D {
 
     // ---- runner (absolute lateral on its road, jump height in metres)
     const pb = w.playerBand(p.z, p.x), relX = (p.x + pb.off + (g.grindK || 0) * (g.grindOff || 0)) * U.X - Lref;      // (THE GRIND: over onto the low wall)
-    { const NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : null, d = g.detour, qf = NC && d ? (p.z - d.z0) / NC.SLOT - (NC.STREET + NC.TUNNEL + NC.ART) : 0, h = !NC || !d || !NC.walkH ? 0 : d.walk && qf >= NC.WALK_Q && qf < NC.CANYON + NC.DOWN + NC.WALK_END ? NC.walkH(qf) : g.onLane && qf > -NC.ART && qf < NC.CANYON + NC.DOWN + 118 ? NC.laneH(qf) : 0;      // (THE WALK and ART CITY's BIKE LANE: the runner stands ON the dirt, the paving, the sand and the lane's strip, not sunk in them)
+    { const NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : null, d = g.detour, qf = NC && d ? (p.z - d.z0) / NC.SLOT - (NC.STREET + NC.TUNNEL + NC.ART) : 0, h = !NC || !d || !NC.walkH ? 0 : d.liftT && NC.liftH && d.zS != null ? NC.liftH(Math.max(NC.LIFT_F0, (p.z - d.zS) / NC.SLOT)) : d.walk && qf >= NC.WALK_Q && qf < NC.CANYON + NC.DOWN + NC.WALK_END ? NC.walkH(qf) : g.onLane && qf > -NC.ART && qf < NC.CANYON + NC.DOWN + 118 ? NC.laneH(qf) : 0;      // (THE WALK and ART CITY's BIKE LANE: the runner stands ON the dirt, the paving, the sand and the lane's strip, not sunk in them)
       this._wkH = (this._wkH || 0) + (h - (this._wkH || 0)) * Math.min(1, dt * 8); if (Math.abs(this._wkH - h) < 0.002) this._wkH = h; }
     const lift = (SC ? 0.85 * Math.max(0, Math.min(1, ((p.x + pb.off) * U.X - 6.6) / 0.8)) : 0) + this._wkH;       // in the cutscene the runner steps up onto the platform (0.85 m)
     this.runner.group.position.set(relX, p.jy * U.Y + lift + (g.grind ? g.grindY : 0), 0); this.runner.group.visible = !(SC && SC.boarded);
@@ -612,7 +612,7 @@ class Renderer3D {
     this.faceBase = Math.atan2(this.cam.x - relX, this.cam.z);                           // (where the camera stands round the runner, before the ride below carries both away: the runner's card is turned to it)
     if (g.ride && (g.ride.x || g.ride.y || g.ride.z || g.ride.yaw)) { const R = g.ride, rx = R.x, ry = R.y, rz = -(R.z || 0), ya = R.yaw || 0, gp = this.runner.group, sh = this.runner.shadow;      // THE HIGH LOOP (Game.rideStep): the runner and the camera ride through the scenery, which stays; on its grand tour they are turned too (yaw) and carried along it (z, metres ahead)
       if (ya) { const ca = Math.cos(ya), sa = Math.sin(ya); for (const v of [this.cam, this.look]) { const dx = v.x - relX, dz = v.z; v.x = relX + dx * ca + dz * sa; v.z = -dx * sa + dz * ca; } }
-      for (const v of [this.cam, this.look, gp.position, sh.position, this.perk && this.perk.bubble && this.perk.bubble.position]) if (v) { v.x += rx; v.y += ry; v.z += rz; } }
+      for (const v of R.only ? [gp.position, sh.position, this.perk && this.perk.bubble && this.perk.bubble.position] : [this.cam, this.look, gp.position, sh.position, this.perk && this.perk.bubble && this.perk.bubble.position]) if (v) { v.x += rx; v.y += ry; v.z += rz; } }
     let eye = this.camera.position;
     if (XRP) { this.xr.applyMain(this.cam, this.look, dt); eye = this.xr.eyeWorld(this._eye || (this._eye = new THREE.Vector3())); }
     else { this.camera.position.copy(this.cam); this.camera.lookAt(this.look); }
