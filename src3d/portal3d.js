@@ -22,7 +22,7 @@ class Portal {
     const P = w.pieces, T = w.track, fam = id => Portal.fam(T.segments[id].biome), famOf = p => p.type === 'fork' ? fam(p.fork.left.route) : fam(p.id); let added = false;
     for (let i = 0; i + 1 < P.length; i++) {
       const A = P[i], B = P[i + 1], key = A.uid + '>' + B.uid; if (this.seen.has(key)) continue; this.seen.add(key);
-      if (B.type !== 'seg' || (A.type === 'seg' && A.seg.scene) || famOf(A) === fam(B.id)) continue;
+      if (B.type !== 'seg' || B.seg.noPortal || (A.type === 'seg' && (A.seg.scene || A.seg.noPortal)) || famOf(A) === fam(B.id)) continue;      // (noPortal: the underground route joins its places like a real road, no Stargate)
       // after a junction (the island one: the beach zone ends where its two roads have merged) the doors stand further on, 5 m into the next piece, so that neither is drawn across two converging roads
       const sh = A.type === 'fork' ? 200 : 0, q = { zIn: B.z0 - 150 + sh, zOut: B.z0 + 550 + sh, hit: false, out: false, id: key, from: famOf(A), to: fam(B.id) }; this.list.push(q); added = true;
       const a = q.zIn - Portal.PULL, b = q.zOut + Portal.SETTLE; for (const it of w.items) if (OBST[it.kind] && it.z >= a && it.z <= b) it.taken = true;                 // the journey's road has no hazards

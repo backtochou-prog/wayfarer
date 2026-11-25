@@ -342,11 +342,14 @@ const TRACK = {
                  patterns: ['line', 'crateJump', 'hurdle', 'slideGate'] },
     // THE UNDERGROUND ROAD (the user, 2026-11-25: the Central District is the hub, its round constructions are doors; the first lift goes down to "une route souterraine, 250 m" and on to an
     // underground city): reached only by the lift (Game.liftEnd -> World.reroute injects it), never by the sequence. The neon tunnel's tube, a straight road, 250 m, the atmosphere of the neon quarter.
-    underRoad: { name: 'UNDERGROUND', biome: 'under', length: 2500, curve: 0, first: 260, spacing: 210, district: 500, opening: true, calmStart: true,
+    underRoad: { name: 'UNDERGROUND', biome: 'under', noPortal: true, length: 1800, curve: 0, first: 260, spacing: 210, district: 500, opening: true, stay: true, calmStart: true,
                  patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'zig'] },
     // THE UNDERGROUND CITY, 4 km under the Central District (src3d/env_under.js): a straight avenue through shops, gardens under glass, cross streets and roundabouts; the climb to the surface comes next.
-    underCity: { name: 'UNDERGROUND CITY', biome: 'underCity', length: 40000, curve: 0, first: 300, spacing: 210, district: 400, opening: true, calmStart: true,
+    underCity: { name: 'UNDERGROUND CITY', biome: 'underCity', noPortal: true, length: 40000, curve: 0, first: 300, spacing: 210, district: 400, opening: true, stay: true, calmStart: true,
                  patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'risky', 'zig'], extra: ['gateTrail', 'slideJump', 'stagger'] },
+    // THE CLIMB: out of the underground city, a motorway tunnel rising little by little (a negative `grade`: the road RISES 5 m per 100 m) for 1.5 km, then the surface: Saint-Gilles (the sequence goes on with cityRun).
+    underClimb: { name: 'THE CLIMB', biome: 'underClimb', noPortal: true, length: 15000, curve: 0, first: 300, spacing: 210, district: 1500, opening: true, stay: true, calmStart: true, grade: -0.05,
+                  patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'zig'] },
     cityRun:   { gate: 0.5, name: 'OLD TOWN',      biome: 'city',   length: 1000, curve: 1.1,  first: 60,  spacing: 210,
                  patterns: ['rowR', 'hurdle', 'trailL', 'crateJump', 'slideGate', 'dodgeL', 'risky', 'trailR', 'line'], extra: ['crateBarrier', 'gateTrail', 'stagger'] },
     forest:    { name: 'GREENWOOD',     biome: 'forest', curve: -1.2, first: 80, spacing: 210,

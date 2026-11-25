@@ -4,13 +4,50 @@ window.ENV3D = window.ENV3D || {};
 (function () {
   if (!ENV3D.neon) return;
   const mod = (a, n) => ((a % n) + n) % n;
+  // a plain road tunnel (the user, 2026-11-26: no picture, no spiral, "simple connexion comme de realite"): a concrete arch of the same size as the neon tube (R 6.6 m), a lamp strip along the crown,
+  // amber guide lights low on both walls; the last slot of a tunnel has a head frame round the mouth. The user will send the final decor of the tunnel that leads to the city.
+  const T = { conc: ['#3b4050', '#343948', '#2e3342'], lamp: '#fff0c8', amber: '#ffb347', frame: '#555c70' };
+  const tube = (k, end) => () => { const p = [], R = 6.6, cy = 3.6, a0 = 0.5, n = 28, LL = 12.2;
+    for (let q = 0; q < n; q++) { const a = -a0 + (Math.PI + 2 * a0) * q / (n - 1), len = (Math.PI + 2 * a0) * (R + 0.3) / (n - 1) * 1.2; p.push(Kit.box(len, 0.4, LL, Math.cos(a) * (R + 0.3), cy + Math.sin(a) * (R + 0.3), 0, T.conc[(q + k) % 3], { rz: a + Math.PI / 2 })); }
+    p.push(Kit.box(1.6, 0.12, 5, 0, cy + R - 0.35, 0, T.lamp, { glow: true }));
+    for (const s of [-1, 1]) p.push(Kit.box(0.14, 0.14, 2.4, s * (R - 0.5), 1.2, 0, T.amber, { glow: true }));
+    if (end) for (let q = 0; q < n; q++) { const a = -a0 + (Math.PI + 2 * a0) * q / (n - 1), len = (Math.PI + 2 * a0) * (R + 1.0) / (n - 1) * 1.25; p.push(Kit.box(len, 1.2, 0.7, Math.cos(a) * (R + 0.6), cy + Math.sin(a) * (R + 0.6), -LL / 2 + 0.35, T.frame, { rz: a + Math.PI / 2 })); }
+    return Kit.merge(p); };
+  const tubeProps = {}; for (let k = 0; k < 3; k++) { tubeProps['ucTube' + k] = tube(k, false); tubeProps['ucTubeEnd' + k] = tube(k, true); }
+  // THE BLUEPRINT TUNNEL (the user's picture, 2026-11-26: "TUNNEL SOUTERRAIN 3 VOIES - 180 m", NEO METROPOLIS): a rectangular tunnel 18 m wide and 8 m high, the walls lined with panels of concentric
+  // red / orange / yellow rings, a portal frame with chamfered corners (glowing amber) at every 12 m, a ceiling of white light bars and yellow rings, a concrete barrier with hazard stripes and amber lights on both
+  // sides of the road, a dark wet floor. Used by `underRoad` (180 m) between the lift and the underground city; the climb keeps the plain concrete tunnel above.
+  const B = { dark: '#150a08', red: '#7a1008', red2: '#d42e0c', orange: '#ff8a10', yel: '#ffd21a', glow: '#ffb800', conc: '#74747c', black: '#101010', white: '#ffffff' };
+  const blue = (end) => () => { const p = [], LL = 12.2;
+    p.push(Kit.box(20, 0.1, LL, 0, -0.12, 0, '#14100e'), Kit.box(20, 0.5, LL, 0, 8, 0, B.dark));
+    for (const z of [-4, 0, 4]) p.push(Kit.box(0.8, 0.1, 2.4, 0, 7.94, z, B.white, { glow: true }));
+    for (const [r, c] of [[5.4, B.yel], [3.4, B.orange]]) p.push(Kit.cyl(r, r, 0.05, 0, 7.92, 0, c, { seg: 48, glow: true }), Kit.cyl(r - 0.07, r - 0.07, 0.05, 0, 7.9, 0, B.dark, { seg: 48 }));
+    p.push(Kit.cyl(1.2, 1.2, 0.05, 0, 7.92, 0, B.yel, { seg: 20, glow: true }));
+    for (const s of [-1, 1]) {
+      p.push(Kit.box(0.6, 8, LL, s * 9.3, 0, 0, B.dark));
+      [[3.7, B.red], [3.3, B.red2], [2.7, B.orange], [2.15, B.red2], [1.6, B.yel], [1.05, B.red], [0.55, B.yel]].forEach(([r, c], q) => p.push(Kit.cyl(r, r, 0.08, s * (8.95 - 0.03 * q), 4, 0, c, { rz: Math.PI / 2, seg: 28, glow: q === 4 || q === 6 || q === 2 })));
+      p.push(Kit.box(0.1, 0.1, LL, s * 8.85, 7.5, 0, B.glow, { glow: true }), Kit.box(0.1, 0.1, LL, s * 8.85, 0.9, 0, B.red2, { glow: true }));
+      p.push(Kit.box(1.6, 0.9, LL, s * 5.3, 0, 0, B.conc), Kit.box(0.08, 0.04, LL, s * 4.4, 0, 0, B.glow, { glow: true }));
+      for (let z = -LL / 2 + 0.6; z < LL / 2; z += 1.2) p.push(Kit.box(1.3, 0.08, 0.6, s * 5.3, 0.92, z, Math.round((z + 7) / 1.2) % 2 ? B.yel : B.black));
+      for (const z of [-3, 3]) p.push(Kit.box(0.3, 0.45, 0.9, s * 4.42, 0.45, z, B.glow, { glow: true }));
+    }
+    const fz = -LL / 2 + 0.25, th = end ? 0.2 : 0.12, seg = (x0, y0, x1, y1) => p.push(Kit.box(Math.hypot(x1 - x0, y1 - y0) + 0.02, th, 0.2, (x0 + x1) / 2, (y0 + y1) / 2, fz, B.glow, { glow: true, rz: Math.atan2(y1 - y0, x1 - x0) }));      // the portal frame at the far end of the slot: a thin line with rounded corners
+    const pts = []; for (const s of [-1, 1]) { const q = [[s * 8.6, 0.9], [s * 8.6, 5.9]]; for (let k = 1; k <= 8; k++) { const t = k / 8 * Math.PI / 2; q.push([s * (6.8 + 1.8 * Math.cos(t)), 5.9 + 1.8 * Math.sin(t)]); } pts.push(s < 0 ? q.reverse() : q); }
+    for (const q of pts) for (let k = 0; k + 1 < q.length; k++) seg(q[k][0], q[k][1], q[k + 1][0], q[k + 1][1]);
+    seg(-6.8, 7.7, 6.8, 7.7);
+    return Kit.merge(p); };
+  const blueProps = { ucBlue: blue(false), ucBlueEnd: blue(true) };
+  const road = Object.assign({}, ENV3D.neon.road, { mark: '#f4f4f4', edge: '#ffb800', asphalt: ['#17120f', '#120e0c'] });
   ENV3D.under = Object.assign({}, ENV3D.neon, {
-    name: 'UNDERGROUND', entrance: null,
-    layout(i, rnd) {
-      const k = Math.floor(rnd(i, 77) * 6), k0 = Math.floor(rnd(i - 1, 77) * 6), o = [{ prop: 'neonTunnel' + (k === k0 ? (k + 1) % 6 : k), x: 0, dist: 6, solo: true }];
-      if (mod(i, 3) === 0) o.push({ prop: 'neonTunnelPink', x: 0, dist: 6.75 });
-      return o;
-    },
+    name: 'UNDERGROUND', entrance: null, props: Object.assign({}, ENV3D.neon.props, blueProps), road,
+    sky: { top: '#080303', mid: '#140806', horizon: '#2a0e06' }, fog: { color: '#150805', near: 30, far: 150 }, hemi: { sky: '#ffb888', ground: '#4a2010', intensity: 1.7 },
+    sun: { color: '#ffd0a0', intensity: 1.0, position: [0, 9, 4] }, groundFar: '#100806',
+    layout(i) { const g = typeof window !== 'undefined' && window.__wf, w = g && g.world, P = w && w.pieceAt(i * 120 + 60), end = !!(P && P.z1 - (i * 120 + 120) < 1); return [{ prop: end ? 'ucBlueEnd' : 'ucBlue', x: 0, dist: 6, solo: true }]; },
+  });
+  // the climb keeps the plain concrete motorway tunnel, in the neon night's atmosphere
+  ENV3D.underClimb = Object.assign({}, ENV3D.neon, {
+    name: 'THE CLIMB', entrance: null, props: Object.assign({}, ENV3D.neon.props, tubeProps),
+    layout(i) { const g = typeof window !== 'undefined' && window.__wf, w = g && g.world, P = w && w.pieceAt(i * 120 + 60), end = !!(P && P.z1 - (i * 120 + 120) < 1); return [{ prop: (end ? 'ucTubeEnd' : 'ucTube') + mod(i, 3), x: 0, dist: 6, solo: true }]; },
   });
 })();
 
@@ -88,7 +125,7 @@ window.ENV3D = window.ENV3D || {};
   const props = {}; for (let v = 0; v < 6; v++) props['ucShop' + v] = shops(v, v % 3);
   for (let v = 0; v < 3; v++) { props['ucGarden' + v] = garden(v); props['ucCross' + v] = cross(v); }
   for (let k = 0; k < 3; k++) props['ucRound' + k] = round(k, 7);
-  const base = ENV3D.under;
+  const base = ENV3D.underClimb;
   ENV3D.underCity = Object.assign({}, base, { name: 'UNDERGROUND CITY', props: Object.assign({}, base.props, props),
     layout(i, rnd) {
       const m = mod(i, 72), b = mod(i, 24), blk = Math.floor(mod(i, 72) / 24);
