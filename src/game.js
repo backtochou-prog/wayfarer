@@ -425,7 +425,7 @@ class Game {
   // THE LIFT OF THE CENTRAL DISTRICT: the run goes on elsewhere. Step 1: straight to Saint-Gilles (World.reroute: the district's pieces ahead are dropped, the sequence goes on with its next cityRun, then Utrecht and Vic).
   // Later steps put the underground tunnel, the underground city and the climb in between (the `inject` specs).
   liftEnd() {
-    const w = this.world, p = this.p, P = w.pieceAt(p.z), oldZ = p.z, N = P ? w.reroute(p.z, this.liftRoute || [{ seg: 'underRoad' }], 'cityRun') : null;
+    const w = this.world, p = this.p, P = w.pieceAt(p.z), oldZ = p.z, N = P ? w.reroute(p.z, this.liftRoute || [{ seg: 'underRoad' }, { seg: 'underCity' }], 'cityRun') : null;
     this.ride = null; this.fadeOut = 0; if (!N) return;
     this.detour = null; w.extraLift = null; w.extraOff = null; w.noRoad = null; w.ver++;
     if (this.portal && this.portal.list) { this.portal.list = this.portal.list.filter(q => q.zIn < P.z1 - 400); if (this.portal.seen) this.portal.seen.add(P.uid + '>' + N.uid); }

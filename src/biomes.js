@@ -95,6 +95,7 @@ BIOMES.ruins = {
 // the TERRASSE GASPERI detour (3D: src3d/env_terrace.js); the 2D game gets a warm night palette
 BIOMES.terrace = Object.assign({}, BIOMES.market, { name: 'TERRASSE', sky: ['#0e1428', '#2a2236', '#4a2a3a', '#6a3a40'], road: ['#5b5550', '#54504b'], layers: ['#2a1e2a', '#3a2430', '#1f3a2a'] });
 BIOMES.under = Object.assign({}, BIOMES.neon, { name: 'UNDERGROUND', atmo: 'neon' });      // (the underground road and city: the neon night's atmosphere, no sky)
+BIOMES.underCity = Object.assign({}, BIOMES.under, { name: 'UNDERGROUND CITY' });
 BIOMES.gare = Object.assign({}, BIOMES.tram, { name: 'GARE DU MIDI', atmo: 'tram', density: 0.2 });
 // UTRECHT (the canal zone, after the train): three stretches that share one atmosphere (the 3D build gives them their own look, ENV3D.utrecht*; the 2D game just gets the dusk palette so the shared track works)
 for (const id of ['utrecht', 'utrechtA', 'utrechtB', 'utrechtQuay']) BIOMES[id] = Object.assign({}, BIOMES.tram, { name: 'UTRECHT', atmo: 'utrecht', density: 0.2 });
