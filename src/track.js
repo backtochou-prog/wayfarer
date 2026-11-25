@@ -340,6 +340,10 @@ const TRACK = {
   segments: {
     cityStart: { name: 'OLD TOWN',      biome: 'city',   length: 900,  curve: 0,    first: 420, spacing: 210, calmStart: true,   // calmStart: the run always opens with the first (hazard-free) pattern
                  patterns: ['line', 'crateJump', 'hurdle', 'slideGate'] },
+    // THE UNDERGROUND ROAD (the user, 2026-11-25: the Central District is the hub, its round constructions are doors; the first lift goes down to "une route souterraine, 250 m" and on to an
+    // underground city): reached only by the lift (Game.liftEnd -> World.reroute injects it), never by the sequence. The neon tunnel's tube, a straight road, 250 m, the atmosphere of the neon quarter.
+    underRoad: { name: 'UNDERGROUND', biome: 'under', length: 2500, curve: 0, first: 260, spacing: 210, district: 500, opening: true, calmStart: true,
+                 patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'zig'] },
     cityRun:   { gate: 0.5, name: 'OLD TOWN',      biome: 'city',   length: 1000, curve: 1.1,  first: 60,  spacing: 210,
                  patterns: ['rowR', 'hurdle', 'trailL', 'crateJump', 'slideGate', 'dodgeL', 'risky', 'trailR', 'line'], extra: ['crateBarrier', 'gateTrail', 'stagger'] },
     forest:    { name: 'GREENWOOD',     biome: 'forest', curve: -1.2, first: 80, spacing: 210,
