@@ -229,7 +229,7 @@ class Renderer3D {
 
   // THE SIDE ROAD is a prop road laid 8 cm above the circuit's own surface (src3d/env_canyon.js sdRoad): what runs or lies on it (the runner, the wheels, the feet, the hazards, the coins) is lifted 9 cm,
   // or the low ones are buried (the user, 2026-11-26: "les roues, les pieds submerges, des obstacles qu'on ne voit plus")
-  sideRaise(g, z) { const d = g.detour, NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : null; if (!d || !NC || !d.side || d.glass || !NC.sideM || d.mallJoin) return 0; const qf = (z - d.z0) / NC.SLOT - (NC.STREET + NC.TUNNEL + NC.ART); return qf > -NC.PIN && qf < NC.CANYON + NC.DOWN && NC.sideM(qf) > 1.5 ? 0.09 : 0; }
+  sideRaise(g, z) { const d = g.detour, NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : null; if (!d || !NC || !d.side || d.glass || !NC.sideM || d.mallJoin) return 0; const qf = (z - d.z0) / NC.SLOT - (NC.STREET + NC.TUNNEL + NC.ART); return qf > -NC.PIN && qf < NC.CANYON + NC.DOWN && NC.sideM(qf) > 1.5 ? 0.235 : 0; }
   layoutFor(envId, i) {
     const m = this.layouts[envId];
     let lay = m.get(i);
@@ -505,7 +505,7 @@ class Renderer3D {
       if (it.offV !== w.ver) { const bn = w.bandNear(it.z, it.x); it.off = bn.off; it.sd = bn.side; it.wet = bn.t > 0.5 && !!(this.envs[bn.to] && this.envs[bn.to].road.water); it.street = !!bn.quay; it.offV = w.ver; }   // road curve offset and water (a canal: hazards get their water look) at the item, cached until the track changes
       if (hide && it.sd === hide) continue;                      // (the other road of the junction is not seen from under the sea)
       const x = (it.x + it.off) * U.X - Lref, zr = -dz * U.Z;
-      const iy = dy(it.z) + (it.sd && w.riseFork(it.z) ? w.lift(it.z, it.sd) * U.Z : 0) + (it.wk || 0) + this.sideRaise(g, it.z);                                     // on a descent the item sits on the sloping road (and on the raised road of the upper circuit, on its stairs and its street)
+      const iy = dy(it.z) + (it.sd && w.riseFork(it.z) ? w.lift(it.z, it.sd) * U.Z : 0) + (it.wk ? it.wk + WALK_Y : 0) + this.sideRaise(g, it.z);                                     // on a descent the item sits on the sloping road (and on the raised road of the upper circuit, on its stairs and its street)
       if (it.kind === 'prop') { this.place(it.spr, x, WALK_Y + iy, zr, 0); continue; }
       if (it.kind === 'coin' || this.items.extraSet[it.kind]) this.items.place(it.kind, x, it.h * U.Y + iy, zr); else { const pg = this.items.place(it.street && this.items.pool[it.kind + 'S'] ? it.kind === 'barrier' && Math.floor(it.z / 100) % 2 ? 'barrierB' : it.kind + 'S' : it.wet && this.items.pool[it.kind + 'W'] ? it.kind + 'W' : it.kind, x, iy, zr, /^vic/.test(it.kind) && it.x < 0 ? Math.PI : 0); /* (the street's hazards stand against a wall: their models are built for the right-hand one) */ if (killer && it === killer.it && pg) this.kill = { x, y: iy, z: zr, g: pg }; }   // coins and the collectibles hang at their height; the hazard that ended the run is remembered (the vortex that absorbs the runner)
     }
@@ -515,7 +515,7 @@ class Renderer3D {
       let n = 0; const NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : null, d = g.detour;
       for (let zq = Math.floor((p.z - 140) / 40) * 40; zq < p.z + 1500 && n < 40; zq += 40) { const L = g.ledgeAt(zq + 20); if (!L) continue;
         const B = g.bikeLane(zq + 20); if (!B) continue; const X = B.c + L.off, bn = w.bandNear(zq + 20, X), qf = NC && d ? (zq + 20 - d.z0) / NC.SLOT - (NC.STREET + NC.TUNNEL + NC.ART) : 0, o = this.ledgeP[n++];
-        o.position.set((X + bn.off) * U.X - Lref, dy(zq + 20) + (NC && d && NC.laneH ? NC.laneH(qf) : 0), -(zq + 20 - p.z) * U.Z); o.visible = true;
+        o.position.set((X + bn.off) * U.X - Lref, dy(zq + 20) + (NC && d && NC.laneH ? NC.laneH(qf) + WALK_Y : 0), -(zq + 20 - p.z) * U.Z); o.visible = true;
         const B2 = g.bikeLane(zq + 40), B1 = g.bikeLane(zq); o.rotation.y = B1 && B2 ? Math.atan2(-((B2.c + w.bandNear(zq + 40, B2.c).off) - (B1.c + w.bandNear(zq, B1.c).off)) * U.X, 40 * U.Z) : 0; }      // (turned along the lane in its bends)
       for (; n < 40; n++) this.ledgeP[n].visible = false; }
     { const bt2 = g.sfx ? g.sfx.beat() : null, on = this.coastDance && bt2, pu = on ? bt2.pulse * (0.45 + 0.55 * bt2.energy) : 0, bb = on ? bt2.beat : 0;
@@ -541,7 +541,8 @@ class Renderer3D {
 
     // ---- runner (absolute lateral on its road, jump height in metres)
     const pb = w.playerBand(p.z, p.x), relX = (p.x + pb.off + (g.grindK || 0) * (g.grindOff || 0)) * U.X - Lref;      // (THE GRIND: over onto the low wall)
-    { const NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : null, d = g.detour, qf = NC && d ? (p.z - d.z0) / NC.SLOT - (NC.STREET + NC.TUNNEL + NC.ART) : 0, h = !NC || !d || !NC.walkH ? 0 : d.liftT && NC.liftH && d.zS != null ? NC.liftH(Math.max(NC.LIFT_F0, (p.z - d.zS) / NC.SLOT)) : d.walk && qf >= NC.WALK_Q && qf < NC.CANYON + NC.DOWN + NC.WALK_END ? NC.walkH(qf) : g.onLane && qf > -NC.ART && qf < NC.CANYON + NC.DOWN + 118 ? NC.laneH(qf) : this.sideRaise(g, p.z);      // (THE WALK and ART CITY's BIKE LANE: the runner stands ON the dirt, the paving, the sand and the lane's strip, not sunk in them)
+    { const NC = typeof NEON_CORNER !== 'undefined' ? NEON_CORNER : null, d = g.detour, qf = NC && d ? (p.z - d.z0) / NC.SLOT - (NC.STREET + NC.TUNNEL + NC.ART) : 0, h = !NC || !d || !NC.walkH ? 0 : d.liftT && NC.liftH && d.zS != null ? NC.liftH(Math.max(NC.LIFT_F0, (p.z - d.zS) / NC.SLOT)) + WALK_Y : d.walk && qf >= NC.WALK_Q && qf < NC.CANYON + NC.DOWN + NC.WALK_END ? NC.walkH(qf) + WALK_Y : g.onLane && qf > -NC.ART && qf < NC.CANYON + NC.DOWN + 118 ? NC.laneH(qf) + WALK_Y : this.sideRaise(g, p.z);      // (+ WALK_Y: every prop stands on the 15 cm pavement level, the road's own surface is at 0: the strips, the decks and the roads authored at height T are at T + WALK_Y)
+           // (THE WALK and ART CITY's BIKE LANE: the runner stands ON the dirt, the paving, the sand and the lane's strip, not sunk in them)
       this._wkH = (this._wkH || 0) + (h - (this._wkH || 0)) * Math.min(1, dt * 8); if (Math.abs(this._wkH - h) < 0.002) this._wkH = h; }
     const lift = (SC ? 0.85 * Math.max(0, Math.min(1, ((p.x + pb.off) * U.X - 6.6) / 0.8)) : 0) + this._wkH;       // in the cutscene the runner steps up onto the platform (0.85 m)
     this.runner.group.position.set(relX, p.jy * U.Y + lift + (g.grind ? g.grindY : 0), 0); this.runner.group.visible = !(SC && SC.boarded);

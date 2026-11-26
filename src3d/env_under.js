@@ -162,4 +162,7 @@ window.ENV3D = window.ENV3D || {};
     return Kit.merge(p); };
   const parkProps = {}; for (let v = 0; v < 6; v++) parkProps['ucPark' + v] = park(v);
   ENV3D.mallPark = Object.assign({}, ENV3D.underCity, { name: 'PARKING', props: Object.assign({}, ENV3D.underCity.props, parkProps), layout(i) { return [{ prop: 'ucPark' + mod(i, 6), x: 0, dist: 6, solo: true }]; } });
+  // THE ROAD'S SURFACE (the user, 2026-11-26: "les obstacles submerges"): the renderer stands every prop on WALK_Y (15 cm, the pavement), while the road itself, the hazards and the runner are at 0: the floors of these
+  // slot-long props covered the road. Their layouts are lowered by WALK_Y so that the props' y = 0 is the road.
+  for (const id of ['under', 'underClimb', 'underCity', 'mallDown', 'mallPark']) { const e = ENV3D[id]; if (!e || !e.layout) continue; const f = e.layout; e.layout = (i, rnd) => f(i, rnd).map(o => Object.assign(o, { dy: (o.dy || 0) - 0.15 })); }
 })();

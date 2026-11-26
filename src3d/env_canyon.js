@@ -373,7 +373,7 @@ const NeonAvenue = {
         if (q % 4 === 1 && !bd && a0 === N2.NRX) out.push({ prop: 'cnPlanter', x: a0 + 6.5 + D2, dist: 6, dy: -liftM }); } }      // (green along it)
     const gNow = typeof window !== 'undefined' && window.__wf, dNow = gNow && gNow.detour, mallWay = !!(dNow && dNow.side && !dNow.glass && !dNow.up);      // (the shopping centre's way down exists only for the side road's runner: on the glass ways, the avenue and the district it is not built)
     if (mallWay && liftM > 3 && typeof NEON_CORNER !== 'undefined' && typeof NEON_CORNER.DESC_Q === 'number') { const N2 = NEON_CORNER, D2 = NeonAvenue.D;      // THE SHOPPING CENTRE where the back road ends (NEON_CORNER.DESC_Q): its facade with the entrance, then its hall
-      if (q > N2.DESC_Q && q <= N2.DESC_Q + N2.PIT_N) out.push({ prop: 'nrDv' + (q - N2.DESC_Q - 1), x: N2.NRX + D2, dist: 6, dy: -liftM }); if (q === N2.DESC_Q) out.push({ prop: 'nrMallA', x: N2.NRX + D2, dist: 6, dy: -liftM }); }
+      if (q > N2.DESC_Q && q <= N2.DESC_Q + N2.PIT_N) out.push({ prop: 'nrDv' + (q - N2.DESC_Q - 1), x: N2.NRX + D2, dist: 6, dy: -liftM - 0.15 }); if (q === N2.DESC_Q) out.push({ prop: 'nrMallA', x: N2.NRX + D2, dist: 6, dy: -liftM }); }
     if (dNow && dNow.mallPit && !dNow.glass && liftM > 3 && typeof NEON_CORNER !== 'undefined' && typeof NEON_CORNER.DESC_Q === 'number' && q > NEON_CORNER.DESC_Q) { const N3 = NEON_CORNER, ee = x => x * x * (3 - 2 * x), dep = N3.PIT_M * ee(Math.min(1, (q - N3.DESC_Q - 0.5) / N3.PIT_N));      // (THE WAY DOWN is dug: everything that is not the tunnel stands on the true ground, PIT_M m over the road by the end)
       for (const o of out) if (!/^nrDv|^nrMall/.test(o.prop)) o.dy = (o.dy || 0) + dep; }
     for (const o of out) o.solo = true;
