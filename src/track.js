@@ -193,6 +193,7 @@ const NEON_CORNER = {
   // DESC_Q slots after the avenue's mouth, the back road and its bike lane end at the entrance of a big shopping centre (src3d/env_canyon.js nrMallA / nrMallB); Game.step takes the runner in (a fade) and
   // the way goes on DOWN through the centre (mallDescent), the blueprint tunnel, the underground city and the climb (World.reroute).
   DESC_Q: 22, PIT_N: 7, PIT_M: 8,
+  ARCH: { X: -232, Z0: 260, Z1: 440 },      // (the arch tunnel under the left round quarter: metres right of the district's avenue, metres along it)
   LIFT_F0: 4, LIFT_F1: 350 / 12, LIFT_X: 232, LIFT_STOP: 12.5,
   liftM(f) { const r = 0.12, s = 1 / (1 - r), t = (f - this.LIFT_F0) / (this.LIFT_F1 - this.LIFT_F0), L = this.BIKE_DX + this.BIKE_G;
     return L + (this.LIFT_X - L) * (t <= 0 ? 0 : t >= 1 ? 1 : t < r ? s * t * t / (2 * r) : t <= 1 - r ? s * (t - r / 2) : 1 - s * (1 - t) * (1 - t) / (2 * r)); },
@@ -355,6 +356,10 @@ const TRACK = {
                  patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'risky', 'zig'], extra: ['gateTrail', 'slideJump', 'stagger'] },
     // THE SHOPPING CENTRE's way down (the mall descent above): a gallery of shops, cross streets and gardens sloping DOWN (grade +0.06: 6 m per 100 m) for 900 m, then the blueprint tunnel.
     mallDescent: { name: 'CENTRE COMMERCIAL', biome: 'mallDown', noPortal: true, length: 9000, curve: 0, first: 300, spacing: 210, district: 1500, opening: true, stay: true, calmStart: true, grade: 0.06,
+                  patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'zig'] },
+    // THE ARCH TUNNEL (the user, 2026-11-26, a picture + blueprint, 180 m, built under the red line of the map: the first LEFT round quarter): not on any road yet (its entrance and its exit are to come),
+    // seen with ?zone=arch. NEON_CORNER.ARCH says where it lies under the district.
+    archTunnel: { name: 'TUNNEL SOUTERRAIN', biome: 'archTunnel', noPortal: true, length: 1800, curve: 0, first: 260, spacing: 210, district: 300, opening: true, stay: true, calmStart: true,
                   patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'zig'] },
     // THE PARKING between the shopping centre's gallery and the blueprint tunnel (the user, 2026-11-26: "un grand parking ... pour que la route goudronnee commence depuis le parking"): a big underground car park, 400 m.
     mallParking: { name: 'PARKING', biome: 'mallPark', noPortal: true, length: 4000, curve: 0, first: 300, spacing: 210, district: 600, opening: true, stay: true, calmStart: true,
