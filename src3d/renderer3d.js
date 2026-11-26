@@ -318,7 +318,7 @@ class Renderer3D {
     const pool = this.props[name], n = this.propUsed[name];
     if (!pool || n >= pool.length) { this.dropped++; this.droppedBy[name] = (this.droppedBy[name] || 0) + 1; return; }
     this.propUsed[name] = n + 1;
-    const o = pool[n]; o.position.set(x, y, z); o.rotation.y = rotY; if (sc || o.scale.x !== 1) o.scale.setScalar(sc || 1); o.visible = true;
+    const o = pool[n]; o.position.set(x, y, z); o.rotation.y = rotY; o.rotation.x = 0; if (sc || o.scale.x !== 1) o.scale.setScalar(sc || 1); o.visible = true; return o;
   }
 
   // PERFORMANCE, adaptive resolution. The 3D picture STARTS at 1.5 device pixels per CSS pixel (what every phone has coped with so far) and may go as high as 2.25 (PR_CEIL, or the screen's own density if lower):
@@ -472,7 +472,8 @@ class Renderer3D {
             }
             let py = WALK_Y + dyb((zs + pl.dist) / U.Z) + (pl.dy || 0), pz = rz - zs - pl.dist;
             if (pl.live) { py += Math.sin(g.time * 0.8 + i * 1.7 + pl.x) * 0.45; pz += Math.sin(g.time * 0.35 + i) * 2.2; }                    // a creature of the aquarium drifts a little (up and down, along the road)
-            this.place(pl.prop, cx + pl.x, py, pz, (pl.x < 0 ? Math.PI : 0) + (pl.rotY || 0) - Math.atan2(c1 - c0, SL));
+            const po = this.place(pl.prop, cx + pl.x, py, pz, (pl.x < 0 ? Math.PI : 0) + (pl.rotY || 0) - Math.atan2(c1 - c0, SL));
+            if (po && pl.tilt) po.rotation.x = -Math.atan(w.gradeAt((zs + pl.dist) / U.Z));      // (a slot-long prop on a graded street leans with it: the underground gallery's floors and lanes follow the slope instead of stepping)
             if (pl.prop === 'coastPad') this.padsNow.push({ id: i, x: cx + pl.x, y: WALK_Y + dyb((zs + pl.dist) / U.Z), z: rz - zs - pl.dist });
           }
         }

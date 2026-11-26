@@ -47,7 +47,7 @@ window.ENV3D = window.ENV3D || {};
   // the climb keeps the plain concrete motorway tunnel, in the neon night's atmosphere
   ENV3D.underClimb = Object.assign({}, ENV3D.neon, {
     name: 'THE CLIMB', entrance: null, props: Object.assign({}, ENV3D.neon.props, tubeProps),
-    layout(i) { const g = typeof window !== 'undefined' && window.__wf, w = g && g.world, P = w && w.pieceAt(i * 120 + 60), end = !!(P && P.z1 - (i * 120 + 120) < 1); return [{ prop: (end ? 'ucTubeEnd' : 'ucTube') + mod(i, 3), x: 0, dist: 6, solo: true }]; },
+    layout(i) { const g = typeof window !== 'undefined' && window.__wf, w = g && g.world, P = w && w.pieceAt(i * 120 + 60), end = !!(P && P.z1 - (i * 120 + 120) < 1); return [{ prop: (end ? 'ucTubeEnd' : 'ucTube') + mod(i, 3), x: 0, dist: 6, solo: true, tilt: true }]; },
   });
 })();
 
@@ -126,7 +126,7 @@ window.ENV3D = window.ENV3D || {};
   for (let v = 0; v < 3; v++) { props['ucGarden' + v] = garden(v); props['ucCross' + v] = cross(v); }
   for (let k = 0; k < 3; k++) props['ucRound' + k] = round(k, 7);
   const base = ENV3D.underClimb;
-  const mallLayout = (i, rnd) => { const b = mod(i, 16), prop = b === 0 ? 'ucCross' + mod(Math.floor(i / 16), 3) : b >= 9 && b <= 11 ? 'ucGarden' + mod(i, 3) : 'ucShop' + Math.floor(rnd(i, 71) * 6); return [{ prop, x: 0, dist: 6, solo: true }]; };
+  const mallLayout = (i, rnd) => { const b = mod(i, 16), prop = b === 0 ? 'ucCross' + mod(Math.floor(i / 16), 3) : b >= 9 && b <= 11 ? 'ucGarden' + mod(i, 3) : 'ucShop' + Math.floor(rnd(i, 71) * 6); return [{ prop, x: 0, dist: 6, solo: true, tilt: true }]; };
   ENV3D.underCity = Object.assign({}, base, { name: 'UNDERGROUND CITY', props: Object.assign({}, base.props, props),
     layout(i, rnd) {
       const m = mod(i, 72), b = mod(i, 24), blk = Math.floor(mod(i, 72) / 24);
