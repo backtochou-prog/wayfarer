@@ -189,6 +189,10 @@ const NEON_CORNER = {
   // LIFT_F1), whose lift goes down to the underground (Game: the ride 'down', liftEnd; scenery: src3d/env_district.js). liftM(f): the track's line, metres right of the avenue, at the
   // district's slot f; liftH(f): its surface (metres): it climbs onto the promenade's deck where it crosses it, and onto the bridge over the needle's basin. LIFT_STOP: where the runner
   // stops, metres before the needle's axis.
+  // THE MALL DESCENT (the user, 2026-11-26, on the map: the road that leaves the back road's roundabout towards NEO is cut: "mettez une descente ... un grand centre commercial jusqu'au nouveau tunnel"):
+  // DESC_Q slots after the avenue's mouth, the back road and its bike lane end at the entrance of a big shopping centre (src3d/env_canyon.js nrMallA / nrMallB); Game.step takes the runner in (a fade) and
+  // the way goes on DOWN through the centre (mallDescent), the blueprint tunnel, the underground city and the climb (World.reroute).
+  DESC_Q: 20,
   LIFT_F0: 4, LIFT_F1: 350 / 12, LIFT_X: 232, LIFT_STOP: 12.5,
   liftM(f) { const r = 0.12, s = 1 / (1 - r), t = (f - this.LIFT_F0) / (this.LIFT_F1 - this.LIFT_F0), L = this.BIKE_DX + this.BIKE_G;
     return L + (this.LIFT_X - L) * (t <= 0 ? 0 : t >= 1 ? 1 : t < r ? s * t * t / (2 * r) : t <= 1 - r ? s * (t - r / 2) : 1 - s * (1 - t) * (1 - t) / (2 * r)); },
@@ -347,6 +351,9 @@ const TRACK = {
     // THE UNDERGROUND CITY, 4 km under the Central District (src3d/env_under.js): a straight avenue through shops, gardens under glass, cross streets and roundabouts; the climb to the surface comes next.
     underCity: { name: 'UNDERGROUND CITY', biome: 'underCity', noPortal: true, length: 40000, curve: 0, first: 300, spacing: 210, district: 400, opening: true, stay: true, calmStart: true,
                  patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'risky', 'zig'], extra: ['gateTrail', 'slideJump', 'stagger'] },
+    // THE SHOPPING CENTRE's way down (the mall descent above): a gallery of shops, cross streets and gardens sloping DOWN (grade +0.06: 6 m per 100 m) for 900 m, then the blueprint tunnel.
+    mallDescent: { name: 'CENTRE COMMERCIAL', biome: 'mallDown', noPortal: true, length: 9000, curve: 0, first: 300, spacing: 210, district: 1500, opening: true, stay: true, calmStart: true, grade: 0.06,
+                  patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'zig'] },
     // THE CLIMB: out of the underground city, a motorway tunnel rising little by little (a negative `grade`: the road RISES 5 m per 100 m) for 1.5 km, then the surface: Saint-Gilles (the sequence goes on with cityRun).
     underClimb: { name: 'THE CLIMB', biome: 'underClimb', noPortal: true, length: 15000, curve: 0, first: 300, spacing: 210, district: 1500, opening: true, stay: true, calmStart: true, grade: -0.05,
                   patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'zig'] },

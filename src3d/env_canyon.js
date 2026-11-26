@@ -367,10 +367,12 @@ const NeonAvenue = {
     if (liftM > 3 && q >= NeonAvenue.WEST[0] && q <= NeonAvenue.WEST[1]) { const wx = NeonAvenue.D - NeonAvenue.WEST[2];
       out.push({ prop: q % 3 === 2 ? (q % 2 ? 'wvPlainA' : 'wvPlainB') : ['wvGreenA', 'wvGreenB', 'wvGreenC'][(Math.floor(q / 3) + q % 3) % 3], x: wx - (q % 2 ? 30 : 10), dist: 6, dy: -liftM }, { prop: q % 2 ? 'wvStationF' : 'wvStationN', x: wx, dist: 6, dy: -liftM }); }
     if (liftM > 3 && NeonAvenue.LOOP.slots[q]) for (const it of NeonAvenue.LOOP.slots[q]) out.push({ prop: it.prop, x: NeonAvenue.D + it.x, dist: it.dist, dy: (it.y || NeonAvenue.LOOP.H) - liftM, rotY: it.rotY || 0 });      // THE HIGH LOOP
-    if (liftM > 3 && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.backM && q < CN) { const N2 = NEON_CORNER, D2 = NeonAvenue.D;      // THE BACK ROAD behind the towers, from its roundabout
+    if (liftM > 3 && typeof NEON_CORNER !== 'undefined' && NEON_CORNER.backM && q < CN && q < (typeof NEON_CORNER.DESC_Q === 'number' ? NEON_CORNER.DESC_Q : CN)) { const N2 = NEON_CORNER, D2 = NeonAvenue.D;      // THE BACK ROAD behind the towers, from its roundabout
       if (q === N2.NRQ) out.push({ prop: 'nrRound', x: N2.NRC + D2, dist: 6, dy: -liftM });
       if (q > N2.NRQ) { const a0 = N2.backM(q), a1 = N2.backM(q + 1), bd = Math.abs(a1 - a0) > 0.01; out.push({ prop: bd ? 'nrRoadC' : 'nrRoad', x: (a0 + a1) / 2 + D2, dist: 6, dy: -liftM, rotY: -Math.atan((a1 - a0) / 12) });
         if (q % 4 === 1 && !bd && a0 === N2.NRX) out.push({ prop: 'cnPlanter', x: a0 + 6.5 + D2, dist: 6, dy: -liftM }); } }      // (green along it)
+    if (liftM > 3 && typeof NEON_CORNER !== 'undefined' && typeof NEON_CORNER.DESC_Q === 'number') { const N2 = NEON_CORNER, D2 = NeonAvenue.D;      // THE SHOPPING CENTRE where the back road ends (NEON_CORNER.DESC_Q): its facade with the entrance, then its hall
+      if (q === N2.DESC_Q) out.push({ prop: 'nrMallA', x: N2.NRX + D2, dist: 6, dy: -liftM }); if (q === N2.DESC_Q + 1) out.push({ prop: 'nrMallB', x: N2.NRX + D2, dist: 6, dy: -liftM }); }
     for (const o of out) o.solo = true;
     return out;
   };
@@ -415,6 +417,22 @@ const NeonAvenue = {
       // THE BACK ROAD and its ROUNDABOUT (NEON_CORNER.backM): the same neon asphalt; the roundabout a ring 7 m wide round a green island (grass, trees, flowers, a lit column), a spur
       // joining it to the side road
       props.nrRoad = road(12.3); props.nrRoadC = road(14);
+      // THE SHOPPING CENTRE (the mall descent): a 30 m wide, 18 m high facade across the end of the back road, a 9 m portal with a name board, and behind it a lit hall the road runs into
+      { let lab = null; const label = () => { if (lab) return lab; const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 190; const x = cv.getContext('2d'); x.fillStyle = '#0a0618'; x.fillRect(0, 0, 1024, 190); x.strokeStyle = '#ffd27a'; x.lineWidth = 8; x.strokeRect(8, 8, 1008, 174);
+          x.font = 'bold 92px "Arial Black", Impact, Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = '#ffd27a'; x.shadowBlur = 20; x.fillStyle = '#fff6dc'; x.fillText('CENTRE COMMERCIAL', 512, 100);
+          const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return (lab = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide })); };
+        const NV = '#1a2150', NV2 = '#232a66', GD = '#ffd27a', CY = '#58f0ff', SH = ['#58f0ff', '#ff5ad8', '#ffd27a', '#9dff7a', '#ff8a4a'];
+        props.nrMallA = () => { const p = [], H = 18, zf = 5.4;
+          for (const s of [-1, 1]) { p.push(Kit.box(10.5, H, 1.2, s * 9.75, 0, zf, NV2), Kit.box(0.5, H, 0.3, s * 15, 0, zf + 0.7, GD, { glow: true }), Kit.box(1, H, 12.2, s * 14.5, 0, 0, NV));
+            for (const y of [3, 6.5, 10, 13.5]) p.push(Kit.box(8.4, 1.3, 0.15, s * 9.75, y, zf + 0.65, '#ffe0a8', { glow: true }));
+            p.push(Kit.box(0.4, 7, 0.4, s * 4.6, 0, zf + 0.5, CY, { glow: true })); }
+          p.push(Kit.box(9.6, H - 7, 1.2, 0, 7, zf, NV2), Kit.box(9.8, 0.4, 1.3, 0, 7, zf + 0.1, GD, { glow: true }), Kit.box(30, 1, 12.2, 0, H, 0, NV), Kit.box(16, 3.2, 0.4, 0, H - 6.2, zf + 0.7, '#0a0618'), Kit.box(30, 0.1, 12.2, 0, -0.04, 0, '#262d5c'));
+          return { merged: Kit.merge(p), sprite: new THREE.PlaneGeometry(14.6, 2.7).translate(0, H - 4.6, zf + 0.95), material: label }; };
+        props.nrMallB = () => { const p = [], H = 18;
+          p.push(Kit.box(30, 0.1, 12.2, 0, -0.04, 0, '#262d5c'), Kit.box(30, 0.5, 12.2, 0, 7.4, 0, NV), Kit.box(30, 1, 12.2, 0, H, 0, NV), Kit.box(30, 18, 0.5, 0, 0, -5.9, NV), Kit.box(9, 4.4, 0.2, 0, 1.2, -5.6, '#ffd9a0', { glow: true }));
+          for (const z of [-3.6, 0, 3.6]) p.push(Kit.box(0.9, 0.1, 2.4, 0, 7.3, z, '#ffffff', { glow: true }));
+          for (const s of [-1, 1]) { p.push(Kit.box(1, H, 12.2, s * 14.5, 0, 0, NV)); for (const z of [-3.4, 3.4]) p.push(Kit.box(0.2, 3.2, 4.6, s * 13.9, 0.6, z, SH[(z > 0 ? 1 : 0) + (s > 0 ? 2 : 0)], { glow: true }), Kit.box(0.5, 0.3, 4.8, s * 13.7, 4.1, z, GD, { glow: true })); }
+          return Kit.merge(p); }; }
       props.nrRound = () => { const P = [], N = 36, RO = 15, RI = 8, RM = (RO + RI) / 2, ex = Math.PI - Math.asin((NC.NRX - NC.NRC) / RM), near = (a, b, w) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) < w;
         for (let k = 0; k < N; k++) { const a = (k + 0.5) / N * Math.PI * 2, sx = Math.sin(a), cz = Math.cos(a), ry = a - Math.PI / 2;
           P.push(Kit.box(RO - RI, 0.08, 2 * Math.PI * RO / N + 0.1, RM * sx, 0, RM * cz, AS, { ry }));

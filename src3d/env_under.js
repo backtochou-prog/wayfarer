@@ -126,6 +126,7 @@ window.ENV3D = window.ENV3D || {};
   for (let v = 0; v < 3; v++) { props['ucGarden' + v] = garden(v); props['ucCross' + v] = cross(v); }
   for (let k = 0; k < 3; k++) props['ucRound' + k] = round(k, 7);
   const base = ENV3D.underClimb;
+  const mallLayout = (i, rnd) => { const b = mod(i, 16), prop = b === 0 ? 'ucCross' + mod(Math.floor(i / 16), 3) : b >= 9 && b <= 11 ? 'ucGarden' + mod(i, 3) : 'ucShop' + Math.floor(rnd(i, 71) * 6); return [{ prop, x: 0, dist: 6, solo: true }]; };
   ENV3D.underCity = Object.assign({}, base, { name: 'UNDERGROUND CITY', props: Object.assign({}, base.props, props),
     layout(i, rnd) {
       const m = mod(i, 72), b = mod(i, 24), blk = Math.floor(mod(i, 72) / 24);
@@ -136,4 +137,5 @@ window.ENV3D = window.ENV3D || {};
       else prop = 'ucShop' + Math.floor(rnd(i, 71) * 6);
       return [{ prop, x: 0, dist: 6, solo: true }];
     } });
+  ENV3D.mallDown = Object.assign({}, ENV3D.underCity, { name: 'CENTRE COMMERCIAL', layout: mallLayout });
 })();

@@ -250,6 +250,10 @@ class Game {
       if (this.detour.dist && !this.detour.glass && z >= this.detour.zS) { const f = (z - this.detour.zS) / C.SLOT;      // THE CENTRAL DISTRICT's own lane (src3d/env_district.js), BIKE_DX right of its avenue: ART CITY's lane runs into it
         return f < C.DN - 14 / 12 ? { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.BIKE_DX + C.BIKE_G) / U, entry: C.BIKE_IN.some(([i, j]) => f >= i && f < j), any: true } : null; }
       if (r >= 0 && r < C.ART - C.PIN) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) + C.BIKE_G) / U, entry: C.bikeEntry(r), any: true };
+      if (r >= 0 && this.detour.side && !this.detour.glass && typeof C.DESC_Q === 'number' && qf >= C.DESC_Q - 3) {      // (the bike lane does not go down: its last 3 slots bring the rider over to the tarmac, the back road, which alone enters the shopping centre)
+        if (qf >= C.DESC_Q + 4) return null; const e = t => t * t * (3 - 2 * t), t = e(Math.max(0, Math.min(1, (qf - (C.DESC_Q - 3)) / 1.5))), m = (b.lo + b.hi) / 2;
+        return { edge: b.hi - 0.12, c: (m + (C.bikeM(qf) + C.BIKE_G - C.sideM(qf)) / U) * (1 - t) + (m + (C.backM(qf) - C.sideM(qf)) / U) * t, entry: false, any: true }; }
+      if (r >= 0 && this.detour.side && !this.detour.glass && typeof C.DESC_Q === 'number' && qf >= C.DESC_Q) return null;      // (the back road and its lane end at the shopping centre's entrance: NEON_CORNER.DESC_Q)
       if (r >= 0 && this.detour.side && !this.detour.glass && qf < (C.far(this.detour) ? C.BIKE_FAR : C.BIKE_END)) return { edge: b.hi - 0.12, c: (b.lo + b.hi) / 2 + (C.bikeM(qf) + C.BIKE_G - C.sideM(qf)) / U, entry: qf < C.SIN - C.PIN || (qf >= C.BIKE_RET + 5.15 && qf < 72), any: true,
         road: qf >= C.NRQ + 3 && qf < C.BIKE_RET ? (b.lo + b.hi) / 2 + (C.backM(qf) - 1.9 + 1.2 * C.dipK(qf) - C.sideM(qf)) / U : null,
         roadHi: C.dipK(qf) > 0.02 || C.dipK(qf + 1) > 0.02 || C.dipK(qf - 1) > 0.02 ? (b.lo + b.hi) / 2 + (C.backM(qf) + 1.9 - C.sideM(qf)) / U : null }; }      // (road: along the BACK ROAD the runner may leave the lane to the left and run the road itself, its two sides)      // (beyond the fork, on the side road's detour: by the roundabout and the back road)
@@ -418,7 +422,7 @@ class Game {
   // speed, a quarter turn at every corner; it ends on the glass ramp down to the 11 m track (the detour's glass 'N'), where the run goes on.
   rideStep(dt) {
     const C = NEON_CORNER, r = this.ride, e = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }; r.t += dt;
-    if (r.kind === 'down') { r.z = 9.5 * e(r.t / 1.4); r.y = -2.4 * e((r.t - 1.7) / 1.0); this.fadeOut = Math.max(0, Math.min(1, (r.t - 1.9) / 0.7)); if (r.t >= 3.0) this.liftEnd(); return; }
+    if (r.kind === 'down') { r.z = 9.5 * e(r.t / 1.4); r.y = (r.sink == null ? -2.4 : r.sink) * e((r.t - 1.7) / 1.0); this.fadeOut = Math.max(0, Math.min(1, (r.t - 1.9) / 0.7)); if (r.t >= 3.0) this.liftEnd(); return; }
     if (r.kind === 'up') { r.x = C.LPLX * e(r.t / 0.7); r.y = C.LPLY / 10 * e((r.t - 0.6) / 1.8); this.fadeOut = Math.max(0, Math.min(1, (r.t - 1.7) / 0.6)); if (r.t >= 2.4) this.tourStart(); return; }
     this.tourStep(dt);
   }
@@ -426,7 +430,7 @@ class Game {
   // Later steps put the underground tunnel, the underground city and the climb in between (the `inject` specs).
   liftEnd() {
     const w = this.world, p = this.p, P = w.pieceAt(p.z), oldZ = p.z, N = P ? w.reroute(p.z, this.liftRoute || [{ seg: 'underRoad' }, { seg: 'underCity' }, { seg: 'underClimb' }], 'cityRun') : null;
-    this.ride = null; this.fadeOut = 0; if (!N) return;
+    this.liftRoute = null; this.ride = null; this.fadeOut = 0; if (!N) return;
     this.detour = null; w.extraLift = null; w.extraOff = null; w.noRoad = null; w.ver++;
     if (this.portal && this.portal.list) { this.portal.list = this.portal.list.filter(q => q.zIn < P.z1 - 400); if (this.portal.seen) this.portal.seen.add(P.uid + '>' + N.uid); }
     p.x = 0; p.z = N.z0 + 100; p.vx = 0; p.jy = 0; p.vy = 0; p.slide = 0; this.jumpBuf = 0; this.keys = {}; this.onLane = false; this.laneEase = 0; this._bkT = null; this.distAdd += oldZ - p.z;
@@ -541,6 +545,12 @@ class Game {
       if (on && p.z < zW) { if (!this.detour.hintW) { this.detour.hintW = true; this.banner = { t: 2.4, text: 'DIRT TRACK: PRESS RIGHT' }; }
         if (this.keys.right || this.tright) this.detour.wantW = true; else if (this.keys.left || this.tleft) this.detour.wantW = false; }
       if (prevZ < zW && p.z >= zW) { this.detour.askedW = true; if (this.detour.wantW && on) { this.detour.walk = true; this.banner = { t: 2, text: 'THE WALK' }; this.emit('corner'); } }
+    }
+    if (this.detour && this.detour.side && !this.detour.glass && !this.detour.land && !this.detour.walk && !this.detour.dist && !this.ride && typeof NEON_CORNER.DESC_Q === 'number') {      // THE MALL DESCENT (NEON_CORNER.DESC_Q): the back road and its lane lead into a big shopping centre, which goes down to the tunnel
+      const C = NEON_CORNER, d = this.detour, zD = d.z0 + (C.STREET + C.TUNNEL + C.ART + C.DESC_Q) * C.SLOT - C.SLOT * 0.9;
+      if (p.z > zD - 4 * C.SLOT && p.z <= zD + C.SLOT) { const BL = this.bikeLane(zD - 5), on = !!(BL && (this.onLane || Math.abs(p.x - BL.c) < 2));
+        if (on && !d.hintMall && p.z > zD - 2.2 * C.SLOT && p.z < zD) { d.hintMall = true; this.banner = { t: 2.6, text: 'BIKE LANE ENDS: THE ROAD GOES DOWN' }; }
+        if (on && prevZ < zD && p.z >= zD) { p.z = zD; p.vx = 0; p.jy = 0; p.vy = 0; p.slide = 0; this.liftRoute = [{ seg: 'mallDescent' }, { seg: 'underRoad' }, { seg: 'underCity' }, { seg: 'underClimb' }]; this.ride = { kind: 'down', t: 0, x: 0, y: 0, z: 0, only: true, sink: 0 }; this.banner = { t: 2.2, text: 'CENTRE COMMERCIAL' }; this.emit('corner'); } }
     }
     if (this.detour && this.detour.dist && this.detour.zS != null && !this.detour.glass && !this.detour.land && !this.detour.walk && typeof NEON_CORNER.liftM === 'function') {      // THE LIFT TRACK (the user, 2026-11-25: the district is the hub of the circuits, each round construction a door): RIGHT pressed on the district's lane (or the avenue's right half) at its first slots takes the raised track to the first right quarter's LIFT ROTUNDA; at its door the lift goes down (Game.liftEnd)
       const C = NEON_CORNER, d = this.detour, zL = d.zS + C.LIFT_F0 * C.SLOT, zT = d.zS + C.LIFT_F1 * C.SLOT - C.LIFT_STOP * 10;
