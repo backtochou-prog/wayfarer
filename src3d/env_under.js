@@ -138,4 +138,21 @@ window.ENV3D = window.ENV3D || {};
       return [{ prop, x: 0, dist: 6, solo: true }];
     } });
   ENV3D.mallDown = Object.assign({}, ENV3D.underCity, { name: 'CENTRE COMMERCIAL', layout: mallLayout });
+  // THE PARKING (the user, 2026-11-26): a big underground car park between the shopping centre's gallery and the blueprint tunnel; the tarmac road starts from it. Three rows of bays on each side of the
+  // road (cars of every colour, white bay lines), pillars with hazard feet, a low ceiling with light strips, a lit P gantry over the road every 3 slots, yellow guide lines along the aisle.
+  const CARS = ['#c0392b', '#2e86de', '#f1c40f', '#ecf0f1', '#2c3e50', '#27ae60', '#e67e22', '#8e44ad', '#95a5a6'];
+  const park = (v) => () => { const p = [], LL = 12.2;
+    p.push(Kit.box(100, 0.1, LL, 0, -0.12, 0, '#1a1c28'), Kit.box(100, 0.6, LL, 0, 7, 0, '#10121e'));
+    for (const x of [-30, -16, -3, 3, 16, 30]) p.push(Kit.box(0.5, 0.08, 6, x, 6.9, 0, '#fff4d0', { glow: true }));
+    for (const s of [-1, 1]) { p.push(Kit.box(8, 7.4, LL, s * 54, 0, 0, '#0e1020'));
+      for (const xr of [11, 16.8, 22.6]) { for (let q = 0; q < 5; q++) { const z = -4.8 + q * 2.4, k = v * 31 + q * 7 + xr + (s > 0 ? 3 : 0);
+          p.push(Kit.box(0.12, 0.02, 2.4, s * (xr - 2.4), 0, z - 1.2, '#f2f2f2'));
+          if (hr(k, 1) < 0.66) { const col = CARS[Math.floor(hr(k, 2) * CARS.length)], toward = xr === 16.8 ? -s : -s;
+            p.push(Kit.box(4.2, 0.7, 1.8, s * xr, 0.22, z, col), Kit.box(2.2, 0.55, 1.6, s * (xr + 0.2), 0.9, z, '#222a40'), Kit.box(0.1, 0.18, 1.3, s * (xr - 2.12), 0.55, z, '#ff3030', { glow: true })); } } }
+      for (const x of [14, 19.7]) p.push(Kit.box(0.9, 7, 0.9, s * x, 0, 0, '#3a3f58'), Kit.box(1.0, 0.7, 1.0, s * x, 0, 0, '#ffb800'), Kit.box(0.2, 0.2, 0.2, s * x, 1.4, 0, '#ffb800', { glow: true }));
+      p.push(Kit.box(0.14, 0.03, LL, s * 5.4, 0.02, 0, '#ffd21a', { glow: true })); }
+    if (mod(v, 3) === 0) p.push(Kit.box(0.3, 3, 0.3, -7, 3.4, 0, '#232a66'), Kit.box(0.3, 3, 0.3, 7, 3.4, 0, '#232a66'), Kit.box(15, 2.4, 0.3, 0, 4.4, 0, '#143a8a'), Kit.box(14, 0.18, 0.4, 0, 6.6, 0.05, '#ffffff', { glow: true }), Kit.box(1.6, 1.5, 0.4, 0, 4.9, 0.12, '#ffffff', { glow: true }), Kit.box(0.5, 1.5, 0.45, -0.3, 4.9, 0.14, '#143a8a'));
+    return Kit.merge(p); };
+  const parkProps = {}; for (let v = 0; v < 6; v++) parkProps['ucPark' + v] = park(v);
+  ENV3D.mallPark = Object.assign({}, ENV3D.underCity, { name: 'PARKING', props: Object.assign({}, ENV3D.underCity.props, parkProps), layout(i) { return [{ prop: 'ucPark' + mod(i, 6), x: 0, dist: 6, solo: true }]; } });
 })();

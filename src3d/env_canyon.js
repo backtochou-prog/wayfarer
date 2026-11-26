@@ -372,7 +372,7 @@ const NeonAvenue = {
       if (q > N2.NRQ) { const a0 = N2.backM(q), a1 = N2.backM(q + 1), bd = Math.abs(a1 - a0) > 0.01; out.push({ prop: bd ? 'nrRoadC' : 'nrRoad', x: (a0 + a1) / 2 + D2, dist: 6, dy: -liftM, rotY: -Math.atan((a1 - a0) / 12) });
         if (q % 4 === 1 && !bd && a0 === N2.NRX) out.push({ prop: 'cnPlanter', x: a0 + 6.5 + D2, dist: 6, dy: -liftM }); } }      // (green along it)
     if (liftM > 3 && typeof NEON_CORNER !== 'undefined' && typeof NEON_CORNER.DESC_Q === 'number') { const N2 = NEON_CORNER, D2 = NeonAvenue.D;      // THE SHOPPING CENTRE where the back road ends (NEON_CORNER.DESC_Q): its facade with the entrance, then its hall
-      if (q === N2.DESC_Q) out.push({ prop: 'nrMallA', x: N2.NRX + D2, dist: 6, dy: -liftM }); if (q === N2.DESC_Q + 1) out.push({ prop: 'nrMallB', x: N2.NRX + D2, dist: 6, dy: -liftM }); }
+      if (q >= N2.DESC_Q - 5 && q < N2.DESC_Q) out.push({ prop: 'nrCut' + (q - N2.DESC_Q + 6), x: N2.NRX + D2, dist: 6, dy: -liftM }); if (q === N2.DESC_Q) out.push({ prop: 'nrMallA', x: N2.NRX + D2, dist: 6, dy: -liftM }); if (q === N2.DESC_Q + 1) out.push({ prop: 'nrMallB', x: N2.NRX + D2, dist: 6, dy: -liftM }); }
     for (const o of out) o.solo = true;
     return out;
   };
@@ -422,16 +422,24 @@ const NeonAvenue = {
           x.font = 'bold 92px "Arial Black", Impact, Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = '#ffd27a'; x.shadowBlur = 20; x.fillStyle = '#fff6dc'; x.fillText('CENTRE COMMERCIAL', 512, 100);
           const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return (lab = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide })); };
         const NV = '#1a2150', NV2 = '#232a66', GD = '#ffd27a', CY = '#58f0ff', SH = ['#58f0ff', '#ff5ad8', '#ffd27a', '#9dff7a', '#ff8a4a'];
-        props.nrMallA = () => { const p = [], H = 18, zf = 5.4;
-          for (const s of [-1, 1]) { p.push(Kit.box(10.5, H, 1.2, s * 9.75, 0, zf, NV2), Kit.box(0.5, H, 0.3, s * 15, 0, zf + 0.7, GD, { glow: true }), Kit.box(1, H, 12.2, s * 14.5, 0, 0, NV));
-            for (const y of [3, 6.5, 10, 13.5]) p.push(Kit.box(8.4, 1.3, 0.15, s * 9.75, y, zf + 0.65, '#ffe0a8', { glow: true }));
-            p.push(Kit.box(0.4, 7, 0.4, s * 4.6, 0, zf + 0.5, CY, { glow: true })); }
-          p.push(Kit.box(9.6, H - 7, 1.2, 0, 7, zf, NV2), Kit.box(9.8, 0.4, 1.3, 0, 7, zf + 0.1, GD, { glow: true }), Kit.box(30, 1, 12.2, 0, H, 0, NV), Kit.box(16, 3.2, 0.4, 0, H - 6.2, zf + 0.7, '#0a0618'), Kit.box(30, 0.1, 12.2, 0, -0.04, 0, '#262d5c'));
-          return { merged: Kit.merge(p), sprite: new THREE.PlaneGeometry(14.6, 2.7).translate(0, H - 4.6, zf + 0.95), material: label }; };
-        props.nrMallB = () => { const p = [], H = 18;
-          p.push(Kit.box(30, 0.1, 12.2, 0, -0.04, 0, '#262d5c'), Kit.box(30, 0.5, 12.2, 0, 7.4, 0, NV), Kit.box(30, 1, 12.2, 0, H, 0, NV), Kit.box(30, 18, 0.5, 0, 0, -5.9, NV), Kit.box(9, 4.4, 0.2, 0, 1.2, -5.6, '#ffd9a0', { glow: true }));
+        const GR = '#1f8a4a', GRD = '#17703c', CO = '#74747c', LL = 12.2, TH = 8.4;      // (the way down is LOW: a cutting that deepens over 5 slots, the road going into the hillside under a park)
+        props.nrCut = k => () => { const p = [], h = (k - 0.5) * 1.1, sl = Math.atan(1.1 / LL), x0 = k < 2 ? 9 : 6.4;
+          for (const s of [-1, 1]) { p.push(Kit.box(14, h, LL, s * (x0 + 7), 0, 0, '#2c3f33'), Kit.box(14, 0.3, LL, s * (x0 + 7), h - 0.12, 0, GR, { rx: sl }));
+            if (k >= 2) p.push(Kit.box(0.4, h + 0.05, LL, s * (x0 - 0.1), 0, 0, CO), Kit.box(0.1, 0.1, LL, s * (x0 - 0.35), h * 0.55, 0, '#ffb800', { glow: true }), Kit.box(0.1, 0.1, LL, s * (x0 - 0.35), 0.5, 0, '#ff5a1a', { glow: true }));
+            if (k >= 3) p.push(Kit.cyl(0.1, 0.14, 4.4, s * (x0 + 1.4), h, 3, '#232a66'), Kit.ico(0.35, s * (x0 + 1.4), h + 4.6, 3, '#ffe0a8', { glow: true })); }
+          for (const x of [-1.8, 1.8]) p.push(Kit.box(0.1, 0.03, 2.2, x, 0.02, -2, '#58f0ff', { glow: true, rx: 0 }));
+          return Kit.merge(p); };
+        for (let k = 1; k <= 5; k++) props['nrCut' + k] = props.nrCut(k);
+        props.nrMallA = () => { const p = [], zf = 5.4;      // the portal: a terrace 8.4 m high across the road with a 9 m opening, the name board on its face, the park on top
+          for (const s of [-1, 1]) { p.push(Kit.box(10.5, TH, 1.2, s * 9.75, 0, zf, '#2c3f33'), Kit.box(1, TH, 12.2, s * 14.5, 0, 0, '#2c3f33'), Kit.box(0.5, TH, 0.3, s * 15, 0, zf + 0.7, '#ffd27a', { glow: true }), Kit.box(0.4, 5.2, 0.4, s * 4.6, 0, zf + 0.5, '#58f0ff', { glow: true }));
+            for (const y of [2.4, 5.2]) p.push(Kit.box(8.4, 0.9, 0.15, s * 9.75, y, zf + 0.65, '#ffe0a8', { glow: true })); }
+          p.push(Kit.box(9.6, TH - 5.2, 1.2, 0, 5.2, zf, '#2c3f33'), Kit.box(9.8, 0.4, 1.3, 0, 5.2, zf + 0.1, '#ffd27a', { glow: true }), Kit.box(30, 0.3, 12.2, 0, TH, 0, GR), Kit.box(30, 0.1, 12.2, 0, -0.04, 0, '#262d5c'), Kit.box(14.6, 2.6, 0.3, 0, 5.9, zf + 0.75, '#0a0618'));
+          for (const [x, z] of [[-9, -1], [9, 1], [-3, -3], [4, -2]]) p.push(Kit.cyl(0.25, 0.4, 1.8, x, TH, z, '#6a4a36'), Kit.ico(1.7, x, TH + 3, z, '#2fae5c'));
+          return { merged: Kit.merge(p), sprite: new THREE.PlaneGeometry(14.0, 2.3).translate(0, 5.9, zf + 0.95), material: label }; };
+        props.nrMallB = () => { const p = [];
+          p.push(Kit.box(30, 0.1, 12.2, 0, -0.04, 0, '#262d5c'), Kit.box(30, 0.5, 12.2, 0, 7.4, 0, NV), Kit.box(30, 0.3, 12.2, 0, TH + 0.5, 0, GR), Kit.box(30, 8.5, 0.5, 0, 0, -5.9, NV), Kit.box(9, 4.4, 0.2, 0, 1.2, -5.6, '#ffd9a0', { glow: true }));
           for (const z of [-3.6, 0, 3.6]) p.push(Kit.box(0.9, 0.1, 2.4, 0, 7.3, z, '#ffffff', { glow: true }));
-          for (const s of [-1, 1]) { p.push(Kit.box(1, H, 12.2, s * 14.5, 0, 0, NV)); for (const z of [-3.4, 3.4]) p.push(Kit.box(0.2, 3.2, 4.6, s * 13.9, 0.6, z, SH[(z > 0 ? 1 : 0) + (s > 0 ? 2 : 0)], { glow: true }), Kit.box(0.5, 0.3, 4.8, s * 13.7, 4.1, z, GD, { glow: true })); }
+          for (const s of [-1, 1]) { p.push(Kit.box(1, TH, 12.2, s * 14.5, 0, 0, '#2c3f33')); for (const z of [-3.4, 3.4]) p.push(Kit.box(0.2, 3.2, 4.6, s * 13.9, 0.6, z, SH[(z > 0 ? 1 : 0) + (s > 0 ? 2 : 0)], { glow: true }), Kit.box(0.5, 0.3, 4.8, s * 13.7, 4.1, z, GD, { glow: true })); }
           return Kit.merge(p); }; }
       props.nrRound = () => { const P = [], N = 36, RO = 15, RI = 8, RM = (RO + RI) / 2, ex = Math.PI - Math.asin((NC.NRX - NC.NRC) / RM), near = (a, b, w) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) < w;
         for (let k = 0; k < N; k++) { const a = (k + 0.5) / N * Math.PI * 2, sx = Math.sin(a), cz = Math.cos(a), ry = a - Math.PI / 2;
