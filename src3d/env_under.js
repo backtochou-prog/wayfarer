@@ -53,8 +53,8 @@ window.ENV3D = window.ENV3D || {};
   });
   // the climb keeps the plain concrete motorway tunnel, in the neon night's atmosphere
   ENV3D.underClimb = Object.assign({}, ENV3D.neon, {
-    name: 'THE CLIMB', entrance: null, props: Object.assign({}, ENV3D.neon.props, tubeProps),
-    layout(i) { const g = typeof window !== 'undefined' && window.__wf, w = g && g.world, P = w && w.pieceAt(i * 120 + 60), end = !!(P && P.z1 - (i * 120 + 120) < 1); return [{ prop: (end ? 'ucTubeEnd' : 'ucTube') + mod(i, 3), x: 0, dist: 6, solo: true, tilt: true }]; },
+    name: 'THE CLIMB', entrance: null, props: Object.assign({}, ENV3D.neon.props, tubeProps, blueProps), road: ENV3D.under.road, sky: ENV3D.under.sky, fog: ENV3D.under.fog, hemi: ENV3D.under.hemi, sun: ENV3D.under.sun, groundFar: ENV3D.under.groundFar,
+    layout(i) { const g = typeof window !== 'undefined' && window.__wf, w = g && g.world, P = w && w.pieceAt(i * 120 + 60), end = !!(P && P.z1 - (i * 120 + 120) < 1); return [{ prop: end ? 'ucBlueEnd' : 'ucBlue', x: 0, dist: 6, solo: true, tilt: true }]; },
   });
 })();
 
@@ -132,7 +132,7 @@ window.ENV3D = window.ENV3D || {};
   const props = {}; for (let v = 0; v < 6; v++) props['ucShop' + v] = shops(v, v % 3);
   for (let v = 0; v < 3; v++) { props['ucGarden' + v] = garden(v); props['ucCross' + v] = cross(v); }
   for (let k = 0; k < 3; k++) props['ucRound' + k] = round(k, 7);
-  const base = ENV3D.underClimb;
+  const base = Object.assign({}, ENV3D.underClimb, { road: ENV3D.neon.road, sky: ENV3D.neon.sky, fog: ENV3D.neon.fog, hemi: ENV3D.neon.hemi, sun: ENV3D.neon.sun, groundFar: ENV3D.neon.groundFar });      // (the city keeps the neon night's look)
   const mallLayout = (i, rnd) => { const b = mod(i, 16), prop = b === 0 ? 'ucCross' + mod(Math.floor(i / 16), 3) : b >= 9 && b <= 11 ? 'ucGarden' + mod(i, 3) : 'ucShop' + Math.floor(rnd(i, 71) * 6); return [{ prop, x: 0, dist: 6, solo: true, tilt: true }]; };
   ENV3D.underCity = Object.assign({}, base, { name: 'UNDERGROUND CITY', props: Object.assign({}, base.props, props),
     layout(i, rnd) {

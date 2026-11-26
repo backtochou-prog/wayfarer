@@ -97,7 +97,7 @@ BIOMES.terrace = Object.assign({}, BIOMES.market, { name: 'TERRASSE', sky: ['#0e
 BIOMES.under = Object.assign({}, BIOMES.neon, { name: 'UNDERGROUND' });      // (the blueprint tunnel has its own warm atmosphere: ENV3D.under)
 BIOMES.mallDown = Object.assign({}, BIOMES.neon, { name: 'CENTRE COMMERCIAL', atmo: 'neon' });
 BIOMES.mallPark = Object.assign({}, BIOMES.neon, { name: 'PARKING', atmo: 'neon' });
-BIOMES.underClimb = Object.assign({}, BIOMES.neon, { name: 'THE CLIMB', atmo: 'neon' });      // (the underground road and city: the neon night's atmosphere, no sky)
+BIOMES.underClimb = Object.assign({}, BIOMES.neon, { name: 'THE CLIMB', atmo: 'under' });      // (the climb is the blueprint tunnel too: its warm atmosphere)      // (the underground road and city: the neon night's atmosphere, no sky)
 BIOMES.underCity = Object.assign({}, BIOMES.neon, { name: 'UNDERGROUND CITY', atmo: 'neon' });
 BIOMES.gare = Object.assign({}, BIOMES.tram, { name: 'GARE DU MIDI', atmo: 'tram', density: 0.2 });
 // UTRECHT (the canal zone, after the train): three stretches that share one atmosphere (the 3D build gives them their own look, ENV3D.utrecht*; the 2D game just gets the dusk palette so the shared track works)
