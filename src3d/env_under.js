@@ -18,7 +18,8 @@ window.ENV3D = window.ENV3D || {};
   // red / orange / yellow rings, a portal frame with chamfered corners (glowing amber) at every 12 m, a ceiling of white light bars and yellow rings, a concrete barrier with hazard stripes and amber lights on both
   // sides of the road, a dark wet floor. Used by `underRoad` (180 m) between the lift and the underground city; the climb keeps the plain concrete tunnel above.
   const B = { dark: '#150a08', red: '#7a1008', red2: '#d42e0c', orange: '#ff8a10', yel: '#ffd21a', glow: '#ffb800', conc: '#74747c', black: '#101010', white: '#ffffff' };
-  const blue = (end) => () => { const p = [], LL = 12.2;
+  const blue = (end, tarmac) => () => { const p = [], LL = 12.2;
+    if (tarmac) { p.push(Kit.box(10.8, 0.06, LL, 0, -0.07, 0, '#34343e')); for (const z of [-3.6, 2.4]) for (const x of [-1.8, 1.8]) p.push(Kit.box(0.16, 0.03, 3, x, -0.01, z, '#ffffff', { glow: true })); for (const x of [-5.2, 5.2]) p.push(Kit.box(0.12, 0.03, LL, x, -0.01, 0, '#ffd21a', { glow: true })); }
     p.push(Kit.box(20, 0.1, LL, 0, -0.12, 0, '#14100e'), Kit.box(20, 0.5, LL, 0, 8, 0, B.dark));
     for (const z of [-4, 0, 4]) p.push(Kit.box(0.8, 0.1, 2.4, 0, 7.94, z, B.white, { glow: true }));
     for (const [r, c] of [[5.4, B.yel], [3.4, B.orange]]) p.push(Kit.cyl(r, r, 0.05, 0, 7.92, 0, c, { seg: 48, glow: true }), Kit.cyl(r - 0.07, r - 0.07, 0.05, 0, 7.9, 0, B.dark, { seg: 48 }));
@@ -37,6 +38,12 @@ window.ENV3D = window.ENV3D || {};
     seg(-6.8, 7.7, 6.8, 7.7);
     return Kit.merge(p); };
   const blueProps = { ucBlue: blue(false), ucBlueEnd: blue(true) };
+  // THE YELLOW TUNNEL WAY DOWN (the user, 2026-11-26: "continuer dans ce tunnel 80 m ... et entrer directement au centre commercial sans arret"): the shopping centre's way down is this same tunnel, PIT_N slots
+  // whose road dives PIT_M metres (the shear follows the slope, like the underground tunnel's neonTunnelDv); the canyon's layout (src3d/env_canyon.js) names these nrDv0..
+  if (typeof NEON_CORNER !== 'undefined' && NEON_CORNER.PIT_N) { const N6 = NEON_CORNER.PIT_N, D = NEON_CORNER.PIT_M, ee = x => x * x * (3 - 2 * x), LL = 12.2;
+    for (let k = 0; k < N6; k++) ENV3D.neon.props['nrDv' + k] = () => { const t = blue(k === N6 - 1, true)(), hy = z => { const f = (LL / 2 - z) / LL, a = (k + f) / N6, b = (k + 0.5) / N6; return -D * (ee(a) - ee(b)); };
+      for (const g of [t.lit, t.glow]) if (g) { const P = g.attributes.position; for (let i = 0; i < P.count; i++) P.setY(i, P.getY(i) + hy(P.getZ(i))); P.needsUpdate = true; g.computeBoundingSphere(); g.computeBoundingBox(); }
+      return t; }; }
   const road = Object.assign({}, ENV3D.neon.road, { mark: '#f4f4f4', edge: '#ffb800', asphalt: ['#17120f', '#120e0c'] });
   ENV3D.under = Object.assign({}, ENV3D.neon, {
     name: 'UNDERGROUND', entrance: null, props: Object.assign({}, ENV3D.neon.props, blueProps), road,

@@ -192,7 +192,7 @@ const NEON_CORNER = {
   // THE MALL DESCENT (the user, 2026-11-26, on the map: the road that leaves the back road's roundabout towards NEO is cut: "mettez une descente ... un grand centre commercial jusqu'au nouveau tunnel"):
   // DESC_Q slots after the avenue's mouth, the back road and its bike lane end at the entrance of a big shopping centre (src3d/env_canyon.js nrMallA / nrMallB); Game.step takes the runner in (a fade) and
   // the way goes on DOWN through the centre (mallDescent), the blueprint tunnel, the underground city and the climb (World.reroute).
-  DESC_Q: 22, PIT_N: 6, PIT_M: 8,
+  DESC_Q: 22, PIT_N: 7, PIT_M: 8,
   LIFT_F0: 4, LIFT_F1: 350 / 12, LIFT_X: 232, LIFT_STOP: 12.5,
   liftM(f) { const r = 0.12, s = 1 / (1 - r), t = (f - this.LIFT_F0) / (this.LIFT_F1 - this.LIFT_F0), L = this.BIKE_DX + this.BIKE_G;
     return L + (this.LIFT_X - L) * (t <= 0 ? 0 : t >= 1 ? 1 : t < r ? s * t * t / (2 * r) : t <= 1 - r ? s * (t - r / 2) : 1 - s * (1 - t) * (1 - t) / (2 * r)); },

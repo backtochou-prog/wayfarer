@@ -241,7 +241,8 @@ window.ENV3D = window.ENV3D || {};
     //   7 screens: floating cyan dots, light-ray towers, a striped boutique, green-line banners, cap signs
     // A landmark (neon ring / spire / billboard / halo / the four pictures on posts: vortex, sphere, rings, spiral) replaces the building on its side of one slot per stretch.
     layout(i, rnd) {
-      { const g = GAME(), det = g && g.detour, C = NEON_CORNER, r = detRel(i) - PIC_N - TUN_N, NA = C.ART, liftM = det && det.up ? C.lift(det, i * 120 + 60) / 10 : 0;   // ART CITY (src3d/env_artcity.js), the glass ramp and
+      { const g = GAME(), det = g && g.detour, C = NEON_CORNER, r = detRel(i) - PIC_N - TUN_N, NA = C.ART, liftM = det && det.up ? C.lift(det, i * 120 + 60) / 10 : 0;
+        if (det && det.mallJoin && det.zCut != null && i * 120 >= det.zCut) return [];      // (the shopping centre's way down: the pieces after the yellow tunnel dress themselves)   // ART CITY (src3d/env_artcity.js), the glass ramp and
         if (r >= 0 && r < NA && typeof ArtCity !== 'undefined') {                                                                                                             // the NEON AVENUE (src3d/env_canyon.js), the short tunnel back
           if (det && det.land && C.landM) { const o = ArtCity.layout(r, rnd, Object.assign({}, det, { side: false }), 0), f = r - NA;      // THE NEW LAND: everything stays where it stands, the road leaves to the left (NEON_CORNER.landM)
             if (f >= C.LQ) { o.push({ prop: 'pkMainRoad', x: 0.001, dist: 6, solo: true }); const s0 = C.landM(f), s1 = C.landM(f + 1), rot = Math.atan((s1 - s0) / 12);

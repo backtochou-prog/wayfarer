@@ -373,7 +373,7 @@ const NeonAvenue = {
         if (q % 4 === 1 && !bd && a0 === N2.NRX) out.push({ prop: 'cnPlanter', x: a0 + 6.5 + D2, dist: 6, dy: -liftM }); } }      // (green along it)
     const gNow = typeof window !== 'undefined' && window.__wf, dNow = gNow && gNow.detour, mallWay = !!(dNow && dNow.side && !dNow.glass && !dNow.up);      // (the shopping centre's way down exists only for the side road's runner: on the glass ways, the avenue and the district it is not built)
     if (mallWay && liftM > 3 && typeof NEON_CORNER !== 'undefined' && typeof NEON_CORNER.DESC_Q === 'number') { const N2 = NEON_CORNER, D2 = NeonAvenue.D;      // THE SHOPPING CENTRE where the back road ends (NEON_CORNER.DESC_Q): its facade with the entrance, then its hall
-      if (q > N2.DESC_Q && q <= N2.DESC_Q + N2.PIT_N) out.push({ prop: 'nrDv' + (q - N2.DESC_Q - 1), x: N2.NRX + D2, dist: 6, dy: -liftM }); if (q === N2.DESC_Q) out.push({ prop: 'nrMallA', x: N2.NRX + D2, dist: 6, dy: -liftM }); if (q === N2.DESC_Q + N2.PIT_N + 1) out.push({ prop: 'nrMallB', x: N2.NRX + D2, dist: 6, dy: -liftM }); }
+      if (q > N2.DESC_Q && q <= N2.DESC_Q + N2.PIT_N) out.push({ prop: 'nrDv' + (q - N2.DESC_Q - 1), x: N2.NRX + D2, dist: 6, dy: -liftM }); if (q === N2.DESC_Q) out.push({ prop: 'nrMallA', x: N2.NRX + D2, dist: 6, dy: -liftM }); }
     if (dNow && dNow.mallPit && !dNow.glass && liftM > 3 && typeof NEON_CORNER !== 'undefined' && typeof NEON_CORNER.DESC_Q === 'number' && q > NEON_CORNER.DESC_Q) { const N3 = NEON_CORNER, ee = x => x * x * (3 - 2 * x), dep = N3.PIT_M * ee(Math.min(1, (q - N3.DESC_Q - 0.5) / N3.PIT_N));      // (THE WAY DOWN is dug: everything that is not the tunnel stands on the true ground, PIT_M m over the road by the end)
       for (const o of out) if (!/^nrDv|^nrMall/.test(o.prop)) o.dy = (o.dy || 0) + dep; }
     for (const o of out) o.solo = true;
@@ -426,26 +426,10 @@ const NeonAvenue = {
           const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return (lab = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide })); };
         const NV = '#1a2150', NV2 = '#232a66', GD = '#ffd27a', CY = '#58f0ff', SH = ['#58f0ff', '#ff5ad8', '#ffd27a', '#9dff7a', '#ff8a4a'];
         const GR = '#1f8a4a', GRD = '#17703c', CO = '#74747c', LL = 12.2, TH = 8.4;      // (the way down is LOW: a cutting that deepens over 5 slots, the road going into the hillside under a park)
-        // the way down: NEON_CORNER.PIT_N slots of plain concrete tunnel whose road dives PIT_M metres (the shear follows it, like the underground tunnel's neonTunnelDv)
-        const dive = k => () => { const p = [], R = 6.6, cy = 3.6, a0 = 0.5, n = 28, D = NC.PIT_M, N6 = NC.PIT_N, ee = x => x * x * (3 - 2 * x), CC = ['#3b4050', '#343948', '#2e3342'];
-          for (let q = 0; q < n; q++) { const a = -a0 + (Math.PI + 2 * a0) * q / (n - 1), len = (Math.PI + 2 * a0) * (R + 0.3) / (n - 1) * 1.2; p.push(Kit.box(len, 0.4, LL, Math.cos(a) * (R + 0.3), cy + Math.sin(a) * (R + 0.3), 0, CC[(q + k) % 3], { rz: a + Math.PI / 2 })); }
-          p.push(Kit.box(1.6, 0.12, 5, 0, cy + R - 0.35, 0, '#fff0c8', { glow: true }));
-          for (const s of [-1, 1]) p.push(Kit.box(0.14, 0.14, 2.4, s * (R - 0.5), 1.2, 0, '#ffb347', { glow: true }));
-          const t = Kit.merge(p), hy = z => { const f = (LL / 2 - z) / LL, a = (k + f) / N6, b = (k + 0.5) / N6; return -D * (ee(a) - ee(b)); };
-          for (const g of [t.lit, t.glow]) if (g) { const P = g.attributes.position; for (let i = 0; i < P.count; i++) P.setY(i, P.getY(i) + hy(P.getZ(i))); P.needsUpdate = true; g.computeBoundingSphere(); g.computeBoundingBox(); }
-          return t; };
-        for (let k = 0; k < 6; k++) props['nrDv' + k] = dive(k);
-        props.nrMallA = () => { const p = [], zf = 5.4;      // the portal: a terrace 8.4 m high across the road with a 9 m opening, the name board on its face, the park on top
-          for (const s of [-1, 1]) { p.push(Kit.box(10.5, TH, 1.2, s * 9.75, 0, zf, '#2c3f33'), Kit.box(1, TH, 12.2, s * 14.5, 0, 0, '#2c3f33'), Kit.box(0.5, TH, 0.3, s * 15, 0, zf + 0.7, '#ffd27a', { glow: true }), Kit.box(0.4, 5.2, 0.4, s * 4.6, 0, zf + 0.5, '#58f0ff', { glow: true }));
-            for (const y of [2.4, 5.2]) p.push(Kit.box(8.4, 0.9, 0.15, s * 9.75, y, zf + 0.65, '#ffe0a8', { glow: true })); }
-          p.push(Kit.box(9.6, TH - 5.2, 1.2, 0, 5.2, zf, '#2c3f33'), Kit.box(9.8, 0.4, 1.3, 0, 5.2, zf + 0.1, '#ffd27a', { glow: true }), Kit.box(30, 0.3, 12.2, 0, TH, 0, GR), Kit.box(30, 0.1, 12.2, 0, -0.04, 0, '#262d5c'), Kit.box(14.6, 2.6, 0.3, 0, 5.9, zf + 0.75, '#0a0618'));
-          for (const [x, z] of [[-9, -1], [9, 1], [-3, -3], [4, -2]]) p.push(Kit.cyl(0.25, 0.4, 1.8, x, TH, z, '#6a4a36'), Kit.ico(1.7, x, TH + 3, z, '#2fae5c'));
-          return { merged: Kit.merge(p), sprite: new THREE.PlaneGeometry(14.0, 2.3).translate(0, 5.9, zf + 0.95), material: label }; };
-        props.nrMallB = () => { const p = [];
-          p.push(Kit.box(30, 0.1, 12.2, 0, -0.04, 0, '#262d5c'), Kit.box(30, 0.5, 12.2, 0, 7.4, 0, NV), Kit.box(30, 0.3, 12.2, 0, TH + 0.5, 0, GR), Kit.box(30, 8.5, 0.5, 0, 0, -5.9, NV), Kit.box(9, 4.4, 0.2, 0, 1.2, -5.6, '#ffd9a0', { glow: true }));
-          for (const z of [-3.6, 0, 3.6]) p.push(Kit.box(0.9, 0.1, 2.4, 0, 7.3, z, '#ffffff', { glow: true }));
-          for (const s of [-1, 1]) { p.push(Kit.box(1, TH, 12.2, s * 14.5, 0, 0, '#2c3f33')); for (const z of [-3.4, 3.4]) p.push(Kit.box(0.2, 3.2, 4.6, s * 13.9, 0.6, z, SH[(z > 0 ? 1 : 0) + (s > 0 ? 2 : 0)], { glow: true }), Kit.box(0.5, 0.3, 4.8, s * 13.7, 4.1, z, GD, { glow: true })); }
-          return Kit.merge(p); }; }
+        props.nrMallA = () => { const p = [];      // no gate: the yellow tunnel's mouth stands open and visible; only a name board on a post beside the road, facing it
+          p.push(Kit.box(0.3, 4.6, 0.3, -10.5, 0, 3, '#232a66'), Kit.box(0.4, 2.0, 8.4, -10.5, 4.0, 0, '#0a0618'), Kit.box(0.5, 0.2, 8.6, -10.5, 6.1, 0, '#ffb800', { glow: true }), Kit.box(0.5, 0.2, 8.6, -10.5, 3.9, 0, '#ffb800', { glow: true }));
+          return { merged: Kit.merge(p), sprite: new THREE.PlaneGeometry(8.0, 1.5).rotateY(Math.PI / 2).translate(-10.25, 5.0, 0), material: label }; };
+        }
       props.nrRound = () => { const P = [], N = 36, RO = 15, RI = 8, RM = (RO + RI) / 2, ex = Math.PI - Math.asin((NC.NRX - NC.NRC) / RM), near = (a, b, w) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) < w;
         for (let k = 0; k < N; k++) { const a = (k + 0.5) / N * Math.PI * 2, sx = Math.sin(a), cz = Math.cos(a), ry = a - Math.PI / 2;
           P.push(Kit.box(RO - RI, 0.08, 2 * Math.PI * RO / N + 0.1, RM * sx, 0, RM * cz, AS, { ry }));

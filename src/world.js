@@ -52,6 +52,13 @@ class World {
   peekSpec() { if (this.inject.length) return this.inject[0]; this.seqCount = this.seqIdx; return this.specAt(this.seqIdx); }
   // A WAY OUT OF THE SEQUENCE (the lift of the Central District, Game.liftEnd): the pieces laid beyond the one holding z are dropped; the track goes on with the pieces `inject`
   // (specs, in order), then with the sequence from its next `toSeg` segment on. Returns the first new piece (it starts where the piece holding z ends).
+  // THE SEAMLESS WAY OUT (the shopping centre's way down, Game.step): the piece holding zCut - 1 is cut at zCut (a slot boundary ahead of the runner; it stays `stay`, no fade back to the base look), the
+  // pieces `inject` follow at once, then the sequence from its next `toSeg`: no teleport, the run never stops. Returns the first new piece.
+  cutAt(zCut, inject, toSeg) {
+    const i = this.pieces.findIndex(p => zCut - 1 >= p.z0 && zCut - 1 < p.z1); if (i < 0) return null; const P = this.pieces[i], T = this.track, n = T.sequence.length, at = k => T.sequence[k >= n ? T.loopFrom + ((k - n) % (n - T.loopFrom)) : k];
+    let k = (P.si == null ? this.seqIdx : P.si + 1), lim = k + 2 * n; while (k < lim && at(k).seg !== toSeg) k++; if (k >= lim) return null;
+    P.seg = Object.assign({}, P.seg, { stay: true }); P.z1 = zCut; this.pieces.length = i + 1; this.items = this.items.filter(it => it.z < zCut); this.inject = (inject || []).slice(); this.seqIdx = k; this.ver++; this.extend(zCut + 600); return this.pieces[i + 1] || null;
+  }
   reroute(z, inject, toSeg) {
     const i = this.pieces.findIndex(p => z < p.z1); if (i < 0) return null; const P = this.pieces[i], T = this.track, n = T.sequence.length, at = k => T.sequence[k >= n ? T.loopFrom + ((k - n) % (n - T.loopFrom)) : k];
     let k = (P.si == null ? this.seqIdx : P.si + 1), lim = k + 2 * n; while (k < lim && at(k).seg !== toSeg) k++; if (k >= lim) return null;
