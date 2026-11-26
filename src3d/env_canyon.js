@@ -372,7 +372,9 @@ const NeonAvenue = {
       if (q > N2.NRQ) { const a0 = N2.backM(q), a1 = N2.backM(q + 1), bd = Math.abs(a1 - a0) > 0.01; out.push({ prop: bd ? 'nrRoadC' : 'nrRoad', x: (a0 + a1) / 2 + D2, dist: 6, dy: -liftM, rotY: -Math.atan((a1 - a0) / 12) });
         if (q % 4 === 1 && !bd && a0 === N2.NRX) out.push({ prop: 'cnPlanter', x: a0 + 6.5 + D2, dist: 6, dy: -liftM }); } }      // (green along it)
     if (liftM > 3 && typeof NEON_CORNER !== 'undefined' && typeof NEON_CORNER.DESC_Q === 'number') { const N2 = NEON_CORNER, D2 = NeonAvenue.D;      // THE SHOPPING CENTRE where the back road ends (NEON_CORNER.DESC_Q): its facade with the entrance, then its hall
-      if (q >= N2.DESC_Q - 5 && q < N2.DESC_Q) out.push({ prop: 'nrCut' + (q - N2.DESC_Q + 6), x: N2.NRX + D2, dist: 6, dy: -liftM }); if (q === N2.DESC_Q) out.push({ prop: 'nrMallA', x: N2.NRX + D2, dist: 6, dy: -liftM }); if (q === N2.DESC_Q + 1) out.push({ prop: 'nrMallB', x: N2.NRX + D2, dist: 6, dy: -liftM }); }
+      if (q > N2.DESC_Q && q <= N2.DESC_Q + N2.PIT_N) out.push({ prop: 'nrDv' + (q - N2.DESC_Q - 1), x: N2.NRX + D2, dist: 6, dy: -liftM }); if (q === N2.DESC_Q) out.push({ prop: 'nrMallA', x: N2.NRX + D2, dist: 6, dy: -liftM }); if (q === N2.DESC_Q + N2.PIT_N + 1) out.push({ prop: 'nrMallB', x: N2.NRX + D2, dist: 6, dy: -liftM }); }
+    if (liftM > 3 && typeof NEON_CORNER !== 'undefined' && typeof NEON_CORNER.DESC_Q === 'number' && q > NEON_CORNER.DESC_Q) { const N3 = NEON_CORNER, ee = x => x * x * (3 - 2 * x), dep = N3.PIT_M * ee(Math.min(1, (q - N3.DESC_Q - 0.5) / N3.PIT_N));      // (THE WAY DOWN is dug: everything that is not the tunnel stands on the true ground, PIT_M m over the road by the end)
+      for (const o of out) if (!/^nrDv|^nrMall/.test(o.prop)) o.dy = (o.dy || 0) + dep; }
     for (const o of out) o.solo = true;
     return out;
   };
@@ -423,13 +425,15 @@ const NeonAvenue = {
           const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return (lab = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide })); };
         const NV = '#1a2150', NV2 = '#232a66', GD = '#ffd27a', CY = '#58f0ff', SH = ['#58f0ff', '#ff5ad8', '#ffd27a', '#9dff7a', '#ff8a4a'];
         const GR = '#1f8a4a', GRD = '#17703c', CO = '#74747c', LL = 12.2, TH = 8.4;      // (the way down is LOW: a cutting that deepens over 5 slots, the road going into the hillside under a park)
-        props.nrCut = k => () => { const p = [], h = (k - 0.5) * 1.1, sl = Math.atan(1.1 / LL), x0 = k < 2 ? 9 : 6.4;
-          for (const s of [-1, 1]) { p.push(Kit.box(14, h, LL, s * (x0 + 7), 0, 0, '#2c3f33'), Kit.box(14, 0.3, LL, s * (x0 + 7), h - 0.12, 0, GR, { rx: sl }));
-            if (k >= 2) p.push(Kit.box(0.4, h + 0.05, LL, s * (x0 - 0.1), 0, 0, CO), Kit.box(0.1, 0.1, LL, s * (x0 - 0.35), h * 0.55, 0, '#ffb800', { glow: true }), Kit.box(0.1, 0.1, LL, s * (x0 - 0.35), 0.5, 0, '#ff5a1a', { glow: true }));
-            if (k >= 3) p.push(Kit.cyl(0.1, 0.14, 4.4, s * (x0 + 1.4), h, 3, '#232a66'), Kit.ico(0.35, s * (x0 + 1.4), h + 4.6, 3, '#ffe0a8', { glow: true })); }
-          for (const x of [-1.8, 1.8]) p.push(Kit.box(0.1, 0.03, 2.2, x, 0.02, -2, '#58f0ff', { glow: true, rx: 0 }));
-          return Kit.merge(p); };
-        for (let k = 1; k <= 5; k++) props['nrCut' + k] = props.nrCut(k);
+        // the way down: NEON_CORNER.PIT_N slots of plain concrete tunnel whose road dives PIT_M metres (the shear follows it, like the underground tunnel's neonTunnelDv)
+        const dive = k => () => { const p = [], R = 6.6, cy = 3.6, a0 = 0.5, n = 28, D = NC.PIT_M, N6 = NC.PIT_N, ee = x => x * x * (3 - 2 * x), CC = ['#3b4050', '#343948', '#2e3342'];
+          for (let q = 0; q < n; q++) { const a = -a0 + (Math.PI + 2 * a0) * q / (n - 1), len = (Math.PI + 2 * a0) * (R + 0.3) / (n - 1) * 1.2; p.push(Kit.box(len, 0.4, LL, Math.cos(a) * (R + 0.3), cy + Math.sin(a) * (R + 0.3), 0, CC[(q + k) % 3], { rz: a + Math.PI / 2 })); }
+          p.push(Kit.box(1.6, 0.12, 5, 0, cy + R - 0.35, 0, '#fff0c8', { glow: true }));
+          for (const s of [-1, 1]) p.push(Kit.box(0.14, 0.14, 2.4, s * (R - 0.5), 1.2, 0, '#ffb347', { glow: true }));
+          const t = Kit.merge(p), hy = z => { const f = (LL / 2 - z) / LL, a = (k + f) / N6, b = (k + 0.5) / N6; return -D * (ee(a) - ee(b)); };
+          for (const g of [t.lit, t.glow]) if (g) { const P = g.attributes.position; for (let i = 0; i < P.count; i++) P.setY(i, P.getY(i) + hy(P.getZ(i))); P.needsUpdate = true; g.computeBoundingSphere(); g.computeBoundingBox(); }
+          return t; };
+        for (let k = 0; k < 6; k++) props['nrDv' + k] = dive(k);
         props.nrMallA = () => { const p = [], zf = 5.4;      // the portal: a terrace 8.4 m high across the road with a 9 m opening, the name board on its face, the park on top
           for (const s of [-1, 1]) { p.push(Kit.box(10.5, TH, 1.2, s * 9.75, 0, zf, '#2c3f33'), Kit.box(1, TH, 12.2, s * 14.5, 0, 0, '#2c3f33'), Kit.box(0.5, TH, 0.3, s * 15, 0, zf + 0.7, '#ffd27a', { glow: true }), Kit.box(0.4, 5.2, 0.4, s * 4.6, 0, zf + 0.5, '#58f0ff', { glow: true }));
             for (const y of [2.4, 5.2]) p.push(Kit.box(8.4, 0.9, 0.15, s * 9.75, y, zf + 0.65, '#ffe0a8', { glow: true })); }

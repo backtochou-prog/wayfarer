@@ -192,7 +192,7 @@ const NEON_CORNER = {
   // THE MALL DESCENT (the user, 2026-11-26, on the map: the road that leaves the back road's roundabout towards NEO is cut: "mettez une descente ... un grand centre commercial jusqu'au nouveau tunnel"):
   // DESC_Q slots after the avenue's mouth, the back road and its bike lane end at the entrance of a big shopping centre (src3d/env_canyon.js nrMallA / nrMallB); Game.step takes the runner in (a fade) and
   // the way goes on DOWN through the centre (mallDescent), the blueprint tunnel, the underground city and the climb (World.reroute).
-  DESC_Q: 22,
+  DESC_Q: 22, PIT_N: 6, PIT_M: 8,
   LIFT_F0: 4, LIFT_F1: 350 / 12, LIFT_X: 232, LIFT_STOP: 12.5,
   liftM(f) { const r = 0.12, s = 1 / (1 - r), t = (f - this.LIFT_F0) / (this.LIFT_F1 - this.LIFT_F0), L = this.BIKE_DX + this.BIKE_G;
     return L + (this.LIFT_X - L) * (t <= 0 ? 0 : t >= 1 ? 1 : t < r ? s * t * t / (2 * r) : t <= 1 - r ? s * (t - r / 2) : 1 - s * (1 - t) * (1 - t) / (2 * r)); },
@@ -324,6 +324,8 @@ const NEON_CORNER = {
   // the height of the road (units of run) at z for a detour that took the glass ramp (positive), or the underground tunnel (negative)
   lift(d, z) {
     if (d && d.land) return 0;
+    if (d && d.mallPit && !d.glass) { const q = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART), a = this.DESC_Q + 1, e = t => t * t * (3 - 2 * t);      // THE MALL's WAY DOWN: from the tunnel mouth (DESC_Q) the road dives PIT_M metres over PIT_N slots, for real (like the underground tunnel)
+      return q <= a ? 0 : -this.PIT_M * 10 * e(Math.min(1, (q - a) / this.PIT_N)); }
     if (d && d.glass) return this.gH(d.glass, (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART), this.far(d));
     if (d && (d.down || d.park)) { const S = this.SLOT, z0 = d.z0 + (this.STREET + this.TUNNEL + this.ART) * S, zA = z0 + this.DIVE * S, zB = zA + (d.park ? this.PARK : this.UNDER) * S, zC = zB + (d.park ? this.PRISE : this.RISE) * S, e = t => t * t * (3 - 2 * t);
       return z <= z0 || z >= zC ? 0 : -this.DEPTH * (z < zA ? e((z - z0) / (zA - z0)) : z < zB ? 1 : 1 - e((z - zB) / (zC - zB))); }
