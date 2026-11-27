@@ -279,7 +279,7 @@ const NEON_CORNER = {
   // "2 E": at the glass ramp's pillars, just before the tunnel; "un petit rond": a small ROUNDABOUT there): LQ slots from the tunnel's mouth (11 before it) a runner in the LEFT lane who
   // holds LEFT leaves the circuit to the left, passes the roundabout (centre LRX m, LRQ slots; ring LRI..LRO m) by its right side, swings out behind the left picture towers and runs on
   // the ground LX m left of the circuit, to the Central District's entry (G3E, the walled ramp's line: G3BX). landM(qf): the road's centre.
-  LQ: -11, LRX: -20, LRQ: -7.5, LRO: 9, LRI: 4, LX: -60.8,
+  LQ: -11, LRX: -20, LRQ: -7.5, LRO: 9, LRI: 4, LX: -56,      // (2026-11-27, the user: "tout droit": the road runs straight at G3BX, -56 m, all the way into the district, no sidestep at its end; it was -60.8)
   landM(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = this.LRX + (this.LRO + this.LRI) / 2;
     return a * e(c((qf - this.LQ) / (this.LRQ - this.LQ))) + (this.LX - a) * e(c((qf - this.LRQ - 0.2) / 4.8)) + (this.G3BX - this.LX) * e(c(qf - this.G3E + 1)); },
   glass3W(qf) { const e = t => t * t * (3 - 2 * t), c = v => Math.max(0, Math.min(1, v)), a = 0.2, t = c((qf - this.G3T) / (this.G3C - this.G3T));
