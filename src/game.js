@@ -157,6 +157,7 @@ class Game {
     this.p = { x: 0, z: 0, vx: 0, jy: 0, vy: 0, slide: 0, speed: BASE_SPEED };
     const zm = typeof location !== 'undefined' && location.search.match(/[?&]zone=(\w+)/);                       // ?zone=vic starts the run just before that piece of the track (a segment id, or vic / utrecht / coast / neon / city as shortcuts): to test a zone without running to it
     if (zm) { const id = { race: 'neonRun', kart: 'neonRun', vic: 'vicA', utrecht: 'utrechtA', coast: 'coastSunset', neon: 'neonRun', city: 'cityRun', tram: 'tramRun', gare: 'gareMidi', terrace: 'terraceRun' }[zm[1]] || zm[1]; this.world.extend(id === 'terraceRun' ? 260000 : 120000); const Z = this.world.pieces.find(q => q.id === id || (q.type === 'fork' && (q.fork.left.route === id || q.fork.right.route === id)));      /* (a fork branch: the run starts before its junction) */ if (Z) { this.p.z = Math.max(0, Z.z0 - 250); this.world.extend(this.p.z + 3000); } }
+    if (zm && zm[1] === 'station') { const P0 = this.world.pieces[0], N = this.world.cutAt(P0.z0 + 1200, NEON_CORNER.STATION.route('A10'), 'cityRun'); if (N) { this.p.z = Math.max(0, N.z0 - 250); this.world.extend(this.p.z + 3000); } }      // ?zone=station: the run opens just before the metro station
     if (zm && zm[1] === 'arch') { const P0 = this.world.pieces[0], N = this.world.cutAt(P0.z0 + 1200, [{ seg: 'archTunnel' }], 'cityRun'); if (N) { this.p.z = Math.max(0, N.z0 - 250); this.world.extend(this.p.z + 3000); } }      // ?zone=arch: the run opens just before the arch tunnel (to look at it)
     this.raceNow = !!(zm && (zm[1] === 'race' || zm[1] === 'kart')); this.kartNow = !!(zm && zm[1] === 'kart'); this.race = null;                                  // ?zone=race: the run opens straight in the race zone (to test it)
     this.coins = 0; if (this.pk) this.pk.reset(); if (this.portal) this.portal.reset(); this.camX = 0; this.camOff = 0; this.camRel = 0; this.camErr = 0; this.prevTgt = 0; this.killer = null;
@@ -430,7 +431,7 @@ class Game {
   // THE LIFT OF THE CENTRAL DISTRICT: the run goes on elsewhere. Step 1: straight to Saint-Gilles (World.reroute: the district's pieces ahead are dropped, the sequence goes on with its next cityRun, then Utrecht and Vic).
   // Later steps put the underground tunnel, the underground city and the climb in between (the `inject` specs).
   liftEnd() {
-    const w = this.world, p = this.p, P = w.pieceAt(p.z), oldZ = p.z, N = P ? w.reroute(p.z, this.liftRoute || [{ seg: 'underRoad' }, { seg: 'underCity' }, { seg: 'underClimb' }], 'cityRun') : null;
+    const w = this.world, p = this.p, P = w.pieceAt(p.z), oldZ = p.z, N = P ? w.reroute(p.z, this.liftRoute || NEON_CORNER.STATION.route('L1'), 'cityRun') : null;
     this.liftRoute = null; this.ride = null; this.fadeOut = 0; if (!N) return;
     this.detour = null; w.extraLift = null; w.extraOff = null; w.noRoad = null; w.ver++;
     if (this.portal && this.portal.list) { this.portal.list = this.portal.list.filter(q => q.zIn < P.z1 - 400); if (this.portal.seen) this.portal.seen.add(P.uid + '>' + N.uid); }
@@ -553,7 +554,7 @@ class Game {
         if (on && !d.hintMall && p.z > zE - (C.PIT_N + 3.4) * C.SLOT && p.z < zE - (C.PIT_N + 1) * C.SLOT) { d.hintMall = true; this.banner = { t: 2.6, text: 'BIKE LANE ENDS: THE ROAD GOES DOWN' }; }
         if (on && !d.mallPit && p.z < zE) { const d2 = Object.assign({}, d, { mallPit: true }); w.extraLift = z => C.lift(d2, z); w.extraOff = z => C.off(d2, z); w.ver++; this.detour = d2; }      // (only a runner on the back road: the way down is dug for real, NEON_CORNER.lift; the side road's runners never see it)
         if (this.detour.mallPit && p.z > zCut - 7 * C.SLOT) {      // the pieces after the tunnel (the gallery of the shopping centre, the car park, the yellow tunnel, the underground city, the climb) are laid now, right after the tunnel's last slot
-          const U = 2.2 / 0.62, xT = (C.backM(C.DESC_Q + C.PIT_N) - C.sideM(C.DESC_Q + C.PIT_N)) / U, d3 = this.detour, K = C.off(d3, zCut - 1) + xT, N = w.cutAt(zCut, [{ seg: 'mallDescent' }, { seg: 'mallParking' }, { seg: 'underRoad' }, { seg: 'underCity' }, { seg: 'underClimb' }], 'cityRun');
+          const U = 2.2 / 0.62, xT = (C.backM(C.DESC_Q + C.PIT_N) - C.sideM(C.DESC_Q + C.PIT_N)) / U, d3 = this.detour, K = C.off(d3, zCut - 1) + xT, N = w.cutAt(zCut, C.STATION.route('A10', [{ seg: 'mallDescent' }, { seg: 'mallParking' }]), 'cityRun');
           if (N) { w.extraOff = z => z < zCut ? C.off(d3, z) : K; this.detour = Object.assign({}, d3, { mallJoin: true, distNo: true, zCut, xT }); if (this.portal && this.portal.list) { this.portal.list = this.portal.list.filter(q => q.zIn < zCut - 400); if (this.portal.seen) for (const P of w.pieces) this.portal.seen.add(P.uid + '>' + N.uid); } w.ver++; } }
       }
     }

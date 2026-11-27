@@ -97,6 +97,7 @@ BIOMES.terrace = Object.assign({}, BIOMES.market, { name: 'TERRASSE', sky: ['#0e
 BIOMES.under = Object.assign({}, BIOMES.neon, { name: 'UNDERGROUND' });      // (the blueprint tunnel has its own warm atmosphere: ENV3D.under)
 BIOMES.mallDown = Object.assign({}, BIOMES.neon, { name: 'CENTRE COMMERCIAL', atmo: 'neon' });
 BIOMES.archTunnel = Object.assign({}, BIOMES.neon, { name: 'TUNNEL SOUTERRAIN' });      // (the arch tunnel under the left round quarter: its own atmosphere, ENV3D.archTunnel)
+BIOMES.metroStation = Object.assign({}, BIOMES.neon, { name: 'STATION MÉTRO' });      // (ENV3D.metroStation)
 BIOMES.mallPark = Object.assign({}, BIOMES.neon, { name: 'PARKING', atmo: 'neon' });
 BIOMES.underClimb = Object.assign({}, BIOMES.neon, { name: 'THE CLIMB', atmo: 'under' });      // (the climb is the blueprint tunnel too: its warm atmosphere)      // (the underground road and city: the neon night's atmosphere, no sky)
 BIOMES.underCity = Object.assign({}, BIOMES.neon, { name: 'UNDERGROUND CITY', atmo: 'neon' });

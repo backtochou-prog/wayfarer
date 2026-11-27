@@ -1,0 +1,47 @@
+// THE METRO STATION (the user, 2026-11-27: a big 100 % underground station, 300 m x 160 m, 2 lines (A cyan on the left, B magenta on the right), 4 platforms, a central atrium, 4 entrances (the two arches at the
+// ends of the platforms, the two escalators of the middle) and 4 exits to the north; "fait ce qui peut etre modifie legerement au futur"). EVERYTHING that may change is a number or a table here and in
+// NEON_CORNER.STATION (src/track.js): the size (L, W, H), the colours, the number of platforms, where the atrium and the escalators stand, and which route each entrance/exit takes (links / exits).
+// The runner crosses the hall along its 300 m length, on a road in the middle of the hall; the platforms, the trains and the shops stand on both sides.
+window.ENV3D = window.ENV3D || {};
+(function () {
+  if (!ENV3D.neon || typeof NEON_CORNER === 'undefined') return;
+  const ST = NEON_CORNER.STATION, LL = 12.2, mod = (a, n) => ((a % n) + n) % n, N = Math.round(ST.L / 12);
+  const C = Object.assign({ floor: '#0c1030', floorL: '#1b2150', road: '#15172e', wall: '#0e1238', ceil: '#0a0c26', metal: '#2a3060', metal2: '#3a4290', white: '#eaf6ff', warm: '#ffe0a8', yel: '#ffd21a', A: '#35e6ff', B: '#ff3df0', plant: '#2fae5c', trunk: '#6a4a36' }, ST.colors || {});
+  const hr = (a, b) => { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); };
+  const half = ST.W / 2, plat = ST.platforms;                     // plat: [{ x: centre of the platform (m, + right), w: width, line: 'A'|'B' }, ...]
+  const sign = () => { if (sign.m) return sign.m; const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 256; const x = cv.getContext('2d'), g = (a, col, t, t2, y0) => { x.fillStyle = '#05081c'; x.fillRect(a, y0, 508, 244); x.strokeStyle = col; x.lineWidth = 7; x.strokeRect(a + 5, y0 + 5, 498, 234);
+      x.font = 'bold 74px Arial, sans-serif'; x.textAlign = 'center'; x.fillStyle = col; x.shadowColor = col; x.shadowBlur = 14; x.fillText(t, a + 254, y0 + 100); x.font = 'bold 40px Arial, sans-serif'; x.fillStyle = '#eaf6ff'; x.shadowBlur = 6; x.fillText(t2, a + 254, y0 + 172); x.font = '30px Arial, sans-serif'; x.fillText('Métro | Sortie | Commerces', a + 254, y0 + 216); };
+    g(2, C.A, 'LIGNE A', 'Direction Centre-Ville', 6); g(514, C.B, 'LIGNE B', 'Direction Aéroport', 6); const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return (sign.m = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide })); };
+  const tree = (p, x, z, r, k) => { p.push(Kit.cyl(r * 0.1, r * 0.16, r * 1.3, x, 0.9, z, C.trunk), Kit.ico(r * 0.62, x, 0.9 + r * 1.75, z, C.plant)); };
+  const hall = (k, role) => () => { const p = [], sp = [];
+    p.push(Kit.box(ST.W + 4, 0.1, LL, 0, -0.12, 0, C.floor), Kit.box(ST.W + 4, 0.6, LL, 0, ST.H, 0, C.ceil));
+    p.push(Kit.box(10, 0.05, LL, 0, -0.03, 0, C.road)); for (const s of [-1, 1]) p.push(Kit.box(0.14, 0.04, LL, s * 4.8, 0.0, 0, C.A, { glow: true })); for (let z = -4.5; z < 6; z += 6) p.push(Kit.box(0.16, 0.03, 3, 0, 0.01, z, C.white, { glow: true }));
+    for (const s of [-1, 1]) { p.push(Kit.box(2, ST.H, LL, s * (half + 1), 0, 0, C.wall));                                  // the side walls, with lit slits and the balcony's shop fronts
+      for (const y of [5, 11, 17, 23]) p.push(Kit.box(0.3, 1.4, LL * 0.8, s * (half - 0.1), y, 0, C.warm, { glow: true }));
+      p.push(Kit.box(14, 0.5, LL, s * (half - 8), 9, 0, C.metal), Kit.box(0.12, 0.12, LL, s * (half - 15), 10.2, 0, s < 0 ? C.A : C.B, { glow: true }), Kit.box(0.1, 1.0, LL, s * (half - 15), 9.5, 0, C.metal2));
+      for (const z of [-3.5, 3.5]) p.push(Kit.box(0.3, 3.4, 4.6, s * (half - 1.1), 9.5, z, [C.A, C.B, C.yel, '#9dff7a'][Math.floor(hr(k + z, s) * 4)], { glow: true }));
+      for (const z of [-3.5, 3.5]) p.push(Kit.box(0.3, 3.4, 4.6, s * (half - 1.1), 1, z, [C.A, C.B, C.yel, '#9dff7a'][Math.floor(hr(k + z, s + 5) * 4)], { glow: true })); }
+    for (const pl of plat) { const s = Math.sign(pl.x), col = pl.line === 'A' ? C.A : C.B, ax = pl.x + s * (pl.w / 2 + 3.2);                // a platform: raised, a yellow safety line, a lamp row, a train on its track
+      p.push(Kit.box(pl.w, 0.9, LL, pl.x, 0, 0, C.metal), Kit.box(0.4, 0.04, LL, pl.x - s * (pl.w / 2 - 0.5), 0.9, 0, C.yel, { glow: true }), Kit.box(0.2, 0.12, LL * 0.6, pl.x, 0.92, 0, col, { glow: true }), Kit.box(pl.w + 0.4, 0.2, LL, pl.x, 5.2, 0, C.metal2));
+      for (const z of [-4, 4]) p.push(Kit.box(0.4, 5.2, 0.4, pl.x, 0.9, z, C.metal2));
+      p.push(Kit.box(4, 0.2, LL, ax, -0.02, 0, '#15162e'), Kit.box(3.0, 3.6, LL - 0.4, ax, 0.5, 0, '#141a40'), Kit.box(3.04, 0.7, LL - 0.4, ax, 2.5, 0, col, { glow: true }), Kit.box(3.1, 0.4, LL - 0.4, ax, 4.0, 0, C.metal2));
+      for (const z of [-3.2, 3.2]) p.push(Kit.box(0.08, 1.8, 1.6, ax - s * 1.55, 0.9, z, '#bfe9ff', { glow: true })); }
+    for (const x of [-half + 18, half - 18]) p.push(Kit.cyl(0.6, 0.8, ST.H, x, 0, 0, C.metal, { seg: 8 }));                    // pillars
+    if (k % 2 === 0) for (const ww of [10, 22, 40, 60]) for (const s of [-1, 1]) p.push(Kit.box(0.5, 0.2, LL * 0.7, s * ww, ST.H - 0.4, 0, k % 4 === 0 ? C.B : C.A, { glow: true }));
+    tree(p, -8, 3, 2.2, k); tree(p, 8, -3, 2.2, k + 1); p.push(Kit.box(2.4, 0.5, 0.8, -8, 0, 0.6, C.metal2), Kit.box(2.4, 0.5, 0.8, 8, 0, -0.6, C.metal2));   // (greenery and benches by the road)
+    if (role === 'atrium') { p.push(Kit.cyl(7, 7, 0.8, 0, 11, 0, C.metal2, { seg: 24 }), Kit.cyl(6.4, 6.4, 0.3, 0, 11.8, 0, C.A, { seg: 24, glow: true }), Kit.cyl(5.4, 5.4, ST.H - 15.5, 0, 12.1, 0, C.A, { seg: 24, glow: true }), Kit.cyl(6.2, 6.2, 0.6, 0, ST.H * 0.6, 0, C.white, { seg: 24, glow: true }));      // (the hologram column hangs from the ceiling, 11 m over the road: the runner passes under it)
+      for (const [r, y, col] of [[40, ST.H - 1.5, C.A], [30, ST.H - 3, C.B], [20, ST.H - 4.5, C.white], [12, ST.H - 6, C.A]]) p.push(Kit.cyl(r, r, 0.4, 0, y, 0, col, { seg: 40, glow: true }), Kit.cyl(r - 0.6, r - 0.6, 0.45, 0, y - 0.02, 0, C.ceil, { seg: 40 })); }
+    if (role === 'escalator') for (const s of [-1, 1]) { const z = -ST.escSlots[1], up = ST.escUp; p.push(Kit.box(2.6, 0.5, LL + 0.6, s * 11, up * (k - ST.escSlots[0] + 0.5) / (ST.escSlots[1] - ST.escSlots[0] + 1), 0, '#1a2050', { rx: -Math.atan(up / ((ST.escSlots[1] - ST.escSlots[0] + 1) * LL)) * (s < 0 ? 1 : 1) }), Kit.box(0.12, 0.8, LL, s * 12.4, up * (k - ST.escSlots[0] + 0.5) / (ST.escSlots[1] - ST.escSlots[0] + 1) + 0.4, 0, C.A, { glow: true, rx: -Math.atan(up / ((ST.escSlots[1] - ST.escSlots[0] + 1) * LL)) })); }
+    if (role === 'sign') sp.push(new THREE.PlaneGeometry(26, 6.5).translate(0, 17, -LL / 2 + 0.4));
+    if (role === 'in' || role === 'out') { const fz = role === 'in' ? LL / 2 - 0.3 : -LL / 2 + 0.3;   // the arch of the entrance / the exit: a thick frame round the hall
+      p.push(Kit.box(ST.W, 6, 0.7, 0, ST.H - 6, fz, C.metal2), Kit.box(ST.W, 0.3, 0.8, 0, ST.H - 6.3, fz, role === 'in' ? C.A : C.B, { glow: true }));
+      for (const s of [-1, 1]) p.push(Kit.box(12, ST.H - 6, 0.7, s * (half - 6), 0, fz, C.metal2), Kit.box(12.4, ST.H - 6, 0.5, s * (half - 6), 0, fz, C.wall)); }
+    const m = Kit.merge(p); return sp.length ? { merged: m, sprite: sp[0], material: sign } : m; };
+  const props = {}; for (const r of ['plain', 'atrium', 'escalator', 'sign', 'in', 'out']) for (let k = 0; k < 2; k++) props['stH_' + r + k] = hall(k, r);
+  const role = (kk) => kk === 0 ? 'in' : kk === N - 1 ? 'out' : kk === ST.atriumSlot ? 'atrium' : (kk >= ST.escSlots[0] && kk <= ST.escSlots[1] ? 'escalator' : (kk === ST.signSlot || kk === N - 1 - ST.signSlot ? 'sign' : 'plain'));
+  ENV3D.metroStation = Object.assign({}, ENV3D.neon, {
+    name: 'STATION MÉTRO', entrance: null, props: Object.assign({}, ENV3D.neon.props, props), road: Object.assign({}, ENV3D.neon.road, { mark: '#ffffff', edge: '#35e6ff', asphalt: ['#15172e', '#10122a'] }),
+    sky: { top: '#080a22', mid: '#14123a', horizon: '#241a5a' }, fog: { color: '#0e1034', near: 40, far: 230 }, hemi: { sky: '#a0b0ff', ground: '#302a80', intensity: 2.0 }, sun: { color: '#bfe9ff', intensity: 1.2, position: [0, 9, 4] }, sunDisc: { color: '#14123a', size: 1 }, sunGlow: 0, groundFar: '#0a0a24',
+    layout(i) { const g = typeof window !== 'undefined' && window.__wf, w = g && g.world, P = w && w.pieceAt(i * 120 + 60), kk = P && P.id === 'metroStation' ? Math.round((i * 120 - P.z0) / 120) : 0; return [{ prop: 'stH_' + role(kk) + mod(kk, 2), x: 0, dist: 6, solo: true, dy: -0.15 }]; },
+  });
+})();

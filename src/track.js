@@ -193,7 +193,18 @@ const NEON_CORNER = {
   // DESC_Q slots after the avenue's mouth, the back road and its bike lane end at the entrance of a big shopping centre (src3d/env_canyon.js nrMallA / nrMallB); Game.step takes the runner in (a fade) and
   // the way goes on DOWN through the centre (mallDescent), the blueprint tunnel, the underground city and the climb (World.reroute).
   DESC_Q: 22, PIT_N: 7, PIT_M: 8,
-  ARCH: { X: -232, Z0: 260, Z1: 440 },      // (the arch tunnel under the left round quarter: metres right of the district's avenue, metres along it)
+  ARCH: { X: -232, Z0: 260, Z1: 440 },
+  // THE METRO STATION (the user, 2026-11-27, "fait ce qui peut etre modifie legerement au futur"): EVERY choice is in this table. Size in metres (L along the run, W across, H high); where it lies under the world
+  // (Z0..Z0+W along the circuit's axis, centred on the district's gate: the user's red box O4); the platforms (x: centre across, w: width, line); the slots of the hall that are the atrium, the escalators and the
+  // signs; its 4 ENTRANCES (E1 left arch, E2 right arch, E3 left escalator, E4 right escalator) and 4 EXITS (S1 .. S4, towards the north); `links`: which route comes in by which entrance; `exits`: the segments
+  // that follow each exit (null: not built yet, the exit S3 is used). To re-route, edit `links` / `exits`; to resize, edit L / W / H.
+  STATION: { L: 300, W: 160, H: 35, Z0: 1432, colors: {},
+    platforms: [{ x: -22, w: 8, line: 'A' }, { x: -40, w: 8, line: 'A' }, { x: 22, w: 8, line: 'B' }, { x: 40, w: 8, line: 'B' }],
+    atriumSlot: 12, escSlots: [9, 11], escUp: 9, escLoop: 0, signSlot: 3,
+    entrances: { E1: 'arche gauche (ligne A)', E2: 'arche droite (ligne B)', E3: 'escalier gauche du milieu', E4: 'escalier droit du milieu' },
+    links: { A10: 'E2', L1: 'E2', A6: 'E1', A19: 'E3', A17: 'E4' },
+    exits: { S1: null, S2: null, S3: [{ seg: 'underRoad' }, { seg: 'underCity' }, { seg: 'underClimb' }], S4: null }, exitTo: { A10: 'S3', L1: 'S3', A6: 'S3', A19: 'S3', A17: 'S3' },
+    route(from, before) { const x = this.exitTo[from] || 'S3', ex = this.exits[x] || this.exits.S3; return (before || []).concat([{ seg: 'metroStation' }], ex); } },      // (the arch tunnel under the left round quarter: metres right of the district's avenue, metres along it)
   LIFT_F0: 4, LIFT_F1: 350 / 12, LIFT_X: 232, LIFT_STOP: 12.5,
   liftM(f) { const r = 0.12, s = 1 / (1 - r), t = (f - this.LIFT_F0) / (this.LIFT_F1 - this.LIFT_F0), L = this.BIKE_DX + this.BIKE_G;
     return L + (this.LIFT_X - L) * (t <= 0 ? 0 : t >= 1 ? 1 : t < r ? s * t * t / (2 * r) : t <= 1 - r ? s * (t - r / 2) : 1 - s * (1 - t) * (1 - t) / (2 * r)); },
@@ -361,6 +372,9 @@ const TRACK = {
     // seen with ?zone=arch. NEON_CORNER.ARCH says where it lies under the district.
     archTunnel: { name: 'TUNNEL SOUTERRAIN', biome: 'archTunnel', noPortal: true, length: 1800, curve: 0, first: 260, spacing: 210, district: 300, opening: true, stay: true, calmStart: true,
                   patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'zig'] },
+    // THE METRO STATION's hall (NEON_CORNER.STATION): the run crosses its 300 m length; reached by a route of the table `STATION.links` (Game: liftRoute / the mall descent), left by an exit of `STATION.exits`.
+    metroStation: { name: 'STATION MÉTRO', biome: 'metroStation', noPortal: true, length: 3000, curve: 0, first: 300, spacing: 210, district: 300, opening: true, stay: true, calmStart: true,
+                    patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'zig'] },
     // THE PARKING between the shopping centre's gallery and the blueprint tunnel (the user, 2026-11-26: "un grand parking ... pour que la route goudronnee commence depuis le parking"): a big underground car park, 400 m.
     mallParking: { name: 'PARKING', biome: 'mallPark', noPortal: true, length: 4000, curve: 0, first: 300, spacing: 210, district: 600, opening: true, stay: true, calmStart: true,
                    patterns: ['line', 'hurdle', 'crateJump', 'slideGate', 'trailR', 'dodgeL', 'zig'] },
