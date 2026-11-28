@@ -203,7 +203,8 @@ const NEON_CORNER = {
     pic: { h: 24, y: 6 }, picSlots: [[5, -1], [19, 1], [8, 1], [16, -1]],      // (the user's picture of the hall, hung on the walls: its height in metres, its foot, and the slots/sides where it hangs)
     atriumSlot: 12, escSlots: [9, 11], escUp: 9, escLoop: 0, signSlot: 3,
     entrances: { E1: 'arche gauche (ligne A)', E2: 'arche droite (ligne B)', E3: 'escalier gauche du milieu', E4: 'escalier droit du milieu' },
-    links: { A10: 'E2', L1: 'E2', A6: 'E1', A19: 'E3', A17: 'E4' },
+    ramp: { start: 18, n: 14, cut: 2 },      // (the two OPEN GLASS RAMPS down to the escalators: they leave the glass way `start` slots before the district, dive over `n` slots, and the run goes on into the hall `cut` slots before the district)
+    links: { A10: 'E2', L1: 'E2', A6: 'E1', A19: 'E3', A17: 'E4', A4: 'E3', A11: 'E4', A12: 'E4' },
     exitX: { S1: -147, S2: -37, S3: 39, S4: 157 },      // (the user's red lines: where each exit leaves the 300 m station, metres across from its middle, + right; the hall draws a door at that place, along its right wall)
     exits: { S1: null, S2: null, S3: [{ seg: 'underRoad' }, { seg: 'underCity' }, { seg: 'underClimb' }], S4: null }, exitTo: { A10: 'S3', L1: 'S3', A6: 'S3', A19: 'S3', A17: 'S3' },
     route(from, before) { const x = this.exitTo[from] || 'S3', ex = this.exits[x] || this.exits.S3; return (before || []).concat([{ seg: 'metroStation' }], ex); } },      // (the arch tunnel under the left round quarter: metres right of the district's avenue, metres along it)
@@ -338,6 +339,7 @@ const NEON_CORNER = {
   // the height of the road (units of run) at z for a detour that took the glass ramp (positive), or the underground tunnel (negative)
   lift(d, z) {
     if (d && d.land) return 0;
+    if (d && d.stPit && z >= d.stPit.z0) { const t = Math.min(1, (z - d.stPit.z0) / (d.stPit.n * this.SLOT)), e = t * t * (3 - 2 * t); return d.stPit.h + (-80 - d.stPit.h) * e; }      // THE STATION RAMPS: from the glass way, over `n` slots, an open glass ramp down to 8 m under the street (STATION.ramp)
     if (d && d.mallPit && !d.glass) { const q = (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART), a = this.DESC_Q + 1, e = t => t * t * (3 - 2 * t);      // THE MALL's WAY DOWN: from the tunnel mouth (DESC_Q) the road dives PIT_M metres over PIT_N slots, for real (like the underground tunnel)
       return q <= a ? 0 : -this.PIT_M * 10 * e(Math.min(1, (q - a) / this.PIT_N)); }
     if (d && d.glass) return this.gH(d.glass, (z - d.z0) / this.SLOT - (this.STREET + this.TUNNEL + this.ART), this.far(d));

@@ -548,6 +548,14 @@ class Game {
         if (this.keys.right || this.tright) this.detour.wantW = true; else if (this.keys.left || this.tleft) this.detour.wantW = false; }
       if (prevZ < zW && p.z >= zW) { this.detour.askedW = true; if (this.detour.wantW && on) { this.detour.walk = true; this.banner = { t: 2, text: 'THE WALK' }; this.emit('corner'); } }
     }
+    if (this.detour && !this.detour.stDone && !this.detour.mallJoin && !this.ride && (this.detour.up || this.detour.glass === true || this.detour.glass === 2) && !this.detour.land && !this.detour.down && !this.detour.park && typeof NEON_CORNER.STATION === 'object' && NEON_CORNER.STATION.ramp) {      // THE STATION's OPEN GLASS RAMPS (the user, 2026-11-28; NEON_CORNER.STATION.ramp): from the glass avenue (LEFT, to the left escalator E3) or the 2.8 m / 7 m ramps (RIGHT, to the right escalator E4), the way down into the metro station, close to where they pass above
+      const C = NEON_CORNER, ST = C.STATION, d = this.detour, zS0 = d.dist ? d.zS : d.z1 - C.EXIT * C.SLOT, zB = zS0 - ST.ramp.start * C.SLOT, zCut = zS0 - ST.ramp.cut * C.SLOT, left = !!d.up, key = d.up ? 'A4' : d.glass === 2 ? 'A12' : 'A11';
+      if (!d.stPit) { if (p.z > zB - 6 * C.SLOT && p.z < zB) { if (!d.hintSt) { d.hintSt = true; this.banner = { t: 2.6, text: left ? 'STATION: PRESS LEFT FOR THE ESCALATOR' : 'STATION: PRESS RIGHT FOR THE ESCALATOR' }; }
+          const yes = left ? (this.keys.left || this.tleft) : (this.keys.right || this.tright), no = left ? (this.keys.right || this.tright) : (this.keys.left || this.tleft); if (yes) d.wantSt = true; else if (no) d.wantSt = false; }
+        if (prevZ < zB && p.z >= zB) { if (d.wantSt) { const d2 = Object.assign({}, d, { stPit: { z0: zB, n: ST.ramp.n, h: C.lift(d, zB), key }, distNo: true, zCutSt: zCut }); w.extraLift = z => C.lift(d2, z); w.extraOff = z => C.off(d2, z); w.ver++; this.detour = d2; this.banner = { t: 2.2, text: left ? 'ESCALATOR GAUCHE' : 'ESCALATOR DROIT' }; this.emit('corner'); } else d.stDone = true; } }
+      else if (p.z > zCut - 7 * C.SLOT) { const d3 = this.detour, K = C.off(d3, zCut - 1), N = w.cutAt(zCut, ST.route(d3.stPit.key), 'cityRun');
+        if (N) { w.extraOff = z => z < zCut ? C.off(d3, z) : K; this.detour = Object.assign({}, d3, { mallJoin: true, distNo: true, zCut, xT: 0, joinBanner: 'STATION MÉTRO' }); if (this.portal && this.portal.list) { this.portal.list = this.portal.list.filter(q => q.zIn < zCut - 400); if (this.portal.seen) for (const P of w.pieces) this.portal.seen.add(P.uid + '>' + N.uid); } w.ver++; } }
+    }
     if (this.detour && this.detour.side && !this.detour.glass && !this.detour.land && !this.detour.walk && !this.detour.dist && !this.ride && typeof NEON_CORNER.DESC_Q === 'number' && !this.detour.mallJoin) {      // THE MALL's WAY DOWN (NEON_CORNER.DESC_Q): the back road ends at the yellow tunnel's mouth; the tunnel dives PIT_M m over PIT_N slots and the run goes straight on into the shopping centre, never stopping
       const C = NEON_CORNER, d = this.detour, zCut = d.z0 + (C.STREET + C.TUNNEL + C.ART + C.DESC_Q + C.PIT_N + 1) * C.SLOT, zE = zCut - 3 * C.SLOT;
       if (p.z > zE - (C.PIT_N + 3.5) * C.SLOT && p.z <= zCut) { const BL = this.bikeLane(zE - 5), on = !!(BL && (this.onLane || Math.abs(p.x - BL.c) < 2));
@@ -560,7 +568,7 @@ class Game {
     }
     if (this.detour && this.detour.mallJoin && this.detour.zCut != null) {      // (the run crosses the tunnel's end: from here the runner is on the new road, which stands where the back road stood; later, with no old slot in view, the offsets are dropped: a plain translation)
       const C = NEON_CORNER, d = this.detour;
-      if (!d.mallCrossed && p.z >= d.zCut) { d.mallCrossed = true; p.x -= d.xT; this.camRel -= d.xT; this.carryC = w.playerBand(p.z, p.x).c; this.onLane = false; this.laneEase = 0; this._bkT = null; this.mallDeep = true; this.banner = { t: 2.4, text: 'CENTRE COMMERCIAL' }; this.emit('corner'); }
+      if (!d.mallCrossed && p.z >= d.zCut) { d.mallCrossed = true; p.x -= d.xT; this.camRel -= d.xT; this.carryC = w.playerBand(p.z, p.x).c; this.onLane = false; this.laneEase = 0; this._bkT = null; this.mallDeep = true; this.banner = { t: 2.4, text: d.joinBanner || 'CENTRE COMMERCIAL' }; this.emit('corner'); }
       if (d.mallCrossed && p.z > d.zCut + 14 * C.SLOT) { this.detour = null; w.extraLift = null; w.extraOff = null; w.noRoad = null; w.ver++; this.mallDeep = false; }
     }
     if (this.detour && this.detour.dist && this.detour.zS != null && !this.detour.glass && !this.detour.land && !this.detour.walk && typeof NEON_CORNER.liftM === 'function') {      // THE LIFT TRACK (the user, 2026-11-25: the district is the hub of the circuits, each round construction a door): RIGHT pressed on the district's lane (or the avenue's right half) at its first slots takes the raised track to the first right quarter's LIFT ROTUNDA; at its door the lift goes down (Game.liftEnd)
@@ -701,7 +709,7 @@ class Game {
     const w = this.world, p = this.p;
     const dir = (this.keys.right || this.tright ? 1 : 0) - (this.keys.left || this.tleft ? 1 : 0);
     const vp = w.pieceAt(p.z); let lanes = 0, lc = 0;
-    if ((w.extraLift && w.extraLift(p.z) > 1) || (this.detour && this.detour.glass === 3 && !(this.detour.land && p.z < this.detour.zLE)) || (this.detour && this.detour.glass >= 4)) { lanes = 1; lc = w.playerBand(p.z, p.x).c; }      // THE GLASS RAMPS (up and down, NEON_CORNER): one lane, narrower than the circuit, like the ramps of a motorway
+    if ((w.extraLift && w.extraLift(p.z) > 1) || (this.detour && this.detour.glass === 3 && !(this.detour.land && p.z < this.detour.zLE)) || (this.detour && this.detour.glass >= 4) || (this.detour && this.detour.stPit)) { lanes = 1; lc = w.playerBand(p.z, p.x).c; }      // THE GLASS RAMPS (up and down, NEON_CORNER): one lane, narrower than the circuit, like the ramps of a motorway
     else if (vp && vp.type === 'seg') lanes = vp.seg.lanes || 0; else if (vp && vp.type === 'fork' && vp.choice) { lanes = w.track.segments[vp.fork[vp.choice].route].lanes || 0; lc = w.playerBand(p.z, p.x).c; }       // (on a chosen road of a junction the places are those of that road)
     if (lanes) {                                   // VIC, the narrow streets: only TWO places, the left half and the right half of the street (lane +-0.28), or ONE in the alley: a key sends the runner to that half, it stays there until the other key
       if (dir) this.lane2 = dir; else if (!this.lane2) this.lane2 = p.x < lc ? -1 : 1;
