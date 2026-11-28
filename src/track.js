@@ -200,6 +200,7 @@ const NEON_CORNER = {
   // that follow each exit (null: not built yet, the exit S3 is used). To re-route, edit `links` / `exits`; to resize, edit L / W / H.
   STATION: { L: 300, W: 160, H: 35, Z0: 1432, colors: {},
     platforms: [{ x: -22, w: 8, line: 'A' }, { x: -40, w: 8, line: 'A' }, { x: 22, w: 8, line: 'B' }, { x: 40, w: 8, line: 'B' }],
+    pic: { h: 24, y: 6 }, picSlots: [[5, -1], [19, 1], [8, 1], [16, -1]],      // (the user's picture of the hall, hung on the walls: its height in metres, its foot, and the slots/sides where it hangs)
     atriumSlot: 12, escSlots: [9, 11], escUp: 9, escLoop: 0, signSlot: 3,
     entrances: { E1: 'arche gauche (ligne A)', E2: 'arche droite (ligne B)', E3: 'escalier gauche du milieu', E4: 'escalier droit du milieu' },
     links: { A10: 'E2', L1: 'E2', A6: 'E1', A19: 'E3', A17: 'E4' },
